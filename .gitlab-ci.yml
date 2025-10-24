@@ -1,0 +1,164 @@
+image: php:8.3-alpine
+
+variables:
+  POSTGRES_DB: civicdash_test
+  POSTGRES_USER: civicdash
+  POSTGRES_PASSWORD: secret
+  DB_HOST: postgres
+  REDIS_HOST: redis
+
+stages:
+  - prepare
+  - lint
+  - test
+  - build
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - vendor/
+    - node_modules/
+
+# Template pour PHP
+.php_template: &php_template
+  before_script:
+    - apk add --no-cache git curl libpng-dev libxml2-dev zip unzip postgresql-dev nodejs npm bash
+    - docker-php-ext-install pdo pdo_pgsql pgsql pcntl bcmath gd xml
+    - pecl install redis && docker-php-ext-enable redis
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    - cp .env.example .env
+    - composer install --prefer-dist --no-progress --no-interaction
+    - php artisan key:generate
+    - npm install
+
+# Job: Installation des dépendances
+install:
+  stage: prepare
+  <<: *php_template
+  script:
+    - echo "Dependencies installed"
+  artifacts:
+    paths:
+      - vendor/
+      - node_modules/
+    expire_in: 1 hour
+
+# Job: Lint PHP (Pint)
+lint:php:
+  stage: lint
+  <<: *php_template
+  dependencies:
+    - install
+  script:
+    - ./vendor/bin/pint --test
+  allow_failure: false
+
+# Job: Analyse statique (PHPStan)
+lint:phpstan:
+  stage: lint
+  <<: *php_template
+  dependencies:
+    - install
+  script:
+    - composer require --dev phpstan/phpstan --no-interaction
+    - ./vendor/bin/phpstan analyse --level=8 app
+  allow_failure: true
+
+# Job: Lint JavaScript/Vue (ESLint)
+lint:js:
+  stage: lint
+  image: node:20-alpine
+  dependencies:
+    - install
+  script:
+    - npm run lint || echo "ESLint not configured yet"
+  allow_failure: true
+
+# Job: Tests unitaires et feature (Pest)
+test:unit:
+  stage: test
+  <<: *php_template
+  services:
+    - postgres:15-alpine
+    - redis:7-alpine
+  dependencies:
+    - install
+  script:
+    - php artisan migrate --force
+    - php artisan config:clear
+    - php artisan cache:clear
+    - ./vendor/bin/pest --coverage --min=70
+  coverage: '/^\s*Lines:\s*\d+.\d+\%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    when: always
+    paths:
+      - tests/_output/
+    expire_in: 1 week
+
+# Job: Tests de sécurité (dépendances)
+test:security:
+  stage: test
+  <<: *php_template
+  dependencies:
+    - install
+  script:
+    - composer audit
+  allow_failure: true
+
+# Job: Build des assets frontend
+build:assets:
+  stage: build
+  <<: *php_template
+  dependencies:
+    - install
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - public/build/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+    - tags
+
+# Job: Build image Docker (optionnel, pour déploiement)
+build:docker:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t civicdash:${CI_COMMIT_SHORT_SHA} .
+    - docker tag civicdash:${CI_COMMIT_SHORT_SHA} civicdash:latest
+  only:
+    - main
+    - tags
+
+# Review Apps (optionnel, pour GitLab Pages ou K8s)
+deploy:review:
+  stage: deploy
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: https://$CI_COMMIT_REF_SLUG.civicdash.review
+    on_stop: stop_review
+  script:
+    - echo "Deploy review app"
+  only:
+    - merge_requests
+
+stop_review:
+  stage: deploy
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    action: stop
+  script:
+    - echo "Stop review app"
+  when: manual
+  only:
+    - merge_requests
+

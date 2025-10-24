@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: civicdash-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - civicdash
+    ports:
+      - "7777:7777"
+      - "5173:5173"  # Vite dev server
+    depends_on:
+      - db
+      - redis
+      - meilisearch
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=civicdash
+      - DB_USERNAME=civicdash
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MEILISEARCH_HOST=http://meilisearch:7700
+    command: php artisan serve --host=0.0.0.0 --port=7777
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: civicdash-queue
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    networks:
+      - civicdash
+    depends_on:
+      - db
+      - redis
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=civicdash
+      - DB_USERNAME=civicdash
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: php artisan queue:work --tries=3
+
+  horizon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: civicdash-horizon
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    networks:
+      - civicdash
+    depends_on:
+      - db
+      - redis
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=civicdash
+      - DB_USERNAME=civicdash
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: php artisan horizon
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: civicdash-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    networks:
+      - civicdash
+    depends_on:
+      - db
+      - redis
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=civicdash
+      - DB_USERNAME=civicdash
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: bash -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
+
+  db:
+    image: postgres:15-alpine
+    container_name: civicdash-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: civicdash
+      POSTGRES_USER: civicdash
+      POSTGRES_PASSWORD: secret
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - civicdash
+    ports:
+      - "5433:5432"  # Port externe 5433 pour éviter conflit
+
+  redis:
+    image: redis:7-alpine
+    container_name: civicdash-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    networks:
+      - civicdash
+    ports:
+      - "6380:6379"  # Port externe 6380 pour éviter conflit
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: civicdash-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: true
+    volumes:
+      - meilisearchdata:/meili_data
+    networks:
+      - civicdash
+    ports:
+      - "7700:7700"
+
+networks:
+  civicdash:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+  meilisearchdata:
+    driver: local
+
