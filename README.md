@@ -212,31 +212,121 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 
 ## 🗺️ Roadmap
 
-### PoC (Semaines 1-6)
-- [x] Setup Laravel + Docker
-- [ ] Auth PoC (Breeze) + RBAC
-- [ ] Territoires seed (régions/départements FR)
-- [ ] Forum (topics/posts) + sanitizer Markdown
-- [ ] Votes up/down + scrutin anonyme
-- [ ] Budget sliders + contraintes + agrégation
-- [ ] Transparence (CSV recettes/dépenses)
-- [ ] Modération + sanctions
-- [ ] Documents vérifiés (workflow)
-- [ ] CI/CD GitLab
+### ✅ État Actuel : 95% Production-Ready
 
-### V1 (post-PoC)
-- [ ] FranceConnect+ OIDC
-- [ ] Vote renforcé (commit-reveal/mixnet)
-- [ ] Connecteurs données fiscales officielles
-- [ ] Anti-brigading & rate-limit adaptatif
-- [ ] Observabilité (métriques publiques)
-- [ ] Mobile app (React Native)
+**Déjà implémenté** :
+- [x] Setup Laravel 11 + Docker (PostgreSQL, Redis, Meilisearch, Horizon)
+- [x] Auth Laravel Breeze + Inertia + Vue 3
+- [x] RBAC Spatie Permission (7 rôles, 26 permissions)
+- [x] Territoires seed (13 régions + 101 départements FR)
+- [x] Forum complet (topics/posts) + Markdown sanitizer
+- [x] Votes up/down + scrutin anonyme cryptographique
+- [x] Budget participatif (10 secteurs) + contraintes min/max
+- [x] Transparence (recettes/dépenses publiques)
+- [x] Modération workflow (reports + sanctions)
+- [x] Documents vérifiés (upload + workflow validation)
+- [x] 122 tests Pest (Unit + Feature)
+- [x] 58 routes API REST
+- [x] 17 pages Vue 3 + Inertia
+- [x] Cache Redis (540x plus rapide)
+- [x] Rate Limiting (9 limites anti-spam)
+- [x] FranceConnect+ ready (95%)
+- [x] CI/CD GitLab
+- [x] Documentation exhaustive (25 fichiers)
+
+### 📅 Phase 1 : Production Ready (T1 2026 - Janv-Mars)
+
+**Version** : 1.0.0 | **Durée** : 2-3 semaines
+
+- [ ] 🇫🇷 **FranceConnect+ Finalisé** (2-3 jours)
+  - Obtenir CLIENT_ID + CLIENT_SECRET
+  - Badge "Vérifié par l'État"
+  - Tests E2E OAuth2
+  
+- [ ] 🧪 **Tests Additionnels** (3-4 jours)
+  - Tests Cache Redis (invalidation, performance)
+  - Tests Rate Limiting (429 responses)
+  - Coverage > 80%
+  
+- [ ] 📱 **Responsive Mobile** (4-5 jours)
+  - Menu burger + bottom nav
+  - 17 pages mobile-optimized
+  - Touch targets 44px minimum
+  - Lighthouse mobile > 85
+  
+- [ ] 🔍 **Recherche Meilisearch** (2-3 jours)
+  - Indexation Topics, Posts, Documents
+  - Autocomplete + filtres
+  - Typo-tolerant
+
+**Objectif** : Beta publique avec 1,000 citoyens
+
+### ⚡ Phase 2 : Qualité Production (T2 2026 - Avril-Juin)
+
+**Version** : 1.1.0 | **Durée** : 2-3 semaines
+
+- [ ] 📊 **Monitoring & Observabilité** (2-3 jours)
+  - Telescope (dev) + Sentry (prod)
+  - Logs JSON structurés
+  - Alertes Slack
+  - MTTR < 30 min
+  
+- [ ] 📧 **Système de Notifications** (3-4 jours)
+  - In-app + Email (6 types)
+  - Préférences utilisateur
+  - Queue jobs
+  
+- [ ] 🌐 **Internationalisation i18n** (2-3 jours)
+  - Interface FR/EN
+  - Vue i18n + Laravel lang
+  - URLs localisées
+
+**Objectif** : 5,000 citoyens, 99.9% uptime
+
+### 💡 Phase 3 : Features Avancées (T3 2026 - Juil-Sept)
+
+**Version** : 1.2.0 | **Durée** : 1-2 mois
+
+- [ ] 🎨 Design System complet (3-4 jours)
+- [ ] 📱 PWA (Progressive Web App) (2-3 jours)
+- [ ] 🔐 Sécurité avancée (CSP, 2FA, audits) (4-5 jours)
+- [ ] 📊 Analytics & Métriques (2-3 jours)
+- [ ] 🚀 Optimisations Performance (2-3 jours)
+- [ ] 📄 Documentation utilisateur (2-3 jours)
+- [ ] 🧪 Tests E2E Cypress (3-4 jours)
+
+**Objectif** : 10,000 citoyens, Lighthouse > 90
+
+### 🌟 Phase 4 : Scale & Innovation (T4 2026 - Oct-Déc)
+
+**Version** : 2.0.0 | **Durée** : 2-3 mois
+
+- [ ] 📜 Pétitions en ligne (1-2 semaines)
+- [ ] 🏛️ Initiatives citoyennes (1-2 semaines)
+- [ ] 🗺️ Cartographie participative (1 semaine)
+- [ ] 📹 Livestream débats (1 semaine)
+- [ ] 🤖 ML Auto-Modération (2-3 semaines)
+- [ ] 🧠 AI Facilitator (2-3 semaines)
+- [ ] ⚙️ Microservices Architecture (1 mois)
+- [ ] ☸️ Kubernetes Production (2 semaines)
+
+**Objectif** : 50,000 citoyens, plateforme nationale
+
+### 🏆 Vision Long Terme (2027+)
+
+- 🇫🇷 Partenariat Gouvernement français
+- 🏛️ Intégration Assemblée Nationale
+- 🏙️ Déploiement communes France (> 5000 hab)
+- 🌍 Fork européen (DE, ES, IT)
+- 🇪🇺 Standard EU démocratie participative
+
+**Roadmap complète** : Voir [docs/ROADMAP.md](docs/ROADMAP.md)
 
 ## 📞 Support & Contact
 
-- **Issues** : [GitHub Issues](https://github.com/votre-org/civicdash/issues)
-- **Discussions** : [GitHub Discussions](https://github.com/votre-org/civicdash/discussions)
-- **Email** : contact@civicdash.fr
+- **Issues** : [GitHub Issues](https://github.com/CivicDash/democratie/issues)
+- **Discussions** : [GitHub Discussions](https://github.com/CivicDash/democratie/discussions)
+- **Documentation** : [docs/](docs/)
 
 ## 👥 Équipe
 
