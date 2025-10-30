@@ -78,13 +78,35 @@ class TopicController extends Controller
         $topic->load(['author', 'region', 'department']);
         $topic->loadCount('ballots');
 
+        // ✅ PAGINATION avec 20 posts par page + optimisations
         $posts = $topic->posts()
-            ->with('author')
+            ->with([
+                'author' => fn($q) => $q->select('id', 'name'), // Limiter colonnes
+                'votes' => fn($q) => $q->where('user_id', auth()->id())->select('post_id', 'user_id', 'vote_type'), // Vote de l'user
+            ])
             ->withVoteScore()
             ->orderByDesc('is_pinned')
             ->orderByDesc('is_solution')
             ->orderByDesc('vote_score')
-            ->get();
+            ->paginate(20)
+            ->through(fn($post) => [
+                'id' => $post->id,
+                'content' => $post->content,
+                'is_pinned' => $post->is_pinned,
+                'is_solution' => $post->is_solution,
+                'vote_score' => $post->vote_score,
+                'created_at' => $post->created_at->diffForHumans(),
+                'updated_at' => $post->updated_at->diffForHumans(),
+                'author' => [
+                    'id' => $post->author->id,
+                    'name' => $post->author->name,
+                ],
+                'user_vote' => $post->votes->first()?->vote_type, // up/down/null
+                'can' => [
+                    'update' => auth()->check() && auth()->user()->can('update', $post),
+                    'delete' => auth()->check() && auth()->user()->can('delete', $post),
+                ],
+            ]);
 
         return Inertia::render('Topics/Show', [
             'topic' => $topic,

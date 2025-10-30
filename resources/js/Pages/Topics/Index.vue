@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { useDebounceFn } from '@vueuse/core';
 import MainLayout from '@/Layouts/MainLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
@@ -18,6 +19,17 @@ const search = ref(props.filters?.search || '');
 const scopeFilter = ref(props.filters?.scope || 'all');
 const typeFilter = ref(props.filters?.type || 'all');
 
+// ✅ MEMOIZATION - Calculer metadata UNE FOIS avec computed
+const topicsWithMetadata = computed(() => {
+    return props.topics.data.map(topic => ({
+        ...topic,
+        statusBadge: getStatusBadge(topic),
+        scopeLabel: getScopeLabel(topic.scope),
+        typeLabel: getTypeLabel(topic.type),
+        formattedDate: formatDate(topic.created_at),
+    }));
+});
+
 const applyFilters = () => {
     router.get(route('topics.index'), {
         search: search.value,
@@ -29,6 +41,11 @@ const applyFilters = () => {
     });
 };
 
+// ✅ DEBOUNCE - Recherche avec délai 300ms
+const debouncedSearch = useDebounceFn(() => {
+    applyFilters();
+}, 300);
+
 const clearFilters = () => {
     search.value = '';
     scopeFilter.value = 'all';
@@ -36,6 +53,7 @@ const clearFilters = () => {
     applyFilters();
 };
 
+// Helper functions (exécutées UNE FOIS grâce au computed)
 const getScopeLabel = (scope) => {
     const labels = {
         national: '🇫🇷 National',
@@ -108,8 +126,12 @@ const formatDate = (date) => {
                                 type="text"
                                 placeholder="🔍 Rechercher un sujet..."
                                 class="w-full"
+                                @input="debouncedSearch"
                                 @keyup.enter="applyFilters"
                             />
+                            <p class="text-xs text-gray-500 mt-1">
+                                💡 Recherche automatique pendant la frappe
+                            </p>
                         </div>
                         <div>
                             <select 
@@ -145,8 +167,8 @@ const formatDate = (date) => {
                 </Card>
 
                 <!-- Topics List -->
-                <div v-if="topics.data.length > 0" class="space-y-4">
-                    <Card v-for="topic in topics.data" :key="topic.id" padding="p-6 hover:shadow-md transition-shadow">
+                <div v-if="topicsWithMetadata.length > 0" class="space-y-4">
+                    <Card v-for="topic in topicsWithMetadata" :key="topic.id" padding="p-6 hover:shadow-md transition-shadow">
                         <Link :href="route('topics.show', topic.id)" class="block">
                             <div class="flex items-start justify-between">
                                 <div class="flex-1 min-w-0">
@@ -155,8 +177,8 @@ const formatDate = (date) => {
                                         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400">
                                             {{ topic.title }}
                                         </h3>
-                                        <Badge :variant="getStatusBadge(topic).variant">
-                                            {{ getStatusBadge(topic).label }}
+                                        <Badge :variant="topic.statusBadge.variant">
+                                            {{ topic.statusBadge.label }}
                                         </Badge>
                                     </div>
 
@@ -168,13 +190,13 @@ const formatDate = (date) => {
                                     <!-- Metadata -->
                                     <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                                         <Badge :variant="topic.scope === 'national' ? 'blue' : topic.scope === 'regional' ? 'indigo' : 'gray'" size="sm">
-                                            {{ getScopeLabel(topic.scope) }}
+                                            {{ topic.scopeLabel }}
                                         </Badge>
                                         <Badge variant="gray" size="sm">
-                                            {{ getTypeLabel(topic.type) }}
+                                            {{ topic.typeLabel }}
                                         </Badge>
                                         <span>👤 {{ topic.author?.name || 'Anonyme' }}</span>
-                                        <span>📅 {{ formatDate(topic.created_at) }}</span>
+                                        <span>📅 {{ topic.formattedDate }}</span>
                                         <span>💬 {{ topic.posts_count || 0 }} réponses</span>
                                         <span v-if="topic.ballot_type">🗳️ {{ topic.ballots_count || 0 }} votes</span>
                                     </div>

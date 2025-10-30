@@ -1,16 +1,17 @@
 <script setup>
-import { ref } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import MainLayout from '@/Layouts/MainLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import EmptyState from '@/Components/EmptyState.vue';
+import LoadingSpinner from '@/Components/LoadingSpinner.vue';
 
 const props = defineProps({
     topic: Object,
-    posts: Array,
+    posts: Object, // ✅ Maintenant un objet avec data, links, meta (pagination)
     can: Object,
 });
 
@@ -19,9 +20,11 @@ const replyForm = useForm({
     parent_id: null,
 });
 
-const voteForm = useForm({});
-
 const showReplyForm = ref(false);
+const loadingMore = ref(false);
+
+// ✅ Posts locaux pour optimistic UI
+const localPosts = ref([...props.posts.data]);
 
 const submitReply = () => {
     replyForm.post(route('topics.posts.store', props.topic.id), {
@@ -32,13 +35,97 @@ const submitReply = () => {
     });
 };
 
+// ✅ OPTIMISTIC UI - Vote instantané
 const votePost = (postId, voteType) => {
-    voteForm.post(route('posts.vote', postId), {
-        vote_type: voteType,
-    }, {
-        preserveScroll: true,
-    });
+    const postIndex = localPosts.value.findIndex(p => p.id === postId);
+    if (postIndex === -1) return;
+    
+    const post = localPosts.value[postIndex];
+    const previousVote = post.user_vote;
+    const previousScore = post.vote_score;
+    
+    // Update UI immédiatement (optimistic)
+    if (previousVote === voteType) {
+        // Annuler vote
+        post.user_vote = null;
+        post.vote_score = previousScore + (voteType === 'up' ? -1 : 1);
+    } else {
+        // Nouveau vote
+        post.user_vote = voteType;
+        const delta = voteType === 'up' ? 1 : -1;
+        const adjustment = previousVote ? (previousVote === 'up' ? -1 : 1) : 0;
+        post.vote_score = previousScore + delta + adjustment;
+    }
+    
+    // Requête serveur en arrière-plan
+    router.post(
+        route('posts.vote', postId),
+        { vote_type: voteType },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['posts'],
+            onError: (errors) => {
+                // Rollback si erreur
+                post.user_vote = previousVote;
+                post.vote_score = previousScore;
+                alert('Erreur lors du vote');
+            },
+            onSuccess: () => {
+                // Synchro avec données serveur
+                if (props.posts.data[postIndex]) {
+                    localPosts.value[postIndex] = { ...props.posts.data[postIndex] };
+                }
+            },
+        }
+    );
 };
+
+// ✅ INFINITE SCROLL - Chargement automatique
+const loadMorePosts = () => {
+    if (loadingMore.value || !props.posts.next_page_url) return;
+    
+    loadingMore.value = true;
+    
+    router.get(
+        props.posts.next_page_url,
+        {},
+        {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['posts'],
+            onSuccess: () => {
+                // Ajouter nouveaux posts aux existants
+                localPosts.value = [...localPosts.value, ...props.posts.data];
+                loadingMore.value = false;
+            },
+            onError: () => {
+                loadingMore.value = false;
+            },
+        }
+    );
+};
+
+// Intersection Observer pour infinite scroll
+let observer;
+onMounted(() => {
+    const sentinel = document.querySelector('#scroll-sentinel');
+    if (sentinel) {
+        observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    loadMorePosts();
+                }
+            },
+            { threshold: 0.5 }
+        );
+        observer.observe(sentinel);
+    }
+});
+
+onUnmounted(() => {
+    if (observer) observer.disconnect();
+});
 
 const getScopeLabel = (scope) => {
     const labels = {
@@ -100,7 +187,7 @@ const formatDate = (date) => {
                             <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                                 <span>👤 {{ topic.author?.name || 'Anonyme' }}</span>
                                 <span>📅 {{ formatDate(topic.created_at) }}</span>
-                                <span>💬 {{ posts.length }} réponses</span>
+                                <span>💬 {{ posts.total || localPosts.length }} réponses</span>
                                 <span v-if="topic.ballots_count">🗳️ {{ topic.ballots_count }} votes</span>
                             </div>
                         </div>
@@ -134,11 +221,11 @@ const formatDate = (date) => {
                 <!-- Posts List -->
                 <div class="space-y-4 mb-6">
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        💬 Réponses ({{ posts.length }})
+                        💬 Réponses ({{ posts.total || localPosts.length }})
                     </h2>
 
-                    <div v-if="posts.length > 0" class="space-y-4">
-                        <Card v-for="post in posts" :key="post.id" padding="p-6">
+                    <div v-if="localPosts.length > 0" class="space-y-4">
+                        <Card v-for="post in localPosts" :key="post.id" padding="p-6">
                             <div class="flex gap-4">
                                 <!-- Vote buttons -->
                                 <div class="flex flex-col items-center gap-2">
@@ -168,7 +255,7 @@ const formatDate = (date) => {
                                             {{ post.author?.name || 'Anonyme' }}
                                         </span>
                                         <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ formatDate(post.created_at) }}
+                                            {{ post.created_at }}
                                         </span>
                                         <Badge v-if="post.is_pinned" variant="yellow" size="sm">
                                             📌 Épinglé
@@ -183,6 +270,23 @@ const formatDate = (date) => {
                                 </div>
                             </div>
                         </Card>
+                        
+                        <!-- ✅ INFINITE SCROLL SENTINEL -->
+                        <div 
+                            v-if="posts.next_page_url" 
+                            id="scroll-sentinel" 
+                            class="py-8 text-center"
+                        >
+                            <LoadingSpinner v-if="loadingMore" />
+                            <p v-else class="text-sm text-gray-500">
+                                Scroll pour charger plus...
+                            </p>
+                        </div>
+                        
+                        <!-- Pagination info -->
+                        <div v-if="!posts.next_page_url" class="text-center text-sm text-gray-500 py-4">
+                            ✅ Toutes les réponses ont été chargées
+                        </div>
                     </div>
 
                     <Card v-else>

@@ -18,6 +18,7 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+/contexte
 
 # Docker
 docker-compose.override.yml
@@ -95,3 +96,7 @@ storage/framework/views/*
 *.temp
 .tmp/
 .temp/
+
+# Landing Page (objectif2027.fr)
+# Site vitrine séparé du projet Laravel
+/objectif2027/

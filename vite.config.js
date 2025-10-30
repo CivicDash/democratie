@@ -17,6 +17,59 @@ export default defineConfig({
             },
         }),
     ],
+    
+    // ✅ CODE SPLITTING & BUILD OPTIMIZATIONS
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: (id) => {
+                    // Vendor chunks séparés pour meilleur cache
+                    if (id.includes('node_modules')) {
+                        if (id.includes('vue') || id.includes('@inertiajs')) {
+                            return 'vue-vendor';
+                        }
+                        if (id.includes('axios')) {
+                            return 'axios';
+                        }
+                        return 'vendor';
+                    }
+                    
+                    // Composants UI réutilisables
+                    if (id.includes('/Components/')) {
+                        return 'ui-components';
+                    }
+                    
+                    // Pages groupées par feature
+                    if (id.includes('/Pages/Topics/')) {
+                        return 'topics';
+                    }
+                    if (id.includes('/Pages/Vote/')) {
+                        return 'vote';
+                    }
+                    if (id.includes('/Pages/Budget/')) {
+                        return 'budget';
+                    }
+                    if (id.includes('/Pages/Moderation/')) {
+                        return 'moderation';
+                    }
+                },
+            },
+        },
+        
+        // Optimisation chunks
+        chunkSizeWarningLimit: 600,
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true, // Retirer console.log en production
+                drop_debugger: true,
+            },
+        },
+        
+        // CSS code splitting
+        cssCodeSplit: true,
+    },
+    
     server: {
         host: '0.0.0.0',
         port: 5173,
