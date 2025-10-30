@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 /**
  * Message de débat (avec threading)
@@ -29,7 +30,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Post extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $fillable = [
         'topic_id',
@@ -217,5 +218,44 @@ class Post extends Model
     {
         return $query->orderBy('upvotes', $direction);
     }
+
+    // ========================================================================
+    // SCOUT / MEILISEARCH
+    // ========================================================================
+
+    /**
+     * Get the indexable data array for the model.
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'content' => $this->content,
+            'topic_id' => $this->topic_id,
+            'topic_title' => $this->topic?->title,
+            'author_name' => $this->author?->name,
+            'is_official' => $this->is_official,
+            'upvotes' => $this->upvotes,
+            'downvotes' => $this->downvotes,
+            'created_at' => $this->created_at->timestamp,
+        ];
+    }
+
+    /**
+     * Get the name of the index associated with the model.
+     */
+    public function searchableAs(): string
+    {
+        return 'posts_index';
+    }
+
+    /**
+     * Determine if the model should be searchable.
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return !$this->is_hidden && !$this->trashed();
+    }
 }
+
 

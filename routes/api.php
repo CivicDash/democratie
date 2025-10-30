@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\BudgetController;
+use App\Http\Controllers\Api\DataGouvController;
 use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\LegislationController;
 use App\Http\Controllers\Api\ModerationController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TopicController;
 use App\Http\Controllers\Api\VoteController;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +56,66 @@ Route::get('/documents/{document}/verifications', [DocumentController::class, 'v
 Route::get('/documents/{document}/download', [DocumentController::class, 'download']);
 Route::get('/documents/stats', [DocumentController::class, 'stats']);
 Route::get('/documents/top-verifiers', [DocumentController::class, 'topVerifiers']);
+
+// ============================================================================
+// RECHERCHE MEILISEARCH - Routes publiques
+// ============================================================================
+
+Route::prefix('search')->group(function () {
+    // Recherche globale
+    Route::get('/', [SearchController::class, 'search']);
+    
+    // Autocomplete / Suggestions
+    Route::get('/autocomplete', [SearchController::class, 'autocomplete']);
+    
+    // Statistiques
+    Route::get('/stats', [SearchController::class, 'stats']);
+});
+
+// ============================================================================
+// DATA.GOUV.FR - Routes publiques
+// ============================================================================
+
+Route::prefix('datagouv')->group(function () {
+    // Budget territorial
+    Route::get('/commune/{codeInsee}/budget/{annee?}', [DataGouvController::class, 'getCommuneBudget']);
+    Route::get('/communes/compare', [DataGouvController::class, 'compareBudgets']);
+    Route::get('/communes/search', [DataGouvController::class, 'searchCommunes']);
+    Route::get('/project/context', [DataGouvController::class, 'getProjectContext']);
+    
+    // Statistiques
+    Route::get('/stats', [DataGouvController::class, 'getStats']);
+});
+
+// ============================================================================
+// LÉGISLATION - Routes publiques (Assemblée + Sénat)
+// ============================================================================
+
+Route::prefix('legislation')->group(function () {
+    // Propositions de loi
+    Route::get('/propositions', [LegislationController::class, 'getPropositions']);
+    Route::get('/propositions/local', [LegislationController::class, 'getPropositionsLocales']);
+    Route::get('/propositions/trending', [LegislationController::class, 'getTrendingPropositions']);
+    Route::get('/propositions/{source}/{numero}', [LegislationController::class, 'getPropositionDetail']);
+    Route::get('/propositions/{source}/{numero}/amendements', [LegislationController::class, 'getAmendements']);
+    Route::get('/propositions/{source}/{numero}/votes', [LegislationController::class, 'getVotes']);
+    
+    // 🔥 KILLER FEATURE: Comparaison avec propositions citoyennes
+    Route::post('/find-similar', [LegislationController::class, 'findSimilar']);
+    
+    // 👍👎 VOTES CITOYENS (routes publiques pour consultation)
+    Route::get('/propositions/{id}/votes/stats', [LegislationController::class, 'getVoteStats']);
+    
+    // Agenda législatif
+    Route::get('/agenda', [LegislationController::class, 'getAgenda']);
+    
+    // Statistiques
+    Route::get('/stats', [LegislationController::class, 'getStatistiques']);
+    
+    // Élus (députés & sénateurs)
+    Route::get('/elus/search', [LegislationController::class, 'searchElus']);
+    Route::get('/elus/{uid}', [LegislationController::class, 'getEluDetail']);
+});
 
 // ============================================================================
 // ROUTES AUTHENTIFIÉES
@@ -149,6 +212,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:journalist|ong|admin')->group(function () {
         Route::post('/documents/{document}/verify', [DocumentController::class, 'verify']);
         Route::get('/documents/pending', [DocumentController::class, 'pending']);
+    });
+    
+    // ========================================================================
+    // LÉGISLATION - Routes authentifiées (votes citoyens)
+    // ========================================================================
+    Route::prefix('legislation/propositions')->group(function () {
+        // 👍👎 Voter sur une proposition
+        Route::post('/{id}/vote', [LegislationController::class, 'voteProposition']);
+        Route::delete('/{id}/vote', [LegislationController::class, 'removeVoteProposition']);
+        Route::get('/{id}/my-vote', [LegislationController::class, 'getMyVote']);
+    });
+    
+    // ========================================================================
+    // DATA.GOUV.FR - Routes admin (invalidation cache)
+    // ========================================================================
+    Route::middleware('role:admin')->prefix('datagouv')->group(function () {
+        Route::delete('/cache/commune/{codeInsee}', [DataGouvController::class, 'invalidateCommuneCache']);
     });
 });
 

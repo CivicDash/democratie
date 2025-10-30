@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | data.gouv.fr Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration pour l'intégration avec l'API data.gouv.fr
+    | API Key optionnelle mais recommandée pour augmenter les limites de taux
+    | Documentation: https://www.data.gouv.fr/fr/apidoc/
+    |
+    */
+    'datagouv' => [
+        'api_key' => env('DATAGOUV_API_KEY'),
+        'cache_ttl' => env('DATAGOUV_CACHE_TTL', 604800), // 7 jours par défaut
+    ],
+
 ];

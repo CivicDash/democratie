@@ -6,8 +6,11 @@ use App\Http\Controllers\Web\VoteController;
 use App\Http\Controllers\Web\BudgetController;
 use App\Http\Controllers\Web\ModerationController;
 use App\Http\Controllers\Web\DocumentController;
+use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\LegislationController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -29,6 +32,23 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 })->name('home');
+
+// Recherche
+Route::get('/search', function (Request $request) {
+    return Inertia::render('Search/Results', [
+        'query' => $request->query('q', ''),
+    ]);
+})->name('search');
+
+/*
+|--------------------------------------------------------------------------
+| Législation (Assemblée + Sénat)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('legislation')->name('legislation.')->group(function () {
+    Route::get('/', [LegislationController::class, 'index'])->name('index');
+    Route::get('/{id}', [LegislationController::class, 'show'])->name('show');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -150,9 +170,7 @@ Route::prefix('documents')->name('documents.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->middleware(['verified'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['verified'])->name('dashboard');
     
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

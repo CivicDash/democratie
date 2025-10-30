@@ -14,7 +14,9 @@ CivicDash est une plateforme démocratique qui permet aux citoyens de :
 - 🗳️ **Voter anonymement** avec des résultats révélés après échéance
 - 💰 **Répartir leur budget** par secteurs (éducation, santé, écologie, etc.) avec contraintes min/max
 - 📊 **Consulter la transparence** des recettes et dépenses publiques
-- 🏛️ **Participer localement** (national, régional, départemental)
+- 🏛️ **Suivre la législation** : Assemblée Nationale et Sénat en temps réel avec votes citoyens
+- 🔍 **Rechercher en < 50ms** : Meilisearch pour une recherche ultra-rapide avec autocomplete
+- 🎨 **Profiter d'une UX premium** : Loading skeletons, toast notifications, empty states
 - 🛡️ **Modérer** les contenus avec un système de signalement et sanctions
 
 ## 🎯 Principes clés
@@ -212,7 +214,7 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 
 ## 🗺️ Roadmap
 
-### ✅ État Actuel : 95% Production-Ready
+### ✅ État Actuel : 97% Production-Ready
 
 **Déjà implémenté** :
 - [x] Setup Laravel 11 + Docker (PostgreSQL, Redis, Meilisearch, Horizon)
@@ -223,16 +225,20 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 - [x] Votes up/down + scrutin anonyme cryptographique
 - [x] Budget participatif (10 secteurs) + contraintes min/max
 - [x] Transparence (recettes/dépenses publiques)
+- [x] **🏛️ Législation** : Intégration Assemblée + Sénat + votes citoyens + timeline
+- [x] **🔍 Recherche Meilisearch** : < 50ms avec autocomplete intelligent + filtres
+- [x] **🎨 Composants UX** : LoadingSkeleton, Toast, EmptyState, ConfirmModal
+- [x] **📊 Dashboard Législatif** : Trending propositions + graphiques circulaires
 - [x] Modération workflow (reports + sanctions)
 - [x] Documents vérifiés (upload + workflow validation)
 - [x] 122 tests Pest (Unit + Feature)
-- [x] 58 routes API REST
-- [x] 17 pages Vue 3 + Inertia
+- [x] 73 routes API REST (15 nouvelles)
+- [x] 23 pages Vue 3 + Inertia (6 nouvelles)
 - [x] Cache Redis (540x plus rapide)
 - [x] Rate Limiting (9 limites anti-spam)
 - [x] FranceConnect+ ready (95%)
 - [x] CI/CD GitLab
-- [x] Documentation exhaustive (25 fichiers)
+- [x] Documentation exhaustive (28 fichiers)
 
 ### 📅 Phase 1 : Production Ready (T1 2026 - Janv-Mars)
 
@@ -254,12 +260,19 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
   - Touch targets 44px minimum
   - Lighthouse mobile > 85
   
-- [ ] 🔍 **Recherche Meilisearch** (2-3 jours)
+- [x] 🔍 **Recherche Meilisearch** ✅ **TERMINÉ**
   - Indexation Topics, Posts, Documents
-  - Autocomplete + filtres
-  - Typo-tolerant
+  - Autocomplete + navigation clavier
+  - Filtres avancés + Typo-tolerant
 
 **Objectif** : Beta publique avec 1,000 citoyens
+
+**✨ NOUVEAU (Oct 2025)** :
+- [x] 🏛️ **Pages Législatives** : Index + Show avec timeline animée
+- [x] 📊 **Votes Citoyens** : Graphiques circulaires SVG + stats détaillées
+- [x] 🎨 **4 Composants UX** : Skeleton, Toast, Empty, Confirm
+- [x] 🧩 **2 Composables** : useToast, useConfirm
+- [x] 📚 **Documentation** : MEILISEARCH.md + COMPOSANTS_UX.md
 
 ### ⚡ Phase 2 : Qualité Production (T2 2026 - Avril-Juin)
 

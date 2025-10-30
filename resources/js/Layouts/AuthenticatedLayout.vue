@@ -5,6 +5,8 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
+import ToastContainer from '@/Components/ToastContainer.vue';
+import ConfirmContainer from '@/Components/ConfirmContainer.vue';
 import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
@@ -195,4 +197,10 @@ const showingNavigationDropdown = ref(false);
             </main>
         </div>
     </div>
+
+    <!-- Global Toast Notifications -->
+    <ToastContainer />
+
+    <!-- Global Confirm Modals -->
+    <ConfirmContainer />
 </template>

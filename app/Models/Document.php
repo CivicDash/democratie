@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 /**
  * Document vérifié (uploadable par legislator/state)
@@ -31,7 +32,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Document extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $fillable = [
         'title',
@@ -173,5 +174,45 @@ class Document extends Model
     {
         return $query->where('mime_type', 'application/pdf');
     }
+
+    // ========================================================================
+    // SCOUT / MEILISEARCH
+    // ========================================================================
+
+    /**
+     * Get the indexable data array for the model.
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'description' => $this->description,
+            'filename' => $this->filename,
+            'mime_type' => $this->mime_type,
+            'status' => $this->status,
+            'is_public' => $this->is_public,
+            'uploader_name' => $this->uploader?->name,
+            'documentable_type' => $this->documentable_type,
+            'created_at' => $this->created_at->timestamp,
+        ];
+    }
+
+    /**
+     * Get the name of the index associated with the model.
+     */
+    public function searchableAs(): string
+    {
+        return 'documents_index';
+    }
+
+    /**
+     * Determine if the model should be searchable.
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return $this->is_public && $this->status === 'verified' && !$this->trashed();
+    }
 }
+
 
