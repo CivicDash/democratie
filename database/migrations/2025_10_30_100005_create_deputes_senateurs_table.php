@@ -19,7 +19,7 @@ return new class extends Migration
             
             $table->string('nom');
             $table->string('prenom');
-            $table->string('nom_complet')->virtualAs("concat(prenom, ' ', nom)");
+            $table->string('nom_complet')->nullable()->comment('Nom complet calculé');
             
             $table->string('civilite', 10)->nullable();
             $table->string('groupe_politique', 100)->nullable();

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modèle pour les votes législatifs
@@ -68,6 +69,14 @@ class VoteLegislatif extends Model
     public function proposition(): BelongsTo
     {
         return $this->belongsTo(PropositionLoi::class, 'proposition_loi_id');
+    }
+
+    /**
+     * Votes détaillés par groupe parlementaire
+     */
+    public function votesGroupes(): HasMany
+    {
+        return $this->hasMany(VoteGroupeParlementaire::class);
     }
 
     // ========================================================================

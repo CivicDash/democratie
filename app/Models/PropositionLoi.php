@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -79,6 +80,57 @@ class PropositionLoi extends Model
     public function votes(): HasMany
     {
         return $this->hasMany(VoteLegislatif::class);
+    }
+
+    /**
+     * Relation avec les thématiques (many-to-many)
+     */
+    public function thematiques(): BelongsToMany
+    {
+        return $this->belongsToMany(ThematiqueLegislation::class, 'proposition_loi_thematique')
+            ->withPivot(['est_principal', 'confiance', 'tags_keywords', 'tagged_by'])
+            ->withTimestamps()
+            ->orderByPivot('est_principal', 'desc');
+    }
+
+    /**
+     * Relation avec la thématique principale uniquement
+     */
+    public function thematiquePrincipale(): BelongsToMany
+    {
+        return $this->thematiques()->wherePivot('est_principal', true)->limit(1);
+    }
+
+    /**
+     * Relation avec les thématiques secondaires
+     */
+    public function thematiquesSecondaires(): BelongsToMany
+    {
+        return $this->thematiques()->wherePivot('est_principal', false);
+    }
+
+    /**
+     * Références juridiques (Légifrance)
+     */
+    public function legalReferences(): HasMany
+    {
+        return $this->hasMany(LegalReference::class);
+    }
+
+    /**
+     * Vérifier si la proposition a un contexte juridique enrichi
+     */
+    public function hasLegalContext(): bool
+    {
+        return $this->legalReferences()->synced()->exists();
+    }
+
+    /**
+     * Compter les références juridiques
+     */
+    public function getLegalReferencesCountAttribute(): int
+    {
+        return $this->legalReferences()->count();
     }
 
     // ========================================================================

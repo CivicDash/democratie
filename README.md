@@ -34,6 +34,7 @@ CivicDash est une plateforme démocratique qui permet aux citoyens de :
 - **Cache & Queues** : Redis 7
 - **Recherche** : Meilisearch
 - **Frontend** : Inertia.js + Vue 3 + Tailwind CSS
+- **Mobile** : Bottom Navigation, Swipe Gestures, Pull-to-Refresh, FAB
 - **Tests** : Pest
 - **DevOps** : Docker Compose, GitLab CI
 
@@ -214,7 +215,7 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 
 ## 🗺️ Roadmap
 
-### ✅ État Actuel : 97% Production-Ready
+### ✅ État Actuel : 99% Production-Ready
 
 **Déjà implémenté** :
 - [x] Setup Laravel 11 + Docker (PostgreSQL, Redis, Meilisearch, Horizon)
@@ -226,19 +227,23 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 - [x] Budget participatif (10 secteurs) + contraintes min/max
 - [x] Transparence (recettes/dépenses publiques)
 - [x] **🏛️ Législation** : Intégration Assemblée + Sénat + votes citoyens + timeline
+- [x] **🏛️ Légifrance API** : Contexte juridique + Jurisprudence automatique 🌟 KILLER FEATURE
+- [x] **👥 Groupes Parlementaires** : Votes par groupe + thématiques + hémicycle SVG
 - [x] **🔍 Recherche Meilisearch** : < 50ms avec autocomplete intelligent + filtres
 - [x] **🎨 Composants UX** : LoadingSkeleton, Toast, EmptyState, ConfirmModal
+- [x] **🎮 Gamification** : Badges, XP, Levels, Streaks, Leaderboard, Achievements
+- [x] **📱 Mobile Responsive** : Bottom Nav, Hamburger, Touch-optimized, FAB, Pull-to-Refresh
 - [x] **📊 Dashboard Législatif** : Trending propositions + graphiques circulaires
 - [x] Modération workflow (reports + sanctions)
 - [x] Documents vérifiés (upload + workflow validation)
 - [x] 122 tests Pest (Unit + Feature)
-- [x] 73 routes API REST (15 nouvelles)
-- [x] 23 pages Vue 3 + Inertia (6 nouvelles)
+- [x] 73+ routes API REST
+- [x] 30+ pages Vue 3 + Inertia
 - [x] Cache Redis (540x plus rapide)
 - [x] Rate Limiting (9 limites anti-spam)
 - [x] FranceConnect+ ready (95%)
 - [x] CI/CD GitLab
-- [x] Documentation exhaustive (28 fichiers)
+- [x] Documentation exhaustive (30+ fichiers)
 
 ### 📅 Phase 1 : Production Ready (T1 2026 - Janv-Mars)
 
@@ -260,6 +265,27 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
   - Touch targets 44px minimum
   - Lighthouse mobile > 85
   
+- [x] 🏛️ **Légifrance API** ✅ **TERMINÉ (Oct 2025)**
+  - Contexte juridique automatique
+  - Jurisprudence pertinente
+  - Parser intelligent références
+  - KILLER FEATURE unique au monde !
+  
+- [x] 🎮 **Gamification Complète** ✅ **TERMINÉ (Oct 2025)**
+  - 24 badges déblocables
+  - Système XP & Levels
+  - Streaks activité
+  - Leaderboard
+  
+- [x] 📱 **Mobile Responsive** ✅ **TERMINÉ (Oct 2025)**
+  - Bottom Navigation (style app native)
+  - Hamburger menu amélioré
+  - Touch-optimized forms
+  - Pull-to-Refresh
+  - Floating Action Button
+  - Swipeable Cards
+  - 195 lignes CSS mobile global
+  
 - [x] 🔍 **Recherche Meilisearch** ✅ **TERMINÉ**
   - Indexation Topics, Posts, Documents
   - Autocomplete + navigation clavier
@@ -269,10 +295,15 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 
 **✨ NOUVEAU (Oct 2025)** :
 - [x] 🏛️ **Pages Législatives** : Index + Show avec timeline animée
+- [x] 🏛️ **Légifrance API** : Contexte juridique + Jurisprudence (KILLER FEATURE unique !)
+- [x] 👥 **Groupes Parlementaires** : Hémicycle SVG + votes par groupe + thématiques
+- [x] 🎮 **Gamification Complète** : 24 badges + XP + Levels + Streaks + Leaderboard
+- [x] 📱 **Mobile Responsive Premium** : Bottom Nav + FAB + Pull-to-Refresh + Swipeable Cards
 - [x] 📊 **Votes Citoyens** : Graphiques circulaires SVG + stats détaillées
-- [x] 🎨 **4 Composants UX** : Skeleton, Toast, Empty, Confirm
+- [x] 🎨 **7+ Composants UX Mobile** : Skeleton, Toast, Empty, Confirm, BottomNav, FAB, etc.
+- [x] 📧 **Système Notifications** : In-app + Email + Préférences + Follow system
 - [x] 🧩 **2 Composables** : useToast, useConfirm
-- [x] 📚 **Documentation** : MEILISEARCH.md + COMPOSANTS_UX.md
+- [x] 📚 **Documentation enrichie** : 30+ fichiers incluant guides complets
 
 ### ⚡ Phase 2 : Qualité Production (T2 2026 - Avril-Juin)
 

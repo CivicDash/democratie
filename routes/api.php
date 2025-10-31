@@ -238,6 +238,136 @@ Route::middleware('auth:sanctum')->group(function () {
 |--------------------------------------------------------------------------
 */
 
+// ============================================================================
+// GROUPES PARLEMENTAIRES
+// ============================================================================
+
+// Routes publiques
+Route::prefix('groupes-parlementaires')->name('groupes.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'index'])->name('index');
+    Route::get('/comparaison', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'comparaison'])->name('comparaison');
+    Route::get('/{id}', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'show'])->name('show');
+    Route::get('/{id}/statistiques', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'statistiques'])->name('statistiques');
+    Route::get('/{id}/membres', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'membres'])->name('membres');
+    Route::get('/{id}/votes', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'votes'])->name('votes');
+});
+
+// Routes admin
+Route::middleware(['auth:sanctum'])->prefix('groupes-parlementaires')->name('groupes.')->group(function () {
+    Route::post('/sync', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'sync'])->name('sync');
+});
+
+// ============================================================================
+// THÉMATIQUES LÉGISLATIVES
+// ============================================================================
+
+// Routes publiques
+Route::prefix('thematiques')->name('thematiques.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\ThematiquesController::class, 'index'])->name('index');
+    Route::get('/populaires', [App\Http\Controllers\Api\ThematiquesController::class, 'populaires'])->name('populaires');
+    Route::get('/statistiques', [App\Http\Controllers\Api\ThematiquesController::class, 'statistiques'])->name('statistiques');
+    Route::get('/{code}', [App\Http\Controllers\Api\ThematiquesController::class, 'show'])->name('show');
+    Route::get('/{code}/propositions', [App\Http\Controllers\Api\ThematiquesController::class, 'propositions'])->name('propositions');
+});
+
+// Routes admin/modération
+Route::middleware(['auth:sanctum'])->prefix('thematiques')->name('thematiques.')->group(function () {
+    Route::post('/detecter', [App\Http\Controllers\Api\ThematiquesController::class, 'detecter'])->name('detecter');
+    Route::post('/detecter-batch', [App\Http\Controllers\Api\ThematiquesController::class, 'detecterBatch'])->name('detecter_batch');
+    Route::post('/attacher', [App\Http\Controllers\Api\ThematiquesController::class, 'attacher'])->name('attacher');
+    Route::delete('/detacher', [App\Http\Controllers\Api\ThematiquesController::class, 'detacher'])->name('detacher');
+    Route::post('/recalculer', [App\Http\Controllers\Api\ThematiquesController::class, 'recalculer'])->name('recalculer');
+});
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+Route::middleware(['auth:sanctum'])->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\NotificationsController::class, 'index'])->name('index');
+    Route::get('/unread-count', [App\Http\Controllers\Api\NotificationsController::class, 'unreadCount'])->name('unread_count');
+    Route::get('/stats', [App\Http\Controllers\Api\NotificationsController::class, 'stats'])->name('stats');
+    Route::post('/{id}/mark-as-read', [App\Http\Controllers\Api\NotificationsController::class, 'markAsRead'])->name('mark_as_read');
+    Route::post('/{id}/mark-as-unread', [App\Http\Controllers\Api\NotificationsController::class, 'markAsUnread'])->name('mark_as_unread');
+    Route::post('/mark-all-as-read', [App\Http\Controllers\Api\NotificationsController::class, 'markAllAsRead'])->name('mark_all_as_read');
+    Route::delete('/{id}', [App\Http\Controllers\Api\NotificationsController::class, 'destroy'])->name('destroy');
+    Route::delete('/clear-read', [App\Http\Controllers\Api\NotificationsController::class, 'clearRead'])->name('clear_read');
+    Route::post('/test', [App\Http\Controllers\Api\NotificationsController::class, 'test'])->name('test');
+});
+
+// ============================================================================
+// USER FOLLOWS (Suivi d'éléments)
+// ============================================================================
+
+Route::middleware(['auth:sanctum'])->prefix('follows')->name('follows.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\UserFollowsController::class, 'index'])->name('index');
+    Route::post('/follow', [App\Http\Controllers\Api\UserFollowsController::class, 'follow'])->name('follow');
+    Route::post('/unfollow', [App\Http\Controllers\Api\UserFollowsController::class, 'unfollow'])->name('unfollow');
+    Route::get('/check', [App\Http\Controllers\Api\UserFollowsController::class, 'check'])->name('check');
+    Route::get('/stats', [App\Http\Controllers\Api\UserFollowsController::class, 'stats'])->name('stats');
+});
+
+// ============================================================================
+// NOTIFICATION PREFERENCES
+// ============================================================================
+
+Route::middleware(['auth:sanctum'])->prefix('notification-preferences')->name('notification_preferences.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\NotificationPreferencesController::class, 'index'])->name('index');
+    Route::put('/', [App\Http\Controllers\Api\NotificationPreferencesController::class, 'update'])->name('update');
+    Route::post('/reset', [App\Http\Controllers\Api\NotificationPreferencesController::class, 'reset'])->name('reset');
+    Route::post('/toggle-all', [App\Http\Controllers\Api\NotificationPreferencesController::class, 'toggleAll'])->name('toggle_all');
+});
+
+// ============================================================================
+// EXPORT PDF
+// ============================================================================
+
+Route::prefix('export')->name('export.')->group(function () {
+    Route::get('/groupe/{id}', [App\Http\Controllers\Api\ExportController::class, 'groupe'])->name('groupe');
+    Route::get('/thematique/{code}', [App\Http\Controllers\Api\ExportController::class, 'thematique'])->name('thematique');
+    Route::get('/proposition/{id}', [App\Http\Controllers\Api\ExportController::class, 'proposition'])->name('proposition');
+    Route::get('/statistiques', [App\Http\Controllers\Api\ExportController::class, 'statistiques'])->name('statistiques');
+    Route::post('/comparaison', [App\Http\Controllers\Api\ExportController::class, 'comparaison'])->name('comparaison');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// GAMIFICATION & ACHIEVEMENTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+Route::prefix('gamification')->name('gamification.')->group(function () {
+    // Routes publiques
+    Route::get('/achievements', [App\Http\Controllers\Api\GamificationController::class, 'allAchievements'])->name('achievements.all');
+    Route::get('/global-stats', [App\Http\Controllers\Api\GamificationController::class, 'globalStats'])->name('global_stats');
+    Route::get('/leaderboard', [App\Http\Controllers\Api\GamificationController::class, 'leaderboard'])->name('leaderboard');
+    Route::get('/users/{userId}/stats', [App\Http\Controllers\Api\GamificationController::class, 'userStats'])->name('user.stats');
+    Route::get('/users/{userId}/achievements', [App\Http\Controllers\Api\GamificationController::class, 'userAchievements'])->name('user.achievements');
+    
+    // Routes authentifiées
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/initialize', [App\Http\Controllers\Api\GamificationController::class, 'initialize'])->name('initialize');
+        Route::get('/my-stats', [App\Http\Controllers\Api\GamificationController::class, 'myStats'])->name('my_stats');
+        Route::get('/my-achievements', [App\Http\Controllers\Api\GamificationController::class, 'myAchievements'])->name('my_achievements');
+        Route::get('/recent-achievements', [App\Http\Controllers\Api\GamificationController::class, 'recentAchievements'])->name('recent_achievements');
+        Route::get('/almost-unlocked', [App\Http\Controllers\Api\GamificationController::class, 'almostUnlocked'])->name('almost_unlocked');
+        Route::post('/achievements/{achievementId}/share', [App\Http\Controllers\Api\GamificationController::class, 'shareAchievement'])->name('achievements.share');
+        Route::post('/test', [App\Http\Controllers\Api\GamificationController::class, 'test'])->name('test');
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// CONTEXTE JURIDIQUE (Légifrance)
+// ═══════════════════════════════════════════════════════════════════════════════════
+Route::prefix('legal-context')->name('legal_context.')->group(function () {
+    // Routes publiques
+    Route::get('/propositions/{propositionId}', [App\Http\Controllers\Api\LegalContextController::class, 'show'])->name('show');
+    Route::get('/references/{referenceId}', [App\Http\Controllers\Api\LegalContextController::class, 'showReference'])->name('reference');
+    Route::get('/stats', [App\Http\Controllers\Api\LegalContextController::class, 'stats'])->name('stats');
+    
+    // Routes authentifiées (admin)
+    Route::middleware(['auth:sanctum'])->group(function () {
+        Route::post('/propositions/{propositionId}/sync', [App\Http\Controllers\Api\LegalContextController::class, 'sync'])->name('sync');
+    });
+});
+
 Route::fallback(function () {
     return response()->json([
         'message' => 'Endpoint introuvable. Vérifiez l\'URL et la méthode HTTP.',

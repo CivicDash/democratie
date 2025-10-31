@@ -37,7 +37,7 @@ return new class extends Migration
         Schema::table('propositions_loi', function (Blueprint $table) {
             $table->integer('votes_pour')->default(0)->after('url_pdf')->comment('Nombre de upvotes');
             $table->integer('votes_contre')->default(0)->after('votes_pour')->comment('Nombre de downvotes');
-            $table->integer('score_vote')->virtualAs('votes_pour - votes_contre')->comment('Score net (pour - contre)');
+            $table->integer('score_vote')->default(0)->after('votes_contre')->comment('Score net (pour - contre)');
             
             $table->index(['score_vote'], 'idx_score_vote');
         });

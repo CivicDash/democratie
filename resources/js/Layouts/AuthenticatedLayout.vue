@@ -7,6 +7,10 @@ import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 import ConfirmContainer from '@/Components/ConfirmContainer.vue';
+import GamificationWidget from '@/Components/GamificationWidget.vue';
+import NotificationBell from '@/Components/NotificationBell.vue';
+import BottomNav from '@/Components/BottomNav.vue';
+import ScrollToTop from '@/Components/ScrollToTop.vue';
 import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
@@ -44,7 +48,13 @@ const showingNavigationDropdown = ref(false);
                             </div>
                         </div>
 
-                        <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                        <div class="hidden sm:ms-6 sm:flex sm:items-center sm:space-x-4">
+                            <!-- Gamification Widget -->
+                            <GamificationWidget />
+                            
+                            <!-- Notification Bell -->
+                            <NotificationBell />
+                            
                             <!-- Settings Dropdown -->
                             <div class="relative ms-3">
                                 <Dropdown align="right" width="48">
@@ -79,6 +89,11 @@ const showingNavigationDropdown = ref(false);
                                             Profile
                                         </DropdownLink>
                                         <DropdownLink
+                                            :href="route('profile.gamification')"
+                                        >
+                                            🎮 Gamification
+                                        </DropdownLink>
+                                        <DropdownLink
                                             :href="route('logout')"
                                             method="post"
                                             as="button"
@@ -91,13 +106,16 @@ const showingNavigationDropdown = ref(false);
                         </div>
 
                         <!-- Hamburger -->
-                        <div class="-me-2 flex items-center sm:hidden">
+                        <div class="-me-2 flex items-center gap-3 sm:hidden">
+                            <!-- Mobile Notification Bell -->
+                            <NotificationBell />
+                            
                             <button
                                 @click="
                                     showingNavigationDropdown =
                                         !showingNavigationDropdown
                                 "
-                                class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none dark:text-gray-500 dark:hover:bg-gray-900 dark:hover:text-gray-400 dark:focus:bg-gray-900 dark:focus:text-gray-400"
+                                class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none dark:text-gray-500 dark:hover:bg-gray-900 dark:hover:text-gray-400 dark:focus:bg-gray-900 dark:focus:text-gray-400 min-w-[44px] min-h-[44px]"
                             >
                                 <svg
                                     class="h-6 w-6"
@@ -141,20 +159,56 @@ const showingNavigationDropdown = ref(false);
                     }"
                     class="sm:hidden"
                 >
-                    <div class="space-y-1 pb-3 pt-2">
+                    <div class="space-y-1 pb-3 pt-2 px-2">
                         <ResponsiveNavLink
                             :href="route('dashboard')"
                             :active="route().current('dashboard')"
                         >
-                            Dashboard
+                            🏛️ Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('legislation.index')"
+                            :active="route().current('legislation.*')"
+                        >
+                            📜 Propositions de loi
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('groupes.index')"
+                            :active="route().current('groupes.*')"
+                        >
+                            🏛️ Groupes parlementaires
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('thematiques.index')"
+                            :active="route().current('thematiques.*')"
+                        >
+                            🏷️ Thématiques
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('topics.index')"
+                            :active="route().current('topics.*')"
+                        >
+                            💬 Débats citoyens
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('budget.index')"
+                            :active="route().current('budget.*')"
+                        >
+                            💰 Budget participatif
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('search.results')"
+                            :active="route().current('search.*')"
+                        >
+                            🔍 Recherche
                         </ResponsiveNavLink>
                     </div>
 
                     <!-- Responsive Settings Options -->
                     <div
-                        class="border-t border-gray-200 pb-1 pt-4 dark:border-gray-600"
+                        class="border-t border-gray-200 pb-1 pt-4 dark:border-gray-600 px-2"
                     >
-                        <div class="px-4">
+                        <div class="px-4 mb-3">
                             <div
                                 class="text-base font-medium text-gray-800 dark:text-gray-200"
                             >
@@ -165,16 +219,19 @@ const showingNavigationDropdown = ref(false);
                             </div>
                         </div>
 
-                        <div class="mt-3 space-y-1">
+                        <div class="space-y-1">
                             <ResponsiveNavLink :href="route('profile.edit')">
-                                Profile
+                                👤 Mon profil
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('profile.gamification')">
+                                🎮 Gamification
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 :href="route('logout')"
                                 method="post"
                                 as="button"
                             >
-                                Log Out
+                                🚪 Déconnexion
                             </ResponsiveNavLink>
                         </div>
                     </div>
@@ -196,6 +253,12 @@ const showingNavigationDropdown = ref(false);
                 <slot />
             </main>
         </div>
+        
+        <!-- Bottom Navigation (Mobile only) -->
+        <BottomNav />
+        
+        <!-- Scroll to Top (Mobile only) -->
+        <ScrollToTop />
     </div>
 
     <!-- Global Toast Notifications -->

@@ -9,7 +9,7 @@
     <p class="error-message">⚠️ {{ error }}</p>
   </div>
 
-  <div v-else-if="similar Proposals && similarProposals.length > 0" class="legislation-similar">
+  <div v-else-if="similarProposals && similarProposals.length > 0" class="legislation-similar">
     <div class="similar-header">
       <h3 class="similar-title">
         🏛️ Propositions similaires au Parlement

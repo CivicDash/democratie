@@ -1,7 +1,11 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { computed } from 'vue';
+import LevelProgressBar from '@/Components/LevelProgressBar.vue';
+import StreakCounter from '@/Components/StreakCounter.vue';
+import BadgeCard from '@/Components/BadgeCard.vue';
+import { ref, onMounted, computed } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
   trendingTopics: Array,
@@ -10,6 +14,29 @@ const props = defineProps({
   budgetStats: Object,
   globalStats: Object,
   userActivity: Object,
+});
+
+const gamificationStats = ref(null);
+const recentAchievements = ref([]);
+const loadingGamification = ref(true);
+
+const loadGamification = async () => {
+  try {
+    const [statsRes, achievementsRes] = await Promise.all([
+      axios.get('/api/gamification/my-stats'),
+      axios.get('/api/gamification/recent-achievements'),
+    ]);
+    gamificationStats.value = statsRes.data.data.stats;
+    recentAchievements.value = achievementsRes.data.data.slice(0, 3);
+  } catch (error) {
+    console.error('Error loading gamification:', error);
+  } finally {
+    loadingGamification.value = false;
+  }
+};
+
+onMounted(() => {
+  loadGamification();
 });
 
 /**
@@ -114,6 +141,55 @@ const getScoreClass = (score) => {
                 <p class="text-3xl font-bold mt-2">{{ globalStats.total_users_allocated }}</p>
               </div>
               <div class="text-5xl opacity-20">👥</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎮 GAMIFICATION SECTION -->
+        <div v-if="!loadingGamification && gamificationStats" class="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-xl overflow-hidden border border-indigo-100">
+          <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                  <span>🎮</span>
+                  <span>Votre Progression</span>
+                </h3>
+                <p class="text-indigo-100 text-sm mt-1">Continuez à participer pour débloquer des badges !</p>
+              </div>
+              <Link href="/profile/gamification" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold text-sm transition backdrop-blur-sm">
+                Voir tout →
+              </Link>
+            </div>
+          </div>
+          
+          <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <LevelProgressBar
+                :level="gamificationStats.level"
+                :level-title="gamificationStats.level_title"
+                :xp="gamificationStats.xp"
+                :xp-to-next-level="gamificationStats.xp_to_next_level"
+              />
+              
+              <StreakCounter
+                :current-streak="gamificationStats.current_streak"
+                :longest-streak="gamificationStats.longest_streak"
+                :last-activity-date="gamificationStats.last_activity_date"
+              />
+            </div>
+            
+            <div v-if="recentAchievements.length > 0">
+              <h4 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">🏆 Badges Récents</h4>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <BadgeCard
+                  v-for="ua in recentAchievements"
+                  :key="ua.id"
+                  :achievement="ua.achievement"
+                  :is-unlocked="ua.is_unlocked"
+                  :unlocked-at="ua.unlocked_at"
+                  :show-progress="false"
+                />
+              </div>
             </div>
           </div>
         </div>

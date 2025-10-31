@@ -566,5 +566,319 @@ class LegislationService
 
         return $reasons;
     }
+
+    // ========================================================================
+    // MÉTHODES POUR GROUPES PARLEMENTAIRES
+    // ========================================================================
+
+    /**
+     * Récupère les groupes parlementaires
+     * 
+     * @param string $source 'assemblee' ou 'senat'
+     * @param int|null $legislature
+     * @return array
+     */
+    public function getGroupesParlementaires(string $source = 'assemblee', ?int $legislature = null): array
+    {
+        $legislature = $legislature ?? self::CURRENT_LEGISLATURE;
+        $cacheKey = "legislation:groupes:{$source}:{$legislature}";
+        
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($source, $legislature) {
+            if ($source === 'assemblee') {
+                return $this->fetchAssembleeGroupes($legislature);
+            } elseif ($source === 'senat') {
+                return $this->fetchSenatGroupes();
+            }
+            
+            return [];
+        });
+    }
+
+    /**
+     * Récupère les détails de vote par groupe pour un scrutin
+     * 
+     * @param string $source
+     * @param string $numeroScrutin
+     * @param int|null $legislature
+     * @return array
+     */
+    public function getVoteDetailsByGroupe(string $source, string $numeroScrutin, ?int $legislature = null): array
+    {
+        $legislature = $legislature ?? self::CURRENT_LEGISLATURE;
+        $cacheKey = "legislation:vote_groupes:{$source}:{$legislature}:{$numeroScrutin}";
+        
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($source, $numeroScrutin, $legislature) {
+            if ($source === 'assemblee') {
+                return $this->fetchAssembleeVoteGroupes($numeroScrutin, $legislature);
+            }
+            
+            return [];
+        });
+    }
+
+    /**
+     * Récupère les députés/sénateurs d'un groupe
+     * 
+     * @param string $source
+     * @param string $sigleGroupe
+     * @param int|null $legislature
+     * @return array
+     */
+    public function getDeputesByGroupe(string $source, string $sigleGroupe, ?int $legislature = null): array
+    {
+        $legislature = $legislature ?? self::CURRENT_LEGISLATURE;
+        $cacheKey = "legislation:deputes_groupe:{$source}:{$sigleGroupe}:{$legislature}";
+        
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($source, $sigleGroupe, $legislature) {
+            if ($source === 'assemblee') {
+                return $this->fetchAssembleeDeputesByGroupe($sigleGroupe, $legislature);
+            }
+            
+            return [];
+        });
+    }
+
+    // ========================================================================
+    // MÉTHODES PRIVÉES - GROUPES ASSEMBLÉE
+    // ========================================================================
+
+    /**
+     * Fetch groupes parlementaires Assemblée nationale
+     */
+    private function fetchAssembleeGroupes(int $legislature): array
+    {
+        try {
+            // L'API Assemblée fournit la liste des organes (dont les groupes)
+            $response = Http::timeout(30)
+                ->get(self::ASSEMBLEE_BASE_URL . "acteurs/groupe/legislature/{$legislature}");
+
+            if (!$response->successful()) {
+                Log::warning("Erreur API Assemblée groupes", ['status' => $response->status()]);
+                return [];
+            }
+
+            $data = $response->json();
+            
+            if (!isset($data['organes'])) {
+                return [];
+            }
+
+            return collect($data['organes'])
+                ->map(fn($groupe) => $this->formatAssembleeGroupe($groupe))
+                ->toArray();
+
+        } catch (\Exception $e) {
+            Log::error("Erreur fetch groupes Assemblée", [
+                'error' => $e->getMessage(),
+                'legislature' => $legislature,
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch détails vote par groupe Assemblée
+     */
+    private function fetchAssembleeVoteGroupes(string $numeroScrutin, int $legislature): array
+    {
+        try {
+            $response = Http::timeout(30)
+                ->get(self::ASSEMBLEE_BASE_URL . "scrutins/legislature/{$legislature}/numero/{$numeroScrutin}");
+
+            if (!$response->successful()) {
+                return [];
+            }
+
+            $data = $response->json();
+            
+            // Extraire les votes par groupe depuis les données de scrutin
+            if (!isset($data['scrutin']['syntheseVote']['decompte']['groupes'])) {
+                return [];
+            }
+
+            return collect($data['scrutin']['syntheseVote']['decompte']['groupes'])
+                ->map(fn($groupe) => [
+                    'sigle' => $groupe['organeRef'] ?? '',
+                    'position' => $this->determinerPosition($groupe),
+                    'pour' => $groupe['pour'] ?? 0,
+                    'contre' => $groupe['contre'] ?? 0,
+                    'abstention' => $groupe['abstention'] ?? 0,
+                    'non_votants' => $groupe['nonVotants'] ?? 0,
+                ])
+                ->toArray();
+
+        } catch (\Exception $e) {
+            Log::error("Erreur fetch vote groupes Assemblée", [
+                'error' => $e->getMessage(),
+                'scrutin' => $numeroScrutin,
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch députés par groupe Assemblée
+     */
+    private function fetchAssembleeDeputesByGroupe(string $sigleGroupe, int $legislature): array
+    {
+        try {
+            $response = Http::timeout(30)
+                ->get(self::ASSEMBLEE_BASE_URL . "acteurs/deputes/legislature/{$legislature}");
+
+            if (!$response->successful()) {
+                return [];
+            }
+
+            $data = $response->json();
+            
+            if (!isset($data['acteurs'])) {
+                return [];
+            }
+
+            // Filtrer les députés du groupe
+            return collect($data['acteurs'])
+                ->filter(function($depute) use ($sigleGroupe) {
+                    return isset($depute['mandats'][0]['organes'])
+                        && collect($depute['mandats'][0]['organes'])
+                            ->contains(fn($organe) => $organe['codeGroupe'] === $sigleGroupe);
+                })
+                ->map(fn($depute) => [
+                    'uid' => $depute['uid'] ?? '',
+                    'nom' => $depute['nom']['nomFamille'] ?? '',
+                    'prenom' => $depute['prenom'] ?? '',
+                    'circonscription' => $depute['mandats'][0]['election']['lieu']['departement'] ?? '',
+                ])
+                ->toArray();
+
+        } catch (\Exception $e) {
+            Log::error("Erreur fetch députés par groupe", [
+                'error' => $e->getMessage(),
+                'sigle' => $sigleGroupe,
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch groupes Sénat
+     */
+    private function fetchSenatGroupes(): array
+    {
+        try {
+            // L'API Sénat fournit les groupes
+            $response = Http::timeout(30)
+                ->get(self::SENAT_BASE_URL . 'les-groupes-politiques/');
+
+            if (!$response->successful()) {
+                return [];
+            }
+
+            $data = $response->json();
+            
+            return collect($data['groupes'] ?? [])
+                ->map(fn($groupe) => $this->formatSenatGroupe($groupe))
+                ->toArray();
+
+        } catch (\Exception $e) {
+            Log::error("Erreur fetch groupes Sénat", ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Formate un groupe Assemblée
+     */
+    private function formatAssembleeGroupe(array $data): array
+    {
+        return [
+            'uid' => $data['uid'] ?? '',
+            'nom' => $data['libelle'] ?? '',
+            'sigle' => $data['libelleAbrev'] ?? '',
+            'nombre_membres' => $data['nombreMembres'] ?? 0,
+            'position_politique' => $this->devinerPosition($data['libelle'] ?? ''),
+            'couleur_hex' => $this->getCouleurGroupe($data['libelleAbrev'] ?? ''),
+        ];
+    }
+
+    /**
+     * Formate un groupe Sénat
+     */
+    private function formatSenatGroupe(array $data): array
+    {
+        return [
+            'uid' => $data['id'] ?? '',
+            'nom' => $data['nom'] ?? '',
+            'sigle' => $data['sigle'] ?? '',
+            'nombre_membres' => $data['effectif'] ?? 0,
+            'position_politique' => $this->devinerPosition($data['nom'] ?? ''),
+            'couleur_hex' => $this->getCouleurGroupe($data['sigle'] ?? ''),
+        ];
+    }
+
+    /**
+     * Détermine la position d'un groupe à partir d'un vote
+     */
+    private function determinerPosition(array $groupe): string
+    {
+        $pour = $groupe['pour'] ?? 0;
+        $contre = $groupe['contre'] ?? 0;
+        $abstention = $groupe['abstention'] ?? 0;
+
+        $max = max($pour, $contre, $abstention);
+
+        if ($pour === $max) return 'pour';
+        if ($contre === $max) return 'contre';
+        if ($abstention === $max) return 'abstention';
+
+        return 'mixte';
+    }
+
+    /**
+     * Devine la position politique d'un groupe à partir de son nom
+     */
+    private function devinerPosition(string $nom): string
+    {
+        $nom = mb_strtolower($nom);
+
+        if (str_contains($nom, 'insoumis') || str_contains($nom, 'communiste')) {
+            return 'extreme_gauche';
+        }
+        if (str_contains($nom, 'socialiste') || str_contains($nom, 'écologiste')) {
+            return 'gauche';
+        }
+        if (str_contains($nom, 'renaissance') || str_contains($nom, 'modem') || str_contains($nom, 'horizons')) {
+            return 'centre';
+        }
+        if (str_contains($nom, 'républicain')) {
+            return 'droite';
+        }
+        if (str_contains($nom, 'national')) {
+            return 'extreme_droite';
+        }
+
+        return 'centre';
+    }
+
+    /**
+     * Retourne une couleur par défaut pour un groupe
+     */
+    private function getCouleurGroupe(string $sigle): string
+    {
+        $couleurs = [
+            'RE' => '#FFB400', // Renaissance (jaune)
+            'LR' => '#0066CC', // Les Républicains (bleu)
+            'RN' => '#00008B', // Rassemblement National (bleu marine)
+            'LFI' => '#CC0000', // La France Insoumise (rouge)
+            'SOC' => '#FF8080', // Socialistes (rose)
+            'LIOT' => '#00CED1', // LIOT (turquoise)
+            'GDR' => '#DD0000', // Gauche Démocrate et Républicaine (rouge)
+            'ECO' => '#00C000', // Écologiste (vert)
+            'HOR' => '#FF6600', // Horizons (orange)
+            'DEM' => '#FF9900', // Démocrate (orange)
+        ];
+
+        return $couleurs[$sigle] ?? '#6B7280'; // Gris par défaut
+    }
 }
+
 

@@ -50,4 +50,20 @@ return [
         'cache_ttl' => env('DATAGOUV_CACHE_TTL', 604800), // 7 jours par défaut
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Légifrance API (PISTE) Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration pour l'intégration avec l'API Légifrance via PISTE
+    | Inscription: https://piste.gouv.fr/registration
+    | Documentation: https://api.piste.gouv.fr/dila/legifrance/docs
+    |
+    */
+    'legifrance' => [
+        'client_id' => env('LEGIFRANCE_CLIENT_ID'),
+        'client_secret' => env('LEGIFRANCE_CLIENT_SECRET'),
+        'cache_ttl' => env('LEGIFRANCE_CACHE_TTL', 604800), // 7 jours par défaut
+    ],
+
 ];

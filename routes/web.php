@@ -48,6 +48,24 @@ Route::get('/search', function (Request $request) {
 Route::prefix('legislation')->name('legislation.')->group(function () {
     Route::get('/', [LegislationController::class, 'index'])->name('index');
     Route::get('/{id}', [LegislationController::class, 'show'])->name('show');
+    
+    // Groupes parlementaires
+    Route::get('/groupes', function () {
+        return Inertia::render('Groupes/Index', ['source' => 'assemblee']);
+    })->name('groupes.index');
+    
+    Route::get('/groupes/{id}', function ($id) {
+        return Inertia::render('Groupes/Show', ['groupeId' => (int)$id]);
+    })->name('groupes.show');
+    
+    // Thématiques
+    Route::get('/thematiques', function () {
+        return Inertia::render('Thematiques/Index');
+    })->name('thematiques.index');
+    
+    Route::get('/thematiques/{code}', function ($code) {
+        return Inertia::render('Thematiques/Show', ['code' => $code]);
+    })->name('thematiques.show');
 });
 
 /*
@@ -175,6 +193,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // Gamification Profile
+    Route::get('/profile/gamification', function () {
+        return Inertia::render('Profile/Gamification');
+    })->name('profile.gamification');
 });
 
 /*

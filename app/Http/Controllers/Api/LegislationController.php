@@ -23,9 +23,10 @@ class LegislationController extends Controller
     ) {}
 
     /**
-     * Liste des propositions de loi
+     * Liste des propositions de loi avec filtres avancés
      * 
      * GET /api/legislation/propositions?source=both&limit=20&statut=en_cours
+     * Nouveaux filtres: thematiques[], date_from, date_to, sources[], statuts[], sort_by
      */
     public function getPropositions(Request $request): JsonResponse
     {
@@ -34,6 +35,16 @@ class LegislationController extends Controller
             'limit' => 'sometimes|integer|min:1|max:100',
             'statut' => 'sometimes|string|in:en_cours,adoptee,rejetee,promulguee',
             'theme' => 'sometimes|string|max:100',
+            // Filtres avancés
+            'thematiques' => 'sometimes|array',
+            'thematiques.*' => 'string',
+            'date_from' => 'sometimes|date',
+            'date_to' => 'sometimes|date|after_or_equal:date_from',
+            'sources' => 'sometimes|array',
+            'sources.*' => 'string|in:assemblee,senat',
+            'statuts' => 'sometimes|array',
+            'statuts.*' => 'string',
+            'sort_by' => 'sometimes|string|in:date_desc,date_asc,title_asc,title_desc,votes_desc,votes_asc',
         ]);
 
         if ($validator->fails()) {
@@ -43,17 +54,80 @@ class LegislationController extends Controller
             ], 422);
         }
 
-        $source = $request->input('source', 'both');
         $limit = $request->input('limit', 20);
-        $filters = $request->only(['statut', 'theme']);
+        $page = $request->input('page', 1);
 
         try {
-            $propositions = $this->legislationService->getPropositionsLoi($source, $limit, $filters);
+            // Construire la requête avec filtres avancés
+            $query = PropositionLoi::query();
+
+            // Filtres de source
+            if ($request->has('sources') && !empty($request->input('sources'))) {
+                $query->whereIn('source', $request->input('sources'));
+            } elseif ($request->has('source') && $request->input('source') !== 'both') {
+                $query->where('source', $request->input('source'));
+            }
+
+            // Filtres de statut
+            if ($request->has('statuts') && !empty($request->input('statuts'))) {
+                $query->whereIn('statut', $request->input('statuts'));
+            } elseif ($request->has('statut')) {
+                $query->where('statut', $request->input('statut'));
+            }
+
+            // Filtres de thématiques
+            if ($request->has('thematiques') && !empty($request->input('thematiques'))) {
+                $query->whereHas('thematiques', function ($q) use ($request) {
+                    $q->whereIn('thematiques_legislation.code', $request->input('thematiques'));
+                });
+            }
+
+            // Filtres de dates
+            if ($request->has('date_from')) {
+                $query->where('date_depot', '>=', $request->input('date_from'));
+            }
+            if ($request->has('date_to')) {
+                $query->where('date_depot', '<=', $request->input('date_to'));
+            }
+
+            // Tri
+            $sortBy = $request->input('sort_by', 'date_desc');
+            switch ($sortBy) {
+                case 'date_asc':
+                    $query->orderBy('date_depot', 'asc');
+                    break;
+                case 'title_asc':
+                    $query->orderBy('titre', 'asc');
+                    break;
+                case 'title_desc':
+                    $query->orderBy('titre', 'desc');
+                    break;
+                case 'votes_desc':
+                    $query->withCount('votesLegislatifs')->orderBy('votes_legislatifs_count', 'desc');
+                    break;
+                case 'votes_asc':
+                    $query->withCount('votesLegislatifs')->orderBy('votes_legislatifs_count', 'asc');
+                    break;
+                case 'date_desc':
+                default:
+                    $query->orderBy('date_depot', 'desc');
+                    break;
+            }
+
+            // Pagination
+            $propositions = $query->with(['thematiques'])
+                ->paginate($limit, ['*'], 'page', $page);
 
             return response()->json([
                 'success' => true,
-                'data' => $propositions,
-                'count' => count($propositions),
+                'data' => $propositions->items(),
+                'count' => $propositions->total(),
+                'pagination' => [
+                    'current_page' => $propositions->currentPage(),
+                    'last_page' => $propositions->lastPage(),
+                    'per_page' => $propositions->perPage(),
+                    'total' => $propositions->total(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
