@@ -74,26 +74,35 @@ class FranceConnectService
     protected function createUserFromFranceConnect(SocialiteUser $socialiteUser): User
     {
         $user = User::create([
-            'name' => $this->formatName($socialiteUser),
+            'name' => Profile::generateDisplayName(), // Pseudonyme anonyme par défaut
             'email' => $socialiteUser->getEmail(),
             'franceconnect_sub' => $socialiteUser->getId(),
             'email_verified_at' => now(), // Auto-vérifié par FranceConnect
             'password' => bcrypt(Str::random(32)), // Mot de passe aléatoire (non utilisé)
         ]);
 
-        // Créer le profil avec les données d'identité
+        // Créer le profil avec anonymisation RGPD
         $user->profile()->create([
-            'given_name' => $socialiteUser->user['given_name'] ?? null,
-            'family_name' => $socialiteUser->user['family_name'] ?? null,
-            'birthdate' => $socialiteUser->user['birthdate'] ?? null,
-            'gender' => $socialiteUser->user['gender'] ?? null,
-            'birthplace' => $socialiteUser->user['birthplace'] ?? null,
-            'birthcountry' => $socialiteUser->user['birthcountry'] ?? null,
-            'franceconnect_data' => json_encode($socialiteUser->user),
+            'display_name' => Profile::generateDisplayName(),
+            'citizen_ref_hash' => Profile::hashCitizenRef($socialiteUser->getId()),
+            'scope' => 'national',
+            'is_verified' => true,
+            'is_public_figure' => false, // Citoyen anonyme par défaut
+            'verified_at' => now(),
+            // Chiffrer données sensibles FranceConnect+ (RGPD Art. 32)
+            'encrypted_fc_data' => $this->encryptFranceConnectData($socialiteUser->user),
+            'encrypted_real_name' => encrypt($this->formatName($socialiteUser)),
+            'encrypted_real_email' => encrypt($socialiteUser->getEmail()),
         ]);
 
         // Assigner le rôle citoyen par défaut
         $user->assignRole('citizen');
+
+        // Consentement automatique traitement données FranceConnect+
+        $user->grantConsent(
+            UserConsent::TYPE_FRANCECONNECT_DATA,
+            PolicyVersion::getCurrentVersionNumber(PolicyVersion::TYPE_PRIVACY)
+        );
 
         return $user;
     }
@@ -103,17 +112,18 @@ class FranceConnectService
      */
     protected function updateUserFromFranceConnect(User $user, SocialiteUser $socialiteUser): void
     {
+        // Ne pas mettre à jour users.name (rester anonyme)
+        // Seulement email si changé
         $user->update([
-            'name' => $this->formatName($socialiteUser),
             'email' => $socialiteUser->getEmail(),
         ]);
 
-        // Mettre à jour le profil
+        // Mettre à jour le profil avec données chiffrées
         if ($user->profile) {
             $user->profile->update([
-                'given_name' => $socialiteUser->user['given_name'] ?? null,
-                'family_name' => $socialiteUser->user['family_name'] ?? null,
-                'franceconnect_data' => json_encode($socialiteUser->user),
+                'encrypted_fc_data' => $this->encryptFranceConnectData($socialiteUser->user),
+                'encrypted_real_name' => encrypt($this->formatName($socialiteUser)),
+                'encrypted_real_email' => encrypt($socialiteUser->getEmail()),
             ]);
         }
     }
@@ -147,6 +157,34 @@ class FranceConnectService
         $redirectUri = route('home');
 
         return "{$logoutUrl}?post_logout_redirect_uri=" . urlencode($redirectUri);
+    }
+
+    /**
+     * Chiffre les données FranceConnect+ (RGPD Art. 32)
+     * 
+     * Conforme minimisation des données : Ne stocke que ce qui est nécessaire
+     * - birthdate : Pour vérification majorité si nécessaire
+     * - gender : Pour statistiques anonymes
+     * - birthplace/birthcountry : Pour audit anti-fraude uniquement
+     * 
+     * Note : given_name/family_name → encrypted_real_name (séparé)
+     */
+    protected function encryptFranceConnectData(array $fcData): string
+    {
+        $dataToEncrypt = [
+            'birthdate' => $fcData['birthdate'] ?? null,
+            'gender' => $fcData['gender'] ?? null,
+            'birthplace' => $fcData['birthplace'] ?? null,
+            'birthcountry' => $fcData['birthcountry'] ?? null,
+            'preferred_username' => $fcData['preferred_username'] ?? null,
+            // Timestamp du chiffrement pour audit
+            'encrypted_at' => now()->toIso8601String(),
+        ];
+
+        // Filtrer valeurs nulles (minimisation)
+        $dataToEncrypt = array_filter($dataToEncrypt, fn ($value) => $value !== null);
+
+        return encrypt(json_encode($dataToEncrypt));
     }
 }
 

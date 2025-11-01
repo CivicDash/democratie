@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\LegislationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PolicyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,15 @@ Route::get('/search', function (Request $request) {
         'query' => $request->query('q', ''),
     ]);
 })->name('search');
+
+/*
+|--------------------------------------------------------------------------
+| Pages Légales (RGPD Art. 13)
+|--------------------------------------------------------------------------
+*/
+Route::get('/privacy', [PolicyController::class, 'privacy'])->name('privacy');
+Route::get('/terms', [PolicyController::class, 'terms'])->name('terms');
+Route::get('/cookies', [PolicyController::class, 'cookies'])->name('cookies');
 
 /*
 |--------------------------------------------------------------------------

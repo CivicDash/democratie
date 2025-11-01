@@ -24,6 +24,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'franceconnect_sub',
     ];
 
     /**
@@ -57,6 +58,14 @@ class User extends Authenticatable
     public function profile(): HasOne
     {
         return $this->hasOne(Profile::class);
+    }
+
+    /**
+     * Consentements RGPD
+     */
+    public function consents(): HasMany
+    {
+        return $this->hasMany(UserConsent::class);
     }
 
     /**
@@ -256,5 +265,111 @@ class User extends Authenticatable
         return $query->whereDoesntHave('sanctions', function ($q) {
             $q->bans()->active();
         });
+    }
+
+    // ==================== RGPD Methods ====================
+
+    /**
+     * Vérifie si l'utilisateur a donné son consentement pour un type donné
+     */
+    public function hasConsent(string $type): bool
+    {
+        return $this->consents()
+            ->ofType($type)
+            ->active()
+            ->exists();
+    }
+
+    /**
+     * Accorde un consentement RGPD
+     */
+    public function grantConsent(string $type, string $policyVersion): void
+    {
+        $consent = $this->consents()->ofType($type)->first();
+
+        if (!$consent) {
+            $consent = $this->consents()->create([
+                'consent_type' => $type,
+                'is_granted' => false,
+                'policy_version' => $policyVersion,
+            ]);
+        }
+
+        $consent->grant($policyVersion, UserConsent::createProof());
+    }
+
+    /**
+     * Révoque un consentement RGPD
+     */
+    public function revokeConsent(string $type): void
+    {
+        $this->consents()
+            ->ofType($type)
+            ->active()
+            ->each(fn ($consent) => $consent->revoke());
+    }
+
+    /**
+     * Récupère le nom d'affichage public (anonyme ou réel selon is_public_figure)
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if (!$this->profile) {
+            return $this->name;
+        }
+
+        // Si compte public (journaliste, personnalité), afficher nom réel
+        if ($this->profile->is_public_figure) {
+            return $this->name;
+        }
+
+        // Sinon, afficher pseudonyme anonyme
+        return $this->profile->display_name;
+    }
+
+    /**
+     * Vérifie si l'utilisateur est un compte public (transparent)
+     */
+    public function isPublicFigure(): bool
+    {
+        return $this->profile && $this->profile->is_public_figure;
+    }
+
+    /**
+     * Vérifie si l'utilisateur est anonyme (citoyen standard)
+     */
+    public function isAnonymous(): bool
+    {
+        return !$this->isPublicFigure();
+    }
+
+    /**
+     * Exportation données RGPD (Art. 20 - Portabilité)
+     */
+    public function exportPersonalData(): array
+    {
+        return [
+            'user' => [
+                'id' => $this->id,
+                'name' => $this->name,
+                'email' => $this->email,
+                'email_verified_at' => $this->email_verified_at,
+                'created_at' => $this->created_at,
+            ],
+            'profile' => $this->profile ? [
+                'display_name' => $this->profile->display_name,
+                'scope' => $this->profile->scope,
+                'is_verified' => $this->profile->is_verified,
+                'is_public_figure' => $this->profile->is_public_figure,
+            ] : null,
+            'consents' => $this->consents->map(fn ($consent) => [
+                'type' => $consent->consent_type,
+                'granted' => $consent->is_granted,
+                'granted_at' => $consent->granted_at,
+            ]),
+            'topics' => $this->topics->pluck('title'),
+            'posts_count' => $this->posts()->count(),
+            'votes_count' => $this->postVotes()->count(),
+        ];
     }
 }

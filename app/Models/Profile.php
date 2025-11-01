@@ -17,6 +17,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $region_id
  * @property int|null $department_id
  * @property bool $is_verified Identité vérifiée (FranceConnect+)
+ * @property bool $is_public_figure Compte public (nom réel visible)
+ * @property string|null $encrypted_fc_data Données FC+ chiffrées
+ * @property string|null $encrypted_real_name Nom réel chiffré
+ * @property string|null $encrypted_real_email Email réel chiffré
  * @property \Illuminate\Support\Carbon|null $verified_at
  * @property \Illuminate\Support\Carbon $created_at
  * @property \Illuminate\Support\Carbon $updated_at
@@ -33,11 +37,16 @@ class Profile extends Model
         'region_id',
         'department_id',
         'is_verified',
+        'is_public_figure',
+        'encrypted_fc_data',
+        'encrypted_real_name',
+        'encrypted_real_email',
         'verified_at',
     ];
 
     protected $casts = [
         'is_verified' => 'boolean',
+        'is_public_figure' => 'boolean',
         'verified_at' => 'datetime',
     ];
 

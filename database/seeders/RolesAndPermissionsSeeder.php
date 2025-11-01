@@ -184,8 +184,33 @@ class RolesAndPermissionsSeeder extends Seeder
         $admin = Role::create(['name' => 'admin']);
         $admin->givePermissionTo(Permission::all());
 
-        $this->command->info('✓ 7 rôles créés : citizen, moderator, journalist, ong, legislator, state, admin');
+        /**
+         * 8. PUBLIC_FIGURE (Personnalité publique)
+         * Citoyen avec identité publique (nom réel visible)
+         * Exemple : Élu local, personnalité médiatique, militant connu
+         * 
+         * RGPD : is_public_figure = true → display_name = nom réel
+         */
+        $publicFigure = Role::create(['name' => 'public_figure']);
+        $publicFigure->givePermissionTo([
+            'create_topics',
+            'create_posts',
+            'edit_own_posts',
+            'delete_own_posts',
+            'vote_on_posts',
+            'vote_in_ballots',
+            'view_ballot_results',
+            'submit_budget_allocation',
+            'view_budget_data',
+            'upload_documents',
+        ]);
+
+        $this->command->info('✓ 8 rôles créés : citizen, moderator, journalist, ong, legislator, state, admin, public_figure');
         $this->command->info('✓ ' . count($permissions) . ' permissions créées');
+        $this->command->info('');
+        $this->command->info('📋 RGPD - Rôles et anonymat :');
+        $this->command->info('  • citizen, moderator : ANONYME (display_name = Citoyen1234)');
+        $this->command->info('  • journalist, ong, legislator, state, admin, public_figure : PUBLIC (display_name = nom réel)');
     }
 }
 
