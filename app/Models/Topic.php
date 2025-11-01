@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
+use App\Traits\Taggable;
 
 /**
  * Sujet de débat, projet de loi ou référendum
@@ -33,7 +34,7 @@ use Laravel\Scout\Searchable;
  */
 class Topic extends Model
 {
-    use HasFactory, SoftDeletes, Searchable;
+    use HasFactory, SoftDeletes, Searchable, Taggable;
 
     protected $fillable = [
         'title',

@@ -368,6 +368,19 @@ Route::prefix('legal-context')->name('legal_context.')->group(function () {
     });
 });
 
+/*
+|--------------------------------------------------------------------------
+| Hashtags
+|--------------------------------------------------------------------------
+*/
+Route::prefix('hashtags')->name('hashtags.')->group(function () {
+    Route::get('/trending', [App\Http\Controllers\Api\HashtagController::class, 'trending'])->name('trending');
+    Route::get('/popular', [App\Http\Controllers\Api\HashtagController::class, 'popular'])->name('popular');
+    Route::get('/official', [App\Http\Controllers\Api\HashtagController::class, 'official'])->name('official');
+    Route::get('/search', [App\Http\Controllers\Api\HashtagController::class, 'search'])->name('search');
+    Route::get('/{slug}', [App\Http\Controllers\Api\HashtagController::class, 'show'])->name('show');
+});
+
 Route::fallback(function () {
     return response()->json([
         'message' => 'Endpoint introuvable. Vérifiez l\'URL et la méthode HTTP.',

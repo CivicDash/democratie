@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
+use App\Traits\Taggable;
 
 /**
  * Message de débat (avec threading)
@@ -30,7 +31,7 @@ use Laravel\Scout\Searchable;
  */
 class Post extends Model
 {
-    use HasFactory, SoftDeletes, Searchable;
+    use HasFactory, SoftDeletes, Searchable, Taggable;
 
     protected $fillable = [
         'topic_id',
