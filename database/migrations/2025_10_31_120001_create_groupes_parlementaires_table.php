@@ -15,11 +15,13 @@ return new class extends Migration
             $table->id();
             
             // Identification
-            $table->string('source', 20)->comment('assemblee ou senat');
+            $table->string('source', 20)->default('assemblee')->comment('assemblee ou senat');
+            $table->string('chambre', 20)->default('assemblee')->comment('Alias pour source');
             $table->string('uid', 50)->nullable()->comment('Identifiant unique API');
             
             // Informations
             $table->string('nom', 150)->comment('Ex: Renaissance, Les Républicains');
+            $table->string('slug', 150)->unique()->comment('Slug URL-friendly');
             $table->string('sigle', 20)->comment('Ex: RE, LR, RN');
             $table->string('couleur_hex', 7)->default('#6B7280')->comment('Couleur du groupe');
             
@@ -38,14 +40,17 @@ return new class extends Migration
             // Composition
             $table->integer('nombre_membres')->default(0);
             $table->string('president_nom', 150)->nullable();
+            $table->string('president', 150)->nullable()->comment('Alias pour president_nom');
             
             // Ressources
             $table->string('logo_url')->nullable();
             $table->string('url_officiel')->nullable();
+            $table->string('site_web')->nullable()->comment('Alias pour url_officiel');
             
             // Contexte
-            $table->integer('legislature')->comment('Numéro de législature');
+            $table->integer('legislature')->default(17)->comment('Numéro de législature');
             $table->boolean('actif')->default(true);
+            $table->boolean('est_actif')->default(true)->comment('Alias pour actif');
             
             // Métadonnées
             $table->json('apparentes')->nullable()->comment('Groupes apparentés');
