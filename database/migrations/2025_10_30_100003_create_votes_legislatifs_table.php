@@ -21,8 +21,11 @@ return new class extends Migration
             $table->string('type_vote', 50)->comment('solennel, ordinaire, main_levee');
             
             $table->integer('votes_pour')->default(0);
+            $table->integer('pour')->default(0)->comment('Alias pour votes_pour');
             $table->integer('votes_contre')->default(0);
+            $table->integer('contre')->default(0)->comment('Alias pour votes_contre');
             $table->integer('abstentions')->default(0);
+            $table->integer('abstention')->default(0)->comment('Alias pour abstentions');
             $table->integer('non_votants')->default(0);
             
             $table->string('resultat', 20)->comment('adopte ou rejete');
