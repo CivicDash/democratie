@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Application PHP-FPM
   app:
@@ -84,7 +82,7 @@ services:
 
   # Meilisearch
   meilisearch:
-    image: getmeilisearch/meilisearch:latest
+    image: meilisearch/meilisearch:v1.5
     container_name: civicdash_search
     restart: unless-stopped
     environment:
