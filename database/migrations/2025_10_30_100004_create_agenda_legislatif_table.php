@@ -18,6 +18,8 @@ return new class extends Migration
             $table->date('date');
             $table->time('heure_debut')->nullable();
             $table->time('heure_fin')->nullable();
+            $table->dateTime('date_debut')->nullable()->comment('Date et heure de début (format datetime)');
+            $table->dateTime('date_fin')->nullable()->comment('Date et heure de fin (format datetime)');
             
             $table->string('type', 50)->comment('seance_publique, commission, questions_gouvernement');
             $table->string('lieu', 100)->nullable()->comment('Salle/commission');
