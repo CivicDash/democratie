@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('auteur_groupe')->nullable()->comment('Groupe de l\'auteur');
             $table->string('groupe_politique', 100)->nullable()->comment('Groupe politique');
             
-            $table->string('sort', 30)->default('en_discussion')->comment('adopte, rejete, retire, non_soutenu, tombe');
+            $table->string('sort', 30)->nullable()->default('en_discussion')->comment('adopte, rejete, retire, non_soutenu, tombe');
             $table->string('statut', 30)->nullable()->comment('Alias pour sort');
             $table->date('date_depot')->nullable();
             $table->date('date_discussion')->nullable();
