@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('proposition_loi_id')->constrained('propositions_loi')->onDelete('cascade');
             
             $table->string('titre')->nullable()->comment('Titre du vote');
-            $table->string('source', 20)->nullable()->default('assemblee')->comment('assemblee ou senat');
-            $table->string('numero_scrutin', 20)->nullable()->comment('Numéro du scrutin');
+            $table->string('source', 20)->default('assemblee')->comment('assemblee ou senat (OBLIGATOIRE)');
+            $table->string('numero_scrutin', 20)->comment('Numéro du scrutin (OBLIGATOIRE)');
             $table->string('type_vote', 50)->comment('solennel, ordinaire, main_levee');
             
             $table->integer('votes_pour')->default(0);

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             
             $table->string('source', 20)->comment('assemblee ou senat');
-            $table->date('date')->nullable()->comment('Date de l\'événement (peut être extrait de date_debut)');
+            $table->date('date')->comment('Date de l\'événement (OBLIGATOIRE)');
             $table->time('heure_debut')->nullable();
             $table->time('heure_fin')->nullable();
             $table->dateTime('date_debut')->nullable()->comment('Date et heure de début (format datetime)');

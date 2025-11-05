@@ -666,11 +666,14 @@ class DemoDataSeeder extends Seeder
         foreach ($eventsData as $data) {
             AgendaLegislatif::create([
                 'source' => 'assemblee',
+                'date' => $data['date_debut']->toDateString(), // Extraire la date
                 'titre' => $data['titre'],
                 'description' => $data['description'],
                 'type' => $data['type'],
                 'date_debut' => $data['date_debut'],
                 'date_fin' => $data['date_fin'],
+                'heure_debut' => $data['date_debut']->format('H:i:s'), // Extraire l'heure
+                'heure_fin' => $data['date_fin']->format('H:i:s'), // Extraire l'heure
                 'lieu' => 'Assemblée nationale',
                 'statut' => 'planifie',
                 'url_externe' => 'https://www.assemblee-nationale.fr/agenda',
@@ -679,13 +682,19 @@ class DemoDataSeeder extends Seeder
 
         // Événements passés
         for ($i = 0; $i < 10; $i++) {
+            $dateDebut = Carbon::now()->subDays(rand(1, 30))->setTime(15, 0);
+            $dateFin = (clone $dateDebut)->setTime(19, 0);
+            
             AgendaLegislatif::create([
                 'source' => rand(0, 1) ? 'assemblee' : 'senat',
-                'titre' => 'Séance publique du ' . Carbon::now()->subDays(rand(1, 30))->format('d/m/Y'),
+                'date' => $dateDebut->toDateString(), // Extraire la date
+                'titre' => 'Séance publique du ' . $dateDebut->format('d/m/Y'),
                 'description' => 'Ordre du jour : questions diverses et votes.',
                 'type' => 'seance',
-                'date_debut' => Carbon::now()->subDays(rand(1, 30))->setTime(15, 0),
-                'date_fin' => Carbon::now()->subDays(rand(1, 30))->setTime(19, 0),
+                'date_debut' => $dateDebut,
+                'date_fin' => $dateFin,
+                'heure_debut' => $dateDebut->format('H:i:s'), // Extraire l'heure
+                'heure_fin' => $dateFin->format('H:i:s'), // Extraire l'heure
                 'lieu' => rand(0, 1) ? 'Assemblée nationale' : 'Sénat',
                 'statut' => 'termine',
             ]);
@@ -729,7 +738,9 @@ class DemoDataSeeder extends Seeder
             LegalReference::create([
                 'type' => $data['type'],
                 'code' => $data['code'],
+                'code_name' => $data['code'], // Remplir code_name
                 'article' => $data['article'],
+                'reference_text' => $data['article'], // Remplir reference_text
                 'titre' => $data['titre'],
                 'contenu' => $data['contenu'],
                 'url_legifrance' => $data['url'],
@@ -755,6 +766,8 @@ class DemoDataSeeder extends Seeder
             // Créer un vote législatif principal
             $voteLegislatif = VoteLegislatif::create([
                 'proposition_loi_id' => $proposition->id,
+                'source' => 'assemblee', // Remplir source
+                'numero_scrutin' => 'SCRUTIN-' . str_pad($votesCount + 1, 4, '0', STR_PAD_LEFT), // Générer numéro
                 'titre' => 'Vote solennel - ' . $proposition->titre,
                 'date_vote' => Carbon::now()->subDays(rand(1, 60)),
                 'type_vote' => 'solennel',
@@ -773,9 +786,30 @@ class DemoDataSeeder extends Seeder
                 // Déterminer le vote du groupe selon sa position politique et le thème
                 $voteGroupe = $this->determineVoteGroupe($groupe, $proposition);
 
+                // Calculer la position majoritaire du groupe
+                $total = $voteGroupe['pour'] + $voteGroupe['contre'] + $voteGroupe['abstention'];
+                if ($total === 0) {
+                    $positionGroupe = 'mixte';
+                } else {
+                    $pourcentagePour = ($voteGroupe['pour'] / $total) * 100;
+                    $pourcentageContre = ($voteGroupe['contre'] / $total) * 100;
+                    $pourcentageAbstention = ($voteGroupe['abstention'] / $total) * 100;
+                    
+                    if ($pourcentagePour > 50) {
+                        $positionGroupe = 'pour';
+                    } elseif ($pourcentageContre > 50) {
+                        $positionGroupe = 'contre';
+                    } elseif ($pourcentageAbstention > 50) {
+                        $positionGroupe = 'abstention';
+                    } else {
+                        $positionGroupe = 'mixte';
+                    }
+                }
+
                 VoteGroupeParlementaire::create([
                     'vote_legislatif_id' => $voteLegislatif->id,
                     'groupe_parlementaire_id' => $groupe['id'],
+                    'position_groupe' => $positionGroupe, // Calculer automatiquement
                     'pour' => $voteGroupe['pour'],
                     'contre' => $voteGroupe['contre'],
                     'abstention' => $voteGroupe['abstention'],
@@ -854,6 +888,7 @@ class DemoDataSeeder extends Seeder
 
                 Amendement::create([
                     'proposition_loi_id' => $proposition->id,
+                    'source' => 'assemblee', // Remplir source
                     'numero' => $i,
                     'auteur_nom' => $depute['user']->name,
                     'auteur_groupe' => $depute['groupe'],
@@ -861,9 +896,9 @@ class DemoDataSeeder extends Seeder
                     'dispositif' => $this->generateAmendementDispositif(),
                     'expose_sommaire' => $this->generateAmendementExpose(),
                     'statut' => $statut,
+                    'sort' => $statut, // Copier statut vers sort
                     'date_depot' => Carbon::now()->subDays(rand(5, 30)),
                     'date_discussion' => $statut !== 'depose' ? Carbon::now()->subDays(rand(1, 15)) : null,
-                    'sort' => $statut === 'adopte' ? 'adopte' : ($statut === 'rejete' ? 'rejete' : null),
                 ]);
 
                 $amendementsCount++;
@@ -1148,7 +1183,7 @@ class DemoDataSeeder extends Seeder
                 if ($region) {
                     PublicRevenue::create([
                         'year' => $year,
-                        'scope' => 'regional',
+                        'scope' => 'region', // Corriger : 'regional' → 'region'
                         'region_id' => $region->id,
                         'category' => 'Dotations et fiscalité régionale',
                         'amount' => $data['amount'] * (1 + ($year - 2024) * 0.015),
@@ -1171,7 +1206,7 @@ class DemoDataSeeder extends Seeder
                 if ($dept) {
                     PublicRevenue::create([
                         'year' => $year,
-                        'scope' => 'departmental',
+                        'scope' => 'dept', // Corriger : 'departmental' → 'dept'
                         'region_id' => $dept->region_id,
                         'department_id' => $dept->id,
                         'category' => 'Dotations et fiscalité départementale',
@@ -1240,7 +1275,7 @@ class DemoDataSeeder extends Seeder
                     if ($sector) {
                         PublicSpend::create([
                             'year' => $year,
-                            'scope' => 'regional',
+                            'scope' => 'region', // Corriger : 'regional' → 'region'
                             'region_id' => $idf->id,
                             'sector_id' => $sector->id,
                             'amount' => $amount * (1 + ($year - 2024) * 0.02),
@@ -1268,7 +1303,7 @@ class DemoDataSeeder extends Seeder
                     if ($sector) {
                         PublicSpend::create([
                             'year' => $year,
-                            'scope' => 'departmental',
+                            'scope' => 'dept', // Corriger : 'departmental' → 'dept'
                             'region_id' => $paris->region_id,
                             'department_id' => $paris->id,
                             'sector_id' => $sector->id,

@@ -19,9 +19,9 @@ return new class extends Migration
             
             // Référence juridique
             $table->string('type')->nullable()->comment('Type de référence (code, loi, décret)');
-            $table->string('reference_text', 50)->comment('Ex: L. 123-4');
+            $table->string('reference_text', 50)->comment('Ex: L. 123-4 (OBLIGATOIRE)');
             $table->string('article')->nullable()->comment('Numéro d\'article');
-            $table->string('code_name', 255)->comment('Ex: Code civil');
+            $table->string('code_name', 255)->comment('Ex: Code civil (OBLIGATOIRE)');
             $table->string('code')->nullable()->comment('Alias pour code_name');
             $table->string('titre')->nullable()->comment('Titre de l\'article');
             $table->text('contenu')->nullable()->comment('Contenu de l\'article');
