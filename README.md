@@ -97,7 +97,35 @@ docker-compose exec app php artisan vendor:publish --provider="Laravel\Telescope
 docker-compose exec app npm run build
 ```
 
-### 4. Accès
+### 4. Mode Démonstration (Recommandé) 🎬
+
+Pour tester rapidement CivicDash avec des **données réalistes** :
+
+```bash
+# Avec Docker
+make demo
+
+# Sans Docker
+php artisan demo:setup --fresh
+```
+
+Cette commande génère automatiquement :
+- ✅ 50 citoyens avec profils anonymes
+- ✅ 20 députés fictifs
+- ✅ 30 propositions de loi réalistes
+- ✅ 25 topics de débat
+- ✅ 200+ posts et discussions
+- ✅ 1500+ votes citoyens
+- ✅ Événements législatifs, hashtags, références juridiques
+
+**Comptes de test** :
+- Admin : `admin@civicdash.fr` / `password`
+- Citoyen : `citoyen1@demo.civicdash.fr` / `demo2025`
+- Député : `depute1@demo.assemblee-nationale.fr` / `demo2025`
+
+📚 **Documentation complète** : [docs/DEMO_MODE.md](docs/DEMO_MODE.md)
+
+### 5. Accès
 
 - **Application** : http://localhost:8000
 - **Horizon (queues)** : http://localhost:8000/horizon

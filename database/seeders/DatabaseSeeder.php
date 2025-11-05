@@ -29,6 +29,22 @@ class DatabaseSeeder extends Seeder
         $this->call(SectorsSeeder::class);
         $this->command->newLine();
 
+        // ==================== 3b. Groupes parlementaires ====================
+        $this->call(GroupesParlementairesSeeder::class);
+        $this->command->newLine();
+
+        // ==================== 3c. Thématiques législatives ====================
+        $this->call(ThematiqueLegislationSeeder::class);
+        $this->command->newLine();
+
+        // ==================== 3c. Versions de politiques ====================
+        $this->call(PolicyVersionSeeder::class);
+        $this->command->newLine();
+
+        // ==================== 3d. Achievements ====================
+        $this->call(AchievementSeeder::class);
+        $this->command->newLine();
+
         // ==================== 4. Utilisateurs de test ====================
         $this->command->info('👤 Creating test users...');
 

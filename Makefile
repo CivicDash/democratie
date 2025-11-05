@@ -85,10 +85,26 @@ pepper: ## Génère un PEPPER pour .env
 	@echo "Copiez cette valeur dans votre .env à PEPPER="
 	docker-compose exec app php artisan tinker --execute="echo base64_encode(random_bytes(32));"
 
+demo: ## Configure CivicDash en mode démonstration
+	docker-compose exec app php artisan demo:setup --fresh --force
+	@echo ""
+	@echo "🎬 Mode démo activé !"
+	@echo "🔐 Comptes de test :"
+	@echo "   - admin@civicdash.fr / password"
+	@echo "   - citoyen1@demo.civicdash.fr / demo2025"
+	@echo "   - depute1@demo.assemblee-nationale.fr / demo2025"
+	@echo ""
+	@echo "📚 Documentation : docs/DEMO_MODE.md"
+
+demo-data: ## Génère uniquement les données de démo (sans reset)
+	docker-compose exec app php artisan db:seed --class=DemoDataSeeder
+
 setup: build up install key-generate migrate ## Setup complet du projet
 	@echo "✅ Projet CivicDash installé !"
 	@echo "📝 N'oubliez pas de configurer PEPPER dans .env avec: make pepper"
 	@echo "🌐 Application : http://localhost:8000"
 	@echo "🔭 Telescope : http://localhost:8000/telescope"
 	@echo "⚡ Horizon : http://localhost:8000/horizon"
+	@echo ""
+	@echo "🎬 Pour activer le mode démo : make demo"
 

@@ -1,0 +1,240 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\GroupeParlementaire;
+use Illuminate\Database\Seeder;
+
+class GroupesParlementairesSeeder extends Seeder
+{
+    /**
+     * Seed the application's database.
+     */
+    public function run(): void
+    {
+        $this->command->info('🏛️ Création des groupes parlementaires...');
+
+        $groupes = [
+            // Assemblée Nationale - 17ème législature (2024-2029)
+            [
+                'nom' => 'Renaissance',
+                'slug' => 'renaissance',
+                'sigle' => 'RE',
+                'chambre' => 'assemblee',
+                'position_politique' => 'centre',
+                'couleur_hex' => '#FFEB00',
+                'nombre_membres' => 169,
+                'president' => 'Sylvain Maillard',
+                'description' => 'Groupe de la majorité présidentielle, issu de La République En Marche.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/renaissance',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Rassemblement National',
+                'slug' => 'rassemblement-national',
+                'sigle' => 'RN',
+                'chambre' => 'assemblee',
+                'position_politique' => 'droite',
+                'couleur_hex' => '#0D378A',
+                'nombre_membres' => 142,
+                'president' => 'Marine Le Pen',
+                'description' => 'Principal groupe d\'opposition de droite nationaliste.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/rassemblement-national',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'La France Insoumise - Nouveau Front Populaire',
+                'slug' => 'lfi-nfp',
+                'sigle' => 'LFI-NFP',
+                'chambre' => 'assemblee',
+                'position_politique' => 'gauche',
+                'couleur_hex' => '#CC2443',
+                'nombre_membres' => 71,
+                'president' => 'Mathilde Panot',
+                'description' => 'Groupe de gauche radicale et écologiste.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/lfi-nfp',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Les Républicains',
+                'slug' => 'les-republicains',
+                'sigle' => 'LR',
+                'chambre' => 'assemblee',
+                'position_politique' => 'droite',
+                'couleur_hex' => '#0066CC',
+                'nombre_membres' => 47,
+                'president' => 'Olivier Marleix',
+                'description' => 'Groupe de la droite républicaine et gaulliste.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/les-republicains',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Parti Socialiste et apparentés',
+                'slug' => 'socialistes',
+                'sigle' => 'SOC',
+                'chambre' => 'assemblee',
+                'position_politique' => 'gauche',
+                'couleur_hex' => '#FF8080',
+                'nombre_membres' => 66,
+                'president' => 'Boris Vallaud',
+                'description' => 'Groupe socialiste et social-démocrate.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/socialistes',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Horizons et apparentés',
+                'slug' => 'horizons',
+                'sigle' => 'HOR',
+                'chambre' => 'assemblee',
+                'position_politique' => 'centre',
+                'couleur_hex' => '#FF6600',
+                'nombre_membres' => 34,
+                'president' => 'Laurent Marcangeli',
+                'description' => 'Groupe centriste fondé par Édouard Philippe.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/horizons',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Écologiste - NUPES',
+                'slug' => 'ecologistes',
+                'sigle' => 'ECOLO',
+                'chambre' => 'assemblee',
+                'position_politique' => 'gauche',
+                'couleur_hex' => '#00C000',
+                'nombre_membres' => 38,
+                'president' => 'Cyrielle Chatelain',
+                'description' => 'Groupe écologiste et de gauche environnementale.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/ecologistes',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Démocrate (MoDem et Indépendants)',
+                'slug' => 'democrate',
+                'sigle' => 'DEM',
+                'chambre' => 'assemblee',
+                'position_politique' => 'centre',
+                'couleur_hex' => '#FF9900',
+                'nombre_membres' => 50,
+                'president' => 'Jean-Paul Mattei',
+                'description' => 'Groupe centriste du MoDem et alliés.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/democrate',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Libertés, Indépendants, Outre-mer et Territoires',
+                'slug' => 'liot',
+                'sigle' => 'LIOT',
+                'chambre' => 'assemblee',
+                'position_politique' => 'centre',
+                'couleur_hex' => '#ADD8E6',
+                'nombre_membres' => 22,
+                'president' => 'Bertrand Pancher',
+                'description' => 'Groupe centriste indépendant et territoires d\'outre-mer.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/liot',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Gauche Démocrate et Républicaine',
+                'slug' => 'gdr',
+                'sigle' => 'GDR',
+                'chambre' => 'assemblee',
+                'position_politique' => 'gauche',
+                'couleur_hex' => '#DD0000',
+                'nombre_membres' => 22,
+                'president' => 'André Chassaigne',
+                'description' => 'Groupe communiste et républicain.',
+                'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/gdr',
+                'est_actif' => true,
+            ],
+
+            // Sénat
+            [
+                'nom' => 'Les Républicains (Sénat)',
+                'slug' => 'lr-senat',
+                'sigle' => 'LR',
+                'chambre' => 'senat',
+                'position_politique' => 'droite',
+                'couleur_hex' => '#0066CC',
+                'nombre_membres' => 139,
+                'president' => 'Bruno Retailleau',
+                'description' => 'Groupe majoritaire au Sénat, droite républicaine.',
+                'site_web' => 'https://www.senat.fr/groupe/lr.html',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Union Centriste (Sénat)',
+                'slug' => 'uc-senat',
+                'sigle' => 'UC',
+                'chambre' => 'senat',
+                'position_politique' => 'centre',
+                'couleur_hex' => '#00CCFF',
+                'nombre_membres' => 57,
+                'president' => 'Hervé Marseille',
+                'description' => 'Groupe centriste du Sénat.',
+                'site_web' => 'https://www.senat.fr/groupe/uc.html',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Socialiste, Écologiste et Républicain (Sénat)',
+                'slug' => 'ser-senat',
+                'sigle' => 'SER',
+                'chambre' => 'senat',
+                'position_politique' => 'gauche',
+                'couleur_hex' => '#FF8080',
+                'nombre_membres' => 64,
+                'president' => 'Patrick Kanner',
+                'description' => 'Groupe de gauche au Sénat.',
+                'site_web' => 'https://www.senat.fr/groupe/ser.html',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Rassemblement Démocratique et Social Européen (Sénat)',
+                'slug' => 'rdse-senat',
+                'sigle' => 'RDSE',
+                'chambre' => 'senat',
+                'position_politique' => 'centre',
+                'couleur_hex' => '#FFD700',
+                'nombre_membres' => 15,
+                'president' => 'Mathieu Darnaud',
+                'description' => 'Groupe centriste et radical au Sénat.',
+                'site_web' => 'https://www.senat.fr/groupe/rdse.html',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Communiste Républicain Citoyen et Écologiste (Sénat)',
+                'slug' => 'crce-senat',
+                'sigle' => 'CRCE',
+                'chambre' => 'senat',
+                'position_politique' => 'gauche',
+                'couleur_hex' => '#DD0000',
+                'nombre_membres' => 15,
+                'president' => 'Cécile Cukierman',
+                'description' => 'Groupe communiste au Sénat.',
+                'site_web' => 'https://www.senat.fr/groupe/crce.html',
+                'est_actif' => true,
+            ],
+            [
+                'nom' => 'Rassemblement des Démocrates, Progressistes et Indépendants (Sénat)',
+                'slug' => 'rdpi-senat',
+                'sigle' => 'RDPI',
+                'chambre' => 'senat',
+                'position_politique' => 'centre',
+                'couleur_hex' => '#FFEB00',
+                'nombre_membres' => 23,
+                'president' => 'Françoise Gatel',
+                'description' => 'Groupe de la majorité présidentielle au Sénat.',
+                'site_web' => 'https://www.senat.fr/groupe/rdpi.html',
+                'est_actif' => true,
+            ],
+        ];
+
+        foreach ($groupes as $groupe) {
+            GroupeParlementaire::create($groupe);
+        }
+
+        $this->command->info('✓ ' . count($groupes) . ' groupes parlementaires créés');
+        $this->command->info('  → ' . count(array_filter($groupes, fn($g) => $g['chambre'] === 'assemblee')) . ' groupes Assemblée Nationale');
+        $this->command->info('  → ' . count(array_filter($groupes, fn($g) => $g['chambre'] === 'senat')) . ' groupes Sénat');
+    }
+}
+
