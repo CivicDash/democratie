@@ -103,11 +103,30 @@ class SetupDemoCommand extends Command
             ]);
         });
 
-        // Étape 5 : Index de recherche
+        // Étape 5 : Index de recherche (optionnel si Scout est configuré)
         $this->step('Indexation des données pour la recherche', function () {
-            $this->call('scout:import', ['model' => 'App\\Models\\PropositionLoi']);
-            $this->call('scout:import', ['model' => 'App\\Models\\Topic']);
-            $this->call('scout:import', ['model' => 'App\\Models\\Post']);
+            if (!config('scout.driver')) {
+                $this->warn('⚠️  Scout non configuré, indexation ignorée');
+                return;
+            }
+
+            $searchableModels = [
+                'App\\Models\\PropositionLoi',
+                'App\\Models\\Topic',
+                'App\\Models\\Post',
+            ];
+
+            foreach ($searchableModels as $model) {
+                if (in_array('Laravel\\Scout\\Searchable', class_uses_recursive($model))) {
+                    try {
+                        $this->call('scout:import', ['model' => $model]);
+                    } catch (\Exception $e) {
+                        $this->warn("⚠️  Impossible d'indexer {$model}: {$e->getMessage()}");
+                    }
+                } else {
+                    $this->comment("⏭️  {$model} n'est pas searchable, ignoré");
+                }
+            }
         });
 
         // Étape 6 : Cache
