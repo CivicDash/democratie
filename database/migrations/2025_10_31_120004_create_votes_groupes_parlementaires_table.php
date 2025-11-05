@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('groupe_parlementaire_id')->constrained('groupes_parlementaires')->onDelete('cascade');
             
             // Position du groupe
-            $table->enum('position_groupe', ['pour', 'contre', 'abstention', 'mixte'])->comment('Position majoritaire du groupe');
+            $table->enum('position_groupe', ['pour', 'contre', 'abstention', 'mixte'])->nullable()->default('mixte')->comment('Position majoritaire du groupe');
             
             // Détails des votes
             $table->integer('nombre_pour')->default(0);

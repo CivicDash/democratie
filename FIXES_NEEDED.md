@@ -13,34 +13,13 @@
 
 ## ✅ Toutes les corrections appliquées !
 
-### Migration actuelle (`amendements`):
-- `source` (NOT NULL)
-- `numero`
-- `dispositif`
-- `expose_motifs`
-- `auteurs` (JSON)
-- `groupe_politique`
-- `sort`
-- `date_depot`
-- `date_discussion`
+Le seeder DemoDataSeeder devrait maintenant fonctionner sans erreurs de colonnes manquantes.
 
-### Seeder utilise:
-- `auteur_nom` ❌ (n'existe pas)
-- `auteur_groupe` ❌ (n'existe pas)
-- `objet` ❌ (n'existe pas)
-- `dispositif` ✅
-- `expose_sommaire` ❌ (devrait être `expose_motifs`)
-- `statut` ❌ (devrait être `sort`)
-- `date_depot` ✅
-- `date_discussion` ✅
-- `sort` ✅
-- PAS de `source` ❌ (NOT NULL dans migration)
+### Résumé des modifications
+- **10 migrations** corrigées pour compatibilité avec le seeder
+- **Colonnes ajoutées** : 25+ colonnes (alias et nouvelles colonnes)
+- **Contraintes assouplies** : 8 colonnes NOT NULL → nullable
 
-### Solutions:
-1. Ajouter colonnes manquantes à la migration
-2. Rendre `source` nullable avec default
-3. OU adapter le seeder pour utiliser les colonnes existantes
-
-## Recommandation
-Ajouter les colonnes manquantes à la migration pour compatibilité avec le seeder.
+### Prochaine étape
+Lancer `php artisan demo:setup --fresh --force` et vérifier que tout passe ! 🚀
 
