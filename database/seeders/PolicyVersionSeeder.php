@@ -12,6 +12,12 @@ class PolicyVersionSeeder extends Seeder
      */
     public function run(): void
     {
+        // Vérifier si les policy versions existent déjà
+        if (PolicyVersion::where('version', '1.0.0')->exists()) {
+            $this->command->info('⏭️  Policy versions déjà existantes, skip...');
+            return;
+        }
+
         // Version initiale : Politique de confidentialité
         PolicyVersion::create([
             'version' => '1.0.0',
