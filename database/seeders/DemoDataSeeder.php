@@ -142,16 +142,32 @@ class DemoDataSeeder extends Seeder
 
             $region = $regions->random();
             $department = $departments->where('region_id', $region->id)->random();
-
-            Profile::create([
+            
+            $scope = ['national', 'region', 'dept'][array_rand(['national', 'region', 'dept'])];
+            
+            // Définir region_id et department_id selon le scope
+            $profileData = [
                 'user_id' => $user->id,
                 'display_name' => Profile::generateDisplayName(),
                 'citizen_ref_hash' => Profile::hashCitizenRef("demo-citizen-{$i}"),
-                'scope' => ['national', 'regional', 'departmental'][array_rand(['national', 'regional', 'departmental'])],
-                'region_id' => $region->id,
-                'department_id' => $department->id,
+                'scope' => $scope,
                 'is_verified' => rand(0, 100) > 30, // 70% vérifiés
-            ]);
+            ];
+            
+            // Ajouter region_id/department_id selon le scope
+            if ($scope === 'region') {
+                $profileData['region_id'] = $region->id;
+                $profileData['department_id'] = null;
+            } elseif ($scope === 'dept') {
+                $profileData['region_id'] = null;
+                $profileData['department_id'] = $department->id;
+            } else {
+                // national : pas de région ni département
+                $profileData['region_id'] = null;
+                $profileData['department_id'] = null;
+            }
+
+            Profile::create($profileData);
 
             $this->citoyens[] = $user;
         }
