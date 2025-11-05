@@ -256,6 +256,9 @@ class ThematiqueLegislationSeeder extends Seeder
         ];
 
         foreach ($thematiques as $thematique) {
+            // Générer le slug à partir du code (en minuscules)
+            $thematique['slug'] = strtolower($thematique['code']);
+            
             ThematiqueLegislation::updateOrCreate(
                 ['code' => $thematique['code']],
                 $thematique
