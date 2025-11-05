@@ -16,6 +16,7 @@ return new class extends Migration
             
             // Identification
             $table->string('code', 10)->unique()->comment('Ex: SECU, FISC, SOCI');
+            $table->string('slug', 100)->unique()->comment('Slug URL-friendly');
             $table->string('nom', 100)->comment('Ex: Sécurité & Justice');
             $table->text('description')->nullable();
             
