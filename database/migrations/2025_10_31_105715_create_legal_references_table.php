@@ -17,9 +17,16 @@ return new class extends Migration
                 ->onDelete('cascade');
             
             // Référence juridique
+            $table->string('type')->nullable()->comment('Type de référence (code, loi, décret)');
             $table->string('reference_text', 50)->comment('Ex: L. 123-4');
+            $table->string('article')->nullable()->comment('Numéro d\'article');
             $table->string('code_name', 255)->comment('Ex: Code civil');
+            $table->string('code')->nullable()->comment('Alias pour code_name');
+            $table->string('titre')->nullable()->comment('Titre de l\'article');
+            $table->text('contenu')->nullable()->comment('Contenu de l\'article');
             $table->string('legifrance_id', 255)->nullable()->comment('ID Légifrance de l\'article');
+            $table->string('url_legifrance')->nullable()->comment('URL Légifrance');
+            $table->date('date_version')->nullable()->comment('Date de version');
             
             // Texte de l\'article
             $table->json('article_current_text')->nullable()->comment('Texte actuel de l\'article');
