@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             
             $table->foreignId('proposition_loi_id')->constrained('propositions_loi')->onDelete('cascade');
-            $table->foreignId('thematique_id')->constrained('thematiques_legislation')->onDelete('cascade');
+            $table->foreignId('thematique_legislation_id')->constrained('thematiques_legislation')->onDelete('cascade');
             
             // Type de relation
             $table->boolean('est_principal')->default(false)->comment('Thématique principale de la proposition');
@@ -28,8 +28,8 @@ return new class extends Migration
             $table->timestamps();
             
             // Index
-            $table->unique(['proposition_loi_id', 'thematique_id'], 'unique_proposition_thematique');
-            $table->index(['thematique_id', 'est_principal'], 'idx_thematique_principal');
+            $table->unique(['proposition_loi_id', 'thematique_legislation_id'], 'unique_proposition_thematique');
+            $table->index(['thematique_legislation_id', 'est_principal'], 'idx_thematique_principal');
             $table->index(['tagged_by'], 'idx_tagged_by');
         });
     }
