@@ -1407,10 +1407,10 @@ class DemoDataSeeder extends Seeder
             if (rand(0, 100) > 30) { // 70% de chances de créer un signalement
                 $reporter = $this->citoyens[array_rand($this->citoyens)];
                 
-                $reasons = ['spam', 'harassment', 'misinformation', 'off_topic', 'hate_speech'];
+                $reasons = ['spam', 'harassment', 'misinformation', 'off_topic', 'inappropriate']; // Corriger 'hate_speech' → 'inappropriate'
                 $reason = $reasons[array_rand($reasons)];
                 
-                $statuses = ['pending', 'under_review', 'resolved', 'dismissed'];
+                $statuses = ['pending', 'reviewing', 'resolved', 'dismissed']; // Corriger 'under_review' → 'reviewing'
                 $status = $statuses[array_rand($statuses)];
 
                 $report = Report::create([
@@ -1420,7 +1420,7 @@ class DemoDataSeeder extends Seeder
                     'reason' => $reason,
                     'description' => $this->generateReportDescription($reason),
                     'status' => $status,
-                    'moderator_id' => in_array($status, ['under_review', 'resolved', 'dismissed']) ? $moderator->id : null,
+                    'moderator_id' => in_array($status, ['reviewing', 'resolved', 'dismissed']) ? $moderator->id : null, // Corriger 'under_review' → 'reviewing'
                     'moderator_notes' => $status === 'resolved' ? 'Signalement traité, contenu modéré.' : null,
                     'resolved_at' => $status === 'resolved' ? Carbon::now()->subDays(rand(1, 10)) : null,
                 ]);
