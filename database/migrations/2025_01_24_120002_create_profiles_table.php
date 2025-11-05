@@ -22,6 +22,7 @@ return new class extends Migration
             $table->foreignId('department_id')->nullable()->constrained('territories_departments')->onDelete('set null');
             $table->boolean('is_verified')->default(false)->comment('Identité vérifiée (FranceConnect+)');
             $table->timestamp('verified_at')->nullable();
+            $table->text('bio')->nullable()->comment('Biographie (pour députés, personnalités publiques)');
             $table->timestamps();
             
             $table->index('user_id');
