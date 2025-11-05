@@ -1527,7 +1527,7 @@ class DemoDataSeeder extends Seeder
             $status = $statuses[array_rand($statuses)];
 
             $document = Document::create([
-                'title' => $docType['title'] . ' - ' . substr($proposition->titre, 0, 50),
+                'title' => $docType['title'] . ' - ' . mb_substr($proposition->titre, 0, 50, 'UTF-8'),
                 'description' => 'Document officiel relatif à la proposition de loi.',
                 'filename' => $docType['filename'],
                 'path' => 'documents/propositions/' . $proposition->id . '/' . $docType['filename'],
@@ -1568,7 +1568,7 @@ class DemoDataSeeder extends Seeder
             $author = User::find($topic->author_id);
             
             $document = Document::create([
-                'title' => 'Pièce jointe - ' . substr($topic->title, 0, 50),
+                'title' => 'Pièce jointe - ' . mb_substr($topic->title, 0, 50, 'UTF-8'),
                 'description' => 'Document complémentaire au débat.',
                 'filename' => 'document_' . uniqid() . '.pdf',
                 'path' => 'documents/topics/' . $topic->id . '/document.pdf',
