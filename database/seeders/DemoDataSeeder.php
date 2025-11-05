@@ -507,14 +507,19 @@ class DemoDataSeeder extends Seeder
         }
 
         // Générer 20 topics supplémentaires
+        $regions = TerritoryRegion::all();
+        $departments = TerritoryDepartment::all();
+        
         for ($i = 0; $i < 20; $i++) {
             $author = $this->citoyens[array_rand($this->citoyens)];
             $type = ['debate', 'bill', 'referendum'][array_rand(['debate', 'bill', 'referendum'])];
+            $scope = ['national', 'region', 'dept'][array_rand(['national', 'region', 'dept'])];
             
-            $topic = Topic::create([
+            // Définir region_id et department_id selon le scope
+            $topicData = [
                 'title' => $this->generateRandomTopicTitle(),
                 'description' => 'Discussion ouverte sur ce sujet important pour notre démocratie.',
-                'scope' => ['national', 'regional', 'departmental'][array_rand(['national', 'regional', 'departmental'])],
+                'scope' => $scope,
                 'type' => $type,
                 'status' => ['open', 'closed'][array_rand(['open', 'closed'])],
                 'author_id' => $author->id,
@@ -522,7 +527,23 @@ class DemoDataSeeder extends Seeder
                 'voting_opens_at' => $type === 'referendum' ? Carbon::now()->subDays(rand(1, 10)) : null,
                 'voting_deadline_at' => $type === 'referendum' ? Carbon::now()->addDays(rand(5, 30)) : null,
                 'ballot_type' => $type === 'referendum' ? 'yes_no' : null,
-            ]);
+            ];
+            
+            // Ajouter region_id/department_id selon le scope
+            if ($scope === 'region') {
+                $topicData['region_id'] = $regions->random()->id;
+                $topicData['department_id'] = null;
+            } elseif ($scope === 'dept') {
+                $department = $departments->random();
+                $topicData['region_id'] = null;
+                $topicData['department_id'] = $department->id;
+            } else {
+                // national : pas de région ni département
+                $topicData['region_id'] = null;
+                $topicData['department_id'] = null;
+            }
+            
+            $topic = Topic::create($topicData);
 
             $this->topics[] = $topic;
         }
