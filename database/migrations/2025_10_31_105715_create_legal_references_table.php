@@ -11,8 +11,9 @@ return new class extends Migration
         Schema::create('legal_references', function (Blueprint $table) {
             $table->id();
             
-            // Relation avec proposition de loi
+            // Relation avec proposition de loi (optionnelle)
             $table->foreignId('proposition_loi_id')
+                ->nullable()
                 ->constrained('propositions_loi')
                 ->onDelete('cascade');
             
