@@ -1,15 +1,17 @@
 # Corrections nécessaires pour le seeder DemoDataSeeder
 
 ## ✅ Déjà corrigés
-- profiles: scope + region_id/department_id
-- groupes_parlementaires: slug, source, chambre
+- profiles: scope + region_id/department_id + bio + citizen_ref_hash nullable
+- groupes_parlementaires: slug, source, chambre, president, site_web, est_actif
 - thematiques_legislation: slug
 - proposition_loi_thematique: thematique_legislation_id
 - topics: scope + region_id/department_id
 - agenda_legislatif: date_debut, date_fin, date nullable
 - votes_legislatifs: titre, pour/contre/abstention, source/numero_scrutin nullable
+- amendements: objet, auteur_nom, auteur_groupe, expose_sommaire, statut, source nullable
+- votes_groupes_parlementaires: pour/contre/abstention/non_votants (alias)
 
-## ❌ À corriger : Amendements
+## ✅ Toutes les corrections appliquées !
 
 ### Migration actuelle (`amendements`):
 - `source` (NOT NULL)

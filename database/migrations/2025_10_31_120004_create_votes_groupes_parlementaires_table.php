@@ -22,9 +22,13 @@ return new class extends Migration
             
             // Détails des votes
             $table->integer('nombre_pour')->default(0);
+            $table->integer('pour')->default(0)->comment('Alias pour nombre_pour');
             $table->integer('nombre_contre')->default(0);
+            $table->integer('contre')->default(0)->comment('Alias pour nombre_contre');
             $table->integer('nombre_abstention')->default(0);
+            $table->integer('abstention')->default(0)->comment('Alias pour nombre_abstention');
             $table->integer('nombre_absents')->default(0);
+            $table->integer('non_votants')->default(0)->comment('Alias pour nombre_absents');
             
             // Cohésion
             $table->decimal('pourcentage_discipline', 5, 2)->nullable()->comment('% de membres ayant voté avec la ligne du groupe');
