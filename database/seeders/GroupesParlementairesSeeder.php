@@ -229,6 +229,8 @@ class GroupesParlementairesSeeder extends Seeder
         ];
 
         foreach ($groupes as $groupe) {
+            // Ajouter 'source' basé sur 'chambre' pour la contrainte unique
+            $groupe['source'] = $groupe['chambre'];
             GroupeParlementaire::create($groupe);
         }
 
