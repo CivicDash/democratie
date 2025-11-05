@@ -26,8 +26,8 @@ class DatabaseSeeder extends Seeder
         $this->command->newLine();
 
         // ==================== 3. Secteurs budgétaires ====================
-        $this->call(SectorsSeeder::class);
-        $this->command->newLine();
+        //$this->call(SectorsSeeder::class);
+        //$this->command->newLine();
 
         // ==================== 3b. Groupes parlementaires ====================
         $this->call(GroupesParlementairesSeeder::class);

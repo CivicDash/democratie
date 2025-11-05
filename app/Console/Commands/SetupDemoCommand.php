@@ -76,8 +76,12 @@ class SetupDemoCommand extends Command
                 '--class' => 'ThematiqueLegislationSeeder',
                 '--force' => true,
             ]);
+            // $this->call('db:seed', [
+            //     '--class' => 'PolicyVersionSeeder',
+            //     '--force' => true,
+            // ]);
             $this->call('db:seed', [
-                '--class' => 'PolicyVersionSeeder',
+                '--class' => 'GroupesParlementairesSeeder',
                 '--force' => true,
             ]);
             $this->call('db:seed', [
