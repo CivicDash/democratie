@@ -1445,7 +1445,6 @@ class DemoDataSeeder extends Seeder
                         'report_id' => $report->id,
                         'type' => $type,
                         'reason' => $this->generateSanctionReason($reason),
-                        'duration_days' => $durations[$type],
                         'starts_at' => Carbon::now()->subDays(rand(1, 5)),
                         'expires_at' => $durations[$type] ? Carbon::now()->addDays($durations[$type] - rand(1, 3)) : null,
                         'is_active' => rand(0, 100) > 30, // 70% actives
