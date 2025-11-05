@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('display_name')->comment('Pseudonyme aléatoire (ex: Citoyen123)');
-            $table->string('citizen_ref_hash')->unique()->comment('Hash du numéro de sécu + PEPPER (anonyme)');
+            $table->string('display_name')->comment('Pseudonyme aléatoire (ex: Citoyen123) ou nom réel pour personnalités publiques');
+            $table->string('citizen_ref_hash')->nullable()->unique()->comment('Hash du numéro de sécu + PEPPER (anonyme) - NULL pour personnalités publiques');
             $table->enum('scope', ['national', 'region', 'dept'])->default('national')
                 ->comment('Scope de participation');
             $table->foreignId('region_id')->nullable()->constrained('territories_regions')->onDelete('set null');
