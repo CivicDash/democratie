@@ -72,10 +72,10 @@ class DashboardController extends Controller
                 $hasVoted = false;
                 
                 if ($user) {
-                    // Vérifier si l'utilisateur a un token pour ce topic
+                    // Vérifier si l'utilisateur a un token consommé pour ce topic
                     $hasVoted = $topic->ballotTokens()
                         ->where('user_id', $user->id)
-                        ->where('is_used', true)
+                        ->where('consumed', true)
                         ->exists();
                 }
                 
