@@ -18,8 +18,10 @@ const props = defineProps({
 
 const gamificationStats = ref(null);
 const recentAchievements = ref([]);
-const loadingGamification = ref(true);
+const loadingGamification = ref(false); // Désactivé temporairement
 
+// TEMPORAIREMENT DÉSACTIVÉ POUR DEBUG
+/*
 const loadGamification = async () => {
   try {
     const [statsRes, achievementsRes] = await Promise.all([
@@ -38,6 +40,7 @@ const loadGamification = async () => {
 onMounted(() => {
   loadGamification();
 });
+*/
 
 /**
  * Obtient la couleur du badge selon le type de topic
@@ -145,7 +148,8 @@ const getScoreClass = (score) => {
           </div>
         </div>
 
-        <!-- 🎮 GAMIFICATION SECTION -->
+        <!-- 🎮 GAMIFICATION SECTION - Temporairement désactivée pour debug -->
+        <!--
         <div v-if="!loadingGamification && gamificationStats" class="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-xl overflow-hidden border border-indigo-100">
           <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
             <div class="flex items-center justify-between">
@@ -154,45 +158,12 @@ const getScoreClass = (score) => {
                   <span>🎮</span>
                   <span>Votre Progression</span>
                 </h3>
-                <p class="text-indigo-100 text-sm mt-1">Continuez à participer pour débloquer des badges !</p>
-              </div>
-              <Link href="/profile/gamification" class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold text-sm transition backdrop-blur-sm">
-                Voir tout →
-              </Link>
-            </div>
-          </div>
-          
-          <div class="p-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <LevelProgressBar
-                :level="gamificationStats.level"
-                :level-title="gamificationStats.level_title"
-                :xp="gamificationStats.xp"
-                :xp-to-next-level="gamificationStats.xp_to_next_level"
-              />
-              
-              <StreakCounter
-                :current-streak="gamificationStats.current_streak"
-                :longest-streak="gamificationStats.longest_streak"
-                :last-activity-date="gamificationStats.last_activity_date"
-              />
-            </div>
-            
-            <div v-if="recentAchievements.length > 0">
-              <h4 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">🏆 Badges Récents</h4>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <BadgeCard
-                  v-for="ua in recentAchievements"
-                  :key="ua.id"
-                  :achievement="ua.achievement"
-                  :is-unlocked="ua.is_unlocked"
-                  :unlocked-at="ua.unlocked_at"
-                  :show-progress="false"
-                />
+                <p class="text-indigo-100 text-sm mt-1">Section gamification temporairement désactivée</p>
               </div>
             </div>
           </div>
         </div>
+        -->
 
         <!-- CONTENU PRINCIPAL -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
