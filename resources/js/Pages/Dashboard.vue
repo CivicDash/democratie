@@ -11,7 +11,7 @@ const props = defineProps({
   trendingTopics: Array,
   propositionsLegislatives: Array,
   votesEnCours: Array,
-  budgetStats: Object,
+  // budgetStats: Object,  // Temporairement désactivé
   globalStats: Object,
   userActivity: Object,
 });
@@ -383,7 +383,8 @@ const getScoreClass = (score) => {
               </div>
             </div>
 
-            <!-- 💰 VOTRE BUDGET -->
+            <!-- 💰 VOTRE BUDGET - Temporairement désactivé -->
+            <!--
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
               <div class="bg-gradient-to-r from-orange-600 to-orange-700 px-6 py-4">
                 <h3 class="text-xl font-bold text-white flex items-center gap-2">
@@ -393,49 +394,10 @@ const getScoreClass = (score) => {
               </div>
               
               <div class="p-6">
-                <div v-if="!budgetStats.has_allocated" class="text-center py-8">
-                  <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">
-                    Vous n'avez pas encore alloué votre budget citoyen
-                  </p>
-                  <Link href="/budget" class="inline-block px-4 py-2 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition">
-                    Allouer mon budget
-                  </Link>
-                </div>
-                
-                <div v-else class="space-y-4">
-                  <div class="text-center pb-4 border-b border-gray-200 dark:border-gray-700">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Total alloué</p>
-                    <p class="text-3xl font-bold text-orange-600">
-                      {{ budgetStats.total_allocated.toLocaleString() }} €
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">
-                      Sur {{ budgetStats.nb_sectors }} secteurs
-                    </p>
-                  </div>
-                  
-                  <div v-if="budgetStats.top_sector">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Secteur prioritaire</p>
-                    <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                      <p class="font-semibold text-gray-900 dark:text-gray-100">
-                        {{ budgetStats.top_sector.name }}
-                      </p>
-                      <div class="flex items-center justify-between mt-2">
-                        <span class="text-orange-600 font-bold">
-                          {{ budgetStats.top_sector.amount.toLocaleString() }} €
-                        </span>
-                        <span class="text-sm text-gray-600">
-                          {{ budgetStats.top_sector.percentage }}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Link href="/budget" class="block text-center text-orange-600 hover:text-orange-700 font-semibold text-sm">
-                    Modifier mon allocation →
-                  </Link>
-                </div>
+                <p class="text-center text-gray-600">Section budget temporairement désactivée</p>
               </div>
             </div>
+            -->
 
             <!-- 🎯 VOTRE ACTIVITÉ RÉCENTE -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
