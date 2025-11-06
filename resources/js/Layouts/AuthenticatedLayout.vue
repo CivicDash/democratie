@@ -15,7 +15,7 @@ import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
 
-// ✅ Dark Mode Management
+// ✅ Dark Mode Management - Switch between light and dark themes
 const isDarkMode = ref(false);
 
 // Initialiser le mode depuis localStorage ou préférence système

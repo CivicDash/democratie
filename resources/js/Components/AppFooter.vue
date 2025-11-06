@@ -1,4 +1,5 @@
 <template>
+    <!-- Application Footer with links to objectif2027.fr and civis-consilium.fr -->
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
         <div class="mx-auto px-4 py-8 sm:px-6 lg:px-8" style="max-width: 100%;">
             <div class="grid grid-cols-1 gap-8 md:grid-cols-4">
