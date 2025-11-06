@@ -73,7 +73,7 @@ class DocumentPolicy
     public function verify(User $user, Document $document): bool
     {
         // User doit avoir la permission de vérifier
-        if (!$user->hasPermissionTo('documents.verify')) {
+        if (!$user->hasPermissionTo('verify_documents')) {
             return false;
         }
 

@@ -291,6 +291,15 @@ class BudgetService
     }
 
     /**
+     * Obtient les statistiques globales du budget participatif.
+     * Alias pour getParticipationStats() pour compatibilité.
+     */
+    public function getStats(): array
+    {
+        return $this->getParticipationStats();
+    }
+
+    /**
      * Exporte les données budgétaires pour analyse.
      */
     public function exportData(int $year): array

@@ -10,11 +10,14 @@ use App\Services\TopicService;
 use App\Http\Requests\Topic\StoreTopicRequest;
 use App\Http\Requests\Topic\UpdateTopicRequest;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TopicController extends Controller
 {
+    use AuthorizesRequests;
+
     public function __construct(
         protected TopicService $topicService
     ) {}
@@ -82,7 +85,7 @@ class TopicController extends Controller
         $posts = $topic->posts()
             ->with([
                 'author' => fn($q) => $q->select('id', 'name'), // Limiter colonnes
-                'votes' => fn($q) => $q->where('user_id', auth()->id())->select('post_id', 'user_id', 'vote_type'), // Vote de l'user
+                'votes' => fn($q) => $q->where('user_id', auth()->id())->select('post_id', 'user_id', 'vote'), // Vote de l'user
             ])
             ->withVoteScore()
             ->orderByDesc('is_pinned')
@@ -99,7 +102,7 @@ class TopicController extends Controller
                     'id' => $post->author->id,
                     'name' => $post->author->name,
                 ],
-                'user_vote' => $post->votes->first()?->vote_type, // up/down/null
+                'user_vote' => $post->votes->first()?->vote, // up/down/null
                 'can' => [
                     'update' => auth()->check() && auth()->user()->can('update', $post),
                     'delete' => auth()->check() && auth()->user()->can('delete', $post),

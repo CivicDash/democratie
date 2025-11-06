@@ -3,7 +3,7 @@
         <Head title="Mon Profil Gamification" />
         
         <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="max-w-full mx-auto sm:px-6 lg:px-8">
                 <div class="mb-8">
                     <h1 class="text-3xl font-bold text-gray-900">🎮 Mon Profil Gamification</h1>
                     <p class="mt-2 text-gray-600">Suivez votre progression et débloquez des achievements !</p>

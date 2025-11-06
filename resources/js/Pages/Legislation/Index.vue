@@ -118,7 +118,7 @@ const hasActiveFilters = computed(() => {
     </template>
 
     <div class="py-8">
-      <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+      <div class="mx-auto max-w-full sm:px-6 lg:px-8 space-y-6">
         
         <!-- Trending Propositions -->
         <div v-if="trending && trending.length > 0" class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6 shadow-sm">

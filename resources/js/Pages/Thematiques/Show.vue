@@ -56,7 +56,7 @@ onMounted(() => {
     <Head :title="thematique?.nom || 'Thématique'" />
 
     <AuthenticatedLayout>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <LoadingSkeleton v-if="loading" type="card" :count="3" />
 
             <template v-else-if="thematique">

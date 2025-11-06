@@ -13,7 +13,7 @@ defineProps({
     <div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50">
         <!-- Header -->
         <header class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg flex items-center justify-center">
                         <span class="text-white font-bold text-xl">C</span>
@@ -37,7 +37,7 @@ defineProps({
         </header>
 
         <!-- Hero Section -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
             <div class="text-center mb-16">
                 <div class="inline-flex items-center px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium mb-6">
                     🚀 Environnement de démonstration
@@ -187,7 +187,7 @@ defineProps({
 
         <!-- Footer -->
         <footer class="bg-white border-t border-gray-200 py-8 mt-20">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-600 text-sm">
+            <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-600 text-sm">
                 <p class="mb-2">
                     <strong>CivicDash</strong> - Plateforme open-source développée par 
                     <a href="https://civis-consilium.eu" target="_blank" class="text-indigo-600 hover:text-indigo-700 font-medium">Civis-Consilium</a>

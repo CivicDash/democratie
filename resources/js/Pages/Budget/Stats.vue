@@ -40,7 +40,7 @@ const getRankBadge = (rank) => {
 
     <MainLayout title="Statistiques Budget">
         <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="max-w-full mx-auto sm:px-6 lg:px-8">
                 <div class="mb-8">
                     <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                         📊 Statistiques du Budget Participatif

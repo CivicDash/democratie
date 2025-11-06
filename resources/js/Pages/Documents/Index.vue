@@ -68,7 +68,7 @@ const formatFileSize = (bytes) => {
 
     <MainLayout title="Documents Publics">
         <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="max-w-full mx-auto sm:px-6 lg:px-8">
                 <div class="mb-8 flex justify-between items-center">
                     <div>
                         <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
