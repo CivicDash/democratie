@@ -102,30 +102,65 @@ class TopicController extends Controller
      */
     public function show(Topic $topic): Response
     {
-        $topic->load(['author', 'region', 'department']);
+        $topic->load(['author', 'region', 'department', 'category']);
         $topic->loadCount('ballots');
 
-        // ✅ PAGINATION avec 20 posts par page + optimisations
+        // ✅ Charger le scrutin associé (si présent)
+        $ballot = null;
+        if ($topic->ballots()->exists()) {
+            $ballot = $topic->ballots()
+                ->with('options')
+                ->withCount('votes')
+                ->latest()
+                ->first();
+            
+            if ($ballot) {
+                $ballot = [
+                    'id' => $ballot->id,
+                    'title' => $ballot->title,
+                    'description' => $ballot->description,
+                    'status' => $ballot->status,
+                    'ends_at' => $ballot->ends_at,
+                    'votes_count' => $ballot->votes_count,
+                ];
+            }
+        }
+
+        // ✅ PAGINATION avec 20 posts par page + optimisations + relations parent/replies
         $posts = $topic->posts()
             ->with([
                 'author' => fn($q) => $q->select('id', 'name'), // Limiter colonnes
                 'votes' => fn($q) => $q->where('user_id', auth()->id())->select('post_id', 'user_id', 'vote'), // Vote de l'user
+                'parent' => fn($q) => $q->with('author:id,name')->select('id', 'content', 'user_id'), // Parent post
             ])
+            ->withCount('replies') // Nombre de réponses
             ->withVoteScore()
             ->orderByDesc('is_pinned')
+            ->orderBy('parent_id') // Posts parents d'abord
             ->orderByDesc('vote_score')
             ->paginate(20)
             ->through(fn($post) => [
                 'id' => $post->id,
                 'content' => $post->content,
                 'is_pinned' => $post->is_pinned,
+                'is_solution' => $post->is_solution ?? false,
                 'vote_score' => $post->vote_score,
+                'parent_id' => $post->parent_id,
+                'replies_count' => $post->replies_count ?? 0,
                 'created_at' => $post->created_at->diffForHumans(),
                 'updated_at' => $post->updated_at->diffForHumans(),
                 'author' => [
                     'id' => $post->author->id,
                     'name' => $post->author->name,
                 ],
+                'parent' => $post->parent ? [
+                    'id' => $post->parent->id,
+                    'content' => $post->parent->content,
+                    'author' => [
+                        'id' => $post->parent->author->id,
+                        'name' => $post->parent->author->name,
+                    ],
+                ] : null,
                 'user_vote' => $post->votes->first()?->vote, // up/down/null
                 'can' => [
                     'update' => auth()->check() && auth()->user()->can('update', $post),
@@ -136,10 +171,12 @@ class TopicController extends Controller
         return Inertia::render('Topics/Show', [
             'topic' => $topic,
             'posts' => $posts,
+            'ballot' => $ballot,
             'can' => [
                 'update' => auth()->check() && auth()->user()->can('update', $topic),
                 'delete' => auth()->check() && auth()->user()->can('delete', $topic),
                 'reply' => auth()->check() && auth()->user()->can('reply', $topic),
+                'vote' => auth()->check() && $ballot && $ballot['status'] === 'open',
             ],
         ]);
     }

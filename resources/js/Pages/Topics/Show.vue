@@ -13,6 +13,7 @@ const props = defineProps({
     topic: Object,
     posts: Object, // ✅ Maintenant un objet avec data, links, meta (pagination)
     can: Object,
+    ballot: Object, // ✅ Scrutin associé au débat
 });
 
 const replyForm = useForm({
@@ -20,7 +21,7 @@ const replyForm = useForm({
     parent_id: null,
 });
 
-const showReplyForm = ref(false);
+const replyingTo = ref(null); // ✅ Pour savoir à quel post on répond
 const loadingMore = ref(false);
 
 // ✅ Posts locaux pour optimistic UI
@@ -30,9 +31,23 @@ const submitReply = () => {
     replyForm.post(route('topics.posts.store', props.topic.id), {
         onSuccess: () => {
             replyForm.reset();
-            showReplyForm.value = false;
+            replyingTo.value = null;
         },
     });
+};
+
+// ✅ Répondre à un post spécifique
+const replyToPost = (post) => {
+    replyingTo.value = post;
+    replyForm.parent_id = post.id;
+    // Scroll vers le formulaire
+    document.getElementById('reply-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+// ✅ Annuler la réponse
+const cancelReply = () => {
+    replyingTo.value = null;
+    replyForm.parent_id = null;
 };
 
 // ✅ OPTIMISTIC UI - Vote instantané
@@ -198,24 +213,95 @@ const formatDate = (date) => {
                         </div>
                     </div>
 
-                    <!-- Ballot Info -->
-                    <div v-if="topic.ballot_type" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                                    🗳️ Scrutin {{ topic.ballot_type === 'binary' ? 'Oui/Non' : 'Choix multiple' }}
-                                </h3>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    Se termine le {{ formatDate(topic.ballot_ends_at) }}
-                                </p>
+                </Card>
+
+                <!-- ✅ SCRUTIN ASSOCIÉ (si présent) -->
+                <Card v-if="ballot" class="mb-6 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border-2 border-indigo-200 dark:border-indigo-700">
+                    <div class="flex items-start gap-4">
+                        <div class="text-4xl">🗳️</div>
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                                Scrutin : {{ ballot.title }}
+                            </h3>
+                            <p class="text-gray-700 dark:text-gray-300 mb-4">
+                                {{ ballot.description }}
+                            </p>
+                            <div class="flex flex-wrap items-center gap-4 text-sm mb-4">
+                                <Badge :variant="ballot.status === 'open' ? 'green' : 'gray'">
+                                    {{ ballot.status === 'open' ? '✅ En cours' : '🔒 Terminé' }}
+                                </Badge>
+                                <span class="text-gray-600 dark:text-gray-400">
+                                    📅 {{ ballot.status === 'open' ? 'Se termine le' : 'Terminé le' }} {{ formatDate(ballot.ends_at) }}
+                                </span>
+                                <span class="text-gray-600 dark:text-gray-400">
+                                    👥 {{ ballot.votes_count || 0 }} votes
+                                </span>
                             </div>
-                            <Link :href="route('topics.vote', topic.id)">
-                                <PrimaryButton>
-                                    🗳️ Voter
-                                </PrimaryButton>
-                            </Link>
+                            <div class="flex gap-3">
+                                <Link v-if="ballot.status === 'open' && can.vote" :href="route('ballots.vote', ballot.id)">
+                                    <PrimaryButton>
+                                        🗳️ Voter maintenant
+                                    </PrimaryButton>
+                                </Link>
+                                <Link :href="route('ballots.results', ballot.id)">
+                                    <SecondaryButton>
+                                        📊 Voir les résultats
+                                    </SecondaryButton>
+                                </Link>
+                            </div>
                         </div>
                     </div>
+                </Card>
+
+                <!-- ✅ FORMULAIRE DE RÉPONSE EN HAUT -->
+                <Card v-if="$page.props.auth.user && can.reply" id="reply-form" class="mb-6">
+                    <div v-if="replyingTo" class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                                    💬 En réponse à {{ replyingTo.author?.name || 'Anonyme' }}
+                                </p>
+                                <p class="text-sm text-blue-700 dark:text-blue-300 line-clamp-2">
+                                    {{ replyingTo.content }}
+                                </p>
+                            </div>
+                            <button @click="cancelReply" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        ✍️ {{ replyingTo ? 'Répondre' : 'Ajouter une réponse' }}
+                    </h3>
+                    <form @submit.prevent="submitReply">
+                        <textarea
+                            v-model="replyForm.content"
+                            rows="4"
+                            class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                            placeholder="Écrivez votre réponse..."
+                            required
+                        ></textarea>
+                        <div class="mt-4 flex gap-3">
+                            <PrimaryButton :disabled="replyForm.processing">
+                                {{ replyForm.processing ? 'Envoi...' : '📤 Envoyer' }}
+                            </PrimaryButton>
+                            <SecondaryButton v-if="replyingTo" type="button" @click="cancelReply">
+                                Annuler
+                            </SecondaryButton>
+                        </div>
+                    </form>
+                </Card>
+
+                <Card v-else-if="!$page.props.auth.user" class="mb-6">
+                    <EmptyState
+                        icon="🔒"
+                        title="Connectez-vous pour participer"
+                        description="Vous devez être connecté pour répondre à ce sujet."
+                    >
+                        <Link :href="route('login')">
+                            <PrimaryButton>Se connecter</PrimaryButton>
+                        </Link>
+                    </EmptyState>
                 </Card>
 
                 <!-- Posts List -->
@@ -225,24 +311,26 @@ const formatDate = (date) => {
                     </h2>
 
                     <div v-if="localPosts.length > 0" class="space-y-4">
-                        <Card v-for="post in localPosts" :key="post.id" padding="p-6">
+                        <Card v-for="post in localPosts" :key="post.id" padding="p-6" :class="{ 'ml-12 border-l-4 border-indigo-200 dark:border-indigo-700': post.parent_id }">
                             <div class="flex gap-4">
                                 <!-- Vote buttons -->
                                 <div class="flex flex-col items-center gap-2">
                                     <button 
                                         @click="votePost(post.id, 'up')"
-                                        class="text-gray-400 hover:text-green-600 transition-colors"
+                                        class="text-gray-400 hover:text-green-600 transition-colors text-xl"
                                         :class="{ 'text-green-600': post.user_vote === 'up' }"
+                                        title="Vote positif"
                                     >
                                         ▲
                                     </button>
-                                    <span class="font-semibold text-gray-900 dark:text-gray-100">
+                                    <span class="font-semibold text-gray-900 dark:text-gray-100 text-lg">
                                         {{ post.vote_score || 0 }}
                                     </span>
                                     <button 
                                         @click="votePost(post.id, 'down')"
-                                        class="text-gray-400 hover:text-red-600 transition-colors"
+                                        class="text-gray-400 hover:text-red-600 transition-colors text-xl"
                                         :class="{ 'text-red-600': post.user_vote === 'down' }"
+                                        title="Vote négatif"
                                     >
                                         ▼
                                     </button>
@@ -263,9 +351,37 @@ const formatDate = (date) => {
                                         <Badge v-if="post.is_solution" variant="green" size="sm">
                                             ✅ Solution
                                         </Badge>
+                                        <Badge v-if="post.parent_id" variant="blue" size="sm">
+                                            💬 Réponse
+                                        </Badge>
                                     </div>
-                                    <div class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                    
+                                    <!-- Parent post preview (si c'est une réponse) -->
+                                    <div v-if="post.parent" class="mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded border-l-2 border-gray-300 dark:border-gray-600">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                            En réponse à <span class="font-semibold">{{ post.parent.author?.name || 'Anonyme' }}</span>
+                                        </p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                                            {{ post.parent.content }}
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap mb-3">
                                         {{ post.content }}
+                                    </div>
+                                    
+                                    <!-- Actions -->
+                                    <div class="flex items-center gap-4 text-sm">
+                                        <button 
+                                            v-if="$page.props.auth.user && can.reply"
+                                            @click="replyToPost(post)"
+                                            class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200 font-medium flex items-center gap-1"
+                                        >
+                                            💬 Répondre
+                                        </button>
+                                        <span v-if="post.replies_count" class="text-gray-500 dark:text-gray-400">
+                                            {{ post.replies_count }} {{ post.replies_count > 1 ? 'réponses' : 'réponse' }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -297,39 +413,6 @@ const formatDate = (date) => {
                         />
                     </Card>
                 </div>
-
-                <!-- Reply Form -->
-                <Card v-if="$page.props.auth.user && can.reply">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                        ✍️ Ajouter une réponse
-                    </h3>
-                    <form @submit.prevent="submitReply">
-                        <textarea
-                            v-model="replyForm.content"
-                            rows="4"
-                            class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
-                            placeholder="Écrivez votre réponse..."
-                            required
-                        ></textarea>
-                        <div class="mt-4 flex gap-3">
-                            <PrimaryButton :disabled="replyForm.processing">
-                                {{ replyForm.processing ? 'Envoi...' : '📤 Envoyer' }}
-                            </PrimaryButton>
-                        </div>
-                    </form>
-                </Card>
-
-                <Card v-else-if="!$page.props.auth.user">
-                    <EmptyState
-                        icon="🔒"
-                        title="Connectez-vous pour participer"
-                        description="Vous devez être connecté pour répondre à ce sujet."
-                    >
-                        <Link :href="route('login')">
-                            <PrimaryButton>Se connecter</PrimaryButton>
-                        </Link>
-                    </EmptyState>
-                </Card>
             </div>
         </div>
     </AuthenticatedLayout>
