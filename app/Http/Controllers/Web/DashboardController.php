@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Topic;
 use App\Models\PropositionLoi;
 use App\Models\VotePropositionLoi;
-use App\Models\Ballot;
 use App\Models\UserAllocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -60,27 +59,36 @@ class DashboardController extends Controller
                 ];
             });
 
-        // 🗳️ VOTES EN COURS (ballots actifs)
-        $votesEnCours = Ballot::with(['topic:id,title'])
-            ->where('status', 'active')
-            ->where('end_date', '>', now())
-            ->orderBy('end_date', 'asc')
+        // 🗳️ VOTES EN COURS (topics avec scrutin actif)
+        $votesEnCours = Topic::where('has_ballot', true)
+            ->where('voting_opens_at', '<=', now())
+            ->where('voting_deadline_at', '>', now())
+            ->where('status', 'open')
+            ->orderBy('voting_deadline_at', 'asc')
             ->limit(5)
             ->get()
-            ->map(function ($ballot) use ($user) {
-                $hasVoted = $ballot->votes()->where('user_id', $user->id)->exists();
-                $results = $ballot->getResults();
+            ->map(function ($topic) use ($user) {
+                $totalVotes = $topic->ballots()->count();
+                $hasVoted = false;
+                
+                if ($user) {
+                    // Vérifier si l'utilisateur a un token pour ce topic
+                    $hasVoted = $topic->ballotTokens()
+                        ->where('user_id', $user->id)
+                        ->where('is_used', true)
+                        ->exists();
+                }
                 
                 return [
-                    'id' => $ballot->id,
-                    'topic_id' => $ballot->topic_id,
-                    'topic_titre' => $ballot->topic->title ?? 'Sans titre',
-                    'question' => $ballot->question,
-                    'type' => $ballot->type,
-                    'fin' => $ballot->end_date->diffForHumans(),
-                    'fin_date' => $ballot->end_date->format('d/m/Y H:i'),
+                    'id' => $topic->id,
+                    'topic_id' => $topic->id,
+                    'topic_titre' => $topic->title,
+                    'question' => $topic->title,
+                    'type' => $topic->ballot_type ?? 'yes_no',
+                    'fin' => $topic->voting_deadline_at->diffForHumans(),
+                    'fin_date' => $topic->voting_deadline_at->format('d/m/Y H:i'),
                     'a_vote' => $hasVoted,
-                    'total_votes' => $results['total_votes'] ?? 0,
+                    'total_votes' => $totalVotes,
                 ];
             });
 
