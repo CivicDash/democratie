@@ -194,6 +194,14 @@ const toggleDarkMode = () => {
                                     💰 Budget
                                 </NavLink>
                                 
+                                <!-- Statistiques France -->
+                                <NavLink
+                                    :href="route('statistics.france')"
+                                    :active="route().current('statistics.*')"
+                                >
+                                    📊 Statistiques France
+                                </NavLink>
+                                
                                 <!-- Documents -->
                                 <NavLink
                                     :href="route('documents.index')"
@@ -440,6 +448,12 @@ const toggleDarkMode = () => {
                             :active="route().current('budget.*')"
                         >
                             💰 Budget Participatif
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('statistics.france')"
+                            :active="route().current('statistics.*')"
+                        >
+                            📊 Statistiques France
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             :href="route('documents.index')"

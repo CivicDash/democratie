@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\LegislationController;
 use App\Http\Controllers\Web\RepresentantController;
+use App\Http\Controllers\Web\FranceStatisticsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PolicyController;
 use Illuminate\Foundation\Application;
@@ -233,6 +234,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/gamification', function () {
         return Inertia::render('Profile/Gamification');
     })->name('profile.gamification');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Statistiques France
+|--------------------------------------------------------------------------
+*/
+Route::prefix('statistiques')->name('statistics.')->group(function () {
+    Route::get('/france', [FranceStatisticsController::class, 'index'])->name('france');
+    Route::get('/france/region/{regionCode}', [FranceStatisticsController::class, 'getRegionData'])->name('france.region');
+    Route::get('/france/department/{departmentCode}', [FranceStatisticsController::class, 'getDepartmentData'])->name('france.department');
+    Route::get('/france/compare', [FranceStatisticsController::class, 'compareYears'])->name('france.compare');
 });
 
 /*
