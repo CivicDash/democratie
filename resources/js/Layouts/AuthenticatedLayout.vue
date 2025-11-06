@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -11,9 +11,41 @@ import GamificationWidget from '@/Components/GamificationWidget.vue';
 import NotificationBell from '@/Components/NotificationBell.vue';
 import BottomNav from '@/Components/BottomNav.vue';
 import ScrollToTop from '@/Components/ScrollToTop.vue';
+import AppFooter from '@/Components/AppFooter.vue';
 import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
+
+// ✅ Dark Mode Management
+const isDarkMode = ref(false);
+
+// Initialiser le mode depuis localStorage ou préférence système
+onMounted(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        isDarkMode.value = savedTheme === 'dark';
+    } else {
+        // Détecter la préférence système
+        isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    applyTheme();
+});
+
+// Appliquer le thème
+const applyTheme = () => {
+    if (isDarkMode.value) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+};
+
+// Toggle le mode
+const toggleDarkMode = () => {
+    isDarkMode.value = !isDarkMode.value;
+    localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light');
+    applyTheme();
+};
 </script>
 
 <template>
@@ -188,6 +220,23 @@ const showingNavigationDropdown = ref(false);
                                 <GamificationWidget />
                             </div>
                             
+                            <!-- Dark Mode Toggle -->
+                            <button
+                                @click="toggleDarkMode"
+                                type="button"
+                                class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-400 dark:focus:bg-gray-700 dark:focus:text-gray-400"
+                                :title="isDarkMode ? 'Passer en mode clair' : 'Passer en mode sombre'"
+                            >
+                                <!-- Icône Soleil (Light Mode) -->
+                                <svg v-if="!isDarkMode" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <!-- Icône Lune (Dark Mode) -->
+                                <svg v-else class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                </svg>
+                            </button>
+                            
                             <!-- Notification Bell -->
                             <NotificationBell />
                             
@@ -243,6 +292,22 @@ const showingNavigationDropdown = ref(false);
 
                         <!-- Hamburger -->
                         <div class="-me-2 flex items-center gap-3 sm:hidden">
+                            <!-- Dark Mode Toggle (Mobile) -->
+                            <button
+                                @click="toggleDarkMode"
+                                type="button"
+                                class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none dark:text-gray-500 dark:hover:bg-gray-900 dark:hover:text-gray-400 dark:focus:bg-gray-900 dark:focus:text-gray-400 min-w-[44px] min-h-[44px]"
+                            >
+                                <!-- Icône Soleil (Light Mode) -->
+                                <svg v-if="!isDarkMode" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <!-- Icône Lune (Dark Mode) -->
+                                <svg v-else class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                </svg>
+                            </button>
+                            
                             <!-- Mobile Notification Bell -->
                             <NotificationBell />
                             
@@ -444,8 +509,11 @@ const showingNavigationDropdown = ref(false);
             <main>
                 <slot />
             </main>
+            
+            <!-- Footer -->
+            <AppFooter />
         </div>
-        
+
         <!-- Bottom Navigation (Mobile only) -->
         <BottomNav />
         
