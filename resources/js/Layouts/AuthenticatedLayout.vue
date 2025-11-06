@@ -7,7 +7,6 @@ import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 import ConfirmContainer from '@/Components/ConfirmContainer.vue';
-import GamificationWidget from '@/Components/GamificationWidget.vue';
 import NotificationBell from '@/Components/NotificationBell.vue';
 import BottomNav from '@/Components/BottomNav.vue';
 import ScrollToTop from '@/Components/ScrollToTop.vue';
@@ -215,11 +214,6 @@ const toggleDarkMode = () => {
                         </div>
 
                         <div class="hidden sm:ms-6 sm:flex sm:items-center sm:space-x-2">
-                            <!-- Gamification Widget (discret) -->
-                            <div class="scale-75 origin-right opacity-80 hover:opacity-100 transition">
-                                <GamificationWidget />
-                            </div>
-                            
                             <!-- Dark Mode Toggle -->
                             <button
                                 @click="toggleDarkMode"
@@ -276,7 +270,7 @@ const toggleDarkMode = () => {
                                         <DropdownLink
                                             :href="route('profile.gamification')"
                                         >
-                                            🎮 Gamification
+                                            🏆 Succès Plateforme
                                         </DropdownLink>
                                         <DropdownLink
                                             :href="route('logout')"

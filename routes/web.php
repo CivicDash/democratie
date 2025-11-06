@@ -158,6 +158,17 @@ Route::prefix('budget')->name('budget.')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Votes Citoyens sur Propositions de Loi (Web Routes)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('legislation/propositions')->middleware('auth:web')->group(function () {
+    Route::post('/{id}/vote', [\App\Http\Controllers\Api\LegislationController::class, 'voteProposition']);
+    Route::delete('/{id}/vote', [\App\Http\Controllers\Api\LegislationController::class, 'removeVoteProposition']);
+    Route::get('/{id}/my-vote', [\App\Http\Controllers\Api\LegislationController::class, 'getMyVote']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | Modération
 |--------------------------------------------------------------------------
 */
