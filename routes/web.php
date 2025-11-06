@@ -43,7 +43,7 @@ Route::get('/search', function (Request $request) {
     return Inertia::render('Search/Results', [
         'query' => $request->query('q', ''),
     ]);
-})->name('search');
+})->name('search.results');
 
 /*
 |--------------------------------------------------------------------------
