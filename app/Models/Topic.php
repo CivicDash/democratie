@@ -124,6 +124,14 @@ class Topic extends Model
     }
 
     /**
+     * Vues du topic
+     */
+    public function views(): MorphMany
+    {
+        return $this->morphMany(View::class, 'viewable');
+    }
+
+    /**
      * Vérifie si le scrutin est ouvert
      */
     public function isVotingOpen(): bool
