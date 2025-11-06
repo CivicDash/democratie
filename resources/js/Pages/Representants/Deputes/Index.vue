@@ -5,9 +5,11 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import TextInput from '@/Components/TextInput.vue';
+import HemicycleView from '@/Components/HemicycleView.vue';
 
 const props = defineProps({
   deputes: Object,
+  groupes: Array,
   filters: Object,
 });
 
@@ -130,56 +132,13 @@ const siegesParGroupe = computed(() => {
 
         <!-- Vue Hémicycle -->
         <Card v-if="viewMode === 'hemicycle'">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Vue de l'Hémicycle
-          </h2>
-          
-          <!-- Répartition des sièges -->
-          <div class="mb-8">
-            <div class="flex flex-wrap gap-4 justify-center">
-              <div
-                v-for="groupe in groupes"
-                :key="groupe.sigle"
-                class="flex items-center gap-2"
-              >
-                <div
-                  class="w-6 h-6 rounded-full"
-                  :style="{ backgroundColor: groupe.couleur }"
-                ></div>
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ groupe.sigle }} ({{ siegesParGroupe[groupe.sigle] || 0 }})
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Hémicycle SVG simplifié -->
-          <div class="relative w-full aspect-[2/1] bg-gradient-to-b from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-xl overflow-hidden">
-            <svg viewBox="0 0 800 400" class="w-full h-full">
-              <!-- Rangées de sièges en arc de cercle -->
-              <g v-for="(row, rowIndex) in 7" :key="rowIndex">
-                <circle
-                  v-for="(seat, seatIndex) in Math.floor(80 + rowIndex * 10)"
-                  :key="seatIndex"
-                  :cx="400 + Math.cos((Math.PI * seatIndex) / (80 + rowIndex * 10) - Math.PI/2) * (150 + rowIndex * 40)"
-                  :cy="350 - Math.sin((Math.PI * seatIndex) / (80 + rowIndex * 10) - Math.PI/2) * (150 + rowIndex * 40)"
-                  r="3"
-                  :fill="groupes[Math.floor(Math.random() * groupes.length)]?.couleur || '#6B7280'"
-                  class="hover:r-5 transition-all cursor-pointer"
-                />
-              </g>
-              
-              <!-- Tribune centrale -->
-              <rect x="350" y="320" width="100" height="60" fill="#8B4513" rx="5" />
-              <text x="400" y="355" text-anchor="middle" fill="white" font-size="14" font-weight="bold">
-                TRIBUNE
-              </text>
-            </svg>
-          </div>
-
-          <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
-            💡 Vue simplifiée de l'hémicycle avec répartition des groupes parlementaires
-          </p>
+          <HemicycleView
+            :deputes="deputes.data"
+            :groupes="groupes"
+            :selectedGroupe="selectedGroupe"
+            @select-depute="(depute) => router.visit(route('representants.deputes.show', depute.id))"
+            @select-groupe="(sigle) => { selectedGroupe = sigle; applyFilters(); }"
+          />
         </Card>
 
         <!-- Vue Liste -->

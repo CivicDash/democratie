@@ -119,7 +119,7 @@ class LegislationController extends Controller
                 $query->orderBy('date_depot', 'desc')->limit(20);
             },
             'votes' => function ($query) {
-                $query->orderBy('date', 'desc')->limit(10);
+                $query->orderBy('date_vote', 'desc')->limit(10);
             },
             'votesCitoyens',
         ]);

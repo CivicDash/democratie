@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DataGouvController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\LegislationController;
 use App\Http\Controllers\Api\ModerationController;
+use App\Http\Controllers\Api\PostalCodeController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TopicController;
@@ -48,6 +49,12 @@ Route::get('/budget/ranking', [BudgetController::class, 'ranking']);
 Route::get('/budget/stats', [BudgetController::class, 'stats']);
 Route::post('/budget/simulate', [BudgetController::class, 'simulate']);
 Route::post('/budget/compare', [BudgetController::class, 'compare']);
+
+// Codes postaux - routes publiques
+Route::get('/postal-codes/search', [PostalCodeController::class, 'search']);
+Route::get('/postal-codes/{postalCode}', [PostalCodeController::class, 'show']);
+Route::get('/postal-codes/department/{departmentCode}', [PostalCodeController::class, 'byDepartment']);
+Route::get('/postal-codes/circonscription/{circonscription}', [PostalCodeController::class, 'byCirconscription']);
 
 // Documents - routes publiques
 Route::get('/documents', [DocumentController::class, 'index']);

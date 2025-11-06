@@ -39,6 +39,7 @@ class Topic extends Model
     protected $fillable = [
         'title',
         'description',
+        'category_id',
         'scope',
         'region_id',
         'department_id',
@@ -58,6 +59,14 @@ class Topic extends Model
         'voting_deadline_at' => 'datetime',
         'ballot_options' => 'array',
     ];
+
+    /**
+     * Catégorie du topic
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(TopicCategory::class, 'category_id');
+    }
 
     /**
      * Auteur du topic (legislator/admin)

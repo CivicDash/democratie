@@ -42,6 +42,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'hide_posts',
             
             // Budget
+            'budget.allocate',
             'submit_budget_allocation',
             'view_budget_data',
             'import_budget_data',
@@ -69,12 +70,14 @@ class RolesAndPermissionsSeeder extends Seeder
          */
         $citizen = Role::create(['name' => 'citizen']);
         $citizen->givePermissionTo([
+            'create_topics',
             'create_posts',
             'edit_own_posts',
             'delete_own_posts',
             'vote_on_posts',
             'vote_in_ballots',
             'view_ballot_results',
+            'budget.allocate',
             'submit_budget_allocation',
             'view_budget_data',
         ]);
@@ -85,12 +88,14 @@ class RolesAndPermissionsSeeder extends Seeder
          */
         $moderator = Role::create(['name' => 'moderator']);
         $moderator->givePermissionTo([
+            'create_topics',
             'create_posts',
             'edit_own_posts',
             'delete_own_posts',
             'vote_on_posts',
             'vote_in_ballots',
             'view_ballot_results',
+            'budget.allocate',
             'submit_budget_allocation',
             'view_budget_data',
             'view_reports',
@@ -106,12 +111,14 @@ class RolesAndPermissionsSeeder extends Seeder
          */
         $journalist = Role::create(['name' => 'journalist']);
         $journalist->givePermissionTo([
+            'create_topics',
             'create_posts',
             'edit_own_posts',
             'delete_own_posts',
             'vote_on_posts',
             'vote_in_ballots',
             'view_ballot_results',
+            'budget.allocate',
             'submit_budget_allocation',
             'view_budget_data',
             'verify_documents',
@@ -124,12 +131,14 @@ class RolesAndPermissionsSeeder extends Seeder
          */
         $ong = Role::create(['name' => 'ong']);
         $ong->givePermissionTo([
+            'create_topics',
             'create_posts',
             'edit_own_posts',
             'delete_own_posts',
             'vote_on_posts',
             'vote_in_ballots',
             'view_ballot_results',
+            'budget.allocate',
             'submit_budget_allocation',
             'view_budget_data',
             'verify_documents',
@@ -200,6 +209,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'vote_on_posts',
             'vote_in_ballots',
             'view_ballot_results',
+            'budget.allocate',
             'submit_budget_allocation',
             'view_budget_data',
             'upload_documents',

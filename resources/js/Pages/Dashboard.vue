@@ -97,48 +97,7 @@ const getScoreClass = (score) => {
     <div class="py-8">
       <div class="mx-auto sm:px-6 lg:px-8 space-y-6" style="max-width: 100%;">
         
-        <!-- 📊 STATISTIQUES GLOBALES -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-blue-100 text-sm font-medium">Sujets actifs</p>
-                <p class="text-3xl font-bold mt-2">{{ globalStats.total_topics }}</p>
-              </div>
-              <div class="text-5xl opacity-20">💬</div>
-            </div>
-          </div>
-
-          <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-green-100 text-sm font-medium">Votes exprimés</p>
-                <p class="text-3xl font-bold mt-2">{{ globalStats.total_votes.toLocaleString() }}</p>
-              </div>
-              <div class="text-5xl opacity-20">🗳️</div>
-            </div>
-          </div>
-
-          <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-purple-100 text-sm font-medium">Propositions de loi</p>
-                <p class="text-3xl font-bold mt-2">{{ globalStats.total_propositions }}</p>
-              </div>
-              <div class="text-5xl opacity-20">🏛️</div>
-            </div>
-          </div>
-
-          <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white shadow-lg">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-orange-100 text-sm font-medium">Citoyens actifs</p>
-                <p class="text-3xl font-bold mt-2">{{ globalStats.total_users_allocated }}</p>
-              </div>
-              <div class="text-5xl opacity-20">👥</div>
-            </div>
-          </div>
-        </div>
+        <!-- Les statistiques globales ont été retirées - KPI dédiés à venir sur une page séparée -->
 
         <!-- 🎮 GAMIFICATION SECTION - Temporairement désactivée pour debug -->
         <!--

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Topic;
+use App\Models\TopicCategory;
 use App\Models\TerritoryRegion;
 use App\Models\TerritoryDepartment;
 use App\Services\TopicService;
@@ -27,7 +28,7 @@ class TopicController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Topic::with(['author', 'region', 'department'])
+        $query = Topic::with(['author', 'region', 'department', 'category'])
             ->withCount(['posts', 'ballots']);
 
         // Filtres
@@ -36,6 +37,10 @@ class TopicController extends Controller
                 $q->where('title', 'like', "%{$request->search}%")
                   ->orWhere('description', 'like', "%{$request->description}%");
             });
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
         }
 
         if ($request->filled('scope')) {
@@ -64,9 +69,13 @@ class TopicController extends Controller
         // Tri par défaut : plus récents
         $topics = $query->latest()->paginate(15)->withQueryString();
 
+        // Récupérer toutes les catégories pour le filtre
+        $categories = TopicCategory::active()->ordered()->get();
+
         return Inertia::render('Topics/Index', [
             'topics' => $topics,
-            'filters' => $request->only(['search', 'scope', 'type', 'filter']),
+            'categories' => $categories,
+            'filters' => $request->only(['search', 'scope', 'type', 'filter', 'category']),
         ]);
     }
 

@@ -126,9 +126,20 @@ class RepresentantController extends Controller
         }
 
         $deputes = $query->paginate(30)->withQueryString();
+        
+        // Récupérer les groupes parlementaires pour les filtres et l'hémicycle
+        $groupes = GroupeParlementaire::where('source', 'assemblee')
+            ->where('actif', true)
+            ->get(['sigle', 'nom', 'couleur_hex'])
+            ->map(fn($g) => [
+                'sigle' => $g->sigle,
+                'nom' => $g->nom,
+                'couleur_hex' => $g->couleur_hex,
+            ]);
 
         return Inertia::render('Representants/Deputes/Index', [
             'deputes' => $deputes,
+            'groupes' => $groupes,
             'filters' => $request->only(['search', 'groupe', 'department', 'sort', 'order']),
         ]);
     }

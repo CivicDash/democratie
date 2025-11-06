@@ -28,6 +28,8 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe de la majorité présidentielle, issu de La République En Marche.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/renaissance',
                 'est_actif' => true,
+                'legislature' => 17,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Rassemblement National',
@@ -41,6 +43,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Principal groupe d\'opposition de droite nationaliste.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/rassemblement-national',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'La France Insoumise - Nouveau Front Populaire',
@@ -54,6 +57,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe de gauche radicale et écologiste.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/lfi-nfp',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Les Républicains',
@@ -67,6 +71,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe de la droite républicaine et gaulliste.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/les-republicains',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Parti Socialiste et apparentés',
@@ -80,6 +85,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe socialiste et social-démocrate.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/socialistes',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Horizons et apparentés',
@@ -93,6 +99,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe centriste fondé par Édouard Philippe.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/horizons',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Écologiste - NUPES',
@@ -106,6 +113,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe écologiste et de gauche environnementale.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/ecologistes',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Démocrate (MoDem et Indépendants)',
@@ -119,6 +127,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe centriste du MoDem et alliés.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/democrate',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Libertés, Indépendants, Outre-mer et Territoires',
@@ -132,6 +141,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe centriste indépendant et territoires d\'outre-mer.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/liot',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Gauche Démocrate et Républicaine',
@@ -145,6 +155,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe communiste et républicain.',
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/gdr',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
 
             // Sénat
@@ -160,6 +171,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe majoritaire au Sénat, droite républicaine.',
                 'site_web' => 'https://www.senat.fr/groupe/lr.html',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Union Centriste (Sénat)',
@@ -173,6 +185,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe centriste du Sénat.',
                 'site_web' => 'https://www.senat.fr/groupe/uc.html',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Socialiste, Écologiste et Républicain (Sénat)',
@@ -186,6 +199,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe de gauche au Sénat.',
                 'site_web' => 'https://www.senat.fr/groupe/ser.html',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Rassemblement Démocratique et Social Européen (Sénat)',
@@ -199,6 +213,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe centriste et radical au Sénat.',
                 'site_web' => 'https://www.senat.fr/groupe/rdse.html',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Communiste Républicain Citoyen et Écologiste (Sénat)',
@@ -212,6 +227,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe communiste au Sénat.',
                 'site_web' => 'https://www.senat.fr/groupe/crce.html',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
             [
                 'nom' => 'Rassemblement des Démocrates, Progressistes et Indépendants (Sénat)',
@@ -225,6 +241,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'description' => 'Groupe de la majorité présidentielle au Sénat.',
                 'site_web' => 'https://www.senat.fr/groupe/rdpi.html',
                 'est_actif' => true,
+                'legislature' => 17,
             ],
         ];
 
