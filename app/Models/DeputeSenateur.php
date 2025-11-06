@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modèle pour les députés et sénateurs
@@ -77,6 +79,45 @@ class DeputeSenateur extends Model
         'fonctions' => 'array',
         'commissions' => 'array',
     ];
+
+    // ========================================================================
+    // RELATIONS
+    // ========================================================================
+
+    /**
+     * Groupe parlementaire du député/sénateur
+     */
+    public function groupeParlementaire(): BelongsTo
+    {
+        return $this->belongsTo(GroupeParlementaire::class, 'groupe_sigle', 'sigle')
+            ->where('source', $this->source);
+    }
+
+    /**
+     * Département du député/sénateur
+     */
+    public function department(): BelongsTo
+    {
+        // Extraire le code département de la circonscription (ex: "75-01" -> "75")
+        $deptCode = substr($this->circonscription ?? '', 0, 2);
+        return $this->belongsTo(TerritoryDepartment::class, 'code', $deptCode);
+    }
+
+    /**
+     * Propositions de loi déposées
+     */
+    public function propositions(): HasMany
+    {
+        return $this->hasMany(PropositionLoi::class, 'auteurs->0->uid', 'uid');
+    }
+
+    /**
+     * Amendements déposés
+     */
+    public function amendements(): HasMany
+    {
+        return $this->hasMany(Amendement::class, 'auteur_uid', 'uid');
+    }
 
     // ========================================================================
     // SCOPES

@@ -58,7 +58,7 @@ class BudgetService
                     'sector_id' => $sector->id,
                 ],
                 [
-                    'allocated_percent' => $percent,
+                    'percent' => $percent,
                 ]
             );
         });
@@ -109,7 +109,7 @@ class BudgetService
                 $created->push(UserAllocation::create([
                     'user_id' => $user->id,
                     'sector_id' => $sectorId,
-                    'allocated_percent' => $percent,
+                    'percent' => $percent,
                 ]));
             }
 
@@ -136,7 +136,7 @@ class BudgetService
             $query->where('sector_id', '!=', $excludeSectorId);
         }
 
-        return $query->sum('allocated_percent');
+        return $query->sum('percent');
     }
 
     /**

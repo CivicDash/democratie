@@ -10,6 +10,7 @@ use App\Models\UserAllocation;
 use App\Models\TopicBallot;
 use App\Models\GroupeParlementaire;
 use App\Models\VoteLegislatif;
+use App\Models\DeputeSenateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -191,6 +192,53 @@ class DashboardController extends Controller
                 'resultat' => $vote->pour > $vote->contre ? 'adopté' : 'rejeté',
             ]);
 
+        // 📍 MES REPRÉSENTANTS (député + sénateurs si localisation configurée)
+        $mesRepresentants = [
+            'hasLocation' => false,
+            'depute' => null,
+            'senateurs' => [],
+        ];
+
+        $profile = $user->profile;
+        if ($profile && $profile->circonscription) {
+            $mesRepresentants['hasLocation'] = true;
+
+            // Député de la circonscription
+            $depute = DeputeSenateur::deputes()
+                ->enExercice()
+                ->where('circonscription', $profile->circonscription)
+                ->with(['groupeParlementaire'])
+                ->first();
+
+            if ($depute) {
+                $mesRepresentants['depute'] = [
+                    'id' => $depute->id,
+                    'nom_complet' => $depute->nom_complet,
+                    'photo_url' => $depute->photo_url,
+                    'groupe_sigle' => $depute->groupe_sigle,
+                    'groupe_couleur' => $depute->groupeParlementaire?->couleur_hex ?? '#6B7280',
+                    'circonscription' => $depute->circonscription,
+                ];
+            }
+
+            // Sénateurs du département
+            $deptCode = substr($profile->circonscription, 0, 2);
+            $senateurs = DeputeSenateur::senateurs()
+                ->enExercice()
+                ->where('circonscription', 'like', $deptCode . '%')
+                ->with(['groupeParlementaire'])
+                ->limit(3)
+                ->get();
+
+            $mesRepresentants['senateurs'] = $senateurs->map(fn($senateur) => [
+                'id' => $senateur->id,
+                'nom_complet' => $senateur->nom_complet,
+                'photo_url' => $senateur->photo_url,
+                'groupe_sigle' => $senateur->groupe_sigle,
+                'groupe_couleur' => $senateur->groupeParlementaire?->couleur_hex ?? '#6B7280',
+            ])->toArray();
+        }
+
         return Inertia::render('Dashboard', [
             'trendingTopics' => $trendingTopics,
             'propositionsLegislatives' => $propositionsLegislatives,
@@ -200,6 +248,7 @@ class DashboardController extends Controller
             'userActivity' => $userActivity,
             'groupesParlementaires' => $groupesParlementaires,
             'votesLegislatifs' => $votesLegislatifs,
+            'mesRepresentants' => $mesRepresentants,
         ]);
     }
 }

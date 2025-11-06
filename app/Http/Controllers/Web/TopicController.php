@@ -34,7 +34,7 @@ class TopicController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('title', 'like', "%{$request->search}%")
-                  ->orWhere('description', 'like', "%{$request->search}%");
+                  ->orWhere('description', 'like', "%{$request->description}%");
             });
         }
 
@@ -46,12 +46,27 @@ class TopicController extends Controller
             $query->where('type', $request->type);
         }
 
+        // Filtre pour les scrutins en cours
+        if ($request->filled('filter') && $request->filter === 'ballot') {
+            $query->where('has_ballot', true)
+                ->where('voting_opens_at', '<=', now())
+                ->where('voting_deadline_at', '>', now())
+                ->where('status', 'open');
+        }
+
+        // Filtre pour les résultats (scrutins terminés)
+        if ($request->filled('filter') && $request->filter === 'closed') {
+            $query->where('has_ballot', true)
+                ->where('voting_deadline_at', '<=', now())
+                ->whereIn('status', ['closed', 'archived']);
+        }
+
         // Tri par défaut : plus récents
         $topics = $query->latest()->paginate(15)->withQueryString();
 
         return Inertia::render('Topics/Index', [
             'topics' => $topics,
-            'filters' => $request->only(['search', 'scope', 'type']),
+            'filters' => $request->only(['search', 'scope', 'type', 'filter']),
         ]);
     }
 

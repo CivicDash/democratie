@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import MainLayout from '@/Layouts/MainLayout.vue';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -48,7 +48,7 @@ const submit = () => {
 <template>
     <Head title="Créer un sujet" />
 
-    <MainLayout title="Créer un sujet">
+    <AuthenticatedLayout title="Créer un sujet">
         <div class="py-12">
             <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
                 <Card>
@@ -177,6 +177,6 @@ const submit = () => {
                 </Card>
             </div>
         </div>
-    </MainLayout>
+    </AuthenticatedLayout>
 </template>
 

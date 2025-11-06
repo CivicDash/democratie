@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import MainLayout from '@/Layouts/MainLayout.vue';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -160,7 +160,7 @@ const formatDate = (date) => {
 <template>
     <Head :title="topic.title" />
 
-    <MainLayout :title="topic.title">
+    <AuthenticatedLayout :title="topic.title">
         <div class="py-12">
             <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
                 <!-- Topic Header -->
@@ -332,6 +332,6 @@ const formatDate = (date) => {
                 </Card>
             </div>
         </div>
-    </MainLayout>
+    </AuthenticatedLayout>
 </template>
 

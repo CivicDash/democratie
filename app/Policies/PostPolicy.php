@@ -96,7 +96,7 @@ class PostPolicy
         }
 
         // Modérateurs et admins peuvent supprimer
-        return $user->hasPermissionTo('posts.delete');
+        return $user->hasPermissionTo('delete_own_posts') || $user->hasAnyRole(['moderator', 'admin']);
     }
 
     /**
@@ -105,7 +105,7 @@ class PostPolicy
     public function hide(User $user, Post $post): bool
     {
         // Seuls modérateurs et admins peuvent masquer
-        return $user->hasPermissionTo('posts.hide');
+        return $user->hasPermissionTo('hide_posts');
     }
 
     /**

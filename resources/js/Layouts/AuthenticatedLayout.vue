@@ -99,6 +99,37 @@ const showingNavigationDropdown = ref(false);
                                     </Dropdown>
                                 </div>
                                 
+                                <!-- Parlement (nouveau) -->
+                                <div class="relative">
+                                    <Dropdown align="left" width="56">
+                                        <template #trigger>
+                                            <button
+                                                class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                                :class="route().current('representants.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                            >
+                                                🏛️ Parlement
+                                                <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </template>
+                                        <template #content>
+                                            <DropdownLink :href="route('representants.mes-representants')">
+                                                📍 Mes Représentants
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('representants.deputes.index')">
+                                                👔 Députés (577)
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('representants.senateurs.index')">
+                                                🎩 Sénateurs (348)
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('legislation.groupes.index')">
+                                                🎨 Groupes Parlementaires
+                                            </DropdownLink>
+                                        </template>
+                                    </Dropdown>
+                                </div>
+                                
                                 <!-- Vote & Scrutin -->
                                 <div class="relative">
                                     <Dropdown align="left" width="56">
@@ -316,6 +347,29 @@ const showingNavigationDropdown = ref(false);
                             :active="route().current('legislation.thematiques.*')"
                         >
                             🎯 Thématiques
+                        </ResponsiveNavLink>
+                        
+                        <!-- Parlement (nouveau) -->
+                        <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            🏛️ Parlement
+                        </div>
+                        <ResponsiveNavLink
+                            :href="route('representants.mes-representants')"
+                            :active="route().current('representants.mes-representants')"
+                        >
+                            📍 Mes Représentants
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('representants.deputes.index')"
+                            :active="route().current('representants.deputes.*')"
+                        >
+                            👔 Députés (577)
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('representants.senateurs.index')"
+                            :active="route().current('representants.senateurs.*')"
+                        >
+                            🎩 Sénateurs (348)
                         </ResponsiveNavLink>
                         
                         <!-- Autres sections -->

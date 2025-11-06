@@ -34,7 +34,7 @@ class GroupesParlementairesSeeder extends Seeder
                 'slug' => 'rassemblement-national',
                 'sigle' => 'RN',
                 'chambre' => 'assemblee',
-                'position_politique' => 'droite',
+                'position_politique' => 'extreme_droite',
                 'couleur_hex' => '#0D378A',
                 'nombre_membres' => 142,
                 'president' => 'Marine Le Pen',

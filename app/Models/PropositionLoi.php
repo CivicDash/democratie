@@ -83,6 +83,14 @@ class PropositionLoi extends Model
     }
 
     /**
+     * Votes des citoyens sur cette proposition
+     */
+    public function votesCitoyens(): HasMany
+    {
+        return $this->hasMany(VotePropositionLoi::class);
+    }
+
+    /**
      * Relation avec les thématiques (many-to-many)
      */
     public function thematiques(): BelongsToMany

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
-import MainLayout from '@/Layouts/MainLayout.vue';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import EmptyState from '@/Components/EmptyState.vue';
@@ -97,7 +97,7 @@ const formatDate = (date) => {
 <template>
     <Head title="Forum Citoyen" />
 
-    <MainLayout title="Forum Citoyen">
+    <AuthenticatedLayout title="Forum Citoyen">
         <div class="py-12">
             <div class="max-w-full mx-auto sm:px-6 lg:px-8">
                 <!-- Header -->
@@ -234,6 +234,6 @@ const formatDate = (date) => {
                 </Card>
             </div>
         </div>
-    </MainLayout>
+    </AuthenticatedLayout>
 </template>
 

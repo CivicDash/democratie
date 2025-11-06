@@ -16,6 +16,7 @@ const props = defineProps({
   userActivity: Object,
   groupesParlementaires: Array,
   votesLegislatifs: Array,
+  mesRepresentants: Object,
 });
 
 const gamificationStats = ref(null);
@@ -409,6 +410,123 @@ const getScoreClass = (score) => {
                 <div v-if="userActivity.derniers_topics.length === 0 && userActivity.derniers_votes_loi.length === 0" class="text-center py-8 text-gray-500 text-sm">
                   Aucune activité récente
                 </div>
+              </div>
+            </div>
+
+            <!-- 📍 MES REPRÉSENTANTS -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+              <div class="bg-gradient-to-r from-indigo-700 to-purple-700 px-6 py-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                      <span>📍</span>
+                      <span>Mes Représentants</span>
+                    </h3>
+                    <p class="text-indigo-100 text-sm mt-1">Vos élus au Parlement</p>
+                  </div>
+                  <Link
+                    :href="route('representants.mes-representants')"
+                    class="text-white hover:text-indigo-200 text-sm font-medium"
+                  >
+                    Voir tout →
+                  </Link>
+                </div>
+              </div>
+              
+              <!-- Avec localisation -->
+              <div v-if="mesRepresentants.hasLocation" class="p-6">
+                <!-- Député -->
+                <div v-if="mesRepresentants.depute" class="mb-6">
+                  <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                    🗳️ Mon Député
+                  </h4>
+                  <div class="flex items-center gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div class="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+                      <img
+                        v-if="mesRepresentants.depute.photo_url"
+                        :src="mesRepresentants.depute.photo_url"
+                        :alt="mesRepresentants.depute.nom_complet"
+                        class="w-full h-full object-cover"
+                      />
+                      <div v-else class="w-full h-full flex items-center justify-center text-2xl">
+                        👤
+                      </div>
+                    </div>
+                    <div class="flex-1">
+                      <p class="font-bold text-gray-900 dark:text-gray-100 mb-1">
+                        {{ mesRepresentants.depute.nom_complet }}
+                      </p>
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="inline-block px-2 py-1 rounded text-xs font-semibold text-white"
+                          :style="{ backgroundColor: mesRepresentants.depute.groupe_couleur }"
+                        >
+                          {{ mesRepresentants.depute.groupe_sigle }}
+                        </span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                          {{ mesRepresentants.depute.circonscription }}
+                        </span>
+                      </div>
+                    </div>
+                    <Link
+                      :href="route('representants.deputes.show', mesRepresentants.depute.id)"
+                      class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
+                    >
+                      Voir
+                    </Link>
+                  </div>
+                </div>
+
+                <!-- Sénateurs -->
+                <div v-if="mesRepresentants.senateurs && mesRepresentants.senateurs.length > 0">
+                  <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                    🏛️ Mes Sénateurs ({{ mesRepresentants.senateurs.length }})
+                  </h4>
+                  <div class="grid md:grid-cols-3 gap-3">
+                    <div
+                      v-for="senateur in mesRepresentants.senateurs"
+                      :key="senateur.id"
+                      class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg"
+                    >
+                      <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+                        <img
+                          v-if="senateur.photo_url"
+                          :src="senateur.photo_url"
+                          :alt="senateur.nom_complet"
+                          class="w-full h-full object-cover"
+                        />
+                        <div v-else class="w-full h-full flex items-center justify-center text-lg">
+                          👤
+                        </div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-xs truncate">
+                          {{ senateur.nom_complet }}
+                        </p>
+                        <span
+                          class="inline-block px-1.5 py-0.5 rounded text-xs font-semibold text-white"
+                          :style="{ backgroundColor: senateur.groupe_couleur }"
+                        >
+                          {{ senateur.groupe_sigle }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sans localisation -->
+              <div v-else class="p-6 text-center">
+                <div class="text-4xl mb-3">📍</div>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                  Configurez votre localisation pour découvrir vos représentants
+                </p>
+                <Link
+                  :href="route('profile.edit')"
+                  class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                >
+                  Configurer mon profil
+                </Link>
               </div>
             </div>
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\ModerationController;
 use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\LegislationController;
+use App\Http\Controllers\Web\RepresentantController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PolicyController;
 use Illuminate\Foundation\Application;
@@ -232,6 +233,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/dashboard', function () {
         return Inertia::render('Admin/Dashboard');
     })->name('dashboard');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Représentants (Députés & Sénateurs)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('representants')->name('representants.')->group(function () {
+    // Mes représentants
+    Route::get('/mes-representants', [RepresentantController::class, 'mesRepresentants'])->name('mes-representants');
+    
+    // Députés
+    Route::get('/deputes', [RepresentantController::class, 'deputes'])->name('deputes.index');
+    Route::get('/deputes/{depute}', [RepresentantController::class, 'showDepute'])->name('deputes.show');
+    
+    // Sénateurs
+    Route::get('/senateurs', [RepresentantController::class, 'senateurs'])->name('senateurs.index');
+    Route::get('/senateurs/{senateur}', [RepresentantController::class, 'showSenateur'])->name('senateurs.show');
 });
 
 /*
