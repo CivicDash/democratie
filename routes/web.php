@@ -24,13 +24,17 @@ use Inertia\Inertia;
 |
 */
 
-// Page d'accueil
+// Page d'accueil - Mode Démo
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
+    // Si connecté, rediriger vers le dashboard
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    
+    // Sinon, afficher la page démo
+    return Inertia::render('Demo/Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
     ]);
 })->name('home');
 
