@@ -333,7 +333,7 @@ Route::prefix('export')->name('export.')->group(function () {
 // ═══════════════════════════════════════════════════════════════════════════════════
 // GAMIFICATION & ACHIEVEMENTS
 // ═══════════════════════════════════════════════════════════════════════════════════
-Route::prefix('gamification')->name('gamification.')->group(function () {
+Route::middleware('web')->prefix('gamification')->name('gamification.')->group(function () {
     // Routes publiques
     Route::get('/achievements', [App\Http\Controllers\Api\GamificationController::class, 'allAchievements'])->name('achievements.all');
     Route::get('/global-stats', [App\Http\Controllers\Api\GamificationController::class, 'globalStats'])->name('global_stats');
@@ -341,8 +341,8 @@ Route::prefix('gamification')->name('gamification.')->group(function () {
     Route::get('/users/{userId}/stats', [App\Http\Controllers\Api\GamificationController::class, 'userStats'])->name('user.stats');
     Route::get('/users/{userId}/achievements', [App\Http\Controllers\Api\GamificationController::class, 'userAchievements'])->name('user.achievements');
     
-    // Routes authentifiées (utilise auth:web pour Inertia/session-based auth)
-    Route::middleware('auth:web')->group(function () {
+    // Routes authentifiées (avec session web)
+    Route::middleware('auth')->group(function () {
         Route::post('/initialize', [App\Http\Controllers\Api\GamificationController::class, 'initialize'])->name('initialize');
         Route::get('/my-stats', [App\Http\Controllers\Api\GamificationController::class, 'myStats'])->name('my_stats');
         Route::get('/my-achievements', [App\Http\Controllers\Api\GamificationController::class, 'myAchievements'])->name('my_achievements');
