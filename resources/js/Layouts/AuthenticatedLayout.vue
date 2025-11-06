@@ -23,20 +23,18 @@ const showingNavigationDropdown = ref(false);
                 class="border-b border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800"
             >
                 <!-- Primary Navigation Menu -->
-                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="mx-auto px-4 sm:px-6 lg:px-8" style="max-width: 100%;">
                     <div class="flex h-16 justify-between">
                         <div class="flex">
                             <!-- Logo -->
                             <div class="flex shrink-0 items-center">
                                 <Link :href="route('dashboard')">
-                                    <ApplicationLogo
-                                        class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200"
-                                    />
+                                    <img src="/images/logo.png" alt="CivicDash" class="block h-10 w-auto" />
                                 </Link>
                             </div>
 
                             <!-- Navigation Links -->
-                            <div class="hidden space-x-1 sm:-my-px sm:ms-10 sm:flex">
+                            <div class="hidden space-x-1 sm:-my-px sm:ms-10 sm:flex items-center">
                                 <!-- Dashboard -->
                                 <NavLink
                                     :href="route('dashboard')"
@@ -46,79 +44,85 @@ const showingNavigationDropdown = ref(false);
                                 </NavLink>
                                 
                                 <!-- Débats citoyens -->
-                                <Dropdown align="left" width="56">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out"
-                                            :class="route().current('topics.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100 focus:border-indigo-700' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700'"
-                                        >
-                                            💬 Débats
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <DropdownLink :href="route('topics.index')">
-                                            📝 Forum Citoyen
-                                        </DropdownLink>
-                                        <DropdownLink :href="route('topics.trending')">
-                                            🔥 Sujets Tendances
-                                        </DropdownLink>
-                                        <DropdownLink :href="route('topics.create')">
-                                            ➕ Créer un Sujet
-                                        </DropdownLink>
-                                    </template>
-                                </Dropdown>
+                                <div class="relative">
+                                    <Dropdown align="left" width="56">
+                                        <template #trigger>
+                                            <button
+                                                class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                                :class="route().current('topics.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                            >
+                                                💬 Débats
+                                                <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </template>
+                                        <template #content>
+                                            <DropdownLink :href="route('topics.index')">
+                                                📝 Forum Citoyen
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('topics.trending')">
+                                                🔥 Sujets Tendances
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('topics.create')">
+                                                ➕ Créer un Sujet
+                                            </DropdownLink>
+                                        </template>
+                                    </Dropdown>
+                                </div>
                                 
                                 <!-- Législation -->
-                                <Dropdown align="left" width="56">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out"
-                                            :class="route().current('legislation.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100 focus:border-indigo-700' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700'"
-                                        >
-                                            🏛️ Législation
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <DropdownLink :href="route('legislation.index')">
-                                            📜 Propositions de Loi
-                                        </DropdownLink>
-                                        <DropdownLink :href="route('legislation.groupes.index')">
-                                            🏛️ Groupes Parlementaires
-                                        </DropdownLink>
-                                        <DropdownLink :href="route('legislation.thematiques.index')">
-                                            🎯 Thématiques
-                                        </DropdownLink>
-                                    </template>
-                                </Dropdown>
+                                <div class="relative">
+                                    <Dropdown align="left" width="56">
+                                        <template #trigger>
+                                            <button
+                                                class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                                :class="route().current('legislation.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                            >
+                                                🏛️ Législation
+                                                <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </template>
+                                        <template #content>
+                                            <DropdownLink :href="route('legislation.index')">
+                                                📜 Propositions de Loi
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('legislation.groupes.index')">
+                                                🏛️ Groupes Parlementaires
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('legislation.thematiques.index')">
+                                                🎯 Thématiques
+                                            </DropdownLink>
+                                        </template>
+                                    </Dropdown>
+                                </div>
                                 
                                 <!-- Vote & Scrutin -->
-                                <Dropdown align="left" width="56">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out"
-                                            :class="route().current('vote.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100 focus:border-indigo-700' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700'"
-                                        >
-                                            🗳️ Votes
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <DropdownLink :href="route('topics.index', {filter: 'ballot'})">
-                                            🗳️ Scrutins en Cours
-                                        </DropdownLink>
-                                        <DropdownLink :href="route('topics.index', {filter: 'closed'})">
-                                            📊 Résultats de Votes
-                                        </DropdownLink>
-                                    </template>
-                                </Dropdown>
+                                <div class="relative">
+                                    <Dropdown align="left" width="56">
+                                        <template #trigger>
+                                            <button
+                                                class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                                :class="route().current('vote.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                            >
+                                                🗳️ Votes
+                                                <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </template>
+                                        <template #content>
+                                            <DropdownLink :href="route('topics.index', {filter: 'ballot'})">
+                                                🗳️ Scrutins en Cours
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('topics.index', {filter: 'closed'})">
+                                                📊 Résultats de Votes
+                                            </DropdownLink>
+                                        </template>
+                                    </Dropdown>
+                                </div>
                                 
                                 <!-- Budget -->
                                 <NavLink
@@ -147,9 +151,11 @@ const showingNavigationDropdown = ref(false);
                             </div>
                         </div>
 
-                        <div class="hidden sm:ms-6 sm:flex sm:items-center sm:space-x-4">
-                            <!-- Gamification Widget -->
-                            <GamificationWidget />
+                        <div class="hidden sm:ms-6 sm:flex sm:items-center sm:space-x-2">
+                            <!-- Gamification Widget (discret) -->
+                            <div class="scale-75 origin-right opacity-80 hover:opacity-100 transition">
+                                <GamificationWidget />
+                            </div>
                             
                             <!-- Notification Bell -->
                             <NotificationBell />
@@ -375,7 +381,7 @@ const showingNavigationDropdown = ref(false);
                 class="bg-white shadow dark:bg-gray-800"
                 v-if="$slots.header"
             >
-                <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8" style="max-width: 100%;">
                     <slot name="header" />
                 </div>
             </header>

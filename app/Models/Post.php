@@ -71,6 +71,14 @@ class Post extends Model
     }
 
     /**
+     * Alias pour l'auteur (pour cohérence avec Topics)
+     */
+    public function author(): BelongsTo
+    {
+        return $this->user();
+    }
+
+    /**
      * Post parent (si réponse)
      */
     public function parent(): BelongsTo

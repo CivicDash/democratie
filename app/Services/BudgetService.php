@@ -163,13 +163,13 @@ class BudgetService
      */
     public function getAverageAllocations(): Collection
     {
-        return Sector::withAvg('allocations', 'allocated_percent')
+        return Sector::withAvg('allocations', 'percent')
             ->get()
             ->map(function ($sector) {
                 return [
                     'sector_id' => $sector->id,
                     'sector_name' => $sector->name,
-                    'average_percent' => round($sector->allocations_avg_allocated_percent ?? 0, 2),
+                    'average_percent' => round($sector->allocations_avg_percent ?? 0, 2),
                     'total_allocators' => $sector->allocations()->distinct('user_id')->count(),
                 ];
             });

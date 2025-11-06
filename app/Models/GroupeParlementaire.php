@@ -15,17 +15,22 @@ class GroupeParlementaire extends Model
 
     protected $fillable = [
         'source',
+        'chambre', // Alias pour source
         'uid',
         'nom',
+        'slug',
         'sigle',
         'couleur_hex',
         'position_politique',
         'nombre_membres',
         'president_nom',
+        'president', // Alias pour president_nom
         'logo_url',
         'url_officiel',
+        'site_web', // Alias pour url_officiel
         'legislature',
         'actif',
+        'est_actif', // Alias pour actif
         'apparentes',
         'description',
     ];

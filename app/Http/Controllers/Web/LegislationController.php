@@ -110,11 +110,11 @@ class LegislationController extends Controller
     /**
      * Display a single legislative proposition
      * 
-     * GET /legislation/{id}
+     * GET /legislation/{proposition}
      */
-    public function show(int $id): Response
+    public function show(PropositionLoi $proposition): Response
     {
-        $proposition = PropositionLoi::with([
+        $proposition->load([
             'amendements' => function ($query) {
                 $query->orderBy('date_depot', 'desc')->limit(20);
             },
@@ -122,7 +122,7 @@ class LegislationController extends Controller
                 $query->orderBy('date', 'desc')->limit(10);
             },
             'votesCitoyens',
-        ])->findOrFail($id);
+        ]);
 
         return Inertia::render('Legislation/Show', [
             'proposition' => [

@@ -159,17 +159,19 @@ class DashboardController extends Controller
         ];
 
         // 🏛️ GROUPES PARLEMENTAIRES (top 5 par nombre de députés)
-        $groupesParlementaires = GroupeParlementaire::where('chambre', 'assemblee')
+        $groupesParlementaires = GroupeParlementaire::where('source', 'assemblee')
+            ->where('actif', true)
             ->withCount('deputes')
             ->orderByDesc('deputes_count')
+            ->orderByDesc('nombre_membres') // Fallback si pas de députés liés
             ->limit(5)
             ->get()
             ->map(fn($groupe) => [
                 'id' => $groupe->id,
                 'nom' => $groupe->nom,
                 'sigle' => $groupe->sigle,
-                'couleur' => $groupe->couleur ?? '#6B7280',
-                'nb_deputes' => $groupe->deputes_count,
+                'couleur' => $groupe->couleur_hex ?? '#6B7280',
+                'nb_deputes' => $groupe->deputes_count > 0 ? $groupe->deputes_count : $groupe->nombre_membres,
             ]);
 
         // 📊 VOTES LÉGISLATIFS RÉCENTS (5 derniers)

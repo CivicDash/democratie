@@ -93,19 +93,8 @@ const getScoreClass = (score) => {
   <Head title="Dashboard" />
 
   <AuthenticatedLayout>
-    <template #header>
-      <div class="flex items-center justify-between">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          🏛️ Dashboard CivicDash
-        </h2>
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          Bienvenue sur votre plateforme de démocratie participative
-        </div>
-      </div>
-    </template>
-
     <div class="py-8">
-      <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+      <div class="mx-auto sm:px-6 lg:px-8 space-y-6" style="max-width: 100%;">
         
         <!-- 📊 STATISTIQUES GLOBALES -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">

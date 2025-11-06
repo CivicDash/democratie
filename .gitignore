@@ -103,3 +103,4 @@ storage/framework/views/*
 # Landing Page (objectif2027.fr)
 # Site vitrine séparé du projet Laravel
 /objectif2027/
+public/images/logo.png

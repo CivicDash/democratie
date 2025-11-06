@@ -61,8 +61,8 @@ Route::get('/cookies', [PolicyController::class, 'cookies'])->name('cookies');
 */
 Route::prefix('legislation')->name('legislation.')->group(function () {
     Route::get('/', [LegislationController::class, 'index'])->name('index');
-    Route::get('/{id}', [LegislationController::class, 'show'])->name('show');
     
+    // Routes spécifiques AVANT la route générique {id}
     // Groupes parlementaires
     Route::get('/groupes', function () {
         return Inertia::render('Groupes/Index', ['source' => 'assemblee']);
@@ -80,6 +80,9 @@ Route::prefix('legislation')->name('legislation.')->group(function () {
     Route::get('/thematiques/{code}', function ($code) {
         return Inertia::render('Thematiques/Show', ['code' => $code]);
     })->name('thematiques.show');
+    
+    // Route générique (DOIT être en dernier pour éviter les conflits)
+    Route::get('/{proposition}', [LegislationController::class, 'show'])->name('show');
 });
 
 /*
@@ -91,12 +94,18 @@ Route::prefix('topics')->name('topics.')->group(function () {
     // Public routes
     Route::get('/', [TopicController::class, 'index'])->name('index');
     Route::get('/trending', [TopicController::class, 'trending'])->name('trending');
-    Route::get('/{topic}', [TopicController::class, 'show'])->name('show');
     
-    // Authenticated routes
+    // Authenticated routes (AVANT {topic} pour éviter les conflits)
     Route::middleware('auth')->group(function () {
         Route::get('/create', [TopicController::class, 'create'])->name('create');
         Route::post('/', [TopicController::class, 'store'])->name('store');
+    });
+    
+    // Show route (APRÈS create pour éviter que "create" soit interprété comme un ID)
+    Route::get('/{topic}', [TopicController::class, 'show'])->name('show');
+    
+    // Other authenticated routes
+    Route::middleware('auth')->group(function () {
         Route::get('/{topic}/edit', [TopicController::class, 'edit'])->name('edit');
         Route::put('/{topic}', [TopicController::class, 'update'])->name('update');
         Route::delete('/{topic}', [TopicController::class, 'destroy'])->name('destroy');

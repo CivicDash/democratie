@@ -32,16 +32,16 @@ class DocumentController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('verification_status', $request->status);
+            $query->where('status', $request->status);
         }
 
         $documents = $query->latest()->paginate(15);
 
         $stats = [
             'total' => Document::count(),
-            'verified' => Document::where('verification_status', 'verified')->count(),
-            'pending' => Document::where('verification_status', 'pending')->count(),
-            'verifiers' => Document::whereHas('verifications')->distinct('user_id')->count('user_id'),
+            'verified' => Document::where('status', 'verified')->count(),
+            'pending' => Document::where('status', 'pending')->count(),
+            'rejected' => Document::where('status', 'rejected')->count(),
         ];
 
         return Inertia::render('Documents/Index', [
