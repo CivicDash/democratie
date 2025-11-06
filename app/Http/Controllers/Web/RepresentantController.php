@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeputeSenateur;
+use App\Models\GroupeParlementaire;
 use App\Models\Profile;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

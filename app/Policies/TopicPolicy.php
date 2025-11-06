@@ -162,6 +162,25 @@ class TopicPolicy
     }
 
     /**
+     * Determine if the user can reply to the topic.
+     */
+    public function reply(User $user, Topic $topic): bool
+    {
+        // Le topic doit être ouvert
+        if ($topic->status !== 'open') {
+            return false;
+        }
+
+        // User doit avoir la permission de créer des posts
+        if (!$user->hasPermissionTo('create_posts')) {
+            return false;
+        }
+
+        // User ne doit pas être muted/banned
+        return !$user->isMuted() && !$user->isBanned();
+    }
+
+    /**
      * Determine if the user can archive the topic.
      */
     public function archive(User $user, Topic $topic): bool
