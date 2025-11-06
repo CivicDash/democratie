@@ -220,6 +220,15 @@ class Post extends Model
         return $query->orderBy('upvotes', $direction);
     }
 
+    /**
+     * Scope: ajoute le score de vote calculé (upvotes - downvotes)
+     * Ajoute un attribut virtuel 'vote_score' pour éviter de calculer en PHP
+     */
+    public function scopeWithVoteScore($query)
+    {
+        return $query->selectRaw('posts.*, (upvotes - downvotes) as vote_score');
+    }
+
     // ========================================================================
     // SCOUT / MEILISEARCH
     // ========================================================================

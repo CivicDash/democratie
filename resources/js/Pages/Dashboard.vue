@@ -14,6 +14,8 @@ const props = defineProps({
   // budgetStats: Object,  // Temporairement désactivé
   globalStats: Object,
   userActivity: Object,
+  groupesParlementaires: Array,
+  votesLegislatifs: Array,
 });
 
 const gamificationStats = ref(null);
@@ -417,6 +419,90 @@ const getScoreClass = (score) => {
                 
                 <div v-if="userActivity.derniers_topics.length === 0 && userActivity.derniers_votes_loi.length === 0" class="text-center py-8 text-gray-500 text-sm">
                   Aucune activité récente
+                </div>
+              </div>
+            </div>
+
+            <!-- 🏛️ GROUPES PARLEMENTAIRES -->
+            <div v-if="groupesParlementaires && groupesParlementaires.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+              <div class="bg-gradient-to-r from-blue-700 to-indigo-700 px-6 py-4">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                  <span>🏛️</span>
+                  <span>Groupes Parlementaires</span>
+                </h3>
+                <p class="text-blue-100 text-sm mt-1">Assemblée Nationale</p>
+              </div>
+              
+              <div class="p-6 space-y-3">
+                <div
+                  v-for="groupe in groupesParlementaires"
+                  :key="groupe.id"
+                  class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  <div class="flex items-center gap-3">
+                    <div 
+                      class="w-4 h-4 rounded-full" 
+                      :style="{ backgroundColor: groupe.couleur }"
+                    ></div>
+                    <div>
+                      <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                        {{ groupe.sigle }}
+                      </p>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[180px]">
+                        {{ groupe.nom }}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-lg font-bold text-blue-600">{{ groupe.nb_deputes }}</p>
+                    <p class="text-xs text-gray-500">députés</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 📊 VOTES LÉGISLATIFS RÉCENTS -->
+            <div v-if="votesLegislatifs && votesLegislatifs.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+              <div class="bg-gradient-to-r from-purple-700 to-pink-700 px-6 py-4">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                  <span>📊</span>
+                  <span>Votes Législatifs</span>
+                </h3>
+                <p class="text-purple-100 text-sm mt-1">Derniers scrutins</p>
+              </div>
+              
+              <div class="p-6 space-y-3">
+                <div
+                  v-for="vote in votesLegislatifs"
+                  :key="vote.id"
+                  class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition"
+                >
+                  <div class="flex items-start justify-between mb-2">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-1">
+                      {{ vote.titre }}
+                    </p>
+                    <span 
+                      class="ml-2 px-2 py-1 text-xs font-bold rounded"
+                      :class="vote.resultat === 'adopté' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                    >
+                      {{ vote.resultat }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-gray-500 mb-2">{{ vote.date }}</p>
+                  <div class="grid grid-cols-3 gap-2 text-xs">
+                    <div class="text-center">
+                      <p class="text-green-600 font-bold">{{ vote.pour }}</p>
+                      <p class="text-gray-500">Pour</p>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-red-600 font-bold">{{ vote.contre }}</p>
+                      <p class="text-gray-500">Contre</p>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-gray-600 font-bold">{{ vote.abstention }}</p>
+                      <p class="text-gray-500">Abstention</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

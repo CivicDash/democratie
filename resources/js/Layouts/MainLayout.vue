@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
@@ -16,7 +16,8 @@ const logout = () => {
 };
 
 // Vérifier si l'utilisateur est authentifié (depuis la page prop)
-const user = $page.props.auth?.user;
+const page = usePage();
+const user = computed(() => page.props.auth?.user);
 </script>
 
 <template>
@@ -40,13 +41,13 @@ const user = $page.props.auth?.user;
 
                             <!-- Navigation Links -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <Link :href="route('topics.index')" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out" :class="$page.url.startsWith('/topics') ? 'border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'">
+                                <Link :href="route('topics.index')" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out" :class="page.url.startsWith('/topics') ? 'border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'">
                                     📝 Forum
                                 </Link>
-                                <Link :href="route('budget.index')" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out" :class="$page.url.startsWith('/budget') ? 'border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'">
+                                <Link :href="route('budget.index')" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out" :class="page.url.startsWith('/budget') ? 'border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'">
                                     💰 Budget Participatif
                                 </Link>
-                                <Link :href="route('documents.index')" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out" :class="$page.url.startsWith('/documents') ? 'border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'">
+                                <Link :href="route('documents.index')" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out" :class="page.url.startsWith('/documents') ? 'border-indigo-600 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'">
                                     📄 Documents
                                 </Link>
                             </div>
@@ -106,13 +107,13 @@ const user = $page.props.auth?.user;
                 <!-- Responsive Navigation Menu -->
                 <div :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }" class="sm:hidden">
                     <div class="pt-2 pb-3 space-y-1">
-                        <ResponsiveNavLink :href="route('topics.index')" :active="$page.url.startsWith('/topics')">
+                        <ResponsiveNavLink :href="route('topics.index')" :active="page.url.startsWith('/topics')">
                             📝 Forum
                         </ResponsiveNavLink>
-                        <ResponsiveNavLink :href="route('budget.index')" :active="$page.url.startsWith('/budget')">
+                        <ResponsiveNavLink :href="route('budget.index')" :active="page.url.startsWith('/budget')">
                             💰 Budget Participatif
                         </ResponsiveNavLink>
-                        <ResponsiveNavLink :href="route('documents.index')" :active="$page.url.startsWith('/documents')">
+                        <ResponsiveNavLink :href="route('documents.index')" :active="page.url.startsWith('/documents')">
                             📄 Documents
                         </ResponsiveNavLink>
                     </div>

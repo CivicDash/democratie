@@ -86,14 +86,12 @@ class TopicController extends Controller
             ])
             ->withVoteScore()
             ->orderByDesc('is_pinned')
-            ->orderByDesc('is_solution')
             ->orderByDesc('vote_score')
             ->paginate(20)
             ->through(fn($post) => [
                 'id' => $post->id,
                 'content' => $post->content,
                 'is_pinned' => $post->is_pinned,
-                'is_solution' => $post->is_solution,
                 'vote_score' => $post->vote_score,
                 'created_at' => $post->created_at->diffForHumans(),
                 'updated_at' => $post->updated_at->diffForHumans(),

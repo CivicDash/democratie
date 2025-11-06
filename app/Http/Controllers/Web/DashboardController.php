@@ -8,6 +8,8 @@ use App\Models\PropositionLoi;
 use App\Models\VotePropositionLoi;
 use App\Models\UserAllocation;
 use App\Models\TopicBallot;
+use App\Models\GroupeParlementaire;
+use App\Models\VoteLegislatif;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,10 +25,11 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         // 🔥 SUJETS TENDANCES (5 derniers topics populaires)
-        $trendingTopics = Topic::with(['author:id,name', 'territory'])
+        $trendingTopics = Topic::with(['author:id,name'])
             ->withCount(['posts', 'views'])
-            ->where('status', 'published')
+            ->whereIn('status', ['open', 'published']) // Inclure open ET published
             ->orderByDesc('views_count')
+            ->orderByDesc('created_at') // Tri secondaire par date si même nb de vues
             ->limit(5)
             ->get()
             ->map(function ($topic) {
@@ -124,7 +127,7 @@ class DashboardController extends Controller
 
         // 📊 STATISTIQUES GLOBALES
         $globalStats = [
-            'total_topics' => Topic::where('status', 'published')->count(),
+            'total_topics' => Topic::whereIn('status', ['open', 'published'])->count(),
             'total_votes' => TopicBallot::count(), // Total des bulletins de vote émis
             'total_propositions' => PropositionLoi::count(),
             'total_users_allocated' => UserAllocation::distinct('user_id')->count('user_id'),
@@ -155,6 +158,37 @@ class DashboardController extends Controller
                 ]),
         ];
 
+        // 🏛️ GROUPES PARLEMENTAIRES (top 5 par nombre de députés)
+        $groupesParlementaires = GroupeParlementaire::where('chambre', 'assemblee')
+            ->withCount('deputes')
+            ->orderByDesc('deputes_count')
+            ->limit(5)
+            ->get()
+            ->map(fn($groupe) => [
+                'id' => $groupe->id,
+                'nom' => $groupe->nom,
+                'sigle' => $groupe->sigle,
+                'couleur' => $groupe->couleur ?? '#6B7280',
+                'nb_deputes' => $groupe->deputes_count,
+            ]);
+
+        // 📊 VOTES LÉGISLATIFS RÉCENTS (5 derniers)
+        $votesLegislatifs = VoteLegislatif::with('proposition:id,numero,titre')
+            ->orderByDesc('date_scrutin')
+            ->limit(5)
+            ->get()
+            ->map(fn($vote) => [
+                'id' => $vote->id,
+                'titre' => $vote->titre,
+                'proposition_numero' => $vote->proposition?->numero,
+                'proposition_titre' => $vote->proposition?->titre,
+                'date' => $vote->date_scrutin->format('d/m/Y'),
+                'pour' => $vote->pour,
+                'contre' => $vote->contre,
+                'abstention' => $vote->abstention,
+                'resultat' => $vote->pour > $vote->contre ? 'adopté' : 'rejeté',
+            ]);
+
         return Inertia::render('Dashboard', [
             'trendingTopics' => $trendingTopics,
             'propositionsLegislatives' => $propositionsLegislatives,
@@ -162,6 +196,8 @@ class DashboardController extends Controller
             'budgetStats' => $budgetStats,
             'globalStats' => $globalStats,
             'userActivity' => $userActivity,
+            'groupesParlementaires' => $groupesParlementaires,
+            'votesLegislatifs' => $votesLegislatifs,
         ]);
     }
 }
