@@ -174,7 +174,7 @@ class DashboardController extends Controller
 
         // 📊 VOTES LÉGISLATIFS RÉCENTS (5 derniers)
         $votesLegislatifs = VoteLegislatif::with('proposition:id,numero,titre')
-            ->orderByDesc('date_scrutin')
+            ->orderByDesc('date_vote')
             ->limit(5)
             ->get()
             ->map(fn($vote) => [
@@ -182,7 +182,7 @@ class DashboardController extends Controller
                 'titre' => $vote->titre,
                 'proposition_numero' => $vote->proposition?->numero,
                 'proposition_titre' => $vote->proposition?->titre,
-                'date' => $vote->date_scrutin->format('d/m/Y'),
+                'date' => $vote->date_vote->format('d/m/Y'),
                 'pour' => $vote->pour,
                 'contre' => $vote->contre,
                 'abstention' => $vote->abstention,

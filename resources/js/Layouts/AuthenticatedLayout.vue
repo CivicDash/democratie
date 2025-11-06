@@ -36,14 +36,113 @@ const showingNavigationDropdown = ref(false);
                             </div>
 
                             <!-- Navigation Links -->
-                            <div
-                                class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
-                            >
+                            <div class="hidden space-x-1 sm:-my-px sm:ms-10 sm:flex">
+                                <!-- Dashboard -->
                                 <NavLink
                                     :href="route('dashboard')"
                                     :active="route().current('dashboard')"
                                 >
-                                    Dashboard
+                                    🏠 Dashboard
+                                </NavLink>
+                                
+                                <!-- Débats citoyens -->
+                                <Dropdown align="left" width="56">
+                                    <template #trigger>
+                                        <button
+                                            class="inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out"
+                                            :class="route().current('topics.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100 focus:border-indigo-700' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700'"
+                                        >
+                                            💬 Débats
+                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <template #content>
+                                        <DropdownLink :href="route('topics.index')">
+                                            📝 Forum Citoyen
+                                        </DropdownLink>
+                                        <DropdownLink :href="route('topics.trending')">
+                                            🔥 Sujets Tendances
+                                        </DropdownLink>
+                                        <DropdownLink :href="route('topics.create')">
+                                            ➕ Créer un Sujet
+                                        </DropdownLink>
+                                    </template>
+                                </Dropdown>
+                                
+                                <!-- Législation -->
+                                <Dropdown align="left" width="56">
+                                    <template #trigger>
+                                        <button
+                                            class="inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out"
+                                            :class="route().current('legislation.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100 focus:border-indigo-700' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700'"
+                                        >
+                                            🏛️ Législation
+                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <template #content>
+                                        <DropdownLink :href="route('legislation.index')">
+                                            📜 Propositions de Loi
+                                        </DropdownLink>
+                                        <DropdownLink :href="route('legislation.groupes.index')">
+                                            🏛️ Groupes Parlementaires
+                                        </DropdownLink>
+                                        <DropdownLink :href="route('legislation.thematiques.index')">
+                                            🎯 Thématiques
+                                        </DropdownLink>
+                                    </template>
+                                </Dropdown>
+                                
+                                <!-- Vote & Scrutin -->
+                                <Dropdown align="left" width="56">
+                                    <template #trigger>
+                                        <button
+                                            class="inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out"
+                                            :class="route().current('vote.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100 focus:border-indigo-700' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700'"
+                                        >
+                                            🗳️ Votes
+                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <template #content>
+                                        <DropdownLink :href="route('topics.index', {filter: 'ballot'})">
+                                            🗳️ Scrutins en Cours
+                                        </DropdownLink>
+                                        <DropdownLink :href="route('topics.index', {filter: 'closed'})">
+                                            📊 Résultats de Votes
+                                        </DropdownLink>
+                                    </template>
+                                </Dropdown>
+                                
+                                <!-- Budget -->
+                                <NavLink
+                                    :href="route('budget.index')"
+                                    :active="route().current('budget.*')"
+                                >
+                                    💰 Budget
+                                </NavLink>
+                                
+                                <!-- Documents -->
+                                <NavLink
+                                    :href="route('documents.index')"
+                                    :active="route().current('documents.*')"
+                                >
+                                    📄 Documents
+                                </NavLink>
+                                
+                                <!-- Modération (si modérateur) -->
+                                <NavLink
+                                    v-if="$page.props.auth.user.roles?.includes('moderator') || $page.props.auth.user.roles?.includes('admin')"
+                                    :href="route('moderation.dashboard')"
+                                    :active="route().current('moderation.*')"
+                                >
+                                    🛡️ Modération
                                 </NavLink>
                             </div>
                         </div>
@@ -164,37 +263,70 @@ const showingNavigationDropdown = ref(false);
                             :href="route('dashboard')"
                             :active="route().current('dashboard')"
                         >
-                            🏛️ Dashboard
+                            🏠 Dashboard
                         </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('legislation.index')"
-                            :active="route().current('legislation.*')"
-                        >
-                            📜 Propositions de loi
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('groupes.index')"
-                            :active="route().current('groupes.*')"
-                        >
-                            🏛️ Groupes parlementaires
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('thematiques.index')"
-                            :active="route().current('thematiques.*')"
-                        >
-                            🏷️ Thématiques
-                        </ResponsiveNavLink>
+                        
+                        <!-- Débats -->
+                        <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            💬 Débats Citoyens
+                        </div>
                         <ResponsiveNavLink
                             :href="route('topics.index')"
                             :active="route().current('topics.*')"
                         >
-                            💬 Débats citoyens
+                            📝 Forum Citoyen
                         </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('topics.trending')"
+                            :active="route().current('topics.trending')"
+                        >
+                            🔥 Sujets Tendances
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('topics.create')"
+                            :active="route().current('topics.create')"
+                        >
+                            ➕ Créer un Sujet
+                        </ResponsiveNavLink>
+                        
+                        <!-- Législation -->
+                        <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            🏛️ Législation
+                        </div>
+                        <ResponsiveNavLink
+                            :href="route('legislation.index')"
+                            :active="route().current('legislation.index')"
+                        >
+                            📜 Propositions de Loi
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('legislation.groupes.index')"
+                            :active="route().current('legislation.groupes.*')"
+                        >
+                            🏛️ Groupes Parlementaires
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('legislation.thematiques.index')"
+                            :active="route().current('legislation.thematiques.*')"
+                        >
+                            🎯 Thématiques
+                        </ResponsiveNavLink>
+                        
+                        <!-- Autres sections -->
+                        <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            🗳️ Participation
+                        </div>
                         <ResponsiveNavLink
                             :href="route('budget.index')"
                             :active="route().current('budget.*')"
                         >
-                            💰 Budget participatif
+                            💰 Budget Participatif
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('documents.index')"
+                            :active="route().current('documents.*')"
+                        >
+                            📄 Documents
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             :href="route('search.results')"
