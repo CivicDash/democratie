@@ -341,8 +341,8 @@ Route::prefix('gamification')->name('gamification.')->group(function () {
     Route::get('/users/{userId}/stats', [App\Http\Controllers\Api\GamificationController::class, 'userStats'])->name('user.stats');
     Route::get('/users/{userId}/achievements', [App\Http\Controllers\Api\GamificationController::class, 'userAchievements'])->name('user.achievements');
     
-    // Routes authentifiées
-    Route::middleware('auth:sanctum')->group(function () {
+    // Routes authentifiées (utilise auth:web pour Inertia/session-based auth)
+    Route::middleware('auth:web')->group(function () {
         Route::post('/initialize', [App\Http\Controllers\Api\GamificationController::class, 'initialize'])->name('initialize');
         Route::get('/my-stats', [App\Http\Controllers\Api\GamificationController::class, 'myStats'])->name('my_stats');
         Route::get('/my-achievements', [App\Http\Controllers\Api\GamificationController::class, 'myAchievements'])->name('my_achievements');
