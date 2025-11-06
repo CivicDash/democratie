@@ -7,6 +7,7 @@ use App\Models\Topic;
 use App\Models\PropositionLoi;
 use App\Models\VotePropositionLoi;
 use App\Models\UserAllocation;
+use App\Models\TopicBallot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -124,16 +125,14 @@ class DashboardController extends Controller
         // 📊 STATISTIQUES GLOBALES
         $globalStats = [
             'total_topics' => Topic::where('status', 'published')->count(),
-            'total_votes' => Ballot::where('status', 'active')->sum(
-                DB::raw('(SELECT COUNT(*) FROM ballot_votes WHERE ballot_id = ballots.id)')
-            ),
+            'total_votes' => TopicBallot::count(), // Total des bulletins de vote émis
             'total_propositions' => PropositionLoi::count(),
             'total_users_allocated' => UserAllocation::distinct('user_id')->count('user_id'),
         ];
 
         // 🎯 ACTIVITÉ RÉCENTE DE L'UTILISATEUR
         $userActivity = [
-            'derniers_topics' => Topic::where('user_id', $user->id)
+            'derniers_topics' => Topic::where('author_id', $user->id)
                 ->orderByDesc('created_at')
                 ->limit(3)
                 ->get(['id', 'title', 'created_at'])
