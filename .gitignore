@@ -100,6 +100,10 @@ storage/framework/views/*
 .tmp/
 .temp/
 
+# Scripts de debug
+/scripts/debug/
+*.sh.log
+
 # Landing Page (objectif2027.fr)
 # Site vitrine séparé du projet Laravel
 /objectif2027/

@@ -1,0 +1,7 @@
+# Scripts de debug et d'administration
+# Ces scripts ne doivent PAS être versionnés sur Git
+
+debug/
+*.sh.log
+*.tmp
+

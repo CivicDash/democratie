@@ -86,6 +86,21 @@ class RepresentantController extends Controller
             ])->toArray();
         }
 
+        // Répartition nationale des députés et sénateurs par département
+        $data['deputesByDepartment'] = DeputeSenateur::deputes()
+            ->enExercice()
+            ->selectRaw('SUBSTRING(circonscription, 1, 2) as department_code, COUNT(*) as count')
+            ->groupBy('department_code')
+            ->pluck('count', 'department_code')
+            ->toArray();
+
+        $data['senateursByDepartment'] = DeputeSenateur::senateurs()
+            ->enExercice()
+            ->selectRaw('SUBSTRING(circonscription, 1, 2) as department_code, COUNT(*) as count')
+            ->groupBy('department_code')
+            ->pluck('count', 'department_code')
+            ->toArray();
+
         return Inertia::render('Representants/MesRepresentants', $data);
     }
 

@@ -4,12 +4,15 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import HemicycleView from '@/Components/Parliament/HemicycleView.vue';
+import RepresentantsMap from '@/Components/Representants/RepresentantsMap.vue';
 
 defineProps({
   hasLocation: Boolean,
   depute: Object,
   senateurs: Array,
   location: Object,
+  deputesByDepartment: Object,
+  senateursByDepartment: Object,
 });
 </script>
 
@@ -31,6 +34,22 @@ defineProps({
           <HemicycleView chamber="assembly" />
           <HemicycleView chamber="senate" />
         </div>
+
+        <!-- Carte de France des Représentants -->
+        <Card>
+          <div class="mb-4">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              📍 Carte de France des Représentants
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+              Visualisez la répartition des députés et sénateurs par département
+            </p>
+          </div>
+          <RepresentantsMap 
+            :deputesByDepartment="deputesByDepartment"
+            :senateursByDepartment="senateursByDepartment"
+          />
+        </Card>
 
         <!-- Pas de localisation -->
         <Card v-if="!hasLocation" class="text-center py-12">
