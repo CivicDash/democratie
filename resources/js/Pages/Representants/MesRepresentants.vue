@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
+import HemicycleView from '@/Components/Parliament/HemicycleView.vue';
 
 defineProps({
   hasLocation: Boolean,
@@ -23,6 +24,12 @@ defineProps({
         <div class="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-xl shadow-lg p-8 text-white">
           <h1 class="text-4xl font-bold mb-2">🏛️ Mes Représentants</h1>
           <p class="text-blue-100 text-lg">Découvrez vos élus à l'Assemblée Nationale et au Sénat</p>
+        </div>
+
+        <!-- Hémicycles -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <HemicycleView chamber="assembly" />
+          <HemicycleView chamber="senate" />
         </div>
 
         <!-- Pas de localisation -->

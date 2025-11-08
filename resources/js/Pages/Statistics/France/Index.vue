@@ -5,6 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import FranceMap from '@/Components/Statistics/FranceMap.vue';
+import FranceMapInteractive from '@/Components/Statistics/FranceMapInteractive.vue';
 import RegionDetailModal from '@/Components/Statistics/RegionDetailModal.vue';
 import { Line, Bar, Doughnut, Pie } from 'vue-chartjs';
 import {
@@ -88,6 +89,13 @@ const changeYear = (year) => {
 const handleRegionSelected = (region) => {
     selectedRegion.value = region;
     showRegionModal.value = true;
+};
+
+// Gérer la sélection d'un département
+const handleDepartmentSelected = (department) => {
+    console.log('Département sélectionné:', department);
+    // TODO: Afficher un modal ou naviguer vers les détails du département
+    // Pour l'instant, on pourrait trouver la région correspondante
 };
 
 // Fermer le modal
@@ -670,29 +678,29 @@ const recyclingChartData = computed(() => {
     <Head title="Statistiques France" />
 
     <AuthenticatedLayout>
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
-                <!-- Header -->
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <!-- Header Sticky -->
+            <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-md">
+                <div class="px-4 py-4 sm:px-6 lg:px-8">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 truncate">
                                 📊 Statistiques France
                             </h1>
-                            <p class="mt-2 text-gray-600 dark:text-gray-400">
-                                Vue d'ensemble des données publiques françaises - Sources: INSEE, Ministère des Finances, Cour des Comptes
+                            <p class="mt-1 text-sm sm:text-base text-gray-600 dark:text-gray-400 line-clamp-2">
+                                Vue d'ensemble des données publiques - INSEE, Ministères, Cour des Comptes
                             </p>
                         </div>
                         
                         <!-- Sélecteur d'année -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <div class="flex-shrink-0">
+                            <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Année
                             </label>
                             <select
                                 v-model="selectedYear"
                                 @change="changeYear(selectedYear)"
-                                class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600"
+                                class="w-full sm:w-auto rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 text-sm"
                             >
                                 <option v-for="year in availableYears" :key="year" :value="year">
                                     {{ year }}
@@ -701,9 +709,9 @@ const recyclingChartData = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Tabs -->
-                    <div class="mt-6 border-b border-gray-200 dark:border-gray-700">
-                        <nav class="-mb-px flex space-x-8">
+                    <!-- Tabs - Scrollable horizontal sur mobile -->
+                    <div class="mt-4 border-b border-gray-200 dark:border-gray-700 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+                        <nav class="-mb-px flex space-x-4 sm:space-x-8 min-w-max">
                             <button
                                 @click="activeTab = 'overview'"
                                 :class="[
@@ -839,11 +847,14 @@ const recyclingChartData = computed(() => {
                         </nav>
                     </div>
                 </div>
+            </div>
 
+            <!-- Contenu principal - Full width avec padding responsive -->
+            <div class="px-4 py-6 sm:px-6 lg:px-8 space-y-6">
                 <!-- VUE D'ENSEMBLE -->
                 <div v-if="activeTab === 'overview'" class="space-y-6">
                     <!-- KPIs principaux -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                         <Card>
                             <div class="text-center">
                                 <div class="text-4xl mb-2">👥</div>
@@ -894,7 +905,7 @@ const recyclingChartData = computed(() => {
                     </div>
 
                     <!-- Graphiques overview -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         <Card v-if="populationChartData">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 👥 Évolution de la population
@@ -918,7 +929,7 @@ const recyclingChartData = computed(() => {
                 <!-- ÉCONOMIE -->
                 <div v-if="activeTab === 'economy'" class="space-y-6">
                     <!-- KPIs économiques -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                         <Card>
                             <div class="text-center">
                                 <div class="text-4xl mb-2">💰</div>
@@ -957,7 +968,7 @@ const recyclingChartData = computed(() => {
                     </div>
 
                     <!-- Graphiques économie -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         <Card v-if="quarterlyGdpChartData">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 📊 PIB par trimestre {{ selectedYear }}
@@ -981,7 +992,7 @@ const recyclingChartData = computed(() => {
                 <!-- BUDGET -->
                 <div v-if="activeTab === 'budget'" class="space-y-6">
                     <!-- KPIs budget -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                         <Card>
                             <div class="text-center">
                                 <div class="text-4xl mb-2">💶</div>
@@ -1020,7 +1031,7 @@ const recyclingChartData = computed(() => {
                     </div>
 
                     <!-- Graphiques budget -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         <Card v-if="revenueBreakdownChartData">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 💰 Répartition des recettes {{ selectedYear }}
@@ -1066,7 +1077,7 @@ const recyclingChartData = computed(() => {
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             <div v-if="lostRevenueChartData" style="height: 350px;">
                                 <Bar :data="lostRevenueChartData" :options="chartOptions" />
                             </div>
@@ -1080,7 +1091,7 @@ const recyclingChartData = computed(() => {
                 <!-- MIGRATION -->
                 <div v-if="activeTab === 'migration'" class="space-y-6">
                     <!-- KPIs migration -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                         <Card>
                             <div class="text-center">
                                 <div class="text-4xl mb-2">📥</div>
@@ -1173,12 +1184,21 @@ const recyclingChartData = computed(() => {
 
                     <!-- Carte interactive -->
                     <Card>
+                        <FranceMapInteractive
+                            :regional-data="regionalData"
+                            :heatmap-metric="heatmapMetric"
+                            @department-selected="handleDepartmentSelected"
+                        />
+                    </Card>
+
+                    <!-- Ancienne carte (fallback) -->
+                    <!-- <Card>
                         <FranceMap
                             :regional-data="regionalData"
                             :heatmap-metric="heatmapMetric"
                             @region-selected="handleRegionSelected"
                         />
-                    </Card>
+                    </Card> -->
 
                     <!-- Liste des régions (en dessous de la carte) -->
                     <Card>
@@ -1186,7 +1206,7 @@ const recyclingChartData = computed(() => {
                             📋 Toutes les régions
                         </h3>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                             <button
                                 v-for="region in regionalData"
                                 :key="region.id"
@@ -1248,7 +1268,7 @@ const recyclingChartData = computed(() => {
                         </h2>
 
                         <!-- Indicateurs principaux -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" v-if="qualityOfLife">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8" v-if="qualityOfLife">
                             <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg p-6">
                                 <div class="flex items-center justify-between">
                                     <div>
@@ -1292,7 +1312,7 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <!-- Graphiques évolution -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     📈 Évolution de l'IDH
@@ -1322,7 +1342,7 @@ const recyclingChartData = computed(() => {
                         </h2>
 
                         <!-- Stats principales -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" v-if="education">
+                        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8" v-if="education">
                             <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                                 <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Illettrisme</p>
                                 <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">{{ education.illiteracy_rate }}%</p>
@@ -1342,7 +1362,7 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <!-- Graphiques -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     🎓 Niveau d'éducation de la population
@@ -1389,7 +1409,7 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <!-- Stats principales -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" v-if="security">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8" v-if="security">
                             <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-6">
                                 <p class="text-sm text-orange-600 dark:text-orange-400 font-medium">Taux de criminalité</p>
                                 <p class="text-3xl font-bold text-orange-900 dark:text-orange-100">{{ security.crime_rate }}</p>
@@ -1410,7 +1430,7 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <!-- Graphiques -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     📊 Évolution de la criminalité
@@ -1440,7 +1460,7 @@ const recyclingChartData = computed(() => {
                         </h2>
 
                         <!-- Stats principales -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" v-if="employmentDetailed">
+                        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8" v-if="employmentDetailed">
                             <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                                 <p class="text-xs text-green-600 dark:text-green-400 font-medium">CDI</p>
                                 <p class="text-2xl font-bold text-green-900 dark:text-green-100">{{ employmentDetailed.cdi_rate }}%</p>
@@ -1460,7 +1480,7 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <!-- Graphiques -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     💰 Salaire médian par secteur ({{ selectedYear }})
@@ -1490,7 +1510,7 @@ const recyclingChartData = computed(() => {
                         </h2>
 
                         <!-- Stats principales -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" v-if="health">
+                        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8" v-if="health">
                             <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                                 <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Médecins/100k hab</p>
                                 <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">{{ health.doctors_per_100k }}</p>
@@ -1510,7 +1530,7 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <!-- Graphiques -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     👨‍⚕️ Évolution des médecins pour 100k habitants
@@ -1540,7 +1560,7 @@ const recyclingChartData = computed(() => {
                         </h2>
 
                         <!-- Stats principales -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" v-if="housing">
+                        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8" v-if="housing">
                             <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                                 <p class="text-xs text-green-600 dark:text-green-400 font-medium">Propriétaires</p>
                                 <p class="text-2xl font-bold text-green-900 dark:text-green-100">{{ housing.owner_rate }}%</p>
@@ -1560,7 +1580,7 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <!-- Graphiques -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     💰 Prix moyen au m² ({{ selectedYear }})
@@ -1590,7 +1610,7 @@ const recyclingChartData = computed(() => {
                         </h2>
 
                         <!-- Stats principales -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" v-if="environment">
+                        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8" v-if="environment">
                             <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
                                 <p class="text-xs text-orange-600 dark:text-orange-400 font-medium">CO2/hab (tonnes)</p>
                                 <p class="text-2xl font-bold text-orange-900 dark:text-orange-100">{{ environment.co2_emissions_per_capita_tons }}</p>
@@ -1610,7 +1630,7 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <!-- Graphiques -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     🏭 Évolution des émissions de CO2

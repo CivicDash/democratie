@@ -11,7 +11,6 @@ use App\Models\FranceBudgetSpending;
 use App\Models\FranceLostRevenue;
 use App\Models\FranceRegionalData;
 use App\Models\FranceDepartmentalData;
-use App\Models\FranceQualityOfLife;
 
 class FranceStatisticsSeeder extends Seeder
 {
@@ -30,7 +29,6 @@ class FranceStatisticsSeeder extends Seeder
         $this->seedBudgetSpending();
         $this->seedLostRevenue();
         $this->seedRegionalData();
-        $this->seedQualityOfLife();
 
         echo "✅ France Statistics seeded successfully!\n";
     }
@@ -305,27 +303,27 @@ class FranceStatisticsSeeder extends Seeder
         $revenue = [
             [
                 'year' => 2023,
-                'total_billions_euros' => 323.0,
+                'total_billions_euros' => 1485.0, // Recettes nettes totales (Budget général + Sécurité sociale)
                 'tva_billions_euros' => 93.5, // TVA nette
                 'income_tax_billions_euros' => 86.2, // Impôt sur le revenu
                 'corporate_tax_billions_euros' => 58.7, // Impôt sur les sociétés
                 'property_tax_billions_euros' => 35.8, // Taxe foncière
                 'housing_tax_billions_euros' => 2.1, // Taxe d'habitation (résiduelle)
                 'fuel_tax_billions_euros' => 14.3, // TICPE
-                'social_contributions_billions_euros' => 18.5, // Cotisations sociales
-                'other_taxes_billions_euros' => 13.9,
+                'social_contributions_billions_euros' => 585.0, // Cotisations sociales (part importante!)
+                'other_taxes_billions_euros' => 609.4, // Autres recettes (CSG, CRDS, taxes diverses)
             ],
             [
                 'year' => 2024,
-                'total_billions_euros' => 335.0,
+                'total_billions_euros' => 1501.6, // Loi de finances 2024 (Budget général + Sécurité sociale)
                 'tva_billions_euros' => 96.8,
                 'income_tax_billions_euros' => 89.5,
                 'corporate_tax_billions_euros' => 61.2,
                 'property_tax_billions_euros' => 37.2,
                 'housing_tax_billions_euros' => 1.8,
                 'fuel_tax_billions_euros' => 14.8,
-                'social_contributions_billions_euros' => 19.2,
-                'other_taxes_billions_euros' => 14.5,
+                'social_contributions_billions_euros' => 595.0, // Cotisations sociales 2024
+                'other_taxes_billions_euros' => 605.3, // Autres recettes (CSG, CRDS, etc.)
             ],
         ];
 
@@ -347,37 +345,37 @@ class FranceStatisticsSeeder extends Seeder
         $spending = [
             [
                 'year' => 2023,
-                'total_billions_euros' => 503.0,
-                'health_billions_euros' => 82.5, // Santé
-                'education_billions_euros' => 58.3, // Éducation nationale
+                'total_billions_euros' => 1650.0, // Dépenses totales (Budget général + Sécurité sociale + collectivités)
+                'health_billions_euros' => 265.0, // Santé (Sécurité sociale incluse)
+                'education_billions_euros' => 85.0, // Éducation nationale + recherche
                 'security_defense_billions_euros' => 53.2, // Défense + Sécurité
                 'justice_billions_euros' => 9.8,
-                'social_welfare_billions_euros' => 45.6, // Solidarité, insertion
+                'social_welfare_billions_euros' => 180.0, // Solidarité, insertion, famille
                 'unemployment_billions_euros' => 38.2, // Pôle emploi, indemnisation
-                'pensions_billions_euros' => 68.4, // Retraites
-                'business_subsidies_billions_euros' => 42.7, // Aides aux entreprises
-                'infrastructure_billions_euros' => 28.5, // Transports, logement
-                'environment_billions_euros' => 12.3, // Écologie, énergie
-                'culture_billions_euros' => 4.8,
-                'debt_interest_billions_euros' => 43.2, // Charge de la dette
-                'other_spending_billions_euros' => 15.5,
+                'pensions_billions_euros' => 365.0, // Retraites (grosse part!)
+                'business_subsidies_billions_euros' => 110.0, // Aides aux entreprises
+                'infrastructure_billions_euros' => 85.0, // Transports, logement, équipements
+                'environment_billions_euros' => 35.0, // Écologie, énergie, transition
+                'culture_billions_euros' => 15.0, // Culture, sport
+                'debt_interest_billions_euros' => 52.0, // Charge de la dette
+                'other_spending_billions_euros' => 356.8, // Autres (administrations, collectivités, etc.)
             ],
             [
                 'year' => 2024,
-                'total_billions_euros' => 518.0,
-                'health_billions_euros' => 85.2,
-                'education_billions_euros' => 60.1,
+                'total_billions_euros' => 1670.2, // Loi de finances 2024
+                'health_billions_euros' => 275.0,
+                'education_billions_euros' => 88.0,
                 'security_defense_billions_euros' => 56.8,
                 'justice_billions_euros' => 10.2,
-                'social_welfare_billions_euros' => 47.3,
+                'social_welfare_billions_euros' => 185.0,
                 'unemployment_billions_euros' => 39.5,
-                'pensions_billions_euros' => 70.8,
-                'business_subsidies_billions_euros' => 38.5,
-                'infrastructure_billions_euros' => 30.2,
-                'environment_billions_euros' => 14.8,
-                'culture_billions_euros' => 5.1,
-                'debt_interest_billions_euros' => 45.8,
-                'other_spending_billions_euros' => 13.7,
+                'pensions_billions_euros' => 375.0,
+                'business_subsidies_billions_euros' => 100.0,
+                'infrastructure_billions_euros' => 90.0,
+                'environment_billions_euros' => 38.0,
+                'culture_billions_euros' => 16.0,
+                'debt_interest_billions_euros' => 55.0, // Hausse des taux d'intérêt
+                'other_spending_billions_euros' => 341.7,
             ],
         ];
 
