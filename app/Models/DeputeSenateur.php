@@ -119,6 +119,30 @@ class DeputeSenateur extends Model
         return $this->hasMany(Amendement::class, 'auteur_uid', 'uid');
     }
 
+    /**
+     * Votes détaillés
+     */
+    public function votes(): HasMany
+    {
+        return $this->hasMany(VoteDepute::class, 'depute_senateur_id');
+    }
+
+    /**
+     * Interventions parlementaires
+     */
+    public function interventions(): HasMany
+    {
+        return $this->hasMany(InterventionParlementaire::class, 'depute_senateur_id');
+    }
+
+    /**
+     * Questions au gouvernement
+     */
+    public function questions(): HasMany
+    {
+        return $this->hasMany(QuestionGouvernement::class, 'depute_senateur_id');
+    }
+
     // ========================================================================
     // SCOPES
     // ========================================================================

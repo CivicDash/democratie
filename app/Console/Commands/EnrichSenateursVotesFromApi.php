@@ -1,0 +1,361 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\DeputeSenateur;
+use App\Models\VoteDepute;
+use App\Models\InterventionParlementaire;
+use App\Models\QuestionGouvernement;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class EnrichSenateursVotesFromApi extends Command
+{
+    protected $signature = 'enrich:senateurs-votes 
+                            {--limit= : Limiter le nombre de sénateurs} 
+                            {--senateur= : UID d\'un sénateur spécifique}
+                            {--votes-only : Importer uniquement les votes}
+                            {--interventions-only : Importer uniquement les interventions}
+                            {--questions-only : Importer uniquement les questions}';
+    
+    protected $description = 'Enrichit les sénateurs avec TOUS les détails : votes, interventions, questions (API NosSénateurs.fr)';
+
+    private const API_BASE_URL = 'https://www.nossenateurs.fr';
+    private int $senateursProcessed = 0;
+    private int $votesImported = 0;
+    private int $interventionsImported = 0;
+    private int $questionsImported = 0;
+    private int $errors = 0;
+
+    public function handle()
+    {
+        $this->info('🏛️  Enrichissement COMPLET des sénateurs...');
+        $this->newLine();
+
+        $limit = $this->option('limit');
+        $senateurUid = $this->option('senateur');
+        
+        // Récupérer les sénateurs à enrichir
+        $query = DeputeSenateur::where('source', 'senat')
+            ->where('en_exercice', true);
+
+        if ($senateurUid) {
+            $query->where('uid', $senateurUid);
+        }
+
+        if ($limit) {
+            $query->limit($limit);
+            $this->warn("⚠️  Mode TEST : {$limit} sénateurs maximum");
+        }
+
+        $senateurs = $query->get();
+
+        if ($senateurs->isEmpty()) {
+            $this->warn('⚠️  Aucun sénateur à enrichir');
+            return Command::SUCCESS;
+        }
+
+        $this->info("📊 {$senateurs->count()} sénateurs à enrichir");
+        $this->info("⏱️  Estimation : " . ($senateurs->count() * 2) . " secondes (pause de 2s par sénateur)");
+        $this->newLine();
+
+        $bar = $this->output->createProgressBar($senateurs->count());
+        $bar->setFormat('verbose');
+
+        foreach ($senateurs as $senateur) {
+            $this->enrichSenateurComplete($senateur);
+            $bar->advance();
+            
+            // Pause obligatoire pour ne pas surcharger l'API
+            sleep(2);
+        }
+
+        $bar->finish();
+        $this->newLine(2);
+
+        $this->displaySummary();
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Enrichir un sénateur avec TOUTES ses données
+     */
+    private function enrichSenateurComplete(DeputeSenateur $senateur)
+    {
+        try {
+            // Construire le slug depuis le nom/prénom
+            $slug = $this->buildSlug($senateur);
+            
+            if (!$slug) {
+                $this->errors++;
+                return;
+            }
+
+            // Récupérer la fiche complète du sénateur
+            $response = Http::timeout(30)->get(self::API_BASE_URL . "/{$slug}/json");
+
+            if (!$response->successful()) {
+                $this->errors++;
+                return;
+            }
+
+            $data = $response->json();
+            $senateurData = $data['senateur'] ?? null;
+
+            if (!$senateurData) {
+                $this->errors++;
+                return;
+            }
+
+            // Importer selon les options
+            if (!$this->option('interventions-only') && !$this->option('questions-only')) {
+                $this->importVotes($senateur, $senateurData);
+            }
+
+            if (!$this->option('votes-only') && !$this->option('questions-only')) {
+                $this->importInterventions($senateur, $senateurData);
+            }
+
+            if (!$this->option('votes-only') && !$this->option('interventions-only')) {
+                $this->importQuestions($senateur, $senateurData);
+            }
+
+            $this->senateursProcessed++;
+
+        } catch (\Exception $e) {
+            $this->errors++;
+            Log::error("Erreur enrichissement sénateur {$senateur->nom}", [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Importer les votes d'un sénateur
+     */
+    private function importVotes(DeputeSenateur $senateur, array $senateurData)
+    {
+        $votes = $senateurData['votes'] ?? [];
+
+        foreach ($votes as $voteData) {
+            try {
+                VoteDepute::updateOrCreate(
+                    [
+                        'depute_senateur_id' => $senateur->id,
+                        'numero_scrutin' => $voteData['numero_scrutin'] ?? $voteData['id'] ?? '',
+                    ],
+                    [
+                        'date_vote' => $this->parseDate($voteData['date'] ?? null),
+                        'titre' => $voteData['titre'] ?? $voteData['objet'] ?? 'Vote',
+                        'position' => $this->normalizePosition($voteData['position'] ?? ''),
+                        'resultat' => $this->normalizeResultat($voteData['resultat'] ?? null),
+                        'pour' => $voteData['pour'] ?? null,
+                        'contre' => $voteData['contre'] ?? null,
+                        'abstentions' => $voteData['abstentions'] ?? null,
+                        'absents' => $voteData['absents'] ?? null,
+                        'type_vote' => $voteData['type'] ?? $voteData['sort'] ?? null,
+                        'url_scrutin' => $voteData['url'] ?? null,
+                        'contexte' => $voteData['demandeur'] ?? null,
+                    ]
+                );
+
+                $this->votesImported++;
+            } catch (\Exception $e) {
+                // Ignorer les erreurs individuelles
+            }
+        }
+    }
+
+    /**
+     * Importer les interventions d'un sénateur
+     */
+    private function importInterventions(DeputeSenateur $senateur, array $senateurData)
+    {
+        $interventions = $senateurData['interventions'] ?? [];
+
+        foreach ($interventions as $interventionData) {
+            try {
+                // Calculer le nombre de mots si contenu disponible
+                $contenu = $interventionData['contenu'] ?? $interventionData['intervention'] ?? null;
+                $nbMots = $contenu ? str_word_count(strip_tags($contenu)) : null;
+
+                InterventionParlementaire::updateOrCreate(
+                    [
+                        'depute_senateur_id' => $senateur->id,
+                        'date_intervention' => $this->parseDate($interventionData['date'] ?? null),
+                        'titre' => $interventionData['titre'] ?? $interventionData['section'] ?? 'Intervention',
+                    ],
+                    [
+                        'type' => $interventionData['type'] ?? 'seance',
+                        'sujet' => $interventionData['sujet'] ?? null,
+                        'contenu' => $contenu,
+                        'nb_mots' => $nbMots,
+                        'url_video' => $interventionData['url_video'] ?? null,
+                        'url_texte' => $interventionData['url'] ?? null,
+                    ]
+                );
+
+                $this->interventionsImported++;
+            } catch (\Exception $e) {
+                // Ignorer les erreurs individuelles
+            }
+        }
+    }
+
+    /**
+     * Importer les questions au gouvernement d'un sénateur
+     */
+    private function importQuestions(DeputeSenateur $senateur, array $senateurData)
+    {
+        $questions = $senateurData['questions'] ?? [];
+
+        foreach ($questions as $questionData) {
+            try {
+                QuestionGouvernement::updateOrCreate(
+                    [
+                        'depute_senateur_id' => $senateur->id,
+                        'numero' => $questionData['numero'] ?? $questionData['id'] ?? '',
+                    ],
+                    [
+                        'type' => $questionData['type'] ?? 'ecrite',
+                        'date_depot' => $this->parseDate($questionData['date'] ?? $questionData['date_depot'] ?? null),
+                        'date_reponse' => $this->parseDate($questionData['date_reponse'] ?? null),
+                        'ministere' => $questionData['ministere'] ?? null,
+                        'titre' => $questionData['titre'] ?? $questionData['question'] ?? 'Question',
+                        'question' => $questionData['question'] ?? $questionData['question_texte'] ?? null,
+                        'reponse' => $questionData['reponse'] ?? $questionData['reponse_texte'] ?? null,
+                        'statut' => $questionData['reponse'] ? 'repondu' : 'en_attente',
+                        'url' => $questionData['url'] ?? null,
+                    ]
+                );
+
+                $this->questionsImported++;
+            } catch (\Exception $e) {
+                // Ignorer les erreurs individuelles
+            }
+        }
+    }
+
+    /**
+     * Construire le slug d'un sénateur pour l'API
+     */
+    private function buildSlug(DeputeSenateur $senateur): ?string
+    {
+        $prenom = strtolower($senateur->prenom);
+        $nom = strtolower($senateur->nom);
+        
+        // Normaliser
+        $prenom = $this->slugify($prenom);
+        $nom = $this->slugify($nom);
+        
+        // Prendre le premier prénom uniquement
+        $prenomParts = explode('-', $prenom);
+        $prenom = $prenomParts[0];
+        
+        return $prenom . '-' . $nom;
+    }
+
+    /**
+     * Slugify une chaîne
+     */
+    private function slugify(string $str): string
+    {
+        $str = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
+        $str = preg_replace('/[^a-z0-9\s-]/', '', $str);
+        $str = preg_replace('/[\s-]+/', '-', $str);
+        $str = trim($str, '-');
+        return $str;
+    }
+
+    /**
+     * Parser une date
+     */
+    private function parseDate(?string $date)
+    {
+        if (!$date) {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($date);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Normaliser la position d'un vote
+     */
+    private function normalizePosition(string $position): string
+    {
+        $position = strtolower($position);
+        
+        return match($position) {
+            'pour', 'oui' => 'pour',
+            'contre', 'non' => 'contre',
+            'abstention', 'abstenu' => 'abstention',
+            'absent', 'absente' => 'absent',
+            default => $position,
+        };
+    }
+
+    /**
+     * Normaliser le résultat d'un vote
+     */
+    private function normalizeResultat(?string $resultat): ?string
+    {
+        if (!$resultat) {
+            return null;
+        }
+
+        $resultat = strtolower($resultat);
+        
+        return match($resultat) {
+            'adopte', 'adoptée', 'oui' => 'adopte',
+            'rejete', 'rejetée', 'non' => 'rejete',
+            default => $resultat,
+        };
+    }
+
+    /**
+     * Afficher le résumé
+     */
+    private function displaySummary()
+    {
+        $this->info("✅ Enrichissement terminé !");
+        $this->newLine();
+        
+        $this->info("📊 Résumé :");
+        $this->line("   ✓ {$this->senateursProcessed} sénateurs traités");
+        $this->line("   📝 {$this->votesImported} votes importés");
+        $this->line("   🎤 {$this->interventionsImported} interventions importées");
+        $this->line("   ❓ {$this->questionsImported} questions importées");
+        
+        if ($this->errors > 0) {
+            $this->warn("   ⚠️  {$this->errors} erreurs");
+        }
+
+        $this->newLine();
+        
+        // Statistiques globales pour les sénateurs
+        $totalVotesSenateurs = VoteDepute::whereHas('deputeSenateur', function($q) {
+            $q->where('source', 'senat');
+        })->count();
+        
+        $totalInterventionsSenateurs = InterventionParlementaire::whereHas('deputeSenateur', function($q) {
+            $q->where('source', 'senat');
+        })->count();
+        
+        $totalQuestionsSenateurs = QuestionGouvernement::whereHas('deputeSenateur', function($q) {
+            $q->where('source', 'senat');
+        })->count();
+
+        $this->info("📈 Total sénateurs en base de données :");
+        $this->line("   {$totalVotesSenateurs} votes");
+        $this->line("   {$totalInterventionsSenateurs} interventions");
+        $this->line("   {$totalQuestionsSenateurs} questions");
+    }
+}
+

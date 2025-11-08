@@ -74,6 +74,48 @@
 - ✅ Gestion des codes postaux multiples (plusieurs communes)
 - 📊 **Endpoint :** `https://demo.objectif2027.fr/api/representants/search`
 
+### 9. 🎨 **Enrichissement Députés via API**
+- ✅ Nouvelle commande : `EnrichDeputesFromApi`
+- ✅ Source : API NosDéputés.fr (https://www.nosdeputes.fr)
+- ✅ Script automatisé : `scripts/enrich_deputes.sh`
+- ✅ **Données enrichies :**
+  - Groupes politiques (nom + sigle)
+  - Photos officielles (200px)
+  - URL profil NosDéputés
+  - Statistiques (propositions, amendements, présence)
+  - Fonctions (président, rapporteur, etc.)
+- ✅ Matching intelligent par nom/prénom
+- ✅ Pause entre appels API (rate limiting)
+- ✅ Mode test (`--limit=10`) et force (`--force`)
+- 🔄 **À exécuter :** `bash scripts/enrich_deputes.sh`
+
+### 10. 🎨 **Enrichissement Sénateurs via API**
+- ✅ Nouvelle commande : `EnrichSenateursFromApi`
+- ✅ Source : API NosSénateurs.fr (https://www.nossenateurs.fr)
+- ✅ Script automatisé : `scripts/enrich_senateurs.sh`
+- ✅ Même fonctionnalités que pour les députés
+- 🔄 **À exécuter :** `bash scripts/enrich_senateurs.sh`
+
+### 11. 📊 **Import COMPLET : Votes + Interventions + Questions**
+- ✅ **3 nouvelles tables :**
+  - `votes_deputes` : Tous les votes détaillés (position, résultat, contexte)
+  - `interventions_parlementaires` : Discours et prises de parole
+  - `questions_gouvernement` : Questions écrites/orales + réponses
+- ✅ **3 nouveaux modèles :**
+  - `VoteDepute.php` avec scopes (pour/contre/abstention/absent)
+  - `InterventionParlementaire.php` avec calcul durée/mots
+  - `QuestionGouvernement.php` avec délai de réponse
+- ✅ **Relations ajoutées** dans `DeputeSenateur` :
+  - `votes()` : Tous les votes
+  - `interventions()` : Toutes les interventions
+  - `questions()` : Toutes les questions
+- ✅ **2 commandes d'import avancé :**
+  - `enrich:deputes-votes` : Import complet députés (~20 min)
+  - `enrich:senateurs-votes` : Import complet sénateurs (~12 min)
+- ✅ **Options :** `--limit`, `--votes-only`, `--interventions-only`, `--questions-only`
+- ✅ Script unifié : `scripts/enrich_complete.sh` (~32 min total)
+- 🔄 **À exécuter :** `bash scripts/enrich_complete.sh`
+
 ---
 
 ## ✅ MODIFICATIONS PRÉCÉDENTES
