@@ -388,7 +388,7 @@ class DemoDataSeeder extends Seeder
             ]);
 
             // Associer les thématiques
-            $thematique = ThematiqueLegislation::where('slug', $data['theme'])->first();
+            $thematique = ThematiqueLegislation::where('code', strtoupper($data['theme']))->first();
             if ($thematique) {
                 $proposition->thematiques()->attach($thematique->id, [
                     'est_principal' => true,
@@ -425,7 +425,7 @@ class DemoDataSeeder extends Seeder
                 'fetched_at' => now(),
             ]);
 
-            $thematique = ThematiqueLegislation::where('slug', $themeSlug)->first();
+            $thematique = ThematiqueLegislation::where('code', strtoupper($themeSlug))->first();
             if ($thematique) {
                 $proposition->thematiques()->attach($thematique->id, [
                     'est_principal' => true,

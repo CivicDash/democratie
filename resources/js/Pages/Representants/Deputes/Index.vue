@@ -27,17 +27,6 @@ const applyFilters = () => {
   });
 };
 
-// Groupes parlementaires pour les filtres
-const groupes = [
-  { sigle: 'RE', nom: 'Renaissance', couleur: '#FFEB00' },
-  { sigle: 'RN', nom: 'Rassemblement National', couleur: '#0D378A' },
-  { sigle: 'LFI-NFP', nom: 'LFI - NFP', couleur: '#CC2443' },
-  { sigle: 'LR', nom: 'Les Républicains', couleur: '#0066CC' },
-  { sigle: 'SOC', nom: 'Socialistes', couleur: '#FF8080' },
-  { sigle: 'HOR', nom: 'Horizons', couleur: '#FF6600' },
-  { sigle: 'ECOLO', nom: 'Écologistes', couleur: '#00C000' },
-];
-
 // Calcul des sièges par groupe pour l'hémicycle
 const siegesParGroupe = computed(() => {
   const counts = {};
@@ -114,7 +103,7 @@ const siegesParGroupe = computed(() => {
                 class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800"
               >
                 <option value="">Tous les groupes</option>
-                <option v-for="groupe in groupes" :key="groupe.sigle" :value="groupe.sigle">
+                <option v-for="groupe in props.groupes" :key="groupe.sigle" :value="groupe.sigle">
                   {{ groupe.nom }}
                 </option>
               </select>
@@ -134,7 +123,7 @@ const siegesParGroupe = computed(() => {
         <Card v-if="viewMode === 'hemicycle'">
           <HemicycleView
             :deputes="deputes.data"
-            :groupes="groupes"
+            :groupes="props.groupes"
             :selectedGroupe="selectedGroupe"
             @select-depute="(depute) => router.visit(route('representants.deputes.show', depute.id))"
             @select-groupe="(sigle) => { selectedGroupe = sigle; applyFilters(); }"
@@ -200,7 +189,7 @@ const siegesParGroupe = computed(() => {
                     <Badge
                       v-if="depute.groupe_sigle"
                       :style="{ 
-                        backgroundColor: groupes.find(g => g.sigle === depute.groupe_sigle)?.couleur || '#6B7280',
+                        backgroundColor: props.groupes.find(g => g.sigle === depute.groupe_sigle)?.couleur_hex || '#6B7280',
                         color: '#fff'
                       }"
                     >

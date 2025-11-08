@@ -8,6 +8,7 @@ import TextInput from '@/Components/TextInput.vue';
 
 const props = defineProps({
   senateurs: Object,
+  groupes: Array,
   filters: Object,
 });
 
@@ -24,17 +25,6 @@ const applyFilters = () => {
     preserveScroll: true,
   });
 };
-
-// Groupes parlementaires pour les filtres
-const groupes = [
-  { sigle: 'RE', nom: 'Renaissance', couleur: '#FFEB00' },
-  { sigle: 'RN', nom: 'Rassemblement National', couleur: '#0D378A' },
-  { sigle: 'LFI-NFP', nom: 'LFI - NFP', couleur: '#CC2443' },
-  { sigle: 'LR', nom: 'Les Républicains', couleur: '#0066CC' },
-  { sigle: 'SOC', nom: 'Socialistes', couleur: '#FF8080' },
-  { sigle: 'HOR', nom: 'Horizons', couleur: '#FF6600' },
-  { sigle: 'ECOLO', nom: 'Écologistes', couleur: '#00C000' },
-];
 
 // Calcul des sièges par groupe pour l'hémicycle
 const siegesParGroupe = computed(() => {
@@ -112,7 +102,7 @@ const siegesParGroupe = computed(() => {
                 class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800"
               >
                 <option value="">Tous les groupes</option>
-                <option v-for="groupe in groupes" :key="groupe.sigle" :value="groupe.sigle">
+                <option v-for="groupe in props.groupes" :key="groupe.sigle" :value="groupe.sigle">
                   {{ groupe.nom }}
                 </option>
               </select>
@@ -138,13 +128,14 @@ const siegesParGroupe = computed(() => {
           <div class="mb-8">
             <div class="flex flex-wrap gap-4 justify-center">
               <div
-                v-for="groupe in groupes"
+                v-for="groupe in props.groupes"
                 :key="groupe.sigle"
-                class="flex items-center gap-2"
+                class="flex items-center gap-2 cursor-pointer hover:opacity-75 transition"
+                @click="selectedGroupe = groupe.sigle; applyFilters();"
               >
                 <div
                   class="w-6 h-6 rounded-full"
-                  :style="{ backgroundColor: groupe.couleur }"
+                  :style="{ backgroundColor: groupe.couleur_hex }"
                 ></div>
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {{ groupe.sigle }} ({{ siegesParGroupe[groupe.sigle] || 0 }})
@@ -241,7 +232,7 @@ const siegesParGroupe = computed(() => {
                     <Badge
                       v-if="senateur.groupe_sigle"
                       :style="{ 
-                        backgroundColor: groupes.find(g => g.sigle === senateur.groupe_sigle)?.couleur || '#6B7280',
+                        backgroundColor: props.groupes.find(g => g.sigle === senateur.groupe_sigle)?.couleur_hex || '#6B7280',
                         color: '#fff'
                       }"
                     >

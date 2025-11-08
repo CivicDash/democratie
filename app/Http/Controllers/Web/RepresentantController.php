@@ -131,11 +131,12 @@ class RepresentantController extends Controller
         // Récupérer les groupes parlementaires pour les filtres et l'hémicycle
         $groupes = GroupeParlementaire::where('source', 'assemblee')
             ->where('actif', true)
-            ->get(['sigle', 'nom', 'couleur_hex'])
+            ->get(['sigle', 'nom', 'couleur_hex', 'position_politique'])
             ->map(fn($g) => [
                 'sigle' => $g->sigle,
                 'nom' => $g->nom,
                 'couleur_hex' => $g->couleur_hex,
+                'position_politique' => $g->position_politique,
             ]);
 
         return Inertia::render('Representants/Deputes/Index', [
@@ -225,9 +226,21 @@ class RepresentantController extends Controller
         }
 
         $senateurs = $query->paginate(30)->withQueryString();
+        
+        // Récupérer les groupes parlementaires pour les filtres et l'hémicycle
+        $groupes = GroupeParlementaire::where('source', 'senat')
+            ->where('actif', true)
+            ->get(['sigle', 'nom', 'couleur_hex', 'position_politique'])
+            ->map(fn($g) => [
+                'sigle' => $g->sigle,
+                'nom' => $g->nom,
+                'couleur_hex' => $g->couleur_hex,
+                'position_politique' => $g->position_politique,
+            ]);
 
         return Inertia::render('Representants/Senateurs/Index', [
             'senateurs' => $senateurs,
+            'groupes' => $groupes,
             'filters' => $request->only(['search', 'groupe', 'department', 'sort', 'order']),
         ]);
     }
