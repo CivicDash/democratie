@@ -340,17 +340,24 @@ class EnrichSenateursVotesFromApi extends Command
         $this->newLine();
         
         // Statistiques globales pour les sénateurs
-        $totalVotesSenateurs = VoteDepute::whereHas('deputeSenateur', function($q) {
-            $q->where('source', 'senat');
-        })->count();
-        
-        $totalInterventionsSenateurs = InterventionParlementaire::whereHas('deputeSenateur', function($q) {
-            $q->where('source', 'senat');
-        })->count();
-        
-        $totalQuestionsSenateurs = QuestionGouvernement::whereHas('deputeSenateur', function($q) {
-            $q->where('source', 'senat');
-        })->count();
+        try {
+            $totalVotesSenateurs = VoteDepute::whereHas('deputeSenateur', function($q) {
+                $q->where('source', 'senat');
+            })->count();
+            
+            $totalInterventionsSenateurs = InterventionParlementaire::whereHas('deputeSenateur', function($q) {
+                $q->where('source', 'senat');
+            })->count();
+            
+            $totalQuestionsSenateurs = QuestionGouvernement::whereHas('deputeSenateur', function($q) {
+                $q->where('source', 'senat');
+            })->count();
+        } catch (\Exception $e) {
+            $totalVotesSenateurs = 0;
+            $totalInterventionsSenateurs = 0;
+            $totalQuestionsSenateurs = 0;
+            $this->warn("⚠️  Tables non créées. Lancer: php artisan migrate");
+        }
 
         $this->info("📈 Total sénateurs en base de données :");
         $this->line("   {$totalVotesSenateurs} votes");

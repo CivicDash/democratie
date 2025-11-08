@@ -340,9 +340,16 @@ class EnrichDeputesVotesFromApi extends Command
         $this->newLine();
         
         // Statistiques globales
-        $totalVotes = VoteDepute::count();
-        $totalInterventions = InterventionParlementaire::count();
-        $totalQuestions = QuestionGouvernement::count();
+        try {
+            $totalVotes = VoteDepute::count();
+            $totalInterventions = InterventionParlementaire::count();
+            $totalQuestions = QuestionGouvernement::count();
+        } catch (\Exception $e) {
+            $totalVotes = 0;
+            $totalInterventions = 0;
+            $totalQuestions = 0;
+            $this->warn("⚠️  Tables non créées. Lancer: php artisan migrate");
+        }
 
         $this->info("📈 Total en base de données :");
         $this->line("   {$totalVotes} votes");

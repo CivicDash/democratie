@@ -35,7 +35,29 @@ fi
 
 echo ""
 echo "========================================="
-echo "📊 1/4 - État initial"
+echo "📊 1/5 - Vérification des migrations"
+echo "========================================="
+echo ""
+
+echo "🔍 Vérification des tables nécessaires..."
+TABLES_EXIST=$(docker compose exec postgres psql -U civicdash -d civicdash -t -c "
+SELECT COUNT(*) 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name IN ('votes_deputes', 'interventions_parlementaires', 'questions_gouvernement');
+" | tr -d ' ')
+
+if [ "$TABLES_EXIST" != "3" ]; then
+    echo "⚠️  Tables manquantes. Lancement des migrations..."
+    docker compose exec app php artisan migrate --force
+    echo "✅ Migrations terminées"
+else
+    echo "✅ Tables déjà présentes"
+fi
+
+echo ""
+echo "========================================="
+echo "📊 2/5 - État initial"
 echo "========================================="
 
 docker compose exec postgres psql -U civicdash -d civicdash -c "
@@ -66,7 +88,7 @@ WHERE source = 'senat';
 
 echo ""
 echo "========================================="
-echo "📥 2/4 - Enrichissement DÉPUTÉS"
+echo "📥 3/5 - Enrichissement DÉPUTÉS"
 echo "========================================="
 echo ""
 echo "🔄 Lancement... (pause de 2s entre chaque député)"
@@ -76,7 +98,7 @@ docker compose exec app php artisan enrich:deputes-votes
 
 echo ""
 echo "========================================="
-echo "📥 3/4 - Enrichissement SÉNATEURS"
+echo "📥 4/5 - Enrichissement SÉNATEURS"
 echo "========================================="
 echo ""
 echo "🔄 Lancement... (pause de 2s entre chaque sénateur)"
@@ -86,7 +108,7 @@ docker compose exec app php artisan enrich:senateurs-votes
 
 echo ""
 echo "========================================="
-echo "📊 4/4 - Résultat final"
+echo "📊 5/5 - Résultat final"
 echo "========================================="
 echo ""
 
