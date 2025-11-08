@@ -1,11 +1,50 @@
-# 📋 RÉSUMÉ DES AMÉLIORATIONS - CivicDash
+# 📋 CHANGELOG - CivicDash
 
-**Date :** 8 Novembre 2025  
+**Dernière mise à jour :** 8 Novembre 2025  
 **Version :** Production Ready
 
 ---
 
-## ✅ MODIFICATIONS APPORTÉES
+## 🆕 SESSION DU 8 NOVEMBRE 2025
+
+### 1. 🗺️ **Carte interactive France - 96 départements complets**
+- ✅ Tous les départements métropolitains ajoutés avec paths SVG
+- ✅ Filtres par région (13 régions)
+- ✅ Heatmap interactive avec métriques
+- ✅ Tooltips au survol
+- ✅ Stats de filtrage dynamiques
+- **Fichiers :** `FranceMapInteractive.vue`
+
+### 2. 👥 **Carte des Représentants**
+- ✅ Nouvelle carte sur "Mes Représentants"
+- ✅ Distribution députés/sénateurs par département
+- ✅ Intégration dans `MesRepresentants.vue`
+- **Fichiers :** `RepresentantsMap.vue`, `RepresentantController.php`
+
+### 3. 📁 **Réorganisation des scripts**
+- ✅ Tous les scripts déplacés dans `/scripts/`
+- ✅ Chemins relatifs (portables entre environnements)
+- ✅ `.gitignore` pour `/scripts/debug/` et `*.sh.log`
+- ✅ README dédié : `scripts/README.md`
+- **Scripts disponibles :**
+  - `check_postal_codes.sh` : Diagnostic codes postaux
+  - `import_postal_codes_local.sh` : Import CSV local
+  - `check_thematiques.sh` : Vérification thématiques
+  - `test_postal_search.sh` : Test API recherche
+
+### 4. 🧹 **Nettoyage documentation**
+- ✅ Suppression de 17 fichiers .md redondants
+- ✅ Conservation uniquement : `README.md`, `CHANGELOG.md`, `SECURITY.md`
+- ✅ Toutes les infos centralisées dans `CHANGELOG.md`
+
+### 5. 🐛 **Corrections en cours**
+- 🔄 Import codes postaux : CSV présent (`public/data/019HexaSmal.csv`)
+- 🔄 Recherche ville : Model `FrenchPostalCode` avec `ILIKE` configuré
+- 🔄 Filtres représentants : À vérifier sur `/representants/deputes?groupe=XXX`
+
+---
+
+## ✅ MODIFICATIONS PRÉCÉDENTES
 
 ### 1. 🏛️ **Hémicycles - Différenciation visuelle Assemblée/Sénat**
 

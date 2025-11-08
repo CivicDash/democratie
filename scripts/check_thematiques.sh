@@ -1,8 +1,12 @@
 #!/bin/bash
 
 # Script de diagnostic des thématiques de législation
+# À exécuter depuis la racine du projet ou depuis /scripts/
 
-cd /home/kevin/www/demoscratos
+# Déterminer le répertoire racine du projet
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 echo "========================================="
 echo "🔍 Diagnostic Thématiques Législation"

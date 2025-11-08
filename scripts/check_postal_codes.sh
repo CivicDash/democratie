@@ -1,8 +1,12 @@
 #!/bin/bash
 
 # Script de test du système des codes postaux
+# À exécuter depuis la racine du projet ou depuis /scripts/
 
-cd /home/kevin/www/demoscratos
+# Déterminer le répertoire racine du projet
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 echo "========================================="
 echo "🔍 Diagnostic des codes postaux"
@@ -25,6 +29,6 @@ echo "========================================="
 echo "✅ Diagnostic terminé"
 echo ""
 echo "💡 Pour importer le fichier local:"
-echo "   bash import_postal_codes_local.sh"
+echo "   bash scripts/import_postal_codes_local.sh"
 echo "========================================="
 
