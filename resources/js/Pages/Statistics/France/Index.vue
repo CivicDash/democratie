@@ -709,64 +709,87 @@ const recyclingChartData = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Tabs - Scrollable horizontal sur mobile -->
-                    <div class="mt-4 border-b border-gray-200 dark:border-gray-700 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
-                        <nav class="-mb-px flex space-x-4 sm:space-x-8 min-w-max">
-                            <button
-                                @click="activeTab = 'overview'"
-                                :class="[
-                                    activeTab === 'overview'
-                                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                                    'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
-                                ]"
+                    <!-- Tabs Desktop + Dropdown Mobile -->
+                    <div class="mt-4">
+                        <!-- Dropdown pour mobile (< md) -->
+                        <div class="block md:hidden">
+                            <select
+                                v-model="activeTab"
+                                class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 text-sm font-medium py-3"
                             >
-                                🏠 Vue d'ensemble
-                            </button>
-                            <button
-                                @click="activeTab = 'economy'"
-                                :class="[
-                                    activeTab === 'economy'
-                                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                                    'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
-                                ]"
-                            >
-                                💰 Économie
-                            </button>
-                            <button
-                                @click="activeTab = 'budget'"
-                                :class="[
-                                    activeTab === 'budget'
-                                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                                    'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
-                                ]"
-                            >
-                                💶 Budget
-                            </button>
-                            <button
-                                @click="activeTab = 'migration'"
-                                :class="[
-                                    activeTab === 'migration'
-                                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                                    'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
-                                ]"
-                            >
-                                🌍 Migration
-                            </button>
-                            <button
-                                @click="activeTab = 'regions'"
-                                :class="[
-                                    activeTab === 'regions'
-                                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                                    'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
-                                ]"
-                            >
-                                🗺️ Régions
-                            </button>
+                                <option value="overview">🏠 Vue d'ensemble</option>
+                                <option value="economy">💰 Économie</option>
+                                <option value="budget">💶 Budget</option>
+                                <option value="migration">🌍 Migration</option>
+                                <option value="regions">🗺️ Régions</option>
+                                <option value="quality">✨ Qualité de vie</option>
+                                <option value="education">📚 Éducation</option>
+                                <option value="security">🔒 Sécurité</option>
+                                <option value="health">🏥 Santé</option>
+                                <option value="housing">🏠 Logement</option>
+                                <option value="environment">🌍 Environnement</option>
+                                <option value="employment">💼 Emploi</option>
+                            </select>
+                        </div>
+
+                        <!-- Tabs classiques pour desktop (≥ md) -->
+                        <div class="hidden md:block border-b border-gray-200 dark:border-gray-700">
+                            <nav class="-mb-px flex space-x-4 lg:space-x-8 overflow-x-auto">
+                                <button
+                                    @click="activeTab = 'overview'"
+                                    :class="[
+                                        activeTab === 'overview'
+                                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
+                                        'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
+                                    ]"
+                                >
+                                    🏠 Vue d'ensemble
+                                </button>
+                                <button
+                                    @click="activeTab = 'economy'"
+                                    :class="[
+                                        activeTab === 'economy'
+                                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
+                                        'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
+                                    ]"
+                                >
+                                    💰 Économie
+                                </button>
+                                <button
+                                    @click="activeTab = 'budget'"
+                                    :class="[
+                                        activeTab === 'budget'
+                                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
+                                        'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
+                                    ]"
+                                >
+                                    💶 Budget
+                                </button>
+                                <button
+                                    @click="activeTab = 'migration'"
+                                    :class="[
+                                        activeTab === 'migration'
+                                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
+                                        'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
+                                    ]"
+                                >
+                                    🌍 Migration
+                                </button>
+                                <button
+                                    @click="activeTab = 'regions'"
+                                    :class="[
+                                        activeTab === 'regions'
+                                            ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
+                                        'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium'
+                                    ]"
+                                >
+                                    🗺️ Régions
+                                </button>
                             <button
                                 @click="activeTab = 'quality'"
                                 :class="[
@@ -844,7 +867,8 @@ const recyclingChartData = computed(() => {
                             >
                                 💼 Emploi
                             </button>
-                        </nav>
+                            </nav>
+                        </div>
                     </div>
                 </div>
             </div>

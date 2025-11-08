@@ -1,15 +1,22 @@
 <template>
     <div class="relative w-full">
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border-l-4"
+             :class="chamber === 'assembly' ? 'border-blue-600' : 'border-red-600'">
             <!-- Titre + Sélecteur temporel -->
             <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                        🏛️ {{ chamber === 'assembly' ? 'Assemblée Nationale' : 'Sénat' }}
+                        <span :class="chamber === 'assembly' ? 'text-blue-600' : 'text-red-600'">
+                            {{ chamber === 'assembly' ? '🏛️' : '🏛️' }}
+                        </span>
+                        {{ chamber === 'assembly' ? 'Assemblée Nationale' : 'Sénat' }}
                         <span class="text-sm font-normal text-gray-600 dark:text-gray-400">
                             ({{ totalSeats }} {{ chamber === 'assembly' ? 'députés' : 'sénateurs' }})
                         </span>
                     </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {{ chamber === 'assembly' ? 'Élus au suffrage universel direct (5 ans)' : 'Élus au suffrage indirect (6 ans)' }}
+                    </p>
                 </div>
 
                 <!-- Sélecteur temporel -->
