@@ -40,6 +40,7 @@
 ### 5. 🐛 **Fix Import Codes Postaux**
 - ✅ Correction contrainte UNIQUE (enlevé `insee_code` nullable)
 - ✅ Migration de correction : `2025_11_08_140000_fix_postal_codes_unique_constraint.php`
+- ✅ Migration safe : vérifie l'existence des contraintes avant modification
 - ✅ Script de diagnostic/fix : `scripts/fix_postal_codes.sh`
 - ✅ Import CSV corrigé : utilise `postal_code` + `city_name` uniquement
 - 🔄 **À exécuter :** `bash scripts/fix_postal_codes.sh`

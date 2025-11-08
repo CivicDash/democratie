@@ -12,23 +12,33 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Supprimer l'ancienne contrainte unique si elle existe
-        Schema::table('french_postal_codes', function (Blueprint $table) {
-            try {
-                $table->dropUnique('unique_postal_city_insee');
-            } catch (\Exception $e) {
-                // La contrainte n'existe peut-être pas, on ignore l'erreur
-            }
-        });
+        // Vérifier si la contrainte existe avant de la supprimer
+        $constraintExists = DB::select("
+            SELECT constraint_name 
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'french_postal_codes' 
+            AND constraint_name = 'unique_postal_city_insee'
+        ");
 
-        // Ajouter la nouvelle contrainte unique (sans insee_code)
-        Schema::table('french_postal_codes', function (Blueprint $table) {
-            try {
+        if (!empty($constraintExists)) {
+            Schema::table('french_postal_codes', function (Blueprint $table) {
+                $table->dropUnique('unique_postal_city_insee');
+            });
+        }
+
+        // Vérifier si la nouvelle contrainte n'existe pas déjà
+        $newConstraintExists = DB::select("
+            SELECT constraint_name 
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'french_postal_codes' 
+            AND constraint_name = 'unique_postal_city'
+        ");
+
+        if (empty($newConstraintExists)) {
+            Schema::table('french_postal_codes', function (Blueprint $table) {
                 $table->unique(['postal_code', 'city_name'], 'unique_postal_city');
-            } catch (\Exception $e) {
-                // La contrainte existe peut-être déjà, on ignore l'erreur
-            }
-        });
+            });
+        }
     }
 
     /**
@@ -36,19 +46,33 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('french_postal_codes', function (Blueprint $table) {
-            try {
+        // Vérifier si la contrainte existe avant de la supprimer
+        $constraintExists = DB::select("
+            SELECT constraint_name 
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'french_postal_codes' 
+            AND constraint_name = 'unique_postal_city'
+        ");
+
+        if (!empty($constraintExists)) {
+            Schema::table('french_postal_codes', function (Blueprint $table) {
                 $table->dropUnique('unique_postal_city');
-            } catch (\Exception $e) {
-                // Ignorer les erreurs
-            }
-            
-            try {
+            });
+        }
+
+        // Recréer l'ancienne contrainte si elle n'existe pas
+        $oldConstraintExists = DB::select("
+            SELECT constraint_name 
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'french_postal_codes' 
+            AND constraint_name = 'unique_postal_city_insee'
+        ");
+
+        if (empty($oldConstraintExists)) {
+            Schema::table('french_postal_codes', function (Blueprint $table) {
                 $table->unique(['postal_code', 'city_name', 'insee_code'], 'unique_postal_city_insee');
-            } catch (\Exception $e) {
-                // Ignorer les erreurs
-            }
-        });
+            });
+        }
     }
 };
 
