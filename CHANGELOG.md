@@ -37,10 +37,41 @@
 - ✅ Conservation uniquement : `README.md`, `CHANGELOG.md`, `SECURITY.md`
 - ✅ Toutes les infos centralisées dans `CHANGELOG.md`
 
-### 5. 🐛 **Corrections en cours**
-- 🔄 Import codes postaux : CSV présent (`public/data/019HexaSmal.csv`)
-- 🔄 Recherche ville : Model `FrenchPostalCode` avec `ILIKE` configuré
-- 🔄 Filtres représentants : À vérifier sur `/representants/deputes?groupe=XXX`
+### 5. 🐛 **Fix Import Codes Postaux**
+- ✅ Correction contrainte UNIQUE (enlevé `insee_code` nullable)
+- ✅ Migration de correction : `2025_11_08_140000_fix_postal_codes_unique_constraint.php`
+- ✅ Script de diagnostic/fix : `scripts/fix_postal_codes.sh`
+- ✅ Import CSV corrigé : utilise `postal_code` + `city_name` uniquement
+- 🔄 **À exécuter :** `bash scripts/fix_postal_codes.sh`
+
+### 6. 🏛️ **Import Députés & Sénateurs depuis CSV**
+- ✅ Nouvelle commande : `ImportDeputesFromCsv` (575 députés)
+- ✅ Nouvelle commande : `ImportSenateursFromCsv` (348 sénateurs)
+- ✅ Script automatisé : `scripts/import_representants.sh`
+- ✅ Remplace les données de démo par des données réelles (data.gouv.fr)
+- ✅ Parsing automatique des CSV avec barre de progression
+- 📊 **Structure :** nom, prénom, circonscription, profession, date naissance, date début mandat
+- 🔄 **À exécuter :** `bash scripts/import_representants.sh`
+
+### 7. 👔 **Import Maires + Table dédiée**
+- ✅ Nouvelle table : `maires` (34,867 maires)
+- ✅ Modèle : `Maire.php` avec relations et scopes
+- ✅ Migration : `2025_11_08_141000_create_maires_table.php`
+- ✅ Commande : `ImportMairesFromCsv` avec option `--limit` pour test
+- ✅ Script automatisé : `scripts/import_maires.sh` (choix import complet ou test)
+- 📊 **Structure :** nom, prénom, code commune, département, profession, dates mandats
+- 🔄 **À exécuter :** `bash scripts/import_maires.sh`
+
+### 8. 🔍 **API Recherche Représentants**
+- ✅ Nouveau contrôleur : `RepresentantsSearchController`
+- ✅ Route API : `GET /api/representants/search?q={postal_code|ville}`
+- ✅ **Fonctionnalités :**
+  - Recherche par code postal (ex: `?q=75001`)
+  - Recherche par ville (ex: `?q=Paris`)
+  - Recherche par code INSEE (ex: `?insee_code=75101`)
+- ✅ **Retourne :** Maire + Député + Sénateur(s) de la commune
+- ✅ Gestion des codes postaux multiples (plusieurs communes)
+- 📊 **Endpoint :** `https://demo.objectif2027.fr/api/representants/search`
 
 ---
 

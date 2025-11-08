@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\LegislationController;
 use App\Http\Controllers\Api\ModerationController;
 use App\Http\Controllers\Api\PostalCodeController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\RepresentantsSearchController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TopicController;
 use App\Http\Controllers\Api\VoteController;
@@ -55,6 +56,9 @@ Route::get('/postal-codes/search', [PostalCodeController::class, 'search']);
 Route::get('/postal-codes/{postalCode}', [PostalCodeController::class, 'show']);
 Route::get('/postal-codes/department/{departmentCode}', [PostalCodeController::class, 'byDepartment']);
 Route::get('/postal-codes/circonscription/{circonscription}', [PostalCodeController::class, 'byCirconscription']);
+
+// Recherche de représentants (maire, député, sénateur) - routes publiques
+Route::get('/representants/search', [RepresentantsSearchController::class, 'search']);
 
 // Documents - routes publiques
 Route::get('/documents', [DocumentController::class, 'index']);

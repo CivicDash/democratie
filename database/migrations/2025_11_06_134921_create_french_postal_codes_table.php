@@ -52,8 +52,8 @@ return new class extends Migration
             $table->index(['department_code', 'city_name'], 'idx_dept_city');
             $table->index(['circonscription'], 'idx_circonscription');
             
-            // Unique sur code postal + ville (car un CP peut avoir plusieurs villes)
-            $table->unique(['postal_code', 'city_name', 'insee_code'], 'unique_postal_city_insee');
+            // Unique sur code postal + ville uniquement (insee_code peut être NULL)
+            $table->unique(['postal_code', 'city_name'], 'unique_postal_city');
         });
     }
 

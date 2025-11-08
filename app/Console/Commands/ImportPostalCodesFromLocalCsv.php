@@ -138,16 +138,20 @@ class ImportPostalCodesFromLocalCsv extends Command
         $count = 0;
         foreach ($batch as $record) {
             try {
+                // On utilise seulement postal_code + city_name pour éviter les conflits avec insee_code nullable
                 FrenchPostalCode::updateOrCreate(
                     [
                         'postal_code' => $record['postal_code'],
-                        'insee_code' => $record['insee_code'],
+                        'city_name' => $record['city_name'],
                     ],
                     $record
                 );
                 $count++;
             } catch (\Exception $e) {
-                // Ignorer silencieusement les erreurs de duplication
+                // Log l'erreur pour debug
+                if ($count < 5) { // Afficher seulement les 5 premières erreurs
+                    $this->warn("⚠️  Erreur: " . $e->getMessage());
+                }
             }
         }
         return $count;
