@@ -13,6 +13,8 @@ class InterventionParlementaire extends Model
 {
     use HasFactory;
 
+    protected $table = 'interventions_parlementaires';
+
     protected $fillable = [
         'depute_senateur_id',
         'date_intervention',
