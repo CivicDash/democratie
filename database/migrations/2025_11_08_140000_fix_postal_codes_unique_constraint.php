@@ -12,7 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Vérifier si la contrainte existe avant de la supprimer
+        // Vérifier si la table existe
+        if (!Schema::hasTable('french_postal_codes')) {
+            // La table n'existe pas, elle sera créée par la migration principale
+            return;
+        }
+
+        // Vérifier si les colonnes nécessaires existent
+        if (!Schema::hasColumn('french_postal_codes', 'postal_code') || 
+            !Schema::hasColumn('french_postal_codes', 'city_name')) {
+            // Les colonnes n'existent pas, on ne peut pas créer la contrainte
+            return;
+        }
+
+        // Vérifier si l'ancienne contrainte existe avant de la supprimer
         $constraintExists = DB::select("
             SELECT constraint_name 
             FROM information_schema.table_constraints 
@@ -46,6 +59,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Vérifier si la table existe
+        if (!Schema::hasTable('french_postal_codes')) {
+            return;
+        }
+
         // Vérifier si la contrainte existe avant de la supprimer
         $constraintExists = DB::select("
             SELECT constraint_name 
@@ -60,18 +78,23 @@ return new class extends Migration
             });
         }
 
-        // Recréer l'ancienne contrainte si elle n'existe pas
-        $oldConstraintExists = DB::select("
-            SELECT constraint_name 
-            FROM information_schema.table_constraints 
-            WHERE table_name = 'french_postal_codes' 
-            AND constraint_name = 'unique_postal_city_insee'
-        ");
+        // Recréer l'ancienne contrainte si elle n'existe pas et si les colonnes existent
+        if (Schema::hasColumn('french_postal_codes', 'postal_code') && 
+            Schema::hasColumn('french_postal_codes', 'city_name') &&
+            Schema::hasColumn('french_postal_codes', 'insee_code')) {
+            
+            $oldConstraintExists = DB::select("
+                SELECT constraint_name 
+                FROM information_schema.table_constraints 
+                WHERE table_name = 'french_postal_codes' 
+                AND constraint_name = 'unique_postal_city_insee'
+            ");
 
-        if (empty($oldConstraintExists)) {
-            Schema::table('french_postal_codes', function (Blueprint $table) {
-                $table->unique(['postal_code', 'city_name', 'insee_code'], 'unique_postal_city_insee');
-            });
+            if (empty($oldConstraintExists)) {
+                Schema::table('french_postal_codes', function (Blueprint $table) {
+                    $table->unique(['postal_code', 'city_name', 'insee_code'], 'unique_postal_city_insee');
+                });
+            }
         }
     }
 };
