@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('type', 50); // groupe/commission/delegation/mission/office
             
             $table->string('slug', 255)->unique();
-            $table->string('sigle', 50)->nullable()->index(); // RE, LFI, COMM-AFF-ECO
+            $table->string('sigle', 50)->nullable(); // RE, LFI, COMM-AFF-ECO
             $table->string('nom');
             $table->text('nom_long')->nullable();
             
