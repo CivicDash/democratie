@@ -32,17 +32,17 @@ case $choice in
     1)
         echo ""
         echo "📥 Import ASSEMBLÉE (~2 min)"
-        docker-compose exec app php artisan import:organes-parlementaires --source=assemblee
+        docker compose exec app php artisan import:organes-parlementaires --source=assemblee
         ;;
     2)
         echo ""
         echo "📥 Import SÉNAT (~2 min)"
-        docker-compose exec app php artisan import:organes-parlementaires --source=senat
+        docker compose exec app php artisan import:organes-parlementaires --source=senat
         ;;
     3)
         echo ""
         echo "📥 Import COMPLET (~4 min)"
-        docker-compose exec app php artisan import:organes-parlementaires --source=both
+        docker compose exec app php artisan import:organes-parlementaires --source=both
         ;;
     *)
         echo "❌ Choix invalide"
@@ -57,7 +57,7 @@ echo "========================================="
 echo ""
 
 echo "📊 Statistiques des organes :"
-docker-compose exec postgres psql -U civicdash -d civicdash -c "
+docker compose exec postgres psql -U civicdash -d civicdash -c "
 SELECT 
     type,
     source,
@@ -70,7 +70,7 @@ ORDER BY type, source;
 
 echo ""
 echo "📋 Top 5 commissions les plus importantes (par nombre de membres) :"
-docker-compose exec postgres psql -U civicdash -d civicdash -c "
+docker compose exec postgres psql -U civicdash -d civicdash -c "
 SELECT 
     nom,
     source,
@@ -83,7 +83,7 @@ LIMIT 5;
 
 echo ""
 echo "👥 Députés/Sénateurs avec le plus de mandats :"
-docker-compose exec postgres psql -U civicdash -d civicdash -c "
+docker compose exec postgres psql -U civicdash -d civicdash -c "
 SELECT 
     ds.nom_complet,
     ds.source,

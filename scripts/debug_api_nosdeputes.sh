@@ -19,7 +19,7 @@ echo ""
 echo ""
 echo "📊 2/4 - Récupération d'un député de la base"
 echo "========================================="
-DEPUTE_INFO=$(docker-compose exec postgres psql -U civicdash -d civicdash -t -c "SELECT nom, prenom FROM deputes_senateurs WHERE source = 'assemblee' AND en_exercice = true LIMIT 1;")
+DEPUTE_INFO=$(docker compose exec postgres psql -U civicdash -d civicdash -t -c "SELECT nom, prenom FROM deputes_senateurs WHERE source = 'assemblee' AND en_exercice = true LIMIT 1;")
 DEPUTE_NOM=$(echo "$DEPUTE_INFO" | awk '{print $1}' | tr -d ' ')
 DEPUTE_PRENOM=$(echo "$DEPUTE_INFO" | awk '{print $2}' | tr -d ' ')
 
@@ -48,7 +48,7 @@ echo ""
 echo ""
 echo "📊 4/4 - Test de la commande Laravel"
 echo "========================================="
-docker-compose exec app php artisan tinker --execute="
+docker compose exec app php artisan tinker --execute="
 \$depute = App\Models\DeputeSenateur::where('source', 'assemblee')->where('en_exercice', true)->first();
 echo 'Député : ' . \$depute->prenom . ' ' . \$depute->nom . PHP_EOL;
 echo 'UID : ' . \$depute->uid . PHP_EOL;

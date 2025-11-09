@@ -30,14 +30,14 @@ case $choice in
     1)
         echo ""
         echo "🧪 Mode TEST : 10 parlementaires"
-        docker-compose exec app php artisan enrich:amendements --limit=10
+        docker compose exec app php artisan enrich:amendements --limit=10
         ;;
     2)
         echo ""
         echo "📥 Import DEPUTÉS (~20 min)"
         read -p "Continuer ? (y/n): " confirm
         if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            docker-compose exec app php artisan enrich:amendements --source=assemblee
+            docker compose exec app php artisan enrich:amendements --source=assemblee
         else
             echo "❌ Annulé"
         fi
@@ -47,7 +47,7 @@ case $choice in
         echo "📥 Import SÉNATEURS (~12 min)"
         read -p "Continuer ? (y/n): " confirm
         if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            docker-compose exec app php artisan enrich:amendements --source=senat
+            docker compose exec app php artisan enrich:amendements --source=senat
         else
             echo "❌ Annulé"
         fi
@@ -61,7 +61,7 @@ case $choice in
         echo ""
         read -p "Continuer ? (y/n): " confirm
         if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-            docker-compose exec app php artisan enrich:amendements --source=both
+            docker compose exec app php artisan enrich:amendements --source=both
         else
             echo "❌ Annulé"
         fi
@@ -79,7 +79,7 @@ echo "========================================="
 echo ""
 
 echo "📊 Statistiques :"
-docker-compose exec postgres psql -U civicdash -d civicdash -c "
+docker compose exec postgres psql -U civicdash -d civicdash -c "
 SELECT 
     COUNT(*) as total_amendements,
     COUNT(*) FILTER (WHERE sort = 'adopte') as adoptes,
@@ -92,7 +92,7 @@ FROM amendements_parlementaires;
 
 echo ""
 echo "📋 Top 5 parlementaires les plus actifs (amendements) :"
-docker-compose exec postgres psql -U civicdash -d civicdash -c "
+docker compose exec postgres psql -U civicdash -d civicdash -c "
 SELECT 
     ds.nom_complet,
     ds.groupe_politique,

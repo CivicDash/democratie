@@ -33,7 +33,7 @@ echo "========================================="
 echo "📊 ÉTAT INITIAL"
 echo "========================================="
 
-docker-compose exec postgres psql -U civicdash -d civicdash -c "
+docker compose exec postgres psql -U civicdash -d civicdash -c "
 SELECT 
     'Organes' as type, COUNT(*) as total FROM organes_parlementaires
 UNION ALL
@@ -54,7 +54,7 @@ echo "🏛️  ÉTAPE 1/3 : Organes parlementaires"
 echo "========================================="
 echo ""
 
-docker-compose exec app php artisan import:organes-parlementaires --source=both
+docker compose exec app php artisan import:organes-parlementaires --source=both
 
 echo ""
 echo "✅ Étape 1/3 terminée !"
@@ -67,11 +67,11 @@ echo ""
 
 # Députés
 echo "📥 Import députés..."
-docker-compose exec app php artisan enrich:deputes-votes
+docker compose exec app php artisan enrich:deputes-votes
 
 echo ""
 echo "📥 Import sénateurs..."
-docker-compose exec app php artisan enrich:senateurs-votes
+docker compose exec app php artisan enrich:senateurs-votes
 
 echo ""
 echo "✅ Étape 2/3 terminée !"
@@ -82,7 +82,7 @@ echo "📋 ÉTAPE 3/3 : Amendements"
 echo "========================================="
 echo ""
 
-docker-compose exec app php artisan enrich:amendements --source=both
+docker compose exec app php artisan enrich:amendements --source=both
 
 echo ""
 echo "✅ Étape 3/3 terminée !"
@@ -92,7 +92,7 @@ echo "========================================="
 echo "📊 ÉTAT FINAL"
 echo "========================================="
 
-docker-compose exec postgres psql -U civicdash -d civicdash -c "
+docker compose exec postgres psql -U civicdash -d civicdash -c "
 SELECT 
     'Organes' as type, 
     COUNT(*) as total,
