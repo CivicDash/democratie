@@ -93,7 +93,7 @@ class EnrichSenateursVotesFromApi extends Command
                 return;
             }
 
-            // Récupérer la fiche complète du sénateur
+            // Vérifier que le sénateur existe dans l'API
             $response = Http::timeout(30)->get(self::API_BASE_URL . "/{$slug}/json");
 
             if (!$response->successful()) {
@@ -109,17 +109,17 @@ class EnrichSenateursVotesFromApi extends Command
                 return;
             }
 
-            // Importer selon les options
+            // Importer selon les options (avec endpoints séparés)
             if (!$this->option('interventions-only') && !$this->option('questions-only')) {
-                $this->importVotes($senateur, $senateurData);
+                $this->importVotesFromEndpoint($senateur, $slug);
             }
 
             if (!$this->option('votes-only') && !$this->option('questions-only')) {
-                $this->importInterventions($senateur, $senateurData);
+                $this->importInterventionsFromEndpoint($senateur, $slug);
             }
 
             if (!$this->option('votes-only') && !$this->option('interventions-only')) {
-                $this->importQuestions($senateur, $senateurData);
+                $this->importQuestionsFromEndpoint($senateur, $slug);
             }
 
             $this->senateursProcessed++;
@@ -133,108 +133,147 @@ class EnrichSenateursVotesFromApi extends Command
     }
 
     /**
-     * Importer les votes d'un sénateur
+     * Importer les votes d'un sénateur depuis l'endpoint /slug/votes/json
      */
-    private function importVotes(DeputeSenateur $senateur, array $senateurData)
+    private function importVotesFromEndpoint(DeputeSenateur $senateur, string $slug)
     {
-        $votes = $senateurData['votes'] ?? [];
+        try {
+            $response = Http::timeout(30)->get(self::API_BASE_URL . "/{$slug}/votes/json");
 
-        foreach ($votes as $voteData) {
-            try {
-                VoteDepute::updateOrCreate(
-                    [
-                        'depute_senateur_id' => $senateur->id,
-                        'numero_scrutin' => $voteData['numero_scrutin'] ?? $voteData['id'] ?? '',
-                    ],
-                    [
-                        'date_vote' => $this->parseDate($voteData['date'] ?? null),
-                        'titre' => $voteData['titre'] ?? $voteData['objet'] ?? 'Vote',
-                        'position' => $this->normalizePosition($voteData['position'] ?? ''),
-                        'resultat' => $this->normalizeResultat($voteData['resultat'] ?? null),
-                        'pour' => $voteData['pour'] ?? null,
-                        'contre' => $voteData['contre'] ?? null,
-                        'abstentions' => $voteData['abstentions'] ?? null,
-                        'absents' => $voteData['absents'] ?? null,
-                        'type_vote' => $voteData['type'] ?? $voteData['sort'] ?? null,
-                        'url_scrutin' => $voteData['url'] ?? null,
-                        'contexte' => $voteData['demandeur'] ?? null,
-                    ]
-                );
-
-                $this->votesImported++;
-            } catch (\Exception $e) {
-                // Ignorer les erreurs individuelles
+            if (!$response->successful()) {
+                return;
             }
+
+            $data = $response->json();
+            $votes = $data['votes'] ?? [];
+
+            foreach ($votes as $voteData) {
+                try {
+                    $vote = $voteData['vote'] ?? $voteData;
+                    
+                    VoteDepute::updateOrCreate(
+                        [
+                            'depute_senateur_id' => $senateur->id,
+                            'numero_scrutin' => $vote['numero'] ?? $vote['numero_scrutin'] ?? '',
+                        ],
+                        [
+                            'date_vote' => $this->parseDate($vote['date'] ?? null),
+                            'titre' => $vote['titre'] ?? $vote['objet'] ?? 'Vote',
+                            'position' => $this->normalizePosition($vote['position'] ?? ''),
+                            'resultat' => $this->normalizeResultat($vote['sort'] ?? null),
+                            'pour' => $vote['pour'] ?? null,
+                            'contre' => $vote['contre'] ?? null,
+                            'abstentions' => $vote['abstentions'] ?? null,
+                            'absents' => $vote['absents'] ?? null,
+                            'type_vote' => $vote['type'] ?? null,
+                            'url_scrutin' => $vote['url'] ?? null,
+                            'contexte' => $vote['demandeur'] ?? null,
+                        ]
+                    );
+
+                    $this->votesImported++;
+                } catch (\Exception $e) {
+                    // Ignorer les erreurs individuelles
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignorer si l'endpoint n'existe pas
         }
     }
 
     /**
-     * Importer les interventions d'un sénateur
+     * Importer les interventions d'un sénateur depuis l'endpoint /slug/interventions/json
      */
-    private function importInterventions(DeputeSenateur $senateur, array $senateurData)
+    private function importInterventionsFromEndpoint(DeputeSenateur $senateur, string $slug)
     {
-        $interventions = $senateurData['interventions'] ?? [];
+        try {
+            $response = Http::timeout(30)->get(self::API_BASE_URL . "/{$slug}/interventions/json");
 
-        foreach ($interventions as $interventionData) {
-            try {
-                // Calculer le nombre de mots si contenu disponible
-                $contenu = $interventionData['contenu'] ?? $interventionData['intervention'] ?? null;
-                $nbMots = $contenu ? str_word_count(strip_tags($contenu)) : null;
-
-                InterventionParlementaire::updateOrCreate(
-                    [
-                        'depute_senateur_id' => $senateur->id,
-                        'date_intervention' => $this->parseDate($interventionData['date'] ?? null),
-                        'titre' => $interventionData['titre'] ?? $interventionData['section'] ?? 'Intervention',
-                    ],
-                    [
-                        'type' => $interventionData['type'] ?? 'seance',
-                        'sujet' => $interventionData['sujet'] ?? null,
-                        'contenu' => $contenu,
-                        'nb_mots' => $nbMots,
-                        'url_video' => $interventionData['url_video'] ?? null,
-                        'url_texte' => $interventionData['url'] ?? null,
-                    ]
-                );
-
-                $this->interventionsImported++;
-            } catch (\Exception $e) {
-                // Ignorer les erreurs individuelles
+            if (!$response->successful()) {
+                return;
             }
+
+            $data = $response->json();
+            $interventions = $data['interventions'] ?? [];
+
+            foreach ($interventions as $interventionData) {
+                try {
+                    $inter = $interventionData['intervention'] ?? $interventionData;
+                    
+                    // Calculer le nombre de mots si contenu disponible
+                    $contenu = $inter['intervention'] ?? $inter['contenu'] ?? null;
+                    $nbMots = $contenu ? str_word_count(strip_tags($contenu)) : null;
+
+                    InterventionParlementaire::updateOrCreate(
+                        [
+                            'depute_senateur_id' => $senateur->id,
+                            'date_intervention' => $this->parseDate($inter['date'] ?? null),
+                            'titre' => $inter['titre'] ?? $inter['section'] ?? 'Intervention',
+                        ],
+                        [
+                            'type' => $inter['type'] ?? 'seance',
+                            'sujet' => $inter['sujet'] ?? $inter['section'] ?? null,
+                            'contenu' => $contenu,
+                            'nb_mots' => $nbMots,
+                            'url_video' => $inter['url_video'] ?? null,
+                            'url_texte' => $inter['url'] ?? null,
+                        ]
+                    );
+
+                    $this->interventionsImported++;
+                } catch (\Exception $e) {
+                    // Ignorer les erreurs individuelles
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignorer si l'endpoint n'existe pas
         }
     }
 
     /**
-     * Importer les questions au gouvernement d'un sénateur
+     * Importer les questions au gouvernement d'un sénateur depuis l'endpoint /slug/questions/json
      */
-    private function importQuestions(DeputeSenateur $senateur, array $senateurData)
+    private function importQuestionsFromEndpoint(DeputeSenateur $senateur, string $slug)
     {
-        $questions = $senateurData['questions'] ?? [];
+        try {
+            $response = Http::timeout(30)->get(self::API_BASE_URL . "/{$slug}/questions/json");
 
-        foreach ($questions as $questionData) {
-            try {
-                QuestionGouvernement::updateOrCreate(
-                    [
-                        'depute_senateur_id' => $senateur->id,
-                        'numero' => $questionData['numero'] ?? $questionData['id'] ?? '',
-                    ],
-                    [
-                        'type' => $questionData['type'] ?? 'ecrite',
-                        'date_depot' => $this->parseDate($questionData['date'] ?? $questionData['date_depot'] ?? null),
-                        'date_reponse' => $this->parseDate($questionData['date_reponse'] ?? null),
-                        'ministere' => $questionData['ministere'] ?? null,
-                        'titre' => $questionData['titre'] ?? $questionData['question'] ?? 'Question',
-                        'question' => $questionData['question'] ?? $questionData['question_texte'] ?? null,
-                        'reponse' => $questionData['reponse'] ?? $questionData['reponse_texte'] ?? null,
-                        'statut' => $questionData['reponse'] ? 'repondu' : 'en_attente',
-                        'url' => $questionData['url'] ?? null,
-                    ]
-                );
-
-                $this->questionsImported++;
-            } catch (\Exception $e) {
-                // Ignorer les erreurs individuelles
+            if (!$response->successful()) {
+                return;
             }
+
+            $data = $response->json();
+            $questions = $data['questions'] ?? [];
+
+            foreach ($questions as $questionData) {
+                try {
+                    $question = $questionData['question'] ?? $questionData;
+                    
+                    QuestionGouvernement::updateOrCreate(
+                        [
+                            'depute_senateur_id' => $senateur->id,
+                            'numero' => $question['numero'] ?? $question['id'] ?? '',
+                        ],
+                        [
+                            'type' => $question['type'] ?? 'ecrite',
+                            'date_depot' => $this->parseDate($question['date'] ?? $question['date_depot'] ?? null),
+                            'date_reponse' => $this->parseDate($question['date_reponse'] ?? null),
+                            'ministere' => $question['ministere'] ?? null,
+                            'titre' => $question['titre'] ?? $question['question'] ?? 'Question',
+                            'question' => $question['question'] ?? $question['question_texte'] ?? null,
+                            'reponse' => $question['reponse'] ?? $question['reponse_texte'] ?? null,
+                            'statut' => !empty($question['reponse']) ? 'repondu' : 'en_attente',
+                            'url' => $question['url'] ?? null,
+                        ]
+                    );
+
+                    $this->questionsImported++;
+                } catch (\Exception $e) {
+                    // Ignorer les erreurs individuelles
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignorer si l'endpoint n'existe pas
         }
     }
 

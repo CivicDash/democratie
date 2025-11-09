@@ -114,7 +114,44 @@
   - `enrich:senateurs-votes` : Import complet sénateurs (~12 min)
 - ✅ **Options :** `--limit`, `--votes-only`, `--interventions-only`, `--questions-only`
 - ✅ Script unifié : `scripts/enrich_complete.sh` (~32 min total)
+- ✅ **FIX API** : Utilisation des endpoints séparés `/slug/votes/json`, `/slug/interventions/json`, `/slug/questions/json` conformément à la [documentation officielle](https://github.com/regardscitoyens/nosdeputes.fr/blob/master/doc/api.md)
 - 🔄 **À exécuter :** `bash scripts/enrich_complete.sh`
+
+### 12. 📝 **Amendements Parlementaires Détaillés**
+- ✅ **Nouvelle table** : `amendements_parlementaires`
+  - Numéro, date de dépôt, titre, exposé, dispositif
+  - Sort (adopté/rejeté/retiré/tombé/non-voté)
+  - Co-signataires (JSON)
+  - Lien vers proposition de loi
+  - Index full-text PostgreSQL pour recherche
+- ✅ **Nouveau modèle** : `AmendementParlementaire.php`
+  - Scopes : `adopte()`, `rejete()`, `retire()`, `tombe()`, `cosigne()`
+  - Accesseurs : `sort_label`, `sort_color`, `is_cosigne`, `longueur_texte`
+  - Recherche full-text : `search($query)`
+- ✅ **Relation ajoutée** : `deputeSenateur->amendementsDetailles()`
+- ✅ **Commande** : `enrich:amendements`
+  - Options : `--limit`, `--depute`, `--source=assemblee/senat/both`
+  - Estimation : 100-150k amendements
+- ✅ **Script** : `scripts/enrich_amendements.sh` (menu interactif)
+- ✅ **Roadmap** : `ROADMAP_ENRICHISSEMENT.md` (Phases 1-4 détaillées)
+- 🔄 **À exécuter :** `bash scripts/enrich_amendements.sh`
+
+### 13. 🏛️ **Organes Parlementaires (Groupes, Commissions, Délégations)**
+- ✅ **2 nouvelles tables** :
+  - `organes_parlementaires` : Groupes politiques, commissions, délégations, missions, offices
+  - `membres_organes` : Appartenance des députés/sénateurs aux organes (avec fonction, dates)
+- ✅ **2 nouveaux modèles** :
+  - `OrganeParlementaire.php` avec scopes (`groupes()`, `commissions()`, `delegations()`)
+  - `MembreOrgane.php` avec calcul de durée d'appartenance
+- ✅ **Relations ajoutées** dans `DeputeSenateur` :
+  - `membresOrganes()` : Toutes les appartenances
+  - `organesActuels()` : Organes actuellement actifs
+  - `organes()` : Relation many-to-many avec pivot
+- ✅ **Commande** : `import:organes-parlementaires`
+  - Options : `--source=assemblee/senat/both`, `--type=groupe/commission/delegation/all`
+  - Estimation : ~60 organes, ~1000 membres
+- ✅ **Script** : `scripts/import_organes.sh` (menu interactif)
+- 🔄 **À exécuter :** `bash scripts/import_organes.sh`
 
 ---
 

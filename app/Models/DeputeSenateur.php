@@ -143,6 +143,47 @@ class DeputeSenateur extends Model
         return $this->hasMany(QuestionGouvernement::class, 'depute_senateur_id');
     }
 
+    /**
+     * Amendements déposés (nouveau modèle détaillé)
+     */
+    public function amendementsDetailles(): HasMany
+    {
+        return $this->hasMany(AmendementParlementaire::class, 'depute_senateur_id');
+    }
+
+    /**
+     * Appartenances aux organes parlementaires
+     */
+    public function membresOrganes(): HasMany
+    {
+        return $this->hasMany(MembreOrgane::class, 'depute_senateur_id');
+    }
+
+    /**
+     * Organes parlementaires actuels
+     */
+    public function organesActuels(): HasMany
+    {
+        return $this->hasMany(MembreOrgane::class, 'depute_senateur_id')
+            ->where('actif', true)
+            ->with('organe');
+    }
+
+    /**
+     * Organes parlementaires (relation many-to-many)
+     */
+    public function organes(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            OrganeParlementaire::class,
+            'membres_organes',
+            'depute_senateur_id',
+            'organe_id'
+        )
+        ->withPivot(['fonction', 'ordre', 'date_debut', 'date_fin', 'actif'])
+        ->withTimestamps();
+    }
+
     // ========================================================================
     // SCOPES
     // ========================================================================
