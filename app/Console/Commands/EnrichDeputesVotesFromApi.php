@@ -15,6 +15,7 @@ class EnrichDeputesVotesFromApi extends Command
     protected $signature = 'enrich:deputes-votes 
                             {--limit= : Limiter le nombre de députés} 
                             {--depute= : UID d\'un député spécifique}
+                            {--all : Inclure TOUS les députés (même ceux qui ne sont plus en exercice)}
                             {--votes-only : Importer uniquement les votes}
                             {--interventions-only : Importer uniquement les interventions}
                             {--questions-only : Importer uniquement les questions}';
@@ -35,10 +36,15 @@ class EnrichDeputesVotesFromApi extends Command
 
         $limit = $this->option('limit');
         $deputeUid = $this->option('depute');
+        $includeAll = $this->option('all');
         
         // Récupérer les députés à enrichir
-        $query = DeputeSenateur::where('source', 'assemblee')
-            ->where('en_exercice', true);
+        $query = DeputeSenateur::where('source', 'assemblee');
+        
+        // Par défaut, uniquement les députés en exercice
+        if (!$includeAll) {
+            $query->where('en_exercice', true);
+        }
 
         if ($deputeUid) {
             $query->where('uid', $deputeUid);

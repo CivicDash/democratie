@@ -15,6 +15,7 @@ class EnrichSenateursVotesFromApi extends Command
     protected $signature = 'enrich:senateurs-votes 
                             {--limit= : Limiter le nombre de sénateurs} 
                             {--senateur= : UID d\'un sénateur spécifique}
+                            {--all : Inclure TOUS les sénateurs (même ceux qui ne sont plus en exercice)}
                             {--votes-only : Importer uniquement les votes}
                             {--interventions-only : Importer uniquement les interventions}
                             {--questions-only : Importer uniquement les questions}';
@@ -35,10 +36,15 @@ class EnrichSenateursVotesFromApi extends Command
 
         $limit = $this->option('limit');
         $senateurUid = $this->option('senateur');
+        $includeAll = $this->option('all');
         
         // Récupérer les sénateurs à enrichir
-        $query = DeputeSenateur::where('source', 'senat')
-            ->where('en_exercice', true);
+        $query = DeputeSenateur::where('source', 'senat');
+        
+        // Par défaut, uniquement les sénateurs en exercice
+        if (!$includeAll) {
+            $query->where('en_exercice', true);
+        }
 
         if ($senateurUid) {
             $query->where('uid', $senateurUid);
