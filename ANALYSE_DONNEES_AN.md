@@ -10,14 +10,15 @@
 | Répertoire | Fichiers | Description |
 |------------|----------|-------------|
 | **acteur/** | 603 JSON | Profils des acteurs politiques (députés, sénateurs, ministres) |
-| **mandat/** | 29 702 JSON | Tous les mandats parlementaires (1 mandat = 1 fichier) |
+| **mandat/** | 13 184 JSON | Tous les mandats parlementaires (1 mandat = 1 fichier) |
 | **organe/** | 8 957 JSON | Organes parlementaires (groupes, commissions, délégations) |
 | **scrutins/** | 3 876 JSON | Scrutins publics avec votes nominatifs détaillés |
+| **amendements/** | **68 539 JSON** 🔥 | **Amendements parlementaires** (structure hiérarchique) |
 | **reunion/** | 4 601 JSON | Réunions de commission et séances plénières |
 | **deport/** | 37 JSON | Déports (absences justifiées, conflits d'intérêt) |
 | **pays/** | 199 JSON | Liste des pays (pour origines, missions diplomatiques) |
 
-**Total : ~47 975 fichiers JSON** (données exhaustives de l'Assemblée Nationale) 🎉
+**Total : ~99 797 fichiers JSON** (données exhaustives de l'Assemblée Nationale) 🎉
 
 ---
 
@@ -207,7 +208,117 @@
 
 ---
 
-### 5️⃣ **REUNION** (`reunion/`)
+### 5️⃣ **AMENDEMENT** (`amendements/DLR.../PION.../AMAN....json`) 🔥
+
+**Représente un amendement parlementaire** (68 539 fichiers !)
+
+**Structure hiérarchique à 3 niveaux :**
+
+```
+📁 amendements/
+   └─ 📁 DLR5L17N51035/ (Dossier Législatif Réf)
+      └─ 📁 PIONANR5L17B0689/ (Proposition/Projet de loi)
+         ├─ AMANR5L17PO838901B0689P0D1N000001.json
+         ├─ AMANR5L17PO838901B0689P0D1N000002.json
+         └─ ...
+```
+
+**Exemple de structure JSON :**
+
+```json
+{
+  "amendement": {
+    "uid": "AMANR5L17PO838901B0689P0D1N000007",
+    "legislature": "17",
+    "identification": {
+      "numeroLong": "7",
+      "numeroOrdreDepot": "7",
+      "prefixeOrganeExamen": "AN"
+    },
+    "texteLegislatifRef": "PIONANR5L17B0689",
+    "examenRef": "EXANR5L17PO838901B0689P0D1",
+    "signataires": {
+      "auteur": {
+        "typeAuteur": "Député",
+        "acteurRef": "PA841023",
+        "groupePolitiqueRef": "PO845413"
+      },
+      "cosignataires": {
+        "acteurRef": [
+          "PA795228",
+          "PA793262",
+          "PA794906"
+        ]
+      },
+      "libelle": "M. xxx, M. yyy, Mme zzz et ..."
+    },
+    "pointeurFragmentTexte": {
+      "division": {
+        "titre": "Article 3 bis",
+        "articleDesignationCourte": "APRÈS ART. 3 BIS",
+        "type": "ARTICLE"
+      }
+    },
+    "corps": {
+      "cartoucheInformatif": "Sous réserve...",
+      "contenuAuteur": {
+        "dispositif": "<p>Texte du dispositif...</p>",
+        "expose": "<p>Texte de l'exposé des motifs...</p>"
+      }
+    },
+    "cycleDeVie": {
+      "dateDepot": "2025-03-20",
+      "datePublication": "2025-03-29",
+      "soumisArticle40": "false",
+      "etatDesTraitements": {
+        "etat": {
+          "code": "ADO",
+          "libelle": "Adopté"
+        }
+      },
+      "sort": {
+        "code": "ADO",
+        "libelle": "Adopté"
+      }
+    }
+  }
+}
+```
+
+**Clés importantes :**
+- `uid` : Identifiant unique (AMANRxLxxPOxxxxxBxxxxPxDxNxxxxxx)
+- `texteLegislatifRef` : Lien vers le texte de loi (PION/PRJL)
+- `examenRef` : Référence de l'examen (commission ou hémicycle)
+- `signataires.auteur.acteurRef` : → `acteur/PAxxxx.json`
+- `signataires.auteur.groupePolitiqueRef` : → `organe/POxxxxx.json`
+- `signataires.cosignataires.acteurRef[]` : Tableau des cosignataires
+- `pointeurFragmentTexte.division` : Article visé
+- `cycleDeVie.etatDesTraitements.etat.code` : État de l'amendement
+  - `ADO` : Adopté
+  - `REJ` : Rejeté
+  - `IRR45` : Irrecevable (entonnoir article 45)
+  - `IRR40` : Irrecevable (article 40 - finances)
+  - `RET` : Retiré
+  - `TOM` : Tombé
+  - `DEV` : Devenu sans objet
+  - `NDE` : Non défendu
+
+**Relations :**
+- `auteur.acteurRef` → `acteur/PAxxxx.json`
+- `auteur.groupePolitiqueRef` → `organe/POxxxxx.json` (groupe politique)
+- `cosignataires.acteurRef[]` → `acteur/PAxxxx.json` (multiples)
+- `texteLegislatifRef` → Texte de loi (PION/PRJL)
+
+**Utilité pour CivicDash :**
+- ✅ **Activité législative détaillée** : Nombre d'amendements déposés par député
+- ✅ **Collaborations** : Qui cosigne avec qui ?
+- ✅ **Thématiques** : Analyse textuelle des amendements par thème
+- ✅ **Taux de réussite** : % d'amendements adoptés/rejetés par député
+- ✅ **Travail en commission** : Amendements déposés en commission vs hémicycle
+
+---
+
+### 6️⃣ **REUNION** (`reunion/`)
 
 **Représente une séance** (commission, hémicycle, etc.)
 
@@ -215,7 +326,7 @@
 
 ---
 
-### 6️⃣ **DEPORT** (`deport/`)
+### 7️⃣ **DEPORT** (`deport/`)
 
 **Représente un déport** (conflit d'intérêt, absence justifiée)
 
