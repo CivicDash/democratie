@@ -11,6 +11,10 @@ use App\Http\Controllers\Api\RepresentantsSearchController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TopicController;
 use App\Http\Controllers\Api\VoteController;
+use App\Http\Controllers\Api\V1\ActeursANController;
+use App\Http\Controllers\Api\V1\ScrutinsANController;
+use App\Http\Controllers\Api\V1\AmendementsANController;
+use App\Http\Controllers\Api\V1\SenateursController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -59,6 +63,55 @@ Route::get('/postal-codes/circonscription/{circonscription}', [PostalCodeControl
 
 // Recherche de représentants (maire, député, sénateur) - routes publiques
 Route::get('/representants/search', [RepresentantsSearchController::class, 'search']);
+
+// ============================================================================
+// API V1 - DONNÉES PARLEMENTAIRES (AN + SÉNAT)
+// ============================================================================
+
+Route::prefix('v1')->name('v1.')->group(function () {
+    
+    // ========================================================================
+    // ACTEURS AN (Députés)
+    // ========================================================================
+    Route::prefix('acteurs')->name('acteurs.')->group(function () {
+        Route::get('/', [ActeursANController::class, 'index'])->name('index');
+        Route::get('/{uid}', [ActeursANController::class, 'show'])->name('show');
+        Route::get('/{uid}/votes', [ActeursANController::class, 'votes'])->name('votes');
+        Route::get('/{uid}/amendements', [ActeursANController::class, 'amendements'])->name('amendements');
+        Route::get('/{uid}/stats', [ActeursANController::class, 'stats'])->name('stats');
+    });
+    
+    // ========================================================================
+    // SCRUTINS AN
+    // ========================================================================
+    Route::prefix('scrutins')->name('scrutins.')->group(function () {
+        Route::get('/', [ScrutinsANController::class, 'index'])->name('index');
+        Route::get('/{uid}', [ScrutinsANController::class, 'show'])->name('show');
+        Route::get('/{uid}/votes', [ScrutinsANController::class, 'votes'])->name('votes');
+        Route::get('/{uid}/stats-par-groupe', [ScrutinsANController::class, 'statsParGroupe'])->name('stats_par_groupe');
+    });
+    
+    // ========================================================================
+    // AMENDEMENTS AN
+    // ========================================================================
+    Route::prefix('amendements')->name('amendements.')->group(function () {
+        Route::get('/', [AmendementsANController::class, 'index'])->name('index');
+        Route::get('/stats', [AmendementsANController::class, 'stats'])->name('stats');
+        Route::get('/{uid}', [AmendementsANController::class, 'show'])->name('show');
+    });
+    
+    // ========================================================================
+    // SÉNATEURS
+    // ========================================================================
+    Route::prefix('senateurs')->name('senateurs.')->group(function () {
+        Route::get('/', [SenateursController::class, 'index'])->name('index');
+        Route::get('/stats', [SenateursController::class, 'stats'])->name('stats');
+        Route::get('/{matricule}', [SenateursController::class, 'show'])->name('show');
+        Route::get('/{matricule}/mandats', [SenateursController::class, 'mandats'])->name('mandats');
+        Route::get('/{matricule}/commissions', [SenateursController::class, 'commissions'])->name('commissions');
+        Route::get('/{matricule}/groupes', [SenateursController::class, 'groupes'])->name('groupes');
+    });
+});
 
 // Documents - routes publiques
 Route::get('/documents', [DocumentController::class, 'index']);
