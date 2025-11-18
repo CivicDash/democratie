@@ -1,7 +1,62 @@
 # 📋 CHANGELOG - CivicDash
 
-**Dernière mise à jour :** 8 Novembre 2025  
+**Dernière mise à jour :** 18 Novembre 2025  
 **Version :** Production Ready
+
+---
+
+## 🆕 SESSION DU 18 NOVEMBRE 2025
+
+### 1. 🔧 **Fix: NosDéputés.fr obsolète - Abandon de l'API**
+- ⚠️ **Problème détecté :** NosDéputés.fr et NosSénateurs.fr ne sont plus maintenus
+- ⚠️ Les données s'arrêtent à la législature 16 (juin 2024)
+- ✅ **Solution :** Passage aux **données officielles JSON de l'Assemblée Nationale**
+- **Fichiers :**
+  - `EnrichDeputesVotesFromApi.php` : Ajout option `--all` pour députés inactifs
+  - `EnrichSenateursVotesFromApi.php` : Ajout option `--all` pour sénateurs inactifs
+
+### 2. 📊 **Analyse des données officielles JSON AN (47 975 fichiers)**
+- ✅ **Document d'analyse complet :** `ANALYSE_DONNEES_AN.md`
+- ✅ **Structure identifiée :**
+  - 603 acteurs (députés/sénateurs/ministres)
+  - 29 702 mandats (historique complet)
+  - 8 957 organes (groupes, commissions, délégations)
+  - 3 876 scrutins (votes nominatifs détaillés)
+  - 4 601 réunions (séances, commissions)
+  - 37 déports (conflits d'intérêt)
+  - 199 pays (référentiel géographique)
+
+### 3. 🛠️ **Script d'exploration des données**
+- ✅ Nouveau script : `scripts/analyse_donnees_an.sh`
+- ✅ Analyse automatique des JSON (législatures, types d'organes, etc.)
+- ✅ Comptage des fichiers et statistiques
+- ✅ Échantillons de données (acteur, scrutin, organe)
+- 🔄 **À exécuter :** `bash scripts/analyse_donnees_an.sh`
+
+### 4. 📋 **Plan d'implémentation des données AN**
+**Phase 1 : Import des données de base (8-10h)**
+1. Migration pour 6 nouvelles tables (`acteurs_an`, `mandats_an`, `organes_an`, `scrutins_an`, `votes_individuels_an`, `deports_an`)
+2. Modèles Eloquent pour chaque table
+3. Commandes d'import pour chaque type de données
+4. Scripts shell pour automatiser
+
+**Phase 2 : Analyse et visualisation**
+1. API endpoints pour accéder aux votes
+2. Calcul de statistiques (présence, cohésion de groupe, rebelles)
+3. Graphiques interactifs (historique de votes, "qui vote avec qui")
+
+**Phase 3 : Features avancées**
+1. Import des réunions (présences, interventions)
+2. Graphe relationnel des votes
+3. Alertes citoyennes personnalisées
+4. Machine Learning pour prédiction de votes
+
+### 5. 🎯 **Opportunités identifiées**
+- ✅ **Votes nominatifs détaillés** : Qui vote pour/contre/abstention sur chaque scrutin
+- ✅ **Analyse de cohésion de groupe** : Députés rebelles, coalitions informelles
+- ✅ **Timeline d'activité** : Évolution du positionnement d'un député
+- ✅ **Données officielles à jour** : Législature 17 (2024-2029)
+- ✅ **Historique complet** : Toutes les législatures disponibles
 
 ---
 
