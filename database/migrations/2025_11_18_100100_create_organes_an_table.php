@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('organes_an', function (Blueprint $table) {
             $table->string('uid', 20)->primary()->comment('UID organe (ex: PO838901)');
             $table->string('code_type', 50)->index()->comment('GP, COMPER, DELEG, etc.');
-            $table->string('libelle', 255);
+            $table->string('libelle', 500);
             $table->string('libelle_abrege', 100)->nullable();
             $table->integer('legislature')->nullable()->index();
-            $table->date('date_debut');
+            $table->date('date_debut')->nullable();
             $table->date('date_fin')->nullable();
             $table->string('regime', 50)->nullable();
             $table->string('site_internet', 255)->nullable();
