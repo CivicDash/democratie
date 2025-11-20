@@ -346,7 +346,7 @@ class LegislationController extends Controller
                 return [
                     'sigle' => $sigle,
                     'nom' => $groupe?->libelle ?? 'Non-inscrits',
-                    'couleur' => $groupeService->getColor($sigle),
+                    'couleur' => $groupeService->getCouleurGroupe($sigle),
                     'total_votes' => $votes->count(),
                     'pour' => $votes->where('position', 'pour')->count(),
                     'contre' => $votes->where('position', 'contre')->count(),

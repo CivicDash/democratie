@@ -457,7 +457,7 @@ class RepresentantController extends Controller
                         'groupe' => $groupe ? [
                             'sigle' => $groupe->libelleAbrev,
                             'nom' => $groupe->libelle,
-                            'couleur' => $groupeService->getColor($groupe->libelleAbrev),
+                            'couleur' => $groupeService->getCouleurGroupe($groupe->libelleAbrev),
                         ] : null,
                     ];
                 })->toArray();
@@ -483,7 +483,7 @@ class RepresentantController extends Controller
                         'groupe' => $groupe ? [
                             'sigle' => $groupe->sigle,
                             'nom' => $groupe->libelle,
-                            'couleur' => $groupeService->getColor($groupe->sigle),
+                            'couleur' => $groupeService->getCouleurGroupe($groupe->sigle),
                         ] : null,
                     ];
                 })->toArray();
