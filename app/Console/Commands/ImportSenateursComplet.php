@@ -319,7 +319,7 @@ class ImportSenateursComplet extends Command
         $this->info('📊 Statistiques finales :');
         $this->line('   - Sénateurs actifs : ' . Senateur::actifs()->count());
         $this->line('   - Sénateurs anciens : ' . Senateur::anciens()->count());
-        $this->line('   - Mandats de sénateur actifs : ' . SenateurMandat::senateur()->actifs()->count());
+        $this->line('   - Mandats sénateur actifs : ' . SenateurMandat::where('type_mandat', 'SENATEUR')->whereNull('date_fin')->count());
     }
 }
 

@@ -84,7 +84,7 @@ class RepresentantANController extends Controller
             ->where('legislature', 17)
             ->actifs()
             ->get(['uid', 'libelle', 'libelle_abrege'])
-            ->map(fn($g) use ($groupeService) => [
+            ->map(fn($g) => [
                 'uid' => $g->uid,
                 'sigle' => $g->libelle_abrege,
                 'nom' => $g->libelle,
