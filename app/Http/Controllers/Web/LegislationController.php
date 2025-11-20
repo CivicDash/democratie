@@ -184,7 +184,7 @@ class LegislationController extends Controller
         $groupeService = app(GroupeParlementaireService::class);
 
         // Votes par groupe
-        $votesParGroupe = VoteIndividuelAN::where('scrutin_uid', $uid)
+        $votesParGroupe = VoteIndividuelAN::where('scrutin_ref', $uid)
             ->with(['acteur.mandats.organe'])
             ->get()
             ->groupBy(function ($vote) {
@@ -207,7 +207,7 @@ class LegislationController extends Controller
             ->values();
 
         // Députés ayant voté (limité à 50 pour performance)
-        $deputesAyantVote = VoteIndividuelAN::where('scrutin_uid', $uid)
+        $deputesAyantVote = VoteIndividuelAN::where('scrutin_ref', $uid)
             ->with('acteur')
             ->limit(50)
             ->get()

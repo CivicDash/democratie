@@ -270,7 +270,7 @@ class RepresentantANController extends Controller
         $acteur = ActeurAN::findOrFail($uid);
 
         $query = AmendementAN::query()
-            ->where('acteur_ref', $uid)
+            ->where('auteur_acteur_ref', $uid)
             ->with(['dossier', 'texte']);
 
         // Filtres
@@ -305,7 +305,7 @@ class RepresentantANController extends Controller
         $amendements = $query->paginate(30)->withQueryString();
 
         // Statistiques
-        $statsQuery = AmendementAN::where('acteur_ref', $uid);
+        $statsQuery = AmendementAN::where('auteur_acteur_ref', $uid);
         $total = $statsQuery->count();
         $adoptes = $statsQuery->clone()->adoptes()->count();
         $rejetes = $statsQuery->clone()->rejetes()->count();
@@ -367,7 +367,7 @@ class RepresentantANController extends Controller
         $votesAbstention = $votesQuery->clone()->where('position', 'abstention')->count();
 
         // Statistiques amendements
-        $amendementsQuery = AmendementAN::where('acteur_ref', $uid);
+        $amendementsQuery = AmendementAN::where('auteur_acteur_ref', $uid);
         $amendementsTotal = $amendementsQuery->count();
         $amendementsAdoptes = $amendementsQuery->clone()->adoptes()->count();
         $amendementsRejetes = $amendementsQuery->clone()->rejetes()->count();
@@ -406,7 +406,7 @@ class RepresentantANController extends Controller
                 })
                 ->count();
             
-            $amendementsCount = AmendementAN::where('acteur_ref', $uid)
+            $amendementsCount = AmendementAN::where('auteur_acteur_ref', $uid)
                 ->whereYear('date_depot', $date->year)
                 ->whereMonth('date_depot', $date->month)
                 ->count();
@@ -438,7 +438,7 @@ class RepresentantANController extends Controller
             ]);
 
         // Derniers amendements (5)
-        $derniersAmendements = AmendementAN::where('acteur_ref', $uid)
+        $derniersAmendements = AmendementAN::where('auteur_acteur_ref', $uid)
             ->with(['dossier', 'texte'])
             ->orderBy('date_depot', 'desc')
             ->limit(5)

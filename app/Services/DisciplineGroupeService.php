@@ -24,7 +24,7 @@ class DisciplineGroupeService
         }
 
         // Récupérer tous les scrutins où le député a voté
-        $votesDepute = VoteIndividuelAN::where('acteur_uid', $acteur->uid)
+        $votesDepute = VoteIndividuelAN::where('acteur_ref', $acteur->uid)
             ->whereHas('scrutin', fn($q) => $q->where('legislature', $legislature))
             ->with('scrutin')
             ->get();
@@ -47,7 +47,7 @@ class DisciplineGroupeService
 
             if ($voteMajoritaireGroupe) {
                 $total++;
-                if ($vote->position_vote === $voteMajoritaireGroupe) {
+                if ($vote->position === $voteMajoritaireGroupe) {
                     $conformes++;
                 }
             }
@@ -66,17 +66,17 @@ class DisciplineGroupeService
     private function getVoteMajoritaireGroupe(string $scrutinUid, string $groupeUid): ?string
     {
         // Compter les votes du groupe pour ce scrutin
-        $votes = VoteIndividuelAN::where('scrutin_uid', $scrutinUid)
+        $votes = VoteIndividuelAN::where('scrutin_ref', $scrutinUid)
             ->whereHas('acteur.mandats', function($q) use ($groupeUid) {
-                $q->where('organe_uid', $groupeUid)
+                $q->where('organe_ref', $groupeUid)
                   ->whereNull('date_fin');
             })
-            ->select('position_vote', DB::raw('count(*) as count'))
-            ->groupBy('position_vote')
+            ->select('position', DB::raw('count(*) as count'))
+            ->groupBy('position')
             ->orderBy('count', 'desc')
             ->first();
 
-        return $votes->position_vote ?? null;
+        return $votes->position ?? null;
     }
 
     /**
@@ -90,7 +90,7 @@ class DisciplineGroupeService
     {
         // Récupérer tous les députés du groupe
         $deputes = ActeurAN::whereHas('mandats', function($q) use ($groupeUid) {
-            $q->where('organe_uid', $groupeUid)
+            $q->where('organe_ref', $groupeUid)
               ->whereNull('date_fin');
         })->get();
 
@@ -133,7 +133,7 @@ class DisciplineGroupeService
             return collect();
         }
 
-        $votesDepute = VoteIndividuelAN::where('acteur_uid', $acteur->uid)
+        $votesDepute = VoteIndividuelAN::where('acteur_ref', $acteur->uid)
             ->whereHas('scrutin', fn($q) => $q->where('legislature', $legislature))
             ->with('scrutin')
             ->get();
@@ -148,10 +148,10 @@ class DisciplineGroupeService
             );
 
             // Si le député a voté différemment de son groupe
-            if ($voteMajoritaireGroupe && $vote->position_vote !== $voteMajoritaireGroupe) {
+            if ($voteMajoritaireGroupe && $vote->position !== $voteMajoritaireGroupe) {
                 $votesRebelles[] = [
                     'scrutin' => $scrutin,
-                    'vote_depute' => $vote->position_vote,
+                    'vote_depute' => $vote->position,
                     'vote_groupe' => $voteMajoritaireGroupe,
                     'date' => $scrutin->date_scrutin,
                 ];
