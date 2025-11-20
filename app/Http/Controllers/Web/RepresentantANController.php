@@ -211,7 +211,7 @@ class RepresentantANController extends Controller
         }
 
         if ($request->filled('type')) {
-            $query->where('position_vote', $request->type);
+            $query->where('position', $request->type);
         }
 
         $votes = $query->orderBy('created_at', 'desc')
@@ -223,9 +223,9 @@ class RepresentantANController extends Controller
             ->whereHas('scrutin', fn($q) => $q->where('legislature', 17));
         
         $total = $statsQuery->count();
-        $pour = $statsQuery->clone()->where('position_vote', 'pour')->count();
-        $contre = $statsQuery->clone()->where('position_vote', 'contre')->count();
-        $abstention = $statsQuery->clone()->where('position_vote', 'abstention')->count();
+        $pour = $statsQuery->clone()->where('position', 'pour')->count();
+        $contre = $statsQuery->clone()->where('position', 'contre')->count();
+        $abstention = $statsQuery->clone()->where('position', 'abstention')->count();
 
         $statistiques = [
             'total' => $total,
@@ -241,7 +241,7 @@ class RepresentantANController extends Controller
         $votesData = $votes->through(function($vote) {
             return [
                 'id' => $vote->id,
-                'position' => $vote->position_vote,
+                'position' => $vote->position,
                 'date' => $vote->scrutin->date_scrutin?->format('d/m/Y'),
                 'scrutin' => [
                     'uid' => $vote->scrutin->uid,
@@ -362,9 +362,9 @@ class RepresentantANController extends Controller
             ->whereHas('scrutin', fn($q) => $q->where('legislature', 17));
         
         $votesTotal = $votesQuery->count();
-        $votesPour = $votesQuery->clone()->where('position_vote', 'pour')->count();
-        $votesContre = $votesQuery->clone()->where('position_vote', 'contre')->count();
-        $votesAbstention = $votesQuery->clone()->where('position_vote', 'abstention')->count();
+        $votesPour = $votesQuery->clone()->where('position', 'pour')->count();
+        $votesContre = $votesQuery->clone()->where('position', 'contre')->count();
+        $votesAbstention = $votesQuery->clone()->where('position', 'abstention')->count();
 
         // Statistiques amendements
         $amendementsQuery = AmendementAN::where('acteur_ref', $uid);
@@ -429,7 +429,7 @@ class RepresentantANController extends Controller
             ->get()
             ->map(fn($vote) => [
                 'id' => $vote->id,
-                'position' => $vote->position_vote,
+                'position' => $vote->position,
                 'date' => $vote->scrutin->date_scrutin?->format('d/m/Y'),
                 'scrutin' => [
                     'uid' => $vote->scrutin->uid,

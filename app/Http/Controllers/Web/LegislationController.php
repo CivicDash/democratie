@@ -199,9 +199,9 @@ class LegislationController extends Controller
                     'nom' => $groupe?->libelle ?? 'Non-inscrits',
                     'couleur' => $groupeService->getCouleurGroupe($sigle),
                     'total_votes' => $votes->count(),
-                    'pour' => $votes->where('position_vote', 'pour')->count(),
-                    'contre' => $votes->where('position_vote', 'contre')->count(),
-                    'abstention' => $votes->where('position_vote', 'abstention')->count(),
+                    'pour' => $votes->where('position', 'pour')->count(),
+                    'contre' => $votes->where('position', 'contre')->count(),
+                    'abstention' => $votes->where('position', 'abstention')->count(),
                 ];
             })
             ->values();
@@ -215,7 +215,7 @@ class LegislationController extends Controller
                 'uid' => $vote->acteur->uid,
                 'nom_complet' => $vote->acteur->nom_complet,
                 'photo_url' => $vote->acteur->photo_wikipedia_url,
-                'position' => $vote->position_vote,
+                'position' => $vote->position,
             ]);
 
         return Inertia::render('Legislation/ScrutinShow', [
