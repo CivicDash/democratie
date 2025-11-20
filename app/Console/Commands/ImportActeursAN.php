@@ -104,6 +104,11 @@ class ImportActeursAN extends Command
             $depNais = null;
         }
 
+        $catSocPro = $socProc['catSocPro'] ?? null;
+        if (is_array($catSocPro) || $catSocPro === '?') {
+            $catSocPro = null;
+        }
+
         // Tronquer le trigramme à 3 caractères max
         $trigramme = $ident['trigramme'] ?? null;
         if ($trigramme && strlen($trigramme) > 3) {
@@ -123,7 +128,7 @@ class ImportActeursAN extends Command
                 'departement_naissance' => $depNais,
                 'pays_naissance' => $infoNaissance['paysNais'] ?? null,
                 'profession' => $profession['libelleCourant'] ?? null,
-                'categorie_socio_pro' => $socProc['catSocPro'] ?? null,
+                'categorie_socio_pro' => $catSocPro,
                 'url_hatvp' => $urlHatvp,
                 'adresses' => $adresses,
             ]
