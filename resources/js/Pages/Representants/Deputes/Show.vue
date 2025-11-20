@@ -22,10 +22,10 @@ const hasReseauxSociaux = computed(() => {
 
   <AuthenticatedLayout>
     <div class="py-8">
-      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+      <div class="mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 px-4 sm:px-0">
+        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           <Link :href="route('representants.mes-representants')" class="hover:text-blue-600 transition">
             Mes Représentants
           </Link>
