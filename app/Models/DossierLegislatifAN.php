@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DossierLegislatifAN extends Model
@@ -35,6 +36,21 @@ class DossierLegislatifAN extends Model
     public function textesLegislatifs(): HasMany
     {
         return $this->hasMany(TexteLegislatifAN::class, 'dossier_ref', 'uid');
+    }
+
+    /**
+     * Tags associés
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tag::class,
+            'dossier_legislatif_tag',
+            'dossier_legislatif_uid',
+            'tag_id',
+            'uid',
+            'id'
+        );
     }
 
     /**

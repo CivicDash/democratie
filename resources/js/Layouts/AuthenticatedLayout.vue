@@ -110,27 +110,31 @@ const toggleDarkMode = () => {
                                                 class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
                                                 :class="route().current('legislation.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
                                             >
-                                                🏛️ Législation
+                                                📋 Législation
                                                 <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                                 </svg>
                                             </button>
                                         </template>
                                         <template #content>
+                                            <DropdownLink :href="route('legislation.scrutins.index')">
+                                                🗳️ Scrutins
+                                            </DropdownLink>
                                             <DropdownLink :href="route('legislation.index')">
-                                                📜 Propositions de Loi
+                                                📜 Dossiers législatifs
                                             </DropdownLink>
+                                            <DropdownLink :href="route('tags.index')">
+                                                🏷️ Explorer par thème
+                                            </DropdownLink>
+                                            <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                             <DropdownLink :href="route('legislation.groupes.index')">
-                                                🏛️ Groupes Parlementaires
-                                            </DropdownLink>
-                                            <DropdownLink :href="route('legislation.thematiques.index')">
-                                                🎯 Thématiques
+                                                🎨 Groupes Parlementaires
                                             </DropdownLink>
                                         </template>
                                     </Dropdown>
                                 </div>
                                 
-                                <!-- Parlement (nouveau) -->
+                                <!-- Parlement -->
                                 <div class="relative">
                                     <Dropdown align="left" width="56">
                                         <template #trigger>
@@ -149,19 +153,19 @@ const toggleDarkMode = () => {
                                                 📍 Mes Représentants
                                             </DropdownLink>
                                             <DropdownLink :href="route('representants.deputes.index')">
-                                                👔 Députés (577)
+                                                👥 Députés
                                             </DropdownLink>
                                             <DropdownLink :href="route('representants.senateurs.index')">
-                                                🎩 Sénateurs (348)
+                                                🏰 Sénateurs
                                             </DropdownLink>
-                                            <DropdownLink :href="route('legislation.groupes.index')">
-                                                🎨 Groupes Parlementaires
+                                            <DropdownLink :href="route('representants.regions')">
+                                                📍 Par région
                                             </DropdownLink>
                                         </template>
                                     </Dropdown>
                                 </div>
                                 
-                                <!-- Vote & Scrutin -->
+                                <!-- Débat Citoyen (renommé) -->
                                 <div class="relative">
                                     <Dropdown align="left" width="56">
                                         <template #trigger>
@@ -169,18 +173,25 @@ const toggleDarkMode = () => {
                                                 class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
                                                 :class="route().current('vote.*') ? 'border-indigo-400 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
                                             >
-                                                🗳️ Votes
+                                                🗨️ Débat Citoyen
                                                 <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                                 </svg>
                                             </button>
                                         </template>
                                         <template #content>
-                                            <DropdownLink :href="route('topics.index', {filter: 'ballot'})">
-                                                🗳️ Scrutins en Cours
+                                            <DropdownLink :href="route('topics.index')">
+                                                💬 Topics
                                             </DropdownLink>
-                                            <DropdownLink :href="route('topics.index', {filter: 'closed'})">
-                                                📊 Résultats de Votes
+                                            <DropdownLink :href="route('topics.index', {filter: 'ballot'})">
+                                                🗳️ Votes citoyens
+                                            </DropdownLink>
+                                            <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                                            <DropdownLink :href="route('topics.trending')">
+                                                🔥 Tendances
+                                            </DropdownLink>
+                                            <DropdownLink :href="route('topics.create')">
+                                                ➕ Créer un sujet
                                             </DropdownLink>
                                         </template>
                                     </Dropdown>

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ScrutinAN extends Model
@@ -67,6 +68,21 @@ class ScrutinAN extends Model
     public function deports(): HasMany
     {
         return $this->hasMany(DeportAN::class, 'scrutin_ref', 'uid');
+    }
+
+    /**
+     * Tags associés
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Tag::class,
+            'scrutin_tag',
+            'scrutin_uid',
+            'tag_id',
+            'uid',
+            'id'
+        );
     }
 
     /**

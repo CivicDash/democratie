@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -55,6 +56,8 @@ class PropositionLoi extends Model
         'url_externe',
         'url_pdf',
         'fetched_at',
+        'dossier_legislatif_uid',
+        'scrutin_an_uid',
     ];
 
     protected $casts = [
@@ -139,6 +142,30 @@ class PropositionLoi extends Model
     public function getLegalReferencesCountAttribute(): int
     {
         return $this->legalReferences()->count();
+    }
+
+    /**
+     * Lien vers un dossier législatif AN (données officielles)
+     */
+    public function dossierLegislatif(): BelongsTo
+    {
+        return $this->belongsTo(DossierLegislatifAN::class, 'dossier_legislatif_uid', 'uid');
+    }
+
+    /**
+     * Lien vers un scrutin AN spécifique
+     */
+    public function scrutinAN(): BelongsTo
+    {
+        return $this->belongsTo(ScrutinAN::class, 'scrutin_an_uid', 'uid');
+    }
+
+    /**
+     * Vérifier si la proposition est liée à des données réelles AN
+     */
+    public function hasRealData(): bool
+    {
+        return !is_null($this->dossier_legislatif_uid);
     }
 
     // ========================================================================

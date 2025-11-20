@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\LegislationController;
 use App\Http\Controllers\Web\RepresentantController;
 use App\Http\Controllers\Web\FranceStatisticsController;
+use App\Http\Controllers\Web\TagController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PolicyController;
 use Illuminate\Foundation\Application;
@@ -49,6 +50,16 @@ Route::get('/search', function (Request $request) {
 
 /*
 |--------------------------------------------------------------------------
+| Tags / Thèmes
+|--------------------------------------------------------------------------
+*/
+Route::prefix('tags')->name('tags.')->group(function () {
+    Route::get('/', [TagController::class, 'index'])->name('index');
+    Route::get('/{slug}', [TagController::class, 'show'])->name('show');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Pages Légales (RGPD Art. 13)
 |--------------------------------------------------------------------------
 */
@@ -84,7 +95,9 @@ Route::prefix('legislation')->name('legislation.')->group(function () {
     })->name('thematiques.show');
     
     // Scrutins (NOUVEAU)
+    Route::get('/scrutins', [LegislationController::class, 'scrutinsIndex'])->name('scrutins.index');
     Route::get('/scrutins/{uid}', [LegislationController::class, 'showScrutin'])->name('scrutins.show');
+    Route::get('/scrutins/{uid}/comparaison', [LegislationController::class, 'comparaisonVote'])->name('scrutins.comparaison');
     
     // Amendements (NOUVEAU)
     Route::get('/amendements/{uid}', [LegislationController::class, 'showAmendement'])->name('amendements.show');

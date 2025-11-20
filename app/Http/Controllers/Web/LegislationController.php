@@ -172,6 +172,150 @@ class LegislationController extends Controller
     }
 
     /**
+     * Liste des scrutins
+     * 
+     * GET /legislation/scrutins
+     */
+    public function scrutinsIndex(Request $request): Response
+    {
+        $legislature = $request->input('legislature', 17);
+        
+        $query = ScrutinAN::query()
+            ->where('legislature', $legislature)
+            ->orderBy('date_scrutin', 'desc')
+            ->orderBy('numero', 'desc');
+
+        // Recherche
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('titre', 'ILIKE', "%{$search}%")
+                  ->orWhere('objet', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        $scrutins = $query->paginate(30)->withQueryString();
+
+        // Statistiques
+        $statsQuery = ScrutinAN::where('legislature', $legislature);
+        $total = $statsQuery->count();
+        $adoptes = $statsQuery->clone()->where('resultat_code', 'adopté')->count();
+        $rejetes = $statsQuery->clone()->where('resultat_code', 'rejeté')->count();
+
+        $stats = [
+            'total' => $total,
+            'adoptes' => $adoptes,
+            'rejetes' => $rejetes,
+            'taux_adoption' => $total > 0 ? round(($adoptes / $total) * 100, 1) : 0,
+        ];
+
+        // Transformer les données
+        $scrutinsData = $scrutins->through(fn($s) => [
+            'uid' => $s->uid,
+            'numero' => $s->numero,
+            'titre' => $s->titre,
+            'objet' => $s->objet,
+            'date' => $s->date_scrutin?->format('d/m/Y'),
+            'pour' => $s->pour,
+            'contre' => $s->contre,
+            'abstentions' => $s->abstentions,
+            'resultat_code' => $s->resultat_code,
+            'resultat_libelle' => $s->resultat_libelle,
+        ]);
+
+        return Inertia::render('Legislation/ScrutinsIndex', [
+            'scrutins' => $scrutinsData,
+            'stats' => $stats,
+            'filters' => $request->only(['search', 'legislature']),
+        ]);
+    }
+
+    /**
+     * Comparaison vote AN vs vote citoyen
+     * 
+     * GET /legislation/scrutins/{uid}/comparaison
+     */
+    public function comparaisonVote(string $uid): Response
+    {
+        $scrutin = ScrutinAN::findOrFail($uid);
+
+        // Chercher un ballot citoyen lié à ce scrutin
+        $ballot = null;
+        $ballotData = null;
+        
+        // Chercher via un topic lié au scrutin
+        $topic = \App\Models\Topic::where('scrutin_an_uid', $uid)
+            ->where('ballot_type', '!=', null)
+            ->first();
+
+        if ($topic) {
+            // Récupérer les résultats du vote citoyen
+            $ballotService = app(\App\Services\BallotService::class);
+            $results = $ballotService->getResults($topic);
+            
+            $ballotData = [
+                'topic_id' => $topic->id,
+                'votes_count' => $results['total_votes'] ?? 0,
+                'pour_count' => $results['pour'] ?? 0,
+                'contre_count' => $results['contre'] ?? 0,
+                'abstention_count' => $results['abstention'] ?? 0,
+            ];
+        }
+
+        // Calcul de la concordance (si ballot existe)
+        $concordance = [
+            'score' => 0,
+            'message' => 'Aucun vote citoyen disponible',
+        ];
+
+        if ($ballotData && $ballotData['votes_count'] > 0) {
+            // Calculer le score de concordance
+            $anPourPercent = ($scrutin->pour / max($scrutin->nombre_votants, 1)) * 100;
+            $citoyenPourPercent = ($ballotData['pour_count'] / max($ballotData['votes_count'], 1)) * 100;
+            
+            $anContrePercent = ($scrutin->contre / max($scrutin->nombre_votants, 1)) * 100;
+            $citoyenContrePercent = ($ballotData['contre_count'] / max($ballotData['votes_count'], 1)) * 100;
+            
+            // Score = 100 - moyenne des écarts absolus
+            $ecartPour = abs($anPourPercent - $citoyenPourPercent);
+            $ecartContre = abs($anContrePercent - $citoyenContrePercent);
+            $ecartMoyen = ($ecartPour + $ecartContre) / 2;
+            
+            $score = max(0, 100 - $ecartMoyen);
+            
+            $concordance = [
+                'score' => round($score, 1),
+                'message' => $score >= 80 
+                    ? 'Forte concordance entre l\'AN et les citoyens' 
+                    : ($score >= 60 
+                        ? 'Concordance modérée' 
+                        : 'Divergence significative'),
+            ];
+        }
+
+        return Inertia::render('Legislation/ComparaisonVote', [
+            'scrutin' => [
+                'uid' => $scrutin->uid,
+                'numero' => $scrutin->numero,
+                'titre' => $scrutin->titre,
+                'objet' => $scrutin->objet,
+                'date' => $scrutin->date_scrutin?->format('d/m/Y'),
+                'nombre_pour' => $scrutin->pour,
+                'nombre_contre' => $scrutin->contre,
+                'nombre_abstention' => $scrutin->abstentions,
+                'nombre_votants' => $scrutin->nombre_votants,
+                'resultat_libelle' => $scrutin->resultat_libelle,
+            ],
+            'ballot' => $ballotData,
+            'concordance' => $concordance,
+            'stats' => [
+                'an_participation' => $scrutin->nombre_votants,
+                'citoyen_participation' => $ballotData['votes_count'] ?? 0,
+            ],
+        ]);
+    }
+
+    /**
      * Afficher un scrutin détaillé
      * 
      * GET /legislation/scrutins/{uid}
@@ -226,10 +370,25 @@ class LegislationController extends Controller
                 'objet' => $scrutin->objet,
                 'date' => $scrutin->date_scrutin?->format('d/m/Y'),
                 'moment_scrutin' => $scrutin->moment_scrutin,
-                'nombre_pour' => $scrutin->nombre_pour,
-                'nombre_contre' => $scrutin->nombre_contre,
-                'nombre_abstention' => $scrutin->nombre_abstention,
+                'nombre_pour' => $scrutin->pour,
+                'nombre_contre' => $scrutin->contre,
+                'nombre_abstention' => $scrutin->abstentions,
+                'nombre_votants' => $scrutin->nombre_votants,
+                'suffrages_exprimes' => $scrutin->suffrages_exprimes,
                 'legislature' => $scrutin->legislature,
+                // Pourcentages
+                'pour_percent' => $scrutin->nombre_votants > 0 
+                    ? round(($scrutin->pour / $scrutin->nombre_votants) * 100, 1) 
+                    : 0,
+                'contre_percent' => $scrutin->nombre_votants > 0 
+                    ? round(($scrutin->contre / $scrutin->nombre_votants) * 100, 1) 
+                    : 0,
+                'abstention_percent' => $scrutin->nombre_votants > 0 
+                    ? round(($scrutin->abstentions / $scrutin->nombre_votants) * 100, 1) 
+                    : 0,
+                'participation_percent' => $scrutin->nombre_votants > 0 
+                    ? round(($scrutin->nombre_votants / 577) * 100, 1) // 577 députés
+                    : 0,
             ],
             'votes_par_groupe' => $votesParGroupe,
             'deputes_ayant_vote' => $deputesAyantVote,
@@ -301,16 +460,27 @@ class LegislationController extends Controller
     {
         $dossier = DossierLegislatifAN::with([
             'textes' => fn($q) => $q->orderBy('date_depot', 'desc'),
-            'amendements' => fn($q) => $q->orderBy('date_depot', 'desc')->limit(20)->with('acteur'),
         ])->findOrFail($uid);
 
+        // Récupérer les scrutins liés via les textes
+        $textesUids = $dossier->textes->pluck('uid');
+        $scrutins = ScrutinAN::whereIn('texte_ref', $textesUids)
+            ->orderBy('date_scrutin', 'desc')
+            ->get();
+
+        // Amendements (limités pour performance)
+        $amendements = AmendementAN::whereIn('texte_legislatif_ref', $textesUids)
+            ->with('auteurActeur')
+            ->orderBy('date_depot', 'desc')
+            ->limit(20)
+            ->get();
+
+        // Stats complètes
         $stats = [
-            'textes_count' => $dossier->textes->count(),
-            'amendements_count' => $dossier->amendements()->count(),
-            'amendements_adoptes_count' => $dossier->amendements()->adoptes()->count(),
-            'taux_adoption' => $dossier->amendements()->count() > 0 
-                ? round(($dossier->amendements()->adoptes()->count() / $dossier->amendements()->count()) * 100, 1)
-                : 0,
+            'textes' => $dossier->textes->count(),
+            'scrutins' => $scrutins->count(),
+            'amendements' => AmendementAN::whereIn('texte_legislatif_ref', $textesUids)->count(),
+            'votes_deputes' => VoteIndividuelAN::whereIn('scrutin_ref', $scrutins->pluck('uid'))->count(),
         ];
 
         return Inertia::render('Legislation/DossierShow', [
@@ -319,27 +489,42 @@ class LegislationController extends Controller
                 'titre' => $dossier->titre,
                 'titre_court' => $dossier->titre_court,
                 'legislature' => $dossier->legislature,
+                'date_depot' => $dossier->date_depot?->format('d/m/Y'),
+                'etat' => $dossier->etat,
+                'etat_libelle' => $dossier->etat_libelle,
+                'resume' => $dossier->resume,
             ],
             'textes' => $dossier->textes->map(fn($texte) => [
                 'uid' => $texte->uid,
                 'titre' => $texte->titre,
                 'titre_court' => $texte->titre_court,
-                'type' => $texte->type,
+                'type' => $texte->type_libelle,
                 'date_depot' => $texte->date_depot?->format('d/m/Y'),
+                'amendements_count' => AmendementAN::where('texte_legislatif_ref', $texte->uid)->count(),
             ]),
-            'amendements' => $dossier->amendements->map(fn($amendement) => [
+            'scrutins' => $scrutins->map(fn($scrutin) => [
+                'uid' => $scrutin->uid,
+                'numero' => $scrutin->numero,
+                'titre' => $scrutin->titre,
+                'date' => $scrutin->date_scrutin?->format('d/m/Y'),
+                'pour' => $scrutin->pour,
+                'contre' => $scrutin->contre,
+                'abstentions' => $scrutin->abstentions,
+                'resultat_libelle' => $scrutin->resultat_libelle,
+            ]),
+            'amendements' => $amendements->map(fn($amendement) => [
                 'uid' => $amendement->uid,
-                'numero' => $amendement->numero,
-                'sort' => $amendement->sort,
+                'numero_long' => $amendement->numero_long,
                 'dispositif' => $amendement->dispositif,
+                'etat' => $amendement->etat_code,
+                'etat_libelle' => $amendement->etat_libelle,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
-                'auteur' => $amendement->acteur ? [
-                    'uid' => $amendement->acteur->uid,
-                    'nom_complet' => $amendement->acteur->nom_complet,
+                'auteur' => $amendement->auteurActeur ? [
+                    'uid' => $amendement->auteurActeur->uid,
+                    'nom_complet' => $amendement->auteurActeur->nom_complet,
                 ] : null,
-                'co_signataires_count' => $amendement->co_signataires ? count($amendement->co_signataires) : 0,
             ]),
-            'statistiques' => $stats,
+            'stats' => $stats,
         ]);
     }
 

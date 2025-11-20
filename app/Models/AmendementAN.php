@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class AmendementAN extends Model
 {
@@ -67,6 +68,25 @@ class AmendementAN extends Model
         return $this->belongsTo(TexteLegislatifAN::class, 'texte_legislatif_ref', 'uid');
     }
 
+    // Alias pour la relation texte
+    public function texte(): BelongsTo
+    {
+        return $this->texteLegislatif();
+    }
+
+    // Relation indirecte vers le dossier via le texte
+    public function dossier()
+    {
+        return $this->hasOneThrough(
+            DossierLegislatifAN::class,
+            TexteLegislatifAN::class,
+            'uid', // Foreign key sur textes_legislatifs_an
+            'uid', // Foreign key sur dossiers_legislatifs_an
+            'texte_legislatif_ref', // Local key sur amendements_an
+            'dossier_ref' // Local key sur textes_legislatifs_an
+        );
+    }
+
     public function auteurActeur(): BelongsTo
     {
         return $this->belongsTo(ActeurAN::class, 'auteur_acteur_ref', 'uid');
@@ -95,6 +115,11 @@ class AmendementAN extends Model
         return $query->where('etat_code', 'REJ');
     }
 
+    public function scopeRetires($query)
+    {
+        return $query->where('etat_code', 'RET');
+    }
+
     public function scopeParAuteur($query, string $acteurUid)
     {
         return $query->where('auteur_acteur_ref', $acteurUid);
@@ -121,6 +146,11 @@ class AmendementAN extends Model
     public function getEstRejeteAttribute(): bool
     {
         return $this->etat_code === 'REJ';
+    }
+
+    public function getEstRetireAttribute(): bool
+    {
+        return $this->etat_code === 'RET';
     }
 
     public function getEstIrrecevableAttribute(): bool

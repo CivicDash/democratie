@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\PostalCodeController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\RepresentantsSearchController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\TopicController;
 use App\Http\Controllers\Api\VoteController;
 use App\Http\Controllers\Api\V1\ActeursANController;
@@ -63,6 +64,15 @@ Route::get('/postal-codes/circonscription/{circonscription}', [PostalCodeControl
 
 // Recherche de représentants (maire, député, sénateur) - routes publiques
 Route::get('/representants/search', [RepresentantsSearchController::class, 'search']);
+
+// ============================================================================
+// RECHERCHE GLOBALE UNIFIÉE
+// ============================================================================
+
+Route::prefix('search')->name('search.')->group(function () {
+    Route::get('/', [GlobalSearchController::class, 'search'])->name('global');
+    Route::get('/suggestions', [GlobalSearchController::class, 'suggestions'])->name('suggestions');
+});
 
 // ============================================================================
 // API V1 - DONNÉES PARLEMENTAIRES (AN + SÉNAT)
@@ -125,7 +135,7 @@ Route::get('/documents/top-verifiers', [DocumentController::class, 'topVerifiers
 // RECHERCHE MEILISEARCH - Routes publiques
 // ============================================================================
 
-Route::prefix('search')->group(function () {
+Route::prefix('search-meilisearch')->group(function () {
     // Recherche globale
     Route::get('/', [SearchController::class, 'search']);
     
