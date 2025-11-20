@@ -63,7 +63,8 @@ class ImportDeputesWikipedia extends Command
             return self::FAILURE;
         }
         
-        $this->info("✅ {count} députés trouvés sur Wikipedia", ['count' => count($deputesWikipedia)]);
+        $countDeputes = count($deputesWikipedia);
+        $this->info("✅ {$countDeputes} députés trouvés sur Wikipedia");
         
         // Étape 2: Récupérer les acteurs AN depuis la base
         $this->info("\n👤 Étape 2/3: Récupération des acteurs AN...");
@@ -86,7 +87,8 @@ class ImportDeputesWikipedia extends Command
             return self::SUCCESS;
         }
         
-        $this->info("✅ {count} acteurs à traiter", ['count' => $acteurs->count()]);
+        $countActeurs = $acteurs->count();
+        $this->info("✅ {$countActeurs} acteurs à traiter");
         
         // Étape 3: Matcher et enrichir
         $this->info("\n🔗 Étape 3/3: Matching et enrichissement...");
