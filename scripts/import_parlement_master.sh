@@ -23,6 +23,11 @@
 
 set -e  # Arrêter en cas d'erreur
 
+# Déterminer le répertoire racine du projet
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
 # Couleurs
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -113,6 +118,9 @@ show_menu() {
 check_prerequisites() {
     log "Vérification des prérequis..."
     
+    # Afficher le répertoire de travail
+    log "Répertoire de travail: $(pwd)"
+    
     # Docker
     if ! docker compose ps | grep -q "Up"; then
         log_error "Docker Compose n'est pas démarré. Lancer: docker compose up -d"
@@ -122,10 +130,27 @@ check_prerequisites() {
     
     # Données source AN
     if [ ! -d "public/data/acteur" ]; then
-        log_error "Dossier public/data/acteur introuvable"
+        log_error "Dossier public/data/acteur introuvable dans $(pwd)"
+        log "Contenu de public/data/:"
+        ls -la public/data/ 2>&1 || echo "  Dossier public/data/ introuvable"
         exit 1
     fi
-    log_success "Données source AN présentes"
+    
+    # Compter les fichiers JSON
+    ACTEUR_COUNT=$(ls -1 public/data/acteur/*.json 2>/dev/null | wc -l)
+    log_success "Données source AN présentes ($ACTEUR_COUNT fichiers acteur)"
+    
+    # Vérifier scrutins
+    if [ -d "public/data/scrutins" ]; then
+        SCRUTIN_COUNT=$(ls -1 public/data/scrutins/*.json 2>/dev/null | wc -l)
+        log_success "Données scrutins présentes ($SCRUTIN_COUNT fichiers)"
+    fi
+    
+    # Vérifier amendements
+    if [ -d "public/data/amendements" ]; then
+        AMENDEMENT_COUNT=$(ls -1 public/data/amendements/*.json 2>/dev/null | wc -l)
+        log_success "Données amendements présentes ($AMENDEMENT_COUNT fichiers)"
+    fi
 }
 
 ###############################################################################
