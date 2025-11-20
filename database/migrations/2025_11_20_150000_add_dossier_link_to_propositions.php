@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('propositions', function (Blueprint $table) {
+        Schema::table('propositions_loi', function (Blueprint $table) {
             // Lien vers un dossier législatif AN
             $table->string('dossier_legislatif_uid', 30)->nullable()->after('numero');
             
@@ -34,7 +34,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('propositions', function (Blueprint $table) {
+        Schema::table('propositions_loi', function (Blueprint $table) {
             $table->dropForeign(['dossier_legislatif_uid']);
             $table->dropForeign(['scrutin_an_uid']);
             $table->dropIndex(['dossier_legislatif_uid']);
