@@ -22,7 +22,7 @@ defineProps({
             Mes Représentants
           </Link>
           <span>/</span>
-          <Link :href="route('representants.senateurs.index')" class="hover:text-blue-600">
+          <Link :href="route('representants.senateurs.index')" class="hover:text-red-600">
             Sénateurs
           </Link>
           <span>/</span>
@@ -49,60 +49,65 @@ defineProps({
 
             <!-- Infos principales -->
             <div class="md:col-span-3">
-              <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {{ senateur.nom_complet }}
-              </h1>
-              <p class="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                Sénateur {{ senateur.circonscription }}
-              </p>
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    {{ senateur.nom_complet }}
+                  </h1>
+                  <p class="text-lg text-gray-600 dark:text-gray-400">
+                    {{ senateur.profession || 'Profession non renseignée' }}
+                  </p>
+                  <p v-if="senateur.age" class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                    {{ senateur.age }} ans
+                    <span v-if="senateur.lieu_naissance"> • Né(e) à {{ senateur.lieu_naissance }}</span>
+                  </p>
+                </div>
+                <Badge
+                  v-if="senateur.etat"
+                  :class="[
+                    senateur.etat === 'ACTIF' 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                  ]"
+                  class="text-sm px-3 py-1"
+                >
+                  {{ senateur.etat }}
+                </Badge>
+              </div>
 
               <div class="flex flex-wrap gap-3 mb-6">
                 <Badge
+                  v-if="senateur.groupe"
                   :style="{ backgroundColor: senateur.groupe.couleur, color: '#fff' }"
                   class="text-base px-4 py-2"
                 >
                   {{ senateur.groupe.nom }}
                 </Badge>
-                <Badge v-if="senateur.profession" class="text-base px-4 py-2">
-                  💼 {{ senateur.profession }}
+                <Badge v-if="senateur.circonscription" class="text-base px-4 py-2">
+                  📍 {{ senateur.circonscription }}
                 </Badge>
-                <Badge v-if="senateur.age" class="text-base px-4 py-2">
-                  🎂 {{ senateur.age }} ans
+                <Badge v-if="senateur.commission" class="text-base px-4 py-2">
+                  🏛️ {{ senateur.commission }}
                 </Badge>
               </div>
 
-              <!-- Stats rapides -->
-              <div class="grid grid-cols-3 gap-4">
-                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-blue-600">{{ senateur.statistiques.nb_propositions }}</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Propositions de loi</div>
-                </div>
-                <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-green-600">{{ senateur.statistiques.nb_amendements }}</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Amendements déposés</div>
-                </div>
-                <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-purple-600">{{ senateur.statistiques.taux_presence }}%</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Taux de présence</div>
-                </div>
-              </div>
-
-              <!-- Liens -->
-              <div class="flex gap-3 mt-6">
-                <Link
-                  v-if="senateur.groupe.id"
-                  :href="route('legislation.groupes.show', senateur.groupe.id)"
-                  class="flex-1 text-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                >
-                  👥 Voir le groupe parlementaire
-                </Link>
+              <!-- Contacts -->
+              <div v-if="senateur.email || senateur.telephone" class="grid grid-cols-2 gap-4 mb-6">
                 <a
-                  v-if="senateur.url_profil"
-                  :href="senateur.url_profil"
-                  target="_blank"
-                  class="flex-1 text-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                  v-if="senateur.email"
+                  :href="`mailto:${senateur.email}`"
+                  class="flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition"
                 >
-                  🔗 Site officiel
+                  <span>📧</span>
+                  <span class="text-sm text-gray-900 dark:text-gray-100">{{ senateur.email }}</span>
+                </a>
+                <a
+                  v-if="senateur.telephone"
+                  :href="`tel:${senateur.telephone}`"
+                  class="flex items-center gap-2 px-4 py-3 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition"
+                >
+                  <span>📞</span>
+                  <span class="text-sm text-gray-900 dark:text-gray-100">{{ senateur.telephone }}</span>
                 </a>
               </div>
             </div>
@@ -110,135 +115,115 @@ defineProps({
         </Card>
 
         <div class="grid md:grid-cols-2 gap-6">
-          <!-- Mandat -->
+          <!-- Mandats -->
           <Card>
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <span>📜</span>
-              <span>Mandat en cours</span>
+              <span>Mandats</span>
             </h2>
-            <div class="space-y-3">
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Législature</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ senateur.mandat.legislature }}ème</span>
+            <div v-if="senateur.mandats && senateur.mandats.length > 0" class="space-y-3 max-h-96 overflow-y-auto">
+              <div
+                v-for="(mandat, index) in senateur.mandats"
+                :key="index"
+                :class="[
+                  'p-3 rounded-lg border',
+                  mandat.actif 
+                    ? 'border-green-300 bg-green-50 dark:bg-green-900/20' 
+                    : 'border-gray-200 dark:border-gray-700'
+                ]"
+              >
+                <div class="flex items-start justify-between">
+                  <div>
+                    <div class="font-semibold text-gray-900 dark:text-gray-100">
+                      {{ mandat.type || 'Mandat sénatorial' }}
+                    </div>
+                    <div v-if="mandat.circonscription" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {{ mandat.circonscription }}
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {{ mandat.date_debut }} 
+                      <span v-if="mandat.date_fin">→ {{ mandat.date_fin }}</span>
+                      <span v-else class="text-green-600 font-medium">→ En cours</span>
+                    </div>
+                  </div>
+                  <Badge v-if="mandat.numero" class="text-xs">
+                    N°{{ mandat.numero }}
+                  </Badge>
+                </div>
               </div>
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Début de mandat</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ senateur.mandat.debut }}</span>
-              </div>
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Fin de mandat</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ senateur.mandat.fin || 'En cours' }}</span>
-              </div>
-              <div class="flex justify-between py-2">
-                <span class="text-gray-600 dark:text-gray-400">Circonscription</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ senateur.circonscription }}</span>
-              </div>
+            </div>
+            <div v-else class="text-center text-gray-500 dark:text-gray-400 py-8">
+              Aucun mandat enregistré
             </div>
           </Card>
 
-          <!-- Groupe parlementaire -->
+          <!-- Commissions -->
           <Card>
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <span>🎨</span>
-              <span>Groupe parlementaire</span>
+              <span>🏛️</span>
+              <span>Commissions</span>
             </h2>
-            <div class="space-y-3">
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Groupe</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ senateur.groupe.nom }}</span>
+            <div v-if="senateur.commissions && senateur.commissions.length > 0" class="space-y-3">
+              <div
+                v-for="(commission, index) in senateur.commissions"
+                :key="index"
+                class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+              >
+                <div class="font-semibold text-gray-900 dark:text-gray-100">
+                  {{ commission.commission }}
+                </div>
+                <div v-if="commission.fonction" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {{ commission.fonction }}
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                  {{ commission.date_debut }}
+                  <span v-if="commission.date_fin"> → {{ commission.date_fin }}</span>
+                  <span v-else class="text-green-600 font-medium"> → En cours</span>
+                </div>
               </div>
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Sigle</span>
-                <Badge :style="{ backgroundColor: senateur.groupe.couleur, color: '#fff' }">
-                  {{ senateur.groupe.sigle }}
-                </Badge>
-              </div>
-              <div class="flex justify-between py-2">
-                <span class="text-gray-600 dark:text-gray-400">Position politique</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100 capitalize">
-                  {{ senateur.groupe.position?.replace('_', ' ') || 'Non définie' }}
-                </span>
-              </div>
+            </div>
+            <div v-else class="text-center text-gray-500 dark:text-gray-400 py-8">
+              Aucune commission
             </div>
           </Card>
         </div>
 
-        <!-- Fonctions -->
-        <Card v-if="senateur.fonctions && senateur.fonctions.length > 0">
+        <!-- Historique des groupes -->
+        <Card v-if="senateur.historique_groupes && senateur.historique_groupes.length > 0">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>⚖️</span>
-            <span>Fonctions</span>
+            <span>🎨</span>
+            <span>Historique des groupes parlementaires</span>
           </h2>
-          <div class="space-y-2">
+          <div class="space-y-3">
             <div
-              v-for="(fonction, index) in senateur.fonctions"
+              v-for="(groupe, index) in senateur.historique_groupes"
               :key="index"
-              class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+              class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
             >
-              <span class="text-2xl">📌</span>
-              <span class="text-gray-900 dark:text-gray-100">{{ fonction }}</span>
+              <div class="flex items-center justify-between">
+                <div class="font-semibold text-gray-900 dark:text-gray-100">
+                  {{ groupe.groupe }}
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                  {{ groupe.date_debut }}
+                  <span v-if="groupe.date_fin"> → {{ groupe.date_fin }}</span>
+                  <span v-else class="text-green-600 font-medium"> → En cours</span>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
 
-        <!-- Commissions -->
-        <Card v-if="senateur.commissions && senateur.commissions.length > 0">
+        <!-- Adresse postale -->
+        <Card v-if="senateur.adresse_postale">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>👥</span>
-            <span>Commissions</span>
+            <span>📮</span>
+            <span>Adresse postale</span>
           </h2>
-          <div class="grid md:grid-cols-2 gap-3">
-            <div
-              v-for="(commission, index) in senateur.commissions"
-              :key="index"
-              class="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg"
-            >
-              <span class="text-2xl">🏛️</span>
-              <span class="text-gray-900 dark:text-gray-100">{{ commission }}</span>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Activité parlementaire -->
-        <Card>
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>📊</span>
-            <span>Activité parlementaire</span>
-          </h2>
-          <div class="grid md:grid-cols-3 gap-6">
-            <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl">
-              <div class="text-5xl font-bold text-blue-600 mb-2">
-                {{ senateur.statistiques.nb_propositions }}
-              </div>
-              <div class="text-gray-700 dark:text-gray-300 font-medium">
-                Propositions de loi déposées
-              </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Textes législatifs initiés
-              </p>
-            </div>
-            <div class="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl">
-              <div class="text-5xl font-bold text-green-600 mb-2">
-                {{ senateur.statistiques.nb_amendements }}
-              </div>
-              <div class="text-gray-700 dark:text-gray-300 font-medium">
-                Amendements déposés
-              </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Modifications proposées
-              </p>
-            </div>
-            <div class="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl">
-              <div class="text-5xl font-bold text-purple-600 mb-2">
-                {{ senateur.statistiques.taux_presence }}%
-              </div>
-              <div class="text-gray-700 dark:text-gray-300 font-medium">
-                Taux de présence
-              </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Participation aux séances
-              </p>
-            </div>
+          <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line">
+              {{ senateur.adresse_postale }}
+            </p>
           </div>
         </Card>
 
@@ -246,4 +231,3 @@ defineProps({
     </div>
   </AuthenticatedLayout>
 </template>
-

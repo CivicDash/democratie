@@ -4,6 +4,12 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\PropositionLoi;
+use App\Models\ScrutinAN;
+use App\Models\AmendementAN;
+use App\Models\DossierLegislatifAN;
+use App\Models\TexteLegislatifAN;
+use App\Models\VoteIndividuelAN;
+use App\Services\GroupeParlementaireService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -162,6 +168,228 @@ class LegislationController extends Controller
                 ];
             }),
             'similar' => [], // À implémenter avec findSimilar API si besoin
+        ]);
+    }
+
+    /**
+     * Afficher un scrutin détaillé
+     * 
+     * GET /legislation/scrutins/{uid}
+     */
+    public function showScrutin(string $uid): Response
+    {
+        $scrutin = ScrutinAN::with(['votesIndividuels.acteur'])
+            ->findOrFail($uid);
+
+        $groupeService = app(GroupeParlementaireService::class);
+
+        // Votes par groupe
+        $votesParGroupe = VoteIndividuelAN::where('scrutin_uid', $uid)
+            ->with(['acteur.mandats.organe'])
+            ->get()
+            ->groupBy(function ($vote) {
+                return $vote->acteur->groupe_politique_actuel?->uid ?? 'NI';
+            })
+            ->map(function ($votes, $groupeUid) use ($groupeService) {
+                $groupe = $votes->first()->acteur->groupe_politique_actuel;
+                $sigle = $groupe?->libelle_abrege ?? 'NI';
+                
+                return [
+                    'sigle' => $sigle,
+                    'nom' => $groupe?->libelle ?? 'Non-inscrits',
+                    'couleur' => $groupeService->getCouleurGroupe($sigle),
+                    'total_votes' => $votes->count(),
+                    'pour' => $votes->where('position_vote', 'pour')->count(),
+                    'contre' => $votes->where('position_vote', 'contre')->count(),
+                    'abstention' => $votes->where('position_vote', 'abstention')->count(),
+                ];
+            })
+            ->values();
+
+        // Députés ayant voté (limité à 50 pour performance)
+        $deputesAyantVote = VoteIndividuelAN::where('scrutin_uid', $uid)
+            ->with('acteur')
+            ->limit(50)
+            ->get()
+            ->map(fn($vote) => [
+                'uid' => $vote->acteur->uid,
+                'nom_complet' => $vote->acteur->nom_complet,
+                'photo_url' => $vote->acteur->photo_wikipedia_url,
+                'position' => $vote->position_vote,
+            ]);
+
+        return Inertia::render('Legislation/ScrutinShow', [
+            'scrutin' => [
+                'uid' => $scrutin->uid,
+                'numero' => $scrutin->numero,
+                'titre' => $scrutin->titre,
+                'objet' => $scrutin->objet,
+                'date' => $scrutin->date_scrutin?->format('d/m/Y'),
+                'moment_scrutin' => $scrutin->moment_scrutin,
+                'nombre_pour' => $scrutin->nombre_pour,
+                'nombre_contre' => $scrutin->nombre_contre,
+                'nombre_abstention' => $scrutin->nombre_abstention,
+                'legislature' => $scrutin->legislature,
+            ],
+            'votes_par_groupe' => $votesParGroupe,
+            'deputes_ayant_vote' => $deputesAyantVote,
+        ]);
+    }
+
+    /**
+     * Afficher un amendement détaillé
+     * 
+     * GET /legislation/amendements/{uid}
+     */
+    public function showAmendement(string $uid): Response
+    {
+        $amendement = AmendementAN::with([
+            'acteur',
+            'dossier',
+            'texte',
+        ])->findOrFail($uid);
+
+        // Co-signataires (si disponibles dans JSON)
+        $coSignataires = [];
+        if ($amendement->co_signataires && is_array($amendement->co_signataires)) {
+            $coSignataires = collect($amendement->co_signataires)->map(fn($cs) => [
+                'uid' => $cs['uid'] ?? null,
+                'nom_complet' => $cs['nom_complet'] ?? $cs['nom'] ?? 'Inconnu',
+                'photo_url' => $cs['photo_url'] ?? null,
+            ]);
+        }
+
+        return Inertia::render('Legislation/AmendementShow', [
+            'amendement' => [
+                'uid' => $amendement->uid,
+                'numero' => $amendement->numero,
+                'sort' => $amendement->sort,
+                'dispositif' => $amendement->dispositif,
+                'expose_sommaire' => $amendement->expose_sommaire,
+                'date_depot' => $amendement->date_depot?->format('d/m/Y'),
+                'date_sort' => $amendement->date_sort?->format('d/m/Y'),
+                'auteur' => $amendement->acteur ? [
+                    'uid' => $amendement->acteur->uid,
+                    'nom_complet' => $amendement->acteur->nom_complet,
+                    'photo_url' => $amendement->acteur->photo_wikipedia_url,
+                    'groupe' => $amendement->acteur->groupe_politique_actuel ? [
+                        'nom' => $amendement->acteur->groupe_politique_actuel->libelle,
+                        'sigle' => $amendement->acteur->groupe_politique_actuel->libelle_abrege,
+                    ] : null,
+                ] : null,
+                'dossier' => $amendement->dossier ? [
+                    'uid' => $amendement->dossier->uid,
+                    'titre' => $amendement->dossier->titre,
+                    'titre_court' => $amendement->dossier->titre_court,
+                ] : null,
+                'texte' => $amendement->texte ? [
+                    'uid' => $amendement->texte->uid,
+                    'titre' => $amendement->texte->titre,
+                    'titre_court' => $amendement->texte->titre_court,
+                ] : null,
+                'co_signataires' => $coSignataires,
+            ],
+        ]);
+    }
+
+    /**
+     * Afficher un dossier législatif
+     * 
+     * GET /legislation/dossiers/{uid}
+     */
+    public function showDossier(string $uid): Response
+    {
+        $dossier = DossierLegislatifAN::with([
+            'textes' => fn($q) => $q->orderBy('date_depot', 'desc'),
+            'amendements' => fn($q) => $q->orderBy('date_depot', 'desc')->limit(20)->with('acteur'),
+        ])->findOrFail($uid);
+
+        $stats = [
+            'textes_count' => $dossier->textes->count(),
+            'amendements_count' => $dossier->amendements()->count(),
+            'amendements_adoptes_count' => $dossier->amendements()->adoptes()->count(),
+            'taux_adoption' => $dossier->amendements()->count() > 0 
+                ? round(($dossier->amendements()->adoptes()->count() / $dossier->amendements()->count()) * 100, 1)
+                : 0,
+        ];
+
+        return Inertia::render('Legislation/DossierShow', [
+            'dossier' => [
+                'uid' => $dossier->uid,
+                'titre' => $dossier->titre,
+                'titre_court' => $dossier->titre_court,
+                'legislature' => $dossier->legislature,
+            ],
+            'textes' => $dossier->textes->map(fn($texte) => [
+                'uid' => $texte->uid,
+                'titre' => $texte->titre,
+                'titre_court' => $texte->titre_court,
+                'type' => $texte->type,
+                'date_depot' => $texte->date_depot?->format('d/m/Y'),
+            ]),
+            'amendements' => $dossier->amendements->map(fn($amendement) => [
+                'uid' => $amendement->uid,
+                'numero' => $amendement->numero,
+                'sort' => $amendement->sort,
+                'dispositif' => $amendement->dispositif,
+                'date_depot' => $amendement->date_depot?->format('d/m/Y'),
+                'auteur' => $amendement->acteur ? [
+                    'uid' => $amendement->acteur->uid,
+                    'nom_complet' => $amendement->acteur->nom_complet,
+                ] : null,
+                'co_signataires_count' => $amendement->co_signataires ? count($amendement->co_signataires) : 0,
+            ]),
+            'statistiques' => $stats,
+        ]);
+    }
+
+    /**
+     * Afficher un texte législatif
+     * 
+     * GET /legislation/textes/{uid}
+     */
+    public function showTexte(string $uid): Response
+    {
+        $texte = TexteLegislatifAN::with([
+            'dossier',
+            'amendements' => fn($q) => $q->orderBy('date_depot', 'desc')->with('acteur'),
+        ])->findOrFail($uid);
+
+        $stats = [
+            'amendements_count' => $texte->amendements->count(),
+            'amendements_adoptes_count' => $texte->amendements()->adoptes()->count(),
+            'taux_adoption' => $texte->amendements->count() > 0 
+                ? round(($texte->amendements()->adoptes()->count() / $texte->amendements->count()) * 100, 1)
+                : 0,
+        ];
+
+        return Inertia::render('Legislation/TexteShow', [
+            'texte' => [
+                'uid' => $texte->uid,
+                'titre' => $texte->titre,
+                'titre_court' => $texte->titre_court,
+                'type' => $texte->type,
+                'date_depot' => $texte->date_depot?->format('d/m/Y'),
+                'legislature' => $texte->legislature,
+                'dossier' => $texte->dossier ? [
+                    'uid' => $texte->dossier->uid,
+                    'titre' => $texte->dossier->titre,
+                    'titre_court' => $texte->dossier->titre_court,
+                ] : null,
+            ],
+            'amendements' => $texte->amendements->map(fn($amendement) => [
+                'uid' => $amendement->uid,
+                'numero' => $amendement->numero,
+                'sort' => $amendement->sort,
+                'dispositif' => $amendement->dispositif,
+                'date_depot' => $amendement->date_depot?->format('d/m/Y'),
+                'auteur' => $amendement->acteur ? [
+                    'uid' => $amendement->acteur->uid,
+                    'nom_complet' => $amendement->acteur->nom_complet,
+                ] : null,
+                'co_signataires_count' => $amendement->co_signataires ? count($amendement->co_signataires) : 0,
+            ]),
+            'statistiques' => $stats,
         ]);
     }
 }

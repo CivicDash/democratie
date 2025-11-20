@@ -83,6 +83,18 @@ Route::prefix('legislation')->name('legislation.')->group(function () {
         return Inertia::render('Thematiques/Show', ['code' => $code]);
     })->name('thematiques.show');
     
+    // Scrutins (NOUVEAU)
+    Route::get('/scrutins/{uid}', [LegislationController::class, 'showScrutin'])->name('scrutins.show');
+    
+    // Amendements (NOUVEAU)
+    Route::get('/amendements/{uid}', [LegislationController::class, 'showAmendement'])->name('amendements.show');
+    
+    // Dossiers législatifs (NOUVEAU)
+    Route::get('/dossiers/{uid}', [LegislationController::class, 'showDossier'])->name('dossiers.show');
+    
+    // Textes législatifs (NOUVEAU)
+    Route::get('/textes/{uid}', [LegislationController::class, 'showTexte'])->name('textes.show');
+    
     // Route générique (DOIT être en dernier pour éviter les conflits)
     Route::get('/{proposition}', [LegislationController::class, 'show'])->name('show');
 });
@@ -265,16 +277,19 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->prefix('representants')->name('representants.')->group(function () {
-    // Mes représentants
+    // Mes représentants (ancien système)
     Route::get('/mes-representants', [RepresentantController::class, 'mesRepresentants'])->name('mes-representants');
     
-    // Députés
-    Route::get('/deputes', [RepresentantController::class, 'deputes'])->name('deputes.index');
-    Route::get('/deputes/{depute}', [RepresentantController::class, 'showDepute'])->name('deputes.show');
+    // Députés (nouveaux - ActeurAN + Wikipedia)
+    Route::get('/deputes', [App\Http\Controllers\Web\RepresentantANController::class, 'deputes'])->name('deputes.index');
+    Route::get('/deputes/{uid}', [App\Http\Controllers\Web\RepresentantANController::class, 'showDepute'])->name('deputes.show');
+    Route::get('/deputes/{uid}/votes', [App\Http\Controllers\Web\RepresentantANController::class, 'deputeVotes'])->name('deputes.votes');
+    Route::get('/deputes/{uid}/amendements', [App\Http\Controllers\Web\RepresentantANController::class, 'deputeAmendements'])->name('deputes.amendements');
+    Route::get('/deputes/{uid}/activite', [App\Http\Controllers\Web\RepresentantANController::class, 'deputeActivite'])->name('deputes.activite');
     
-    // Sénateurs
-    Route::get('/senateurs', [RepresentantController::class, 'senateurs'])->name('senateurs.index');
-    Route::get('/senateurs/{senateur}', [RepresentantController::class, 'showSenateur'])->name('senateurs.show');
+    // Sénateurs (nouveaux - Senateur)
+    Route::get('/senateurs', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurs'])->name('senateurs.index');
+    Route::get('/senateurs/{matricule}', [App\Http\Controllers\Web\RepresentantANController::class, 'showSenateur'])->name('senateurs.show');
 });
 
 /*

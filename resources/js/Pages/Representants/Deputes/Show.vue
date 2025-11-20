@@ -29,7 +29,7 @@ defineProps({
           <span class="text-gray-900 dark:text-gray-100">{{ depute.nom }}</span>
         </div>
 
-        <!-- Header avec photo -->
+        <!-- Header avec photo + Wikipedia -->
         <Card>
           <div class="grid md:grid-cols-4 gap-8">
             <!-- Photo -->
@@ -45,199 +45,208 @@ defineProps({
                   👤
                 </div>
               </div>
+              
+              <!-- Liens externes -->
+              <div class="mt-4 space-y-2">
+                <a
+                  v-if="depute.wikipedia.url"
+                  :href="depute.wikipedia.url"
+                  target="_blank"
+                  class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition text-sm"
+                >
+                  📖 Wikipedia
+                </a>
+                <a
+                  v-if="depute.url_hatvp"
+                  :href="depute.url_hatvp"
+                  target="_blank"
+                  class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition text-sm"
+                >
+                  💰 HATVP
+                </a>
+              </div>
             </div>
 
             <!-- Infos principales -->
             <div class="md:col-span-3">
-              <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {{ depute.nom_complet }}
-              </h1>
-              <p class="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                Député {{ depute.circonscription }}
-              </p>
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    {{ depute.nom_complet }}
+                  </h1>
+                  <p class="text-lg text-gray-600 dark:text-gray-400">
+                    {{ depute.profession || 'Profession non renseignée' }}
+                  </p>
+                  <p v-if="depute.age" class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                    {{ depute.age }} ans
+                    <span v-if="depute.lieu_naissance"> • Né(e) à {{ depute.lieu_naissance }}</span>
+                  </p>
+                </div>
+                <Badge
+                  v-if="depute.trigramme"
+                  class="text-lg px-4 py-2"
+                >
+                  {{ depute.trigramme }}
+                </Badge>
+              </div>
+
+              <!-- Wikipedia Extract -->
+              <div v-if="depute.wikipedia.extract" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6 border-l-4 border-blue-500">
+                <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {{ depute.wikipedia.extract }}
+                </p>
+                <a
+                  v-if="depute.wikipedia.url"
+                  :href="depute.wikipedia.url"
+                  target="_blank"
+                  class="text-blue-600 hover:text-blue-700 text-xs mt-2 inline-block"
+                >
+                  Lire la suite sur Wikipedia →
+                </a>
+              </div>
 
               <div class="flex flex-wrap gap-3 mb-6">
                 <Badge
+                  v-if="depute.groupe"
                   :style="{ backgroundColor: depute.groupe.couleur, color: '#fff' }"
                   class="text-base px-4 py-2"
                 >
                   {{ depute.groupe.nom }}
                 </Badge>
-                <Badge v-if="depute.profession" class="text-base px-4 py-2">
-                  💼 {{ depute.profession }}
-                </Badge>
-                <Badge v-if="depute.age" class="text-base px-4 py-2">
-                  🎂 {{ depute.age }} ans
+                <Badge v-if="depute.categorie_socio_pro" class="text-base px-4 py-2">
+                  💼 {{ depute.categorie_socio_pro }}
                 </Badge>
               </div>
 
               <!-- Stats rapides -->
               <div class="grid grid-cols-3 gap-4">
                 <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-blue-600">{{ depute.statistiques.nb_propositions }}</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Propositions de loi</div>
+                  <div class="text-3xl font-bold text-blue-600">{{ depute.statistiques.votes_total }}</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Votes</div>
                 </div>
                 <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-green-600">{{ depute.statistiques.nb_amendements }}</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Amendements déposés</div>
+                  <div class="text-3xl font-bold text-green-600">{{ depute.statistiques.amendements_total }}</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Amendements</div>
                 </div>
                 <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-purple-600">{{ depute.statistiques.taux_presence }}%</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Taux de présence</div>
+                  <div class="text-3xl font-bold text-purple-600">{{ depute.statistiques.taux_adoption_amendements }}%</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Taux adoption</div>
                 </div>
               </div>
 
-              <!-- Liens -->
-              <div class="flex gap-3 mt-6">
+              <!-- Navigation vers pages détaillées -->
+              <div class="grid grid-cols-3 gap-3 mt-6">
                 <Link
-                  v-if="depute.groupe.id"
-                  :href="route('legislation.groupes.show', depute.groupe.id)"
-                  class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  :href="route('representants.deputes.votes', depute.uid)"
+                  class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
-                  👥 Voir le groupe parlementaire
+                  🗳️ Voir les votes
                 </Link>
-                <a
-                  v-if="depute.url_profil"
-                  :href="depute.url_profil"
-                  target="_blank"
-                  class="flex-1 text-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                <Link
+                  :href="route('representants.deputes.amendements', depute.uid)"
+                  class="text-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                 >
-                  🔗 Site officiel
-                </a>
+                  📝 Amendements
+                </Link>
+                <Link
+                  :href="route('representants.deputes.activite', depute.uid)"
+                  class="text-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                >
+                  📊 Activité
+                </Link>
               </div>
             </div>
           </div>
         </Card>
 
         <div class="grid md:grid-cols-2 gap-6">
-          <!-- Mandat -->
+          <!-- Mandats -->
           <Card>
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <span>📜</span>
-              <span>Mandat en cours</span>
+              <span>Mandats</span>
             </h2>
-            <div class="space-y-3">
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Législature</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ depute.mandat.legislature }}ème</span>
-              </div>
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Début de mandat</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ depute.mandat.debut }}</span>
-              </div>
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Fin de mandat</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ depute.mandat.fin || 'En cours' }}</span>
-              </div>
-              <div class="flex justify-between py-2">
-                <span class="text-gray-600 dark:text-gray-400">Circonscription</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ depute.circonscription }}</span>
+            <div class="space-y-3 max-h-96 overflow-y-auto">
+              <div
+                v-for="mandat in depute.mandats"
+                :key="mandat.uid"
+                :class="[
+                  'p-3 rounded-lg border',
+                  mandat.actif 
+                    ? 'border-green-300 bg-green-50 dark:bg-green-900/20' 
+                    : 'border-gray-200 dark:border-gray-700'
+                ]"
+              >
+                <div class="flex items-start justify-between">
+                  <div>
+                    <div class="font-semibold text-gray-900 dark:text-gray-100">
+                      {{ mandat.organe?.nom || mandat.type }}
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {{ mandat.date_debut }} 
+                      <span v-if="mandat.date_fin">→ {{ mandat.date_fin }}</span>
+                      <span v-else class="text-green-600 font-medium">→ En cours</span>
+                    </div>
+                  </div>
+                  <Badge v-if="mandat.organe?.sigle" class="text-xs">
+                    {{ mandat.organe.sigle }}
+                  </Badge>
+                </div>
               </div>
             </div>
           </Card>
 
-          <!-- Groupe parlementaire -->
+          <!-- Commissions -->
           <Card>
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              <span>🎨</span>
-              <span>Groupe parlementaire</span>
+              <span>🏛️</span>
+              <span>Commissions actuelles</span>
             </h2>
-            <div class="space-y-3">
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Groupe</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ depute.groupe.nom }}</span>
+            <div v-if="depute.commissions.length > 0" class="space-y-3">
+              <div
+                v-for="commission in depute.commissions"
+                :key="commission.uid"
+                class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+              >
+                <div class="font-semibold text-gray-900 dark:text-gray-100">
+                  {{ commission.nom }}
+                </div>
+                <div v-if="commission.sigle" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {{ commission.sigle }}
+                </div>
               </div>
-              <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                <span class="text-gray-600 dark:text-gray-400">Sigle</span>
-                <Badge :style="{ backgroundColor: depute.groupe.couleur, color: '#fff' }">
-                  {{ depute.groupe.sigle }}
-                </Badge>
-              </div>
-              <div class="flex justify-between py-2">
-                <span class="text-gray-600 dark:text-gray-400">Position politique</span>
-                <span class="font-semibold text-gray-900 dark:text-gray-100 capitalize">
-                  {{ depute.groupe.position?.replace('_', ' ') || 'Non définie' }}
-                </span>
-              </div>
+            </div>
+            <div v-else class="text-center text-gray-500 dark:text-gray-400 py-8">
+              Aucune commission
             </div>
           </Card>
         </div>
 
-        <!-- Fonctions -->
-        <Card v-if="depute.fonctions && depute.fonctions.length > 0">
+        <!-- Contacts -->
+        <Card v-if="depute.adresses && depute.adresses.length > 0">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>⚖️</span>
-            <span>Fonctions</span>
+            <span>📧</span>
+            <span>Contacts</span>
           </h2>
-          <div class="space-y-2">
+          <div class="grid md:grid-cols-2 gap-4">
             <div
-              v-for="(fonction, index) in depute.fonctions"
+              v-for="(adresse, index) in depute.adresses"
               :key="index"
-              class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+              class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
             >
-              <span class="text-2xl">📌</span>
-              <span class="text-gray-900 dark:text-gray-100">{{ fonction }}</span>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Commissions -->
-        <Card v-if="depute.commissions && depute.commissions.length > 0">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>👥</span>
-            <span>Commissions</span>
-          </h2>
-          <div class="grid md:grid-cols-2 gap-3">
-            <div
-              v-for="(commission, index) in depute.commissions"
-              :key="index"
-              class="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg"
-            >
-              <span class="text-2xl">🏛️</span>
-              <span class="text-gray-900 dark:text-gray-100">{{ commission }}</span>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Activité parlementaire -->
-        <Card>
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>📊</span>
-            <span>Activité parlementaire</span>
-          </h2>
-          <div class="grid md:grid-cols-3 gap-6">
-            <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl">
-              <div class="text-5xl font-bold text-blue-600 mb-2">
-                {{ depute.statistiques.nb_propositions }}
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+                {{ adresse.type }}
               </div>
-              <div class="text-gray-700 dark:text-gray-300 font-medium">
-                Propositions de loi déposées
+              <div class="text-sm text-gray-900 dark:text-gray-100">
+                <div v-if="adresse.intitule">{{ adresse.intitule }}</div>
+                <div v-if="adresse.valeur">{{ adresse.valeur }}</div>
+                <div v-if="adresse.numero_rue || adresse.nom_rue">
+                  {{ adresse.numero_rue }} {{ adresse.nom_rue }}
+                </div>
+                <div v-if="adresse.code_postal || adresse.ville">
+                  {{ adresse.code_postal }} {{ adresse.ville }}
+                </div>
               </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Textes législatifs initiés
-              </p>
-            </div>
-            <div class="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl">
-              <div class="text-5xl font-bold text-green-600 mb-2">
-                {{ depute.statistiques.nb_amendements }}
-              </div>
-              <div class="text-gray-700 dark:text-gray-300 font-medium">
-                Amendements déposés
-              </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Modifications proposées
-              </p>
-            </div>
-            <div class="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl">
-              <div class="text-5xl font-bold text-purple-600 mb-2">
-                {{ depute.statistiques.taux_presence }}%
-              </div>
-              <div class="text-gray-700 dark:text-gray-300 font-medium">
-                Taux de présence
-              </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Participation aux séances
-              </p>
             </div>
           </div>
         </Card>
@@ -246,4 +255,3 @@ defineProps({
     </div>
   </AuthenticatedLayout>
 </template>
-

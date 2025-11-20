@@ -188,12 +188,6 @@ const siegesParGroupe = computed(() => {
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     Circonscription
                   </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Profession
-                  </th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Stats
-                  </th>
                   <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     Actions
                   </th>
@@ -223,47 +217,29 @@ const siegesParGroupe = computed(() => {
                           {{ senateur.nom_complet }}
                         </div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                          {{ senateur.civilite }}
+                          {{ senateur.profession || 'Profession non renseignée' }}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td class="px-4 py-4">
                     <Badge
-                      v-if="senateur.groupe_sigle"
+                      v-if="senateur.groupe"
                       :style="{ 
-                        backgroundColor: props.groupes.find(g => g.sigle === senateur.groupe_sigle)?.couleur_hex || '#6B7280',
+                        backgroundColor: senateur.groupe.couleur || '#6B7280',
                         color: '#fff'
                       }"
                     >
-                      {{ senateur.groupe_sigle }}
+                      {{ senateur.groupe.nom }}
                     </Badge>
+                    <span v-else class="text-gray-500 dark:text-gray-400 text-sm">Non inscrit</span>
                   </td>
                   <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
                     {{ senateur.circonscription }}
                   </td>
-                  <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                    {{ senateur.profession || '-' }}
-                  </td>
-                  <td class="px-4 py-4">
-                    <div class="flex gap-3 justify-center text-xs">
-                      <div class="text-center">
-                        <div class="font-bold text-blue-600">{{ senateur.nb_propositions }}</div>
-                        <div class="text-gray-500">Prop.</div>
-                      </div>
-                      <div class="text-center">
-                        <div class="font-bold text-green-600">{{ senateur.nb_amendements }}</div>
-                        <div class="text-gray-500">Amend.</div>
-                      </div>
-                      <div class="text-center">
-                        <div class="font-bold text-purple-600">{{ senateur.taux_presence }}%</div>
-                        <div class="text-gray-500">Prés.</div>
-                      </div>
-                    </div>
-                  </td>
                   <td class="px-4 py-4 text-right">
                     <Link
-                      :href="route('representants.senateurs.show', senateur.id)"
+                      :href="route('representants.senateurs.show', senateur.matricule)"
                       class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
                     >
                       Voir la fiche

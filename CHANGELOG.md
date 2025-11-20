@@ -4,6 +4,218 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2025-11-20] - Pages Détaillées Députés/Sénateurs + Navigation Complète
+
+### 🎯 **OBJECTIF : Améliorer les vues avec nouvelles données + Pages dédiées**
+
+**Durée totale :** ~2h  
+**Livrables :** 10 fichiers créés/modifiés
+
+---
+
+### ✨ **NOUVELLES FONCTIONNALITÉS**
+
+#### **Vues Députés Améliorées (4 pages)**
+
+**1. Index.vue - Liste des députés**
+- ✅ Affichage lien Wikipedia (icône 📖 cliquable)
+- ✅ Remplacement colonne "Civilité" par "Profession"
+- ✅ Remplacement colonne "Circonscription" par "Trigramme"
+- ✅ Suppression anciennes statistiques (nb_propositions, nb_amendements)
+- ✅ Utilisation `depute.uid` au lieu de `depute.id`
+- ✅ Support groupes avec objet complet
+
+**2. Show.vue - Fiche détaillée**
+- ✅ Section Wikipedia (URL + Photo + Extrait biographique)
+- ✅ Lien HATVP (déclaration patrimoine)
+- ✅ Trigramme affiché en badge
+- ✅ Âge + Lieu de naissance
+- ✅ Catégorie socio-professionnelle
+- ✅ Statistiques L17 (votes, amendements, taux adoption)
+- ✅ Historique mandats (avec statut actif/inactif)
+- ✅ Commissions actuelles
+- ✅ Section contacts/adresses (emails, permanences)
+- ✅ **Navigation vers 3 pages dédiées :**
+  - 🗳️ Votes
+  - 📝 Amendements
+  - 📊 Activité
+
+**3. Votes.vue - Historique votes (NOUVEAU)**
+- ✅ Liste paginée de tous les votes du député
+- ✅ Filtres : recherche + type (pour/contre/abstention)
+- ✅ Statistiques : total, pour/contre/abstention (%)
+- ✅ Détails scrutin : titre, objet, résultats
+- ✅ Lien vers page scrutin
+- ✅ Icônes colorés (✅❌⚠️⭕)
+
+**4. Amendements.vue - Amendements déposés (NOUVEAU)**
+- ✅ Liste paginée de tous les amendements
+- ✅ Filtres : recherche + sort (adopté/rejeté/retiré/récent)
+- ✅ Statistiques : total, adoptés/rejetés/retirés, taux adoption
+- ✅ Détails : numéro, dispositif, co-signataires
+- ✅ Lien vers dossier/texte législatif
+- ✅ Lien vers page amendement
+
+**5. Activite.vue - Dashboard activité (NOUVEAU)**
+- ✅ **Graphiques statistiques :**
+  - Répartition votes (pour/contre/abstention) - Barres de progression
+  - Répartition amendements (adoptés/rejetés) - Barres de progression
+  - Discipline de groupe - Graphique circulaire
+- ✅ **Activité mensuelle (12 mois)** - Histogramme interactif
+- ✅ **Derniers votes (5)** - Aperçu avec liens
+- ✅ **Derniers amendements (5)** - Aperçu avec liens
+
+#### **Vues Sénateurs Améliorées (2 pages)**
+
+**1. Index.vue - Liste des sénateurs**
+- ✅ Remplacement colonne "Civilité" par "Profession"
+- ✅ Suppression anciennes statistiques (non disponibles)
+- ✅ Support groupes avec objet complet
+- ✅ Utilisation `senateur.matricule` au lieu de `senateur.id`
+
+**2. Show.vue - Fiche détaillée**
+- ✅ Badge statut (ACTIF/INACTIF)
+- ✅ Âge + Lieu de naissance
+- ✅ Commission permanente
+- ✅ Contacts (email, téléphone) - Liens cliquables
+- ✅ Historique mandats (avec numéro)
+- ✅ Historique commissions (avec fonction)
+- ✅ Historique groupes parlementaires
+- ✅ Adresse postale
+
+---
+
+### 🔧 **MODIFICATIONS TECHNIQUES**
+
+#### **Controller (`RepresentantANController`)**
+
+**Méthodes ajoutées (3)**
+- `deputeVotes()` - Récupère votes paginés + statistiques
+- `deputeAmendements()` - Récupère amendements paginés + statistiques
+- `deputeActivite()` - Récupère données dashboard (graphiques + derniers)
+
+**Helper ajouté**
+- `formatDeputeBasic()` - Format minimal pour sous-pages
+
+**Améliorations existantes**
+- `deputes()` - Données enrichies (Wikipedia, trigramme)
+- `showDepute()` - Statistiques L17, mandats, commissions
+- `senateurs()` - Format amélioré
+- `showSenateur()` - Historique complet
+
+#### **Routes (`web.php`)**
+
+**Routes ajoutées (3)**
+```php
+Route::get('/deputes/{uid}/votes', [..., 'deputeVotes'])->name('deputes.votes');
+Route::get('/deputes/{uid}/amendements', [..., 'deputeAmendements'])->name('deputes.amendements');
+Route::get('/deputes/{uid}/activite', [..., 'deputeActivite'])->name('deputes.activite');
+```
+
+**Ordre critique** : Routes spécifiques AVANT `/deputes/{uid}` pour éviter conflits
+
+---
+
+### 📊 **DONNÉES AFFICHÉES**
+
+#### **Députés**
+- **Profil** : Nom, photo (Wikipedia), trigramme, âge, lieu naissance, profession, CSP
+- **Wikipedia** : URL, photo HQ, extrait biographique
+- **Transparence** : HATVP (déclaration patrimoine)
+- **Mandats** : Historique complet (type, organe, dates, actif)
+- **Commissions** : Actuelles (nom, sigle)
+- **Contacts** : Emails, permanences, téléphones (JSON adresses)
+- **Statistiques L17** :
+  - Votes : total, pour/contre/abstention (%)
+  - Amendements : total, adoptés/rejetés, taux adoption
+  - Activité mensuelle (12 mois)
+  - Discipline de groupe (approximation)
+
+#### **Sénateurs**
+- **Profil** : Nom, photo, âge, lieu naissance, profession
+- **Statut** : ACTIF/INACTIF
+- **Circonscription** : Département/Territoire
+- **Groupe** : Groupe politique actuel
+- **Commission** : Commission permanente
+- **Mandats** : Historique complet (type, dates, numéro)
+- **Commissions** : Historique complet (dates, fonction)
+- **Groupes** : Historique changements de groupe
+- **Contacts** : Email, téléphone, adresse postale
+
+---
+
+### 🎨 **EXPÉRIENCE UTILISATEUR**
+
+#### **Navigation fluide**
+- Breadcrumb sur toutes les pages
+- Liens entre pages (Index → Show → Votes/Amendements/Activité)
+- Retour facile vers liste ou fiche principale
+
+#### **Filtres et recherche**
+- Recherche textuelle (nom, prénom, circonscription)
+- Filtrage par groupe parlementaire
+- Filtrage par type de vote/amendement
+- Tri personnalisé
+
+#### **Design moderne**
+- Headers colorés (Assemblée bleu, Sénat rouge)
+- Badges colorés par statut (pour/contre, adopté/rejeté)
+- Icônes intuitives (🗳️📝📊🏛️📧📞)
+- Dark mode complet
+- Graphiques visuels (barres, cercle, histogramme)
+
+#### **Performance**
+- Pagination (30 par page)
+- Préservation scroll et state
+- Lazy loading des relations
+- Filtres sans rechargement complet
+
+---
+
+### 📁 **FICHIERS MODIFIÉS/CRÉÉS**
+
+**Vues Vue.js (7)**
+- ✅ `resources/js/Pages/Representants/Deputes/Index.vue` (modifié)
+- ✅ `resources/js/Pages/Representants/Deputes/Show.vue` (remplacé)
+- 🆕 `resources/js/Pages/Representants/Deputes/Votes.vue` (créé)
+- 🆕 `resources/js/Pages/Representants/Deputes/Amendements.vue` (créé)
+- 🆕 `resources/js/Pages/Representants/Deputes/Activite.vue` (créé)
+- ✅ `resources/js/Pages/Representants/Senateurs/Index.vue` (modifié)
+- ✅ `resources/js/Pages/Representants/Senateurs/Show.vue` (remplacé)
+
+**Backend (2)**
+- ✅ `app/Http/Controllers/Web/RepresentantANController.php` (3 méthodes + helper)
+- ✅ `routes/web.php` (3 routes)
+
+**Documentation (1)**
+- ✅ `CHANGELOG.md` (cette entrée)
+
+---
+
+### 🚀 **POINTS FORTS**
+
+1. **Données enrichies** : Wikipedia + HATVP + Mandats + Commissions
+2. **Navigation complète** : 5 pages pour chaque député (Index, Show, Votes, Amendements, Activité)
+3. **Visualisations** : Graphiques barres + cercle + histogramme
+4. **Filtres avancés** : Recherche + Type + Groupe
+5. **Responsive** : Mobile-friendly
+6. **Dark mode** : Support complet
+7. **Performance** : Pagination + lazy loading
+
+---
+
+### 📝 **TODO FUTUR**
+
+- [ ] Ajouter pages votes/amendements/activité pour **sénateurs** (quand données disponibles)
+- [ ] Calcul réel de la **discipline de groupe** (votes rebelles)
+- [ ] **Comparaison** entre députés (2 profils côte à côte)
+- [ ] **Export PDF** des fiches (rapport d'activité)
+- [ ] **Graphiques Chart.js** plus avancés (tendances, corrélations)
+- [ ] **Notifications** changements groupe/commission
+- [ ] **Mapping couleurs** groupes parlementaires (actuellement #6B7280)
+
+---
+
 ## [2025-11-20] - Enrichissement Wikipedia + API v1
 
 ### 🎯 **OBJECTIF : Ajouter données Wikipedia + Exposer API v1**
@@ -47,6 +259,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 - ✅ Photo Wikipedia (haute qualité)
 - ✅ Extrait biographique (premier paragraphe)
 - ✅ Timestamp de synchronisation
+
 
 #### **API REST v1**
 

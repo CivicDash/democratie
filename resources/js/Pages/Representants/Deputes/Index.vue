@@ -143,13 +143,7 @@ const siegesParGroupe = computed(() => {
                     Groupe
                   </th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Circonscription
-                  </th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Profession
-                  </th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Stats
+                    Trigramme
                   </th>
                   <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     Actions
@@ -176,51 +170,42 @@ const siegesParGroupe = computed(() => {
                         </div>
                       </div>
                       <div>
-                        <div class="font-semibold text-gray-900 dark:text-gray-100">
+                        <div class="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                           {{ depute.nom_complet }}
+                          <a
+                            v-if="depute.wikipedia_url"
+                            :href="depute.wikipedia_url"
+                            target="_blank"
+                            class="text-blue-500 hover:text-blue-700"
+                            title="Voir sur Wikipedia"
+                          >
+                            📖
+                          </a>
                         </div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                          {{ depute.civilite }}
+                          {{ depute.profession || 'Profession non renseignée' }}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td class="px-4 py-4">
                     <Badge
-                      v-if="depute.groupe_sigle"
+                      v-if="depute.groupe"
                       :style="{ 
-                        backgroundColor: props.groupes.find(g => g.sigle === depute.groupe_sigle)?.couleur_hex || '#6B7280',
+                        backgroundColor: depute.groupe.couleur || '#6B7280',
                         color: '#fff'
                       }"
                     >
-                      {{ depute.groupe_sigle }}
+                      {{ depute.groupe.sigle }}
                     </Badge>
+                    <span v-else class="text-gray-500 dark:text-gray-400 text-sm">Non inscrit</span>
                   </td>
                   <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                    {{ depute.circonscription }}
-                  </td>
-                  <td class="px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
-                    {{ depute.profession || '-' }}
-                  </td>
-                  <td class="px-4 py-4">
-                    <div class="flex gap-3 justify-center text-xs">
-                      <div class="text-center">
-                        <div class="font-bold text-blue-600">{{ depute.nb_propositions }}</div>
-                        <div class="text-gray-500">Prop.</div>
-                      </div>
-                      <div class="text-center">
-                        <div class="font-bold text-green-600">{{ depute.nb_amendements }}</div>
-                        <div class="text-gray-500">Amend.</div>
-                      </div>
-                      <div class="text-center">
-                        <div class="font-bold text-purple-600">{{ depute.taux_presence }}%</div>
-                        <div class="text-gray-500">Prés.</div>
-                      </div>
-                    </div>
+                    {{ depute.trigramme || '-' }}
                   </td>
                   <td class="px-4 py-4 text-right">
                     <Link
-                      :href="route('representants.deputes.show', depute.id)"
+                      :href="route('representants.deputes.show', depute.uid)"
                       class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
                     >
                       Voir la fiche
