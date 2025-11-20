@@ -112,7 +112,7 @@ class RepresentantANController extends Controller
         ])->findOrFail($uid);
 
         $groupeActuel = $acteur->groupe_politique_actuel;
-        $commissionsActuelles = $acteur->commissions_actuelles;
+        $commissionsActuelles = $acteur->commissions_actuelles->filter();
 
         // Statistiques d'activité (L17)
         $stats = [
