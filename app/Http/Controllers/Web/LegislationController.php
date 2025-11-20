@@ -322,26 +322,31 @@ class LegislationController extends Controller
      */
     public function showScrutin(string $uid): Response
     {
-        $scrutin = ScrutinAN::with(['votesIndividuels.acteur'])
-            ->findOrFail($uid);
-
+        $scrutin = ScrutinAN::findOrFail($uid);
         $groupeService = app(GroupeParlementaireService::class);
 
+        // Récupérer TOUS les votes individuels
+        $allVotes = VoteIndividuelAN::where('scrutin_ref', $uid)
+            ->with(['acteur', 'groupe'])
+            ->get();
+
+        // Calculer les totaux réels depuis les votes individuels
+        $totalPour = $allVotes->where('position', 'pour')->count();
+        $totalContre = $allVotes->where('position', 'contre')->count();
+        $totalAbstention = $allVotes->where('position', 'abstention')->count();
+        $totalVotants = $allVotes->count();
+
         // Votes par groupe
-        $votesParGroupe = VoteIndividuelAN::where('scrutin_ref', $uid)
-            ->with(['acteur.mandats.organe'])
-            ->get()
-            ->groupBy(function ($vote) {
-                return $vote->acteur->groupe_politique_actuel?->uid ?? 'NI';
-            })
-            ->map(function ($votes, $groupeUid) use ($groupeService) {
-                $groupe = $votes->first()->acteur->groupe_politique_actuel;
-                $sigle = $groupe?->libelle_abrege ?? 'NI';
+        $votesParGroupe = $allVotes
+            ->groupBy('groupe_ref')
+            ->map(function ($votes, $groupeRef) use ($groupeService) {
+                $groupe = $votes->first()->groupe;
+                $sigle = $groupe?->libelleAbrev ?? 'NI';
                 
                 return [
                     'sigle' => $sigle,
                     'nom' => $groupe?->libelle ?? 'Non-inscrits',
-                    'couleur' => $groupeService->getCouleurGroupe($sigle),
+                    'couleur' => $groupeService->getColor($sigle),
                     'total_votes' => $votes->count(),
                     'pour' => $votes->where('position', 'pour')->count(),
                     'contre' => $votes->where('position', 'contre')->count(),
@@ -350,17 +355,13 @@ class LegislationController extends Controller
             })
             ->values();
 
-        // Députés ayant voté (limité à 50 pour performance)
-        $deputesAyantVote = VoteIndividuelAN::where('scrutin_ref', $uid)
-            ->with('acteur')
-            ->limit(50)
-            ->get()
-            ->map(fn($vote) => [
-                'uid' => $vote->acteur->uid,
-                'nom_complet' => $vote->acteur->nom_complet,
-                'photo_url' => $vote->acteur->photo_wikipedia_url,
-                'position' => $vote->position,
-            ]);
+        // TOUS les députés ayant voté (pas de limite)
+        $deputesAyantVote = $allVotes->map(fn($vote) => [
+            'uid' => $vote->acteur->uid,
+            'nom_complet' => $vote->acteur->prenom . ' ' . $vote->acteur->nom,
+            'photo_url' => $vote->acteur->photo_url,
+            'position' => $vote->position,
+        ]);
 
         return Inertia::render('Legislation/ScrutinShow', [
             'scrutin' => [
@@ -370,24 +371,26 @@ class LegislationController extends Controller
                 'objet' => $scrutin->objet,
                 'date' => $scrutin->date_scrutin?->format('d/m/Y'),
                 'moment_scrutin' => $scrutin->moment_scrutin,
-                'nombre_pour' => $scrutin->pour,
-                'nombre_contre' => $scrutin->contre,
-                'nombre_abstention' => $scrutin->abstentions,
-                'nombre_votants' => $scrutin->nombre_votants,
-                'suffrages_exprimes' => $scrutin->suffrages_exprimes,
+                // Utiliser les totaux calculés depuis les votes individuels
+                'nombre_pour' => $totalPour,
+                'nombre_contre' => $totalContre,
+                'nombre_abstention' => $totalAbstention,
+                'nombre_votants' => $totalVotants,
+                'suffrages_exprimes' => $totalPour + $totalContre,
                 'legislature' => $scrutin->legislature,
+                'resultat_libelle' => $scrutin->resultat_libelle,
                 // Pourcentages
-                'pour_percent' => $scrutin->nombre_votants > 0 
-                    ? round(($scrutin->pour / $scrutin->nombre_votants) * 100, 1) 
+                'pour_percent' => $totalVotants > 0 
+                    ? round(($totalPour / $totalVotants) * 100, 1) 
                     : 0,
-                'contre_percent' => $scrutin->nombre_votants > 0 
-                    ? round(($scrutin->contre / $scrutin->nombre_votants) * 100, 1) 
+                'contre_percent' => $totalVotants > 0 
+                    ? round(($totalContre / $totalVotants) * 100, 1) 
                     : 0,
-                'abstention_percent' => $scrutin->nombre_votants > 0 
-                    ? round(($scrutin->abstentions / $scrutin->nombre_votants) * 100, 1) 
+                'abstention_percent' => $totalVotants > 0 
+                    ? round(($totalAbstention / $totalVotants) * 100, 1) 
                     : 0,
-                'participation_percent' => $scrutin->nombre_votants > 0 
-                    ? round(($scrutin->nombre_votants / 577) * 100, 1) // 577 députés
+                'participation_percent' => $totalVotants > 0 
+                    ? round(($totalVotants / 577) * 100, 1) // 577 députés
                     : 0,
             ],
             'votes_par_groupe' => $votesParGroupe,
