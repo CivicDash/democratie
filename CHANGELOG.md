@@ -4,6 +4,199 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2025-11-20] - Enrichissement Wikipedia + API v1
+
+### 🎯 **OBJECTIF : Ajouter données Wikipedia + Exposer API v1**
+
+**Durée totale :** ~3h  
+**Livrables :** 11 fichiers créés/modifiés
+
+---
+
+### ✨ **NOUVELLES FONCTIONNALITÉS**
+
+#### **Enrichissement Wikipedia (Députés AN)**
+
+**Migration (1)**
+- `2025_11_20_091128_add_wikipedia_fields_to_acteurs_an_table.php` - Colonnes Wikipedia
+
+**Service (1)**
+- `WikipediaService` - Parsing HTML + API MediaWiki REST
+  - Parsing tableau Wikipedia L17 (577 députés)
+  - Matching intelligent (Levenshtein, seuil 80%)
+  - API REST MediaWiki pour photos et extraits
+  - Normalisation des noms (accents, minuscules)
+
+**Commande Artisan (1)**
+- `import:deputes-wikipedia` - Import données Wikipedia
+  - Options : `--legislature`, `--limit`, `--force`, `--dry-run`
+  - Matching automatique avec base de données
+  - Statistiques détaillées (taux match, photos)
+  - Rate limiting (100ms entre requêtes)
+
+**Script Shell (1)**
+- `scripts/import_wikipedia_deputes.sh` - Menu interactif
+  - Mode TEST (10 députés, dry-run)
+  - Mode SIMULATION (tous, dry-run)
+  - Mode IMPORT COMPLET
+  - Mode RÉIMPORT FORCÉ
+  - Mode LIMITÉ (personnalisé)
+
+**Données récupérées :**
+- ✅ URL Wikipedia (page biographique)
+- ✅ Photo Wikipedia (haute qualité)
+- ✅ Extrait biographique (premier paragraphe)
+- ✅ Timestamp de synchronisation
+
+#### **API REST v1**
+
+**Controllers (4)**
+- `ActeursANController` - 5 endpoints députés
+- `ScrutinsANController` - 4 endpoints scrutins
+- `AmendementsANController` - 3 endpoints amendements
+- `SenateursController` - 6 endpoints sénateurs
+
+**Routes (1)**
+- Préfixe `/api/v1/` pour versioning
+- 18 endpoints RESTful publics
+- Filtres avancés (dates, recherche full-text, législature)
+- Pagination (max 100 par page)
+
+**Documentation (1)**
+- `API_DOCUMENTATION_V1.md` (850+ lignes)
+- Tous les endpoints documentés
+- Exemples cURL, JavaScript, Python
+- Codes d'erreur
+- Limites et performances
+
+---
+
+### 🔧 **AMÉLIORATIONS TECHNIQUES**
+
+#### **Modèles**
+- `ActeurAN` : Ajout colonnes Wikipedia (fillable + casts)
+- Exposition données Wikipedia dans API show
+
+#### **Services**
+- `WikipediaService` réutilisable pour autres entités (sénateurs)
+- Gestion d'erreurs robuste (try-catch, logs)
+- User-Agent personnalisé : `CivicDash/1.0`
+
+#### **API**
+- Filtres : nom, prénom, search, dates, législature, état
+- Recherche full-text PostgreSQL (GIN index)
+- Relations Eloquent optionnelles (`with_mandats`, `with_groupe`)
+- Statistiques agrégées (taux participation, adoption)
+- Tri personnalisable (`sort_by`, `sort_order`)
+
+---
+
+### 📊 **ENDPOINTS API V1**
+
+#### **Acteurs AN**
+```
+GET /api/v1/acteurs                    # Liste avec filtres
+GET /api/v1/acteurs/{uid}              # Détails + Wikipedia
+GET /api/v1/acteurs/{uid}/votes        # Historique votes
+GET /api/v1/acteurs/{uid}/amendements  # Amendements déposés
+GET /api/v1/acteurs/{uid}/stats        # Statistiques activité
+```
+
+#### **Scrutins AN**
+```
+GET /api/v1/scrutins                      # Liste avec filtres
+GET /api/v1/scrutins/{uid}                # Détails
+GET /api/v1/scrutins/{uid}/votes          # Votes individuels
+GET /api/v1/scrutins/{uid}/stats-par-groupe  # Stats par groupe
+```
+
+#### **Amendements AN**
+```
+GET /api/v1/amendements          # Liste avec filtres
+GET /api/v1/amendements/stats    # Statistiques générales
+GET /api/v1/amendements/{uid}    # Détails
+```
+
+#### **Sénateurs**
+```
+GET /api/v1/senateurs                      # Liste avec filtres
+GET /api/v1/senateurs/stats                # Statistiques générales
+GET /api/v1/senateurs/{matricule}          # Détails
+GET /api/v1/senateurs/{matricule}/mandats     # Mandats
+GET /api/v1/senateurs/{matricule}/commissions # Commissions
+GET /api/v1/senateurs/{matricule}/groupes     # Historique groupes
+```
+
+---
+
+### 📚 **DOCUMENTATION**
+
+**Nouvelles documentations (2)**
+- `API_DOCUMENTATION_V1.md` (850 lignes) - Référence API complète
+- `WIKIPEDIA_ENRICHMENT.md` (450 lignes) - Guide enrichissement Wikipedia
+
+---
+
+### 🚀 **UTILISATION**
+
+#### **Import Wikipedia**
+```bash
+# Test rapide
+bash scripts/import_wikipedia_deputes.sh
+# Choisir : 1) TEST
+
+# Import complet
+bash scripts/import_wikipedia_deputes.sh
+# Choisir : 3) IMPORT COMPLET
+
+# Mise à jour forcée
+docker compose exec app php artisan import:deputes-wikipedia --force
+```
+
+#### **Exemples API**
+```bash
+# Rechercher un député
+curl "https://demo.objectif2027.fr/api/v1/acteurs?search=David&deputes_only=true"
+
+# Statistiques d'activité
+curl "https://demo.objectif2027.fr/api/v1/acteurs/PA1008/stats?legislature=17"
+
+# Scrutins adoptés en 2024
+curl "https://demo.objectif2027.fr/api/v1/scrutins?legislature=17&date_min=2024-01-01&adoptes_only=true"
+
+# Amendements sur le climat
+curl "https://demo.objectif2027.fr/api/v1/amendements?legislature=17&search=climat&adoptes_only=true"
+```
+
+---
+
+### ⚠️ **NOTES IMPORTANTES**
+
+#### **Wikipedia**
+- **Taux de match attendu** : ~95% (550/577 députés)
+- **Rate limiting** : 200 req/s max (API Wikipedia)
+- **Délai** : 100ms entre requêtes (configurable)
+- **Maintenance** : Réimport mensuel recommandé
+
+#### **API**
+- **Pagination obligatoire** : max 100 résultats/page (200 pour votes)
+- **Pas de cache** : données temps réel (à implémenter)
+- **Pas de rate limiting** : à implémenter en production
+- **CORS** : À configurer selon besoins frontend
+
+---
+
+### 🎯 **PROCHAINES ÉTAPES**
+
+- [ ] Tests unitaires (Services + Controllers)
+- [ ] Cache Redis (TTL 1h)
+- [ ] Rate limiting (100 req/min)
+- [ ] Enrichissement Wikipedia pour sénateurs
+- [ ] Webhooks pour nouveaux scrutins
+- [ ] Export CSV/PDF
+
+---
+
 ## [2025-11-18] - Session Implémentation AN + Sénat
 
 ### 🎯 **OBJECTIF : Import complet données parlementaires (Option C)**

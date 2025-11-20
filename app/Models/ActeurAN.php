@@ -28,11 +28,16 @@ class ActeurAN extends Model
         'profession',
         'categorie_socio_pro',
         'url_hatvp',
+        'wikipedia_url',
+        'photo_wikipedia_url',
+        'wikipedia_extract',
+        'wikipedia_last_sync',
         'adresses',
     ];
 
     protected $casts = [
         'date_naissance' => 'date',
+        'wikipedia_last_sync' => 'datetime',
         'adresses' => 'array',
     ];
 

@@ -79,6 +79,12 @@ class ActeursANController extends Controller
             'data' => $acteur,
             'groupe_actuel' => $acteur->groupe_politique_actuel,
             'commissions_actuelles' => $acteur->commissions_actuelles,
+            'wikipedia' => [
+                'url' => $acteur->wikipedia_url,
+                'photo_url' => $acteur->photo_wikipedia_url,
+                'extract' => $acteur->wikipedia_extract,
+                'last_sync' => $acteur->wikipedia_last_sync?->format('Y-m-d H:i:s'),
+            ],
         ]);
     }
 
