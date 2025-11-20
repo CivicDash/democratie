@@ -248,13 +248,13 @@ class ImportAmendementsAN extends Command
                 'date_depot' => $this->parseDate($cycleDeVie['dateDepot'] ?? null),
                 'date_publication' => $this->parseDate($cycleDeVie['datePublication'] ?? null),
                 'soumis_article_40' => (bool)($cycleDeVie['soumisArticle40'] ?? false),
-                'etat_code' => $this->extractText($cycleDeVie['etat'] ?? null),
-                'etat_libelle' => $this->extractText($cycleDeVie['etatLibelle'] ?? null),
-                'sous_etat_code' => $this->extractText($cycleDeVie['sousEtat'] ?? null),
-                'sous_etat_libelle' => $this->extractText($cycleDeVie['sousEtatLibelle'] ?? null),
+                'etat_code' => $this->extractStateCode($cycleDeVie['etatDesTraitements']['etat'] ?? null),
+                'etat_libelle' => $this->extractStateLibelle($cycleDeVie['etatDesTraitements']['etat'] ?? null),
+                'sous_etat_code' => $this->extractStateCode($cycleDeVie['etatDesTraitements']['sousEtat'] ?? null),
+                'sous_etat_libelle' => $this->extractStateLibelle($cycleDeVie['etatDesTraitements']['sousEtat'] ?? null),
                 'date_sort' => $this->parseDate($cycleDeVie['dateSort'] ?? null),
-                'sort_code' => $this->extractText($cycleDeVie['sort'] ?? null),
-                'sort_libelle' => $this->extractText($cycleDeVie['sortLibelle'] ?? null),
+                'sort_code' => $this->extractSortCode($cycleDeVie['sort'] ?? null),
+                'sort_libelle' => $this->extractSortLibelle($cycleDeVie['sort'] ?? null),
             ]
         );
 
@@ -375,6 +375,114 @@ class ImportAmendementsAN extends Command
 
         // Autres types : convertir en string
         return (string) $value;
+    }
+
+    /**
+     * Extrait le code d'état depuis etatDesTraitements.etat
+     * Format: {"code": "AC", "libelle": "A discuter"} OU string directe
+     */
+    private function extractStateCode($etat): ?string
+    {
+        if (is_null($etat)) {
+            return null;
+        }
+
+        // Si c'est un array avec "code"
+        if (is_array($etat) && isset($etat['code'])) {
+            return $etat['code'];
+        }
+
+        // Si c'est une string directe
+        if (is_string($etat)) {
+            return $etat;
+        }
+
+        return null;
+    }
+
+    /**
+     * Extrait le libellé d'état depuis etatDesTraitements.etat
+     */
+    private function extractStateLibelle($etat): ?string
+    {
+        if (is_null($etat)) {
+            return null;
+        }
+
+        // Si c'est un array avec "libelle"
+        if (is_array($etat) && isset($etat['libelle'])) {
+            return $etat['libelle'];
+        }
+
+        // Si c'est une string directe, la retourner
+        if (is_string($etat)) {
+            return $etat;
+        }
+
+        return null;
+    }
+
+    /**
+     * Extrait le code de sort depuis cycleDeVie.sort
+     * Format: "Tombé" (string) OU {"code": "REJ", "libelle": "Rejeté"}
+     */
+    private function extractSortCode($sort): ?string
+    {
+        if (is_null($sort)) {
+            return null;
+        }
+
+        // Si c'est une string directe, on mappe vers un code
+        if (is_string($sort)) {
+            return $this->mapSortLibelleToCode($sort);
+        }
+
+        // Si c'est un array avec "code"
+        if (is_array($sort) && isset($sort['code'])) {
+            return $sort['code'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Extrait le libellé de sort
+     */
+    private function extractSortLibelle($sort): ?string
+    {
+        if (is_null($sort)) {
+            return null;
+        }
+
+        // Si c'est une string directe, la retourner
+        if (is_string($sort)) {
+            return $sort;
+        }
+
+        // Si c'est un array avec "libelle"
+        if (is_array($sort) && isset($sort['libelle'])) {
+            return $sort['libelle'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Mappe un libellé de sort vers un code standard
+     */
+    private function mapSortLibelleToCode(string $libelle): string
+    {
+        $mapping = [
+            'Adopté' => 'ADO',
+            'Rejeté' => 'REJ',
+            'Tombé' => 'TOM',
+            'Retiré' => 'RET',
+            'Non soutenu' => 'NSO',
+            'Irrecevable' => 'IRR',
+            'Satisfait' => 'SAT',
+        ];
+
+        return $mapping[$libelle] ?? $libelle;
     }
 }
 
