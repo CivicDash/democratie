@@ -309,8 +309,8 @@ import_mode_test() {
     log "Test 5/9 - Votes Individuels"
     $DOCKER_CMD php artisan extract:votes-individuels-an --fresh --limit=10
     
-    log "Test 6/9 - Dossiers + Textes (10)"
-    $DOCKER_CMD php artisan import:dossiers-textes-an --fresh --limit=10
+    log "Test 6/9 - Dossiers + Textes (sans limite)"
+    $DOCKER_CMD php artisan import:dossiers-textes-an --fresh 2>&1 | head -50
     
     log "Test 7/9 - Amendements (10)"
     $DOCKER_CMD php artisan import:amendements-an --fresh --limit=10
