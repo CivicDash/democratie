@@ -6,6 +6,8 @@ import Badge from '@/Components/Badge.vue';
 
 const props = defineProps({
   dossier: Object,
+  dossierSenat: Object,
+  timeline: Array,
   textes: Array,
   scrutins: Array,
   amendements: Array,
@@ -59,6 +61,20 @@ const getEtatColor = (etat) => {
                 📜 {{ dossier.titre }}
               </h1>
 
+              <div v-if="dossier.has_dossier_senat" class="flex items-center gap-2 mb-3">
+                <Badge class="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                  🏰 Dossier bicaméral (AN + Sénat)
+                </Badge>
+                <a 
+                  v-if="dossierSenat?.url" 
+                  :href="dossierSenat.url" 
+                  target="_blank"
+                  class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                >
+                  Voir sur senat.fr ↗
+                </a>
+              </div>
+
               <p v-if="dossier.resume" class="text-gray-600 dark:text-gray-400 leading-relaxed">
                 {{ dossier.resume }}
               </p>
@@ -89,9 +105,62 @@ const getEtatColor = (etat) => {
         <!-- Timeline / Étapes du dossier -->
         <Card>
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            📅 Chronologie
+            📅 Parcours législatif {{ dossier.has_dossier_senat ? '(Assemblée Nationale & Sénat)' : '' }}
           </h2>
-          <div class="space-y-4">
+          
+          <div v-if="timeline && timeline.length > 0" class="relative">
+            <!-- Ligne verticale -->
+            <div class="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+            
+            <!-- Étapes -->
+            <div class="space-y-6">
+              <div
+                v-for="(etape, index) in timeline"
+                :key="index"
+                class="flex items-start gap-4 relative"
+              >
+                <!-- Icône -->
+                <div 
+                  class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 z-10 shadow-lg"
+                  :class="{
+                    'bg-blue-100 dark:bg-blue-900/30': etape.color === 'blue',
+                    'bg-purple-100 dark:bg-purple-900/30': etape.color === 'purple',
+                    'bg-green-100 dark:bg-green-900/30': etape.color === 'green',
+                    'bg-yellow-100 dark:bg-yellow-900/30': etape.color === 'yellow',
+                  }"
+                >
+                  <span class="text-lg">{{ etape.icon }}</span>
+                </div>
+
+                <!-- Contenu -->
+                <div class="flex-1 pt-1">
+                  <div class="flex items-center gap-3 mb-1">
+                    <Badge
+                      :class="{
+                        'bg-blue-100 text-blue-800': etape.chambre === 'AN',
+                        'bg-purple-100 text-purple-800': etape.chambre === 'Sénat',
+                        'bg-yellow-100 text-yellow-800': etape.chambre === 'République',
+                      }"
+                    >
+                      {{ etape.chambre }}
+                    </Badge>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ etape.date_display }}
+                    </span>
+                  </div>
+                  <p class="font-semibold text-gray-900 dark:text-gray-100">
+                    {{ etape.etape }}
+                  </p>
+                  <p v-if="etape.detail" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {{ etape.detail }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fallback si pas de timeline -->
+          <div v-else class="space-y-4">
             <!-- Dépôt -->
             <div class="flex items-start gap-4">
               <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">

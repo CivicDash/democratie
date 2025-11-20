@@ -10,19 +10,39 @@ class SenateurEtude extends Model
     protected $table = 'senateurs_etudes';
 
     protected $fillable = [
-        'matricule',
-        'diplome',
+        'senateur_matricule',
         'etablissement',
-        'annee_obtention',
+        'diplome',
+        'niveau',
+        'domaine',
+        'annee',
+        'details',
     ];
 
     protected $casts = [
-        'annee_obtention' => 'integer',
+        'details' => 'array',
     ];
 
+    /**
+     * Relation : Étude appartient à un sénateur
+     */
     public function senateur(): BelongsTo
     {
-        return $this->belongsTo(Senateur::class, 'matricule', 'matricule');
+        return $this->belongsTo(Senateur::class, 'senateur_matricule', 'matricule');
+    }
+
+    /**
+     * Accesseur : Libellé complet
+     */
+    public function getLibelleCompletAttribute(): string
+    {
+        $parts = array_filter([
+            $this->diplome,
+            $this->domaine,
+            $this->etablissement,
+            $this->annee ? "({$this->annee})" : null,
+        ]);
+
+        return implode(' - ', $parts) ?: 'Formation non précisée';
     }
 }
-

@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\LegislationController;
 use App\Http\Controllers\Web\RepresentantController;
+use App\Http\Controllers\Web\ParlementController;
 use App\Http\Controllers\Web\FranceStatisticsController;
 use App\Http\Controllers\Web\TagController;
 use App\Http\Controllers\ProfileController;
@@ -306,6 +307,15 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
     // Sénateurs (nouveaux - Senateur)
     Route::get('/senateurs', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurs'])->name('senateurs.index');
     Route::get('/senateurs/{matricule}', [App\Http\Controllers\Web\RepresentantANController::class, 'showSenateur'])->name('senateurs.show');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Parlement (Comparaisons & Stats globales)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('parlement')->name('parlement.')->group(function () {
+    Route::get('/comparaison', [ParlementController::class, 'comparaison'])->name('comparaison');
 });
 
 /*

@@ -578,6 +578,10 @@ class RepresentantANController extends Controller
             'historiqueGroupes' => function($query) {
                 $query->orderBy('date_debut', 'desc');
             },
+            'mandatsLocaux' => function($query) {
+                $query->orderBy('date_debut', 'desc');
+            },
+            'etudes',
         ])->findOrFail($matricule);
 
         return Inertia::render('Representants/Senateurs/Show', [
@@ -618,6 +622,21 @@ class RepresentantANController extends Controller
                     'groupe' => $g->groupe_politique,
                     'date_debut' => $g->date_debut?->format('d/m/Y'),
                     'date_fin' => $g->date_fin?->format('d/m/Y'),
+                ])->toArray(),
+                'mandats_locaux' => $senateur->mandatsLocaux->map(fn($m) => [
+                    'type_mandat' => $m->type_mandat,
+                    'fonction' => $m->fonction,
+                    'collectivite' => $m->collectivite,
+                    'code_collectivite' => $m->code_collectivite,
+                    'periode' => $m->periode,
+                    'en_cours' => $m->en_cours,
+                ])->toArray(),
+                'etudes' => $senateur->etudes->map(fn($e) => [
+                    'etablissement' => $e->etablissement,
+                    'diplome' => $e->diplome,
+                    'niveau' => $e->niveau,
+                    'domaine' => $e->domaine,
+                    'annee' => $e->annee,
                 ])->toArray(),
                 'email' => $senateur->email,
                 'telephone' => $senateur->telephone,

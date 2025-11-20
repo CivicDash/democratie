@@ -59,7 +59,17 @@ class Senateur extends Model
 
     public function etudes(): HasMany
     {
-        return $this->hasMany(SenateurEtude::class, 'matricule', 'matricule');
+        return $this->hasMany(SenateurEtude::class, 'senateur_matricule', 'matricule');
+    }
+
+    public function mandatsLocaux(): HasMany
+    {
+        return $this->hasMany(SenateurMandatLocal::class, 'senateur_matricule', 'matricule');
+    }
+
+    public function votesSenat(): HasMany
+    {
+        return $this->hasMany(VoteSenat::class, 'senateur_matricule', 'matricule');
     }
 
     /**
@@ -110,6 +120,20 @@ class Senateur extends Model
         return $this->mandats()
             ->whereNull('date_fin')
             ->get();
+    }
+
+    public function getMandatsLocauxActifsAttribute()
+    {
+        return $this->mandatsLocaux()
+            ->where('en_cours', true)
+            ->get();
+    }
+
+    public function getMandatsLocauxParTypeAttribute()
+    {
+        return $this->mandatsLocaux()
+            ->get()
+            ->groupBy('type_mandat');
     }
 }
 

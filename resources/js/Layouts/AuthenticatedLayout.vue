@@ -161,6 +161,10 @@ const toggleDarkMode = () => {
                                             <DropdownLink :href="route('representants.regions')">
                                                 📍 Par région
                                             </DropdownLink>
+                                            <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                                            <DropdownLink :href="route('parlement.comparaison')">
+                                                ⚖️ AN vs Sénat
+                                            </DropdownLink>
                                         </template>
                                     </Dropdown>
                                 </div>
@@ -406,28 +410,34 @@ const toggleDarkMode = () => {
                         
                         <!-- Législation -->
                         <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            🏛️ Législation
+                            📋 Législation
                         </div>
+                        <ResponsiveNavLink
+                            :href="route('legislation.scrutins.index')"
+                            :active="route().current('legislation.scrutins.*')"
+                        >
+                            🗳️ Scrutins
+                        </ResponsiveNavLink>
                         <ResponsiveNavLink
                             :href="route('legislation.index')"
                             :active="route().current('legislation.index')"
                         >
-                            📜 Propositions de Loi
+                            📜 Dossiers législatifs
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('tags.index')"
+                            :active="route().current('tags.*')"
+                        >
+                            🏷️ Explorer par thème
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             :href="route('legislation.groupes.index')"
                             :active="route().current('legislation.groupes.*')"
                         >
-                            🏛️ Groupes Parlementaires
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('legislation.thematiques.index')"
-                            :active="route().current('legislation.thematiques.*')"
-                        >
-                            🎯 Thématiques
+                            🎨 Groupes
                         </ResponsiveNavLink>
                         
-                        <!-- Parlement (nouveau) -->
+                        <!-- Parlement -->
                         <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             🏛️ Parlement
                         </div>
@@ -441,18 +451,53 @@ const toggleDarkMode = () => {
                             :href="route('representants.deputes.index')"
                             :active="route().current('representants.deputes.*')"
                         >
-                            👔 Députés (577)
+                            👥 Députés
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             :href="route('representants.senateurs.index')"
                             :active="route().current('representants.senateurs.*')"
                         >
-                            🎩 Sénateurs (348)
+                            🏰 Sénateurs
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('representants.regions')"
+                            :active="route().current('representants.regions')"
+                        >
+                            🗺️ Par région
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('parlement.comparaison')"
+                            :active="route().current('parlement.comparaison')"
+                        >
+                            ⚖️ AN vs Sénat
+                        </ResponsiveNavLink>
+                        
+                        <!-- Débat Citoyen -->
+                        <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            🗨️ Débat Citoyen
+                        </div>
+                        <ResponsiveNavLink
+                            :href="route('topics.index')"
+                            :active="route().current('topics.index')"
+                        >
+                            💬 Topics
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('topics.trending')"
+                            :active="route().current('topics.trending')"
+                        >
+                            🔥 Tendances
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            :href="route('topics.create')"
+                            :active="route().current('topics.create')"
+                        >
+                            ➕ Créer
                         </ResponsiveNavLink>
                         
                         <!-- Autres sections -->
                         <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            🗳️ Participation
+                            🔧 Autres
                         </div>
                         <ResponsiveNavLink
                             :href="route('budget.index')"
@@ -471,12 +516,6 @@ const toggleDarkMode = () => {
                             :active="route().current('documents.*')"
                         >
                             📄 Documents
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('search.results')"
-                            :active="route().current('search.*')"
-                        >
-                            🔍 Recherche
                         </ResponsiveNavLink>
                     </div>
 

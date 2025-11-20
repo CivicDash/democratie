@@ -496,6 +496,10 @@ class LegislationController extends Controller
             'textes' => fn($q) => $q->orderBy('date_depot', 'desc'),
         ])->findOrFail($uid);
 
+        // Chercher le dossier Sénat correspondant (s'il existe)
+        $dossierSenat = \App\Models\DossierLegislatifSenat::where('dossier_an_uid', $uid)
+            ->first();
+
         // Récupérer les scrutins liés via les textes
         $textesUids = $dossier->textes->pluck('uid');
         $scrutins = ScrutinAN::whereIn('texte_ref', $textesUids)
@@ -517,6 +521,61 @@ class LegislationController extends Controller
             'votes_deputes' => VoteIndividuelAN::whereIn('scrutin_ref', $scrutins->pluck('uid'))->count(),
         ];
 
+        // Timeline bicamérale
+        $timeline = [];
+
+        // Étapes AN
+        if ($dossier->date_depot) {
+            $timeline[] = [
+                'date' => $dossier->date_depot->format('Y-m-d'),
+                'date_display' => $dossier->date_depot->format('d/m/Y'),
+                'chambre' => 'AN',
+                'etape' => 'Dépôt à l\'Assemblée Nationale',
+                'icon' => '🏛️',
+                'color' => 'blue',
+            ];
+        }
+
+        // Étapes Sénat (si lié)
+        if ($dossierSenat) {
+            if ($dossierSenat->date_depot) {
+                $timeline[] = [
+                    'date' => $dossierSenat->date_depot->format('Y-m-d'),
+                    'date_display' => $dossierSenat->date_depot->format('d/m/Y'),
+                    'chambre' => 'Sénat',
+                    'etape' => 'Dépôt au Sénat',
+                    'icon' => '🏰',
+                    'color' => 'purple',
+                ];
+            }
+
+            if ($dossierSenat->date_adoption_senat) {
+                $timeline[] = [
+                    'date' => $dossierSenat->date_adoption_senat->format('Y-m-d'),
+                    'date_display' => $dossierSenat->date_adoption_senat->format('d/m/Y'),
+                    'chambre' => 'Sénat',
+                    'etape' => 'Adoption par le Sénat',
+                    'icon' => '✅',
+                    'color' => 'green',
+                ];
+            }
+
+            if ($dossierSenat->date_promulgation) {
+                $timeline[] = [
+                    'date' => $dossierSenat->date_promulgation->format('Y-m-d'),
+                    'date_display' => $dossierSenat->date_promulgation->format('d/m/Y'),
+                    'chambre' => 'République',
+                    'etape' => 'Promulgation',
+                    'icon' => '🇫🇷',
+                    'color' => 'yellow',
+                    'detail' => $dossierSenat->numero_loi ? "Loi n° {$dossierSenat->numero_loi}" : null,
+                ];
+            }
+        }
+
+        // Trier la timeline par date
+        usort($timeline, fn($a, $b) => strcmp($a['date'], $b['date']));
+
         return Inertia::render('Legislation/DossierShow', [
             'dossier' => [
                 'uid' => $dossier->uid,
@@ -527,7 +586,14 @@ class LegislationController extends Controller
                 'etat' => $dossier->etat,
                 'etat_libelle' => $dossier->etat_libelle,
                 'resume' => $dossier->resume,
+                'has_dossier_senat' => !is_null($dossierSenat),
             ],
+            'dossierSenat' => $dossierSenat ? [
+                'numero' => $dossierSenat->numero_senat,
+                'statut' => $dossierSenat->statut,
+                'url' => $dossierSenat->url_senat,
+            ] : null,
+            'timeline' => $timeline,
             'textes' => $dossier->textes->map(fn($texte) => [
                 'uid' => $texte->uid,
                 'titre' => $texte->titre,
