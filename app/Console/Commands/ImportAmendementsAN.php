@@ -237,14 +237,14 @@ class ImportAmendementsAN extends Command
                 'expose' => $corps['exposeSommaire'] ?? null,
                 
                 // Cycle de vie
-                'date_depot' => $cycleDeVie['dateDepot'] ?? null,
-                'date_publication' => $cycleDeVie['datePublication'] ?? null,
+                'date_depot' => $this->parseDate($cycleDeVie['dateDepot'] ?? null),
+                'date_publication' => $this->parseDate($cycleDeVie['datePublication'] ?? null),
                 'soumis_article_40' => (bool)($cycleDeVie['soumisArticle40'] ?? false),
                 'etat_code' => $cycleDeVie['etat'] ?? null,
                 'etat_libelle' => $cycleDeVie['etatLibelle'] ?? null,
                 'sous_etat_code' => $cycleDeVie['sousEtat'] ?? null,
                 'sous_etat_libelle' => $cycleDeVie['sousEtatLibelle'] ?? null,
-                'date_sort' => $cycleDeVie['dateSort'] ?? null,
+                'date_sort' => $this->parseDate($cycleDeVie['dateSort'] ?? null),
                 'sort_code' => $cycleDeVie['sort'] ?? null,
                 'sort_libelle' => $cycleDeVie['sortLibelle'] ?? null,
             ]
@@ -291,6 +291,37 @@ class ImportAmendementsAN extends Command
             $this->info("📊 Législature {$legislature} : {$totalLeg} amendements");
             $this->info("   - Adoptés : {$adoptesLeg}");
         }
+    }
+
+    /**
+     * Parse une date qui peut être une string ou un array
+     */
+    private function parseDate($date): ?string
+    {
+        if (is_null($date)) {
+            return null;
+        }
+
+        // Si c'est déjà une string, on la retourne
+        if (is_string($date)) {
+            // Vérifier le format
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                return $date;
+            }
+            // Essayer de parser d'autres formats
+            try {
+                return \Carbon\Carbon::parse($date)->format('Y-m-d');
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+
+        // Si c'est un array (ex: {"date": "2024-01-15", "timezone": "UTC"})
+        if (is_array($date) && isset($date['date'])) {
+            return $this->parseDate($date['date']);
+        }
+
+        return null;
     }
 }
 
