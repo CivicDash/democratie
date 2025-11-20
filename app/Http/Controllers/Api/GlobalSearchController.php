@@ -75,10 +75,10 @@ class GlobalSearchController extends Controller
             $senateurs = Senateur::query()
                 ->where(function ($q) use ($query) {
                     if (strlen($query) >= 2) {
-                        $q->where('nom', 'ILIKE', "%{$query}%")
-                            ->orWhere('prenom', 'ILIKE', "%{$query}%")
-                            ->orWhere('profession', 'ILIKE', "%{$query}%")
-                            ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
+                        $q->where('nom_usuel', 'ILIKE', "%{$query}%")
+                            ->orWhere('prenom_usuel', 'ILIKE', "%{$query}%")
+                            ->orWhere('description_profession', 'ILIKE', "%{$query}%")
+                            ->orWhereRaw("CONCAT(prenom_usuel, ' ', nom_usuel) ILIKE ?", ["%{$query}%"]);
                     }
                 })
                 ->actifs()
@@ -88,12 +88,11 @@ class GlobalSearchController extends Controller
                     return [
                         'type' => 'senateur',
                         'id' => $senateur->matricule,
-                        'title' => $senateur->prenom . ' ' . $senateur->nom,
-                        'subtitle' => 'Sénateur',
-                        'description' => $senateur->profession,
+                        'title' => $senateur->prenom_usuel . ' ' . $senateur->nom_usuel,
+                        'subtitle' => 'Sénateur · ' . ($senateur->circonscription ?? ''),
+                        'description' => $senateur->description_profession,
                         'url' => route('representants.senateurs.show', $senateur->matricule),
-                        'image' => $senateur->photo_url,
-                        'badge' => $senateur->groupeParlementaireActuel?->sigle,
+                        'badge' => $senateur->groupe_politique,
                     ];
                 });
 
@@ -181,22 +180,22 @@ class GlobalSearchController extends Controller
             $amendements = AmendementAN::query()
                 ->where(function ($q) use ($query) {
                     if (strlen($query) >= 2) {
-                        $q->where('numero', 'ILIKE', "%{$query}%")
+                        $q->where('numero_long', 'ILIKE', "%{$query}%")
                             ->orWhere('dispositif', 'ILIKE', "%{$query}%")
-                            ->orWhere('expose_motifs', 'ILIKE', "%{$query}%");
+                            ->orWhere('expose', 'ILIKE', "%{$query}%");
                     }
                 })
-                ->with(['auteur', 'texte'])
-                ->orderBy('created_at', 'desc')
+                ->with(['auteur'])
+                ->orderBy('date_depot', 'desc')
                 ->limit($limit)
                 ->get()
                 ->map(function ($amendement) {
                     return [
                         'type' => 'amendement',
                         'id' => $amendement->uid,
-                        'title' => 'Amendement ' . $amendement->numero,
+                        'title' => 'Amendement ' . $amendement->numero_long,
                         'subtitle' => $amendement->auteur ? ($amendement->auteur->prenom . ' ' . $amendement->auteur->nom) : 'Auteur inconnu',
-                        'description' => substr($amendement->dispositif, 0, 150) . '...',
+                        'description' => $amendement->dispositif ? (substr($amendement->dispositif, 0, 150) . '...') : '',
                         'url' => route('legislation.amendements.show', $amendement->uid),
                         'badge' => $amendement->etat_libelle,
                     ];
@@ -293,9 +292,9 @@ class GlobalSearchController extends Controller
         // Tags correspondants
         $tags = Tag::where('name', 'ILIKE', "%{$query}%")
             ->limit(3)
-            ->get(['slug', 'name', 'icon'])
+            ->get(['slug', 'name'])
             ->map(fn($t) => [
-                'text' => $t->icon . ' ' . $t->name,
+                'text' => $t->name,
                 'type' => 'tag',
                 'slug' => $t->slug,
             ]);

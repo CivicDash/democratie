@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FrenchPostalCode;
-use App\Models\DeputeSenateur;
+use App\Models\ActeurAN;
+use App\Models\Senateur;
 use App\Models\Maire;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -135,15 +136,14 @@ class RepresentantsSearchController extends Controller
             ->first();
         
         // Député (par circonscription)
-        $depute = DeputeSenateur::where('source', 'assemblee')
-            ->where('circonscription', $postalCode->circonscription)
-            ->where('en_exercice', true)
-            ->first();
+        // Format circonscription : "Ain (1re circonscription)" -> extraire le département et le numéro
+        $depute = ActeurAN::whereHas('mandatActif', function ($q) use ($postalCode) {
+            $q->where('circonscription', 'LIKE', $postalCode->department_name . '%');
+        })->first();
         
         // Sénateur (par département)
-        $senateurs = DeputeSenateur::where('source', 'senat')
-            ->where('code_departement', $postalCode->department_code)
-            ->where('en_exercice', true)
+        $senateurs = Senateur::where('circonscription', 'LIKE', $postalCode->department_name . '%')
+            ->actifs()
             ->get();
         
         return response()->json([
@@ -158,9 +158,24 @@ class RepresentantsSearchController extends Controller
                 'circonscription' => $postalCode->circonscription,
             ],
             'representants' => [
-                'maire' => $maire ? $maire->toApiArray() : null,
-                'depute' => $depute ? $depute->toApiArray() : null,
-                'senateurs' => $senateurs->map(fn($s) => $s->toApiArray())->values(),
+                'maire' => $maire ? [
+                    'nom' => $maire->nom,
+                    'prenom' => $maire->prenom,
+                    'email' => $maire->email,
+                ] : null,
+                'depute' => $depute ? [
+                    'uid' => $depute->uid,
+                    'nom' => $depute->nom,
+                    'prenom' => $depute->prenom,
+                    'photo_url' => $depute->photo_url,
+                    'url' => route('representants.deputes.show', $depute->uid),
+                ] : null,
+                'senateurs' => $senateurs->map(fn($s) => [
+                    'matricule' => $s->matricule,
+                    'nom' => $s->nom_usuel,
+                    'prenom' => $s->prenom_usuel,
+                    'url' => route('representants.senateurs.show', $s->matricule),
+                ])->values(),
             ],
             'stats' => [
                 'total_representants' => ($maire ? 1 : 0) + ($depute ? 1 : 0) + $senateurs->count(),
@@ -171,4 +186,3 @@ class RepresentantsSearchController extends Controller
         ]);
     }
 }
-
