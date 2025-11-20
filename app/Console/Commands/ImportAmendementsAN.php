@@ -116,19 +116,28 @@ class ImportAmendementsAN extends Command
         });
 
         foreach ($dossierDirs as $dossierDir) {
-            // Parcourir les textes
+            // Parcourir les textes (PIONANR5L17B0263)
             $texteDirs = File::directories($dossierDir);
             
             foreach ($texteDirs as $texteDir) {
-                // Parcourir les phases (P0, P1, etc.)
+                // Les fichiers AMAN*.json sont DIRECTEMENT dans le dossier texte
+                $amendementFiles = File::glob($texteDir . '/AMAN*.json');
+                $files = array_merge($files, $amendementFiles);
+                
+                // Mais on vérifie aussi les anciennes structures avec phases/divisions
+                // au cas où certains dossiers utilisent encore cette structure
                 $phaseDirs = File::directories($texteDir);
                 
                 foreach ($phaseDirs as $phaseDir) {
-                    // Parcourir les divisions (D1, D2, etc.)
-                    $divisionDirs = File::directories($phaseDir);
+                    // Si c'est un dossier de phase (P0D1, P1D1, etc.)
+                    if (preg_match('/^P\d+D\d+$/', basename($phaseDir))) {
+                        $amendementFiles = File::glob($phaseDir . '/AMAN*.json');
+                        $files = array_merge($files, $amendementFiles);
+                    }
                     
+                    // Ancienne structure avec phases puis divisions séparées
+                    $divisionDirs = File::directories($phaseDir);
                     foreach ($divisionDirs as $divisionDir) {
-                        // Récupérer tous les fichiers JSON d'amendements
                         $amendementFiles = File::glob($divisionDir . '/AMAN*.json');
                         $files = array_merge($files, $amendementFiles);
                     }
