@@ -196,11 +196,28 @@ class LegislationController extends Controller
 
         $scrutins = $query->paginate(30)->withQueryString();
 
-        // Statistiques
-        $statsQuery = ScrutinAN::where('legislature', $legislature);
-        $total = $statsQuery->count();
-        $adoptes = $statsQuery->clone()->where('resultat_code', 'adopté')->count();
-        $rejetes = $statsQuery->clone()->where('resultat_code', 'rejeté')->count();
+        // Statistiques - calculer depuis les votes réels
+        $allScrutins = ScrutinAN::where('legislature', $legislature)->get();
+        $total = $allScrutins->count();
+        
+        // Compter adoptés/rejetés en calculant depuis pour/contre
+        $adoptes = 0;
+        $rejetes = 0;
+        
+        foreach ($allScrutins as $scrutin) {
+            // Si resultat_code existe, l'utiliser
+            if ($scrutin->resultat_code === 'adopté') {
+                $adoptes++;
+            } elseif ($scrutin->resultat_code === 'rejeté') {
+                $rejetes++;
+            } 
+            // Sinon, calculer depuis les votes
+            elseif ($scrutin->pour > $scrutin->contre) {
+                $adoptes++;
+            } elseif ($scrutin->contre > $scrutin->pour) {
+                $rejetes++;
+            }
+        }
 
         $stats = [
             'total' => $total,
@@ -210,18 +227,32 @@ class LegislationController extends Controller
         ];
 
         // Transformer les données
-        $scrutinsData = $scrutins->through(fn($s) => [
-            'uid' => $s->uid,
-            'numero' => $s->numero,
-            'titre' => $s->titre,
-            'objet' => $s->objet,
-            'date' => $s->date_scrutin?->format('d/m/Y'),
-            'pour' => $s->pour,
-            'contre' => $s->contre,
-            'abstentions' => $s->abstentions,
-            'resultat_code' => $s->resultat_code,
-            'resultat_libelle' => $s->resultat_libelle,
-        ]);
+        $scrutinsData = $scrutins->through(function($s) {
+            // Déterminer le résultat si non défini
+            $resultat = $s->resultat_libelle;
+            if (!$resultat) {
+                if ($s->pour > $s->contre) {
+                    $resultat = 'Adopté';
+                } elseif ($s->contre > $s->pour) {
+                    $resultat = 'Rejeté';
+                } else {
+                    $resultat = 'Égalité';
+                }
+            }
+            
+            return [
+                'uid' => $s->uid,
+                'numero' => $s->numero,
+                'titre' => $s->titre,
+                'objet' => $s->objet,
+                'date' => $s->date_scrutin?->format('d/m/Y'),
+                'pour' => $s->pour,
+                'contre' => $s->contre,
+                'abstentions' => $s->abstentions,
+                'resultat_code' => $s->resultat_code,
+                'resultat_libelle' => $resultat,
+            ];
+        });
 
         return Inertia::render('Legislation/ScrutinsIndex', [
             'scrutins' => $scrutinsData,
