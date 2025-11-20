@@ -93,10 +93,21 @@ class ImportActeursAN extends Command
         // Préparation des adresses (JSON)
         $adresses = $this->extractAdresses($acteur['adresses'] ?? []);
 
-        // Nettoyer l'URL HATVP (gérer les cas nil, ?, ou array)
+        // Nettoyer les champs qui peuvent contenir "?" ou des objets
         $urlHatvp = $acteur['uri_hatvp'] ?? null;
         if (is_array($urlHatvp) || $urlHatvp === '?') {
             $urlHatvp = null;
+        }
+
+        $depNais = $infoNaissance['depNais'] ?? null;
+        if (is_array($depNais) || $depNais === '?') {
+            $depNais = null;
+        }
+
+        // Tronquer le trigramme à 3 caractères max
+        $trigramme = $ident['trigramme'] ?? null;
+        if ($trigramme && strlen($trigramme) > 3) {
+            $trigramme = substr($trigramme, 0, 3);
         }
 
         // Insert ou update
@@ -106,10 +117,10 @@ class ImportActeursAN extends Command
                 'civilite' => $ident['civ'] ?? null,
                 'prenom' => $ident['prenom'] ?? null,
                 'nom' => $ident['nom'] ?? null,
-                'trigramme' => $ident['trigramme'] ?? null,
+                'trigramme' => $trigramme,
                 'date_naissance' => $infoNaissance['dateNais'] ?? null,
                 'ville_naissance' => $infoNaissance['villeNais'] ?? null,
-                'departement_naissance' => $infoNaissance['depNais'] ?? null,
+                'departement_naissance' => $depNais,
                 'pays_naissance' => $infoNaissance['paysNais'] ?? null,
                 'profession' => $profession['libelleCourant'] ?? null,
                 'categorie_socio_pro' => $socProc['catSocPro'] ?? null,
