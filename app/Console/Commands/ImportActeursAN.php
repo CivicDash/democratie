@@ -93,6 +93,12 @@ class ImportActeursAN extends Command
         // Préparation des adresses (JSON)
         $adresses = $this->extractAdresses($acteur['adresses'] ?? []);
 
+        // Nettoyer l'URL HATVP (gérer les cas nil, ?, ou array)
+        $urlHatvp = $acteur['uri_hatvp'] ?? null;
+        if (is_array($urlHatvp) || $urlHatvp === '?') {
+            $urlHatvp = null;
+        }
+
         // Insert ou update
         $acteurModel = ActeurAN::updateOrCreate(
             ['uid' => $uid],
@@ -107,7 +113,7 @@ class ImportActeursAN extends Command
                 'pays_naissance' => $infoNaissance['paysNais'] ?? null,
                 'profession' => $profession['libelleCourant'] ?? null,
                 'categorie_socio_pro' => $socProc['catSocPro'] ?? null,
-                'url_hatvp' => $acteur['uri_hatvp'] ?? null,
+                'url_hatvp' => $urlHatvp,
                 'adresses' => $adresses,
             ]
         );
