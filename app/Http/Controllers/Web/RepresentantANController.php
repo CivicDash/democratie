@@ -593,7 +593,7 @@ class RepresentantANController extends Controller
                 'nom' => $senateur->nom_usuel,
                 'photo_url' => $senateur->photo_url,
                 'date_naissance' => $senateur->date_naissance?->format('d/m/Y'),
-                'age' => $senateur->date_naissance ? now()->diffInYears($senateur->date_naissance) : null,
+                'age' => $senateur->date_naissance?->age,
                 'lieu_naissance' => $senateur->lieu_naissance,
                 'profession' => $senateur->profession,
                 'circonscription' => $senateur->circonscription,

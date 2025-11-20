@@ -81,6 +81,14 @@ class ImportAmendementsAN extends Command
                 }
             } catch (\Exception $e) {
                 $this->errors++;
+                
+                // Afficher les 5 premières erreurs pour debug
+                if ($this->errors <= 5) {
+                    $bar->clear();
+                    $this->newLine();
+                    $this->error("❌ Erreur dans " . basename($file) . ": " . $e->getMessage());
+                    $bar->display();
+                }
             }
             $bar->advance();
         }
