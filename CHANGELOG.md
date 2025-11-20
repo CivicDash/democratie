@@ -4,6 +4,154 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 ---
 
+## [2025-11-20] - Script Master + Nettoyage Scripts + Documentation Complète
+
+### 🎯 **OBJECTIF : Unifier scripts + Nettoyer redondances**
+
+**Durée :** ~1h  
+**Impact :** -4 scripts redondants, +1 script master, +3 docs consolidées
+
+---
+
+### 🚀 **SCRIPT MASTER UNIQUE**
+
+**Fichier créé** : `scripts/import_parlement_master.sh`
+
+**Fonctionnalités** :
+- ✅ **Menu interactif** avec 4 options
+  1. AN uniquement (~12-15h, ~400k)
+  2. Sénat uniquement (~5-10 min, ~8k)
+  3. Parlement complet (~12-16h, ~408k)
+  4. Mode test (--limit=10, ~3 min)
+- ✅ **Vérifications prérequis** automatiques
+- ✅ **Logs timestampés** unifiés
+- ✅ **Gestion d'erreurs** (arrêt propre)
+- ✅ **Statistiques finales** complètes
+- ✅ **Chronomètre** par section + global
+
+**Remplace** :
+- ❌ `import_complet_an_l17.sh`
+- ❌ `import_donnees_an_l17.sh`
+- ❌ `test_import_an_l17.sh`
+- ❌ `import_senateurs_complet.sh`
+
+---
+
+### 📚 **DOCUMENTATION CONSOLIDÉE**
+
+**`scripts/README.md`** - Guide complet unifié
+
+**Contient** :
+- ✅ Documentation script master
+- ✅ Liste TOUS les scripts (26 scripts)
+- ✅ Catégorisation (Import / Analyse / Enrichissement / Tests / Obsolètes)
+- ✅ Usage recommandé par cas
+- ✅ Tableaux de référence rapide
+- ✅ Troubleshooting
+
+**Docs supprimées** (intégrées dans README) :
+- ❌ `IMPORT_COMPLET_README.md`
+- ❌ `SCRIPT_MASTER_README.md`
+- ❌ `SESSION_COMPLETE_README.md`
+
+---
+
+### 🧹 **NETTOYAGE**
+
+**Scripts supprimés** (4) :
+```bash
+scripts/import_complet_an_l17.sh         # → master option 1
+scripts/import_donnees_an_l17.sh         # → master option 1
+scripts/test_import_an_l17.sh            # → master option 4
+scripts/import_senateurs_complet.sh      # → master option 2
+```
+
+**Fichiers docs supprimés** (3) :
+```bash
+IMPORT_COMPLET_README.md                 # → scripts/README.md
+SCRIPT_MASTER_README.md                  # → scripts/README.md
+SESSION_COMPLETE_README.md               # → scripts/README.md
+```
+
+**Résultat** : -7 fichiers redondants ✨
+
+---
+
+### 📋 **STRUCTURE FINALE SCRIPTS**
+
+```
+scripts/
+├── 📌 import_parlement_master.sh       ⭐ SCRIPT PRINCIPAL
+├── README.md                            📚 Documentation complète
+│
+├── 📊 Import
+│   ├── import_wikipedia_deputes.sh
+│   ├── import_representants.sh
+│   └── import_organes.sh
+│
+├── 🔍 Analyse & Tests
+│   ├── analyse_complete_donnees_an.sh
+│   ├── analyse_donnees_an.sh
+│   └── test_donnees_an.sh
+│
+├── 📝 Enrichissement (ancienne API)
+│   ├── enrich_complete.sh
+│   ├── enrich_all.sh
+│   ├── enrich_amendements.sh
+│   ├── enrich_deputes.sh
+│   └── enrich_senateurs.sh
+│
+├── 🗺️ Codes Postaux
+│   ├── import_postal_codes_local.sh
+│   ├── check_postal_codes.sh
+│   └── test_postal_search.sh
+│
+└── 🧪 Debug
+    ├── test_enrich_votes.sh
+    ├── debug_api_nosdeputes.sh
+    └── debug/ (dossier gitignored)
+```
+
+---
+
+### 🎯 **USAGE RECOMMANDÉ**
+
+**Import production** :
+```bash
+./scripts/import_parlement_master.sh
+# Choix: 3 (Parlement complet)
+# Confirmer: oui
+# Attendre 12-16h
+```
+
+**Tests rapides** :
+```bash
+./scripts/import_parlement_master.sh
+# Choix: 4 (Mode test)
+# Terminé en 2-3 min
+```
+
+**Diagnostic** :
+```bash
+./scripts/analyse_complete_donnees_an.sh
+```
+
+---
+
+### 📈 **AVANT / APRÈS**
+
+| Métrique | Avant | Après | Diff |
+|----------|-------|-------|------|
+| Scripts import AN | 3 | 1 | -2 |
+| Scripts import Sénat | 1 | 0 | -1 |
+| Scripts master | 0 | 1 | +1 |
+| Docs README racine | 3 | 0 | -3 |
+| Total fichiers | 30 | 23 | **-7** |
+
+**Code plus propre, maintenance facilitée ! ✨**
+
+---
+
 ## [2025-11-20] - Pages Détaillées Députés/Sénateurs + Navigation Complète
 
 ### 🎯 **OBJECTIF : Améliorer les vues avec nouvelles données + Pages dédiées**
