@@ -15,7 +15,7 @@ class RepresentantController extends Controller
     /**
      * Page "Mes Représentants"
      */
-    public function mesRepresentants(): Response
+    public function mesRepresentants(Request $request): Response
     {
         $user = auth()->user();
         $profile = $user->profile;
@@ -27,7 +27,74 @@ class RepresentantController extends Controller
             'location' => null,
         ];
 
-        if ($profile && $profile->circonscription && $profile->department_id) {
+        // Mode simulation via paramètre GET
+        $simulatePostalCode = $request->input('simulate_postal_code');
+        
+        if ($simulatePostalCode) {
+            $postalData = \App\Models\FrenchPostalCode::where('postal_code', $simulatePostalCode)->first();
+            
+            if ($postalData) {
+                $data['hasLocation'] = true;
+                $data['location'] = [
+                    'city' => $postalData->city_name,
+                    'postal_code' => $postalData->postal_code,
+                    'circonscription' => $postalData->circonscription,
+                    'department' => $postalData->department_name,
+                    'is_simulated' => true,
+                ];
+
+                // Député de la circonscription
+                $depute = DeputeSenateur::deputes()
+                    ->enExercice()
+                    ->where('circonscription', $postalData->circonscription)
+                    ->with(['groupeParlementaire'])
+                    ->first();
+
+                if ($depute) {
+                    $data['depute'] = [
+                        'id' => $depute->id,
+                        'nom_complet' => $depute->nom_complet,
+                        'photo_url' => $depute->photo_url,
+                        'circonscription' => $depute->circonscription,
+                        'profession' => $depute->profession,
+                        'url_profil' => $depute->url_profil,
+                        'groupe' => $depute->groupeParlementaire ? [
+                            'sigle' => $depute->groupeParlementaire->sigle,
+                            'nom' => $depute->groupeParlementaire->nom,
+                            'couleur' => $depute->groupeParlementaire->couleur_hex,
+                        ] : null,
+                        'nb_propositions' => $depute->nb_propositions ?? 0,
+                        'nb_amendements' => $depute->nb_amendements ?? 0,
+                        'taux_presence' => $depute->taux_presence ?? 0,
+                    ];
+                }
+
+                // Sénateurs du département
+                $deptCode = substr($postalData->circonscription, 0, 2);
+                $senateurs = DeputeSenateur::senateurs()
+                    ->enExercice()
+                    ->where('circonscription', 'like', $deptCode . '%')
+                    ->with(['groupeParlementaire'])
+                    ->get();
+
+                $data['senateurs'] = $senateurs->map(function($senateur) {
+                    return [
+                        'id' => $senateur->id,
+                        'nom_complet' => $senateur->nom_complet,
+                        'photo_url' => $senateur->photo_url,
+                        'profession' => $senateur->profession,
+                        'groupe' => $senateur->groupeParlementaire ? [
+                            'sigle' => $senateur->groupeParlementaire->sigle,
+                            'nom' => $senateur->groupeParlementaire->nom,
+                            'couleur' => $senateur->groupeParlementaire->couleur_hex,
+                        ] : null,
+                        'nb_propositions' => $senateur->nb_propositions ?? 0,
+                        'nb_amendements' => $senateur->nb_amendements ?? 0,
+                        'taux_presence' => $senateur->taux_presence ?? 0,
+                    ];
+                })->toArray();
+            }
+        } elseif ($profile && $profile->circonscription && $profile->department_id) {
             $data['hasLocation'] = true;
             $data['location'] = [
                 'city' => $profile->city_name,
@@ -300,6 +367,121 @@ class RepresentantController extends Controller
                 'url_profil' => $senateur->url_profil,
             ],
         ]);
+    }
+
+    /**
+     * Vue par régions
+     */
+    public function regions(Request $request): Response
+    {
+        $selectedRegionCode = $request->input('region');
+        
+        // Toutes les régions
+        $regions = \App\Models\TerritoryRegion::orderBy('name')->get(['id', 'code', 'name']);
+
+        // Compter députés et sénateurs par région
+        $deputesByRegion = [];
+        $senateursByRegion = [];
+
+        foreach ($regions as $region) {
+            // Départements de cette région
+            $departments = \App\Models\TerritoryDepartment::where('region_id', $region->id)
+                ->pluck('code')
+                ->toArray();
+
+            // Compter les députés (via circonscriptions)
+            $deputesByRegion[$region->code] = DeputeSenateur::deputes()
+                ->enExercice()
+                ->where(function($q) use ($departments) {
+                    foreach ($departments as $deptCode) {
+                        $q->orWhere('circonscription', 'like', $deptCode . '%');
+                    }
+                })
+                ->count();
+
+            // Compter les sénateurs (via départements)
+            $senateursByRegion[$region->code] = DeputeSenateur::senateurs()
+                ->enExercice()
+                ->where(function($q) use ($departments) {
+                    foreach ($departments as $deptCode) {
+                        $q->orWhere('code_departement', $deptCode);
+                    }
+                })
+                ->count();
+        }
+
+        $data = [
+            'regions' => $regions,
+            'deputesByRegion' => $deputesByRegion,
+            'senateursByRegion' => $senateursByRegion,
+            'selectedRegion' => null,
+            'deputes' => [],
+            'senateurs' => [],
+        ];
+
+        // Si une région est sélectionnée
+        if ($selectedRegionCode) {
+            $selectedRegion = \App\Models\TerritoryRegion::where('code', $selectedRegionCode)->first();
+
+            if ($selectedRegion) {
+                $data['selectedRegion'] = $selectedRegion;
+
+                // Départements de la région
+                $departments = \App\Models\TerritoryDepartment::where('region_id', $selectedRegion->id)
+                    ->pluck('code')
+                    ->toArray();
+
+                // Députés de la région
+                $deputes = DeputeSenateur::deputes()
+                    ->enExercice()
+                    ->where(function($q) use ($departments) {
+                        foreach ($departments as $deptCode) {
+                            $q->orWhere('circonscription', 'like', $deptCode . '%');
+                        }
+                    })
+                    ->with(['groupeParlementaire'])
+                    ->orderBy('nom')
+                    ->get();
+
+                $data['deputes'] = $deputes->map(fn($d) => [
+                    'id' => $d->id,
+                    'nom_complet' => $d->nom_complet,
+                    'photo_url' => $d->photo_url,
+                    'circonscription' => $d->circonscription,
+                    'groupe' => $d->groupeParlementaire ? [
+                        'sigle' => $d->groupeParlementaire->sigle,
+                        'nom' => $d->groupeParlementaire->nom,
+                        'couleur' => $d->groupeParlementaire->couleur_hex,
+                    ] : null,
+                ])->toArray();
+
+                // Sénateurs de la région
+                $senateurs = DeputeSenateur::senateurs()
+                    ->enExercice()
+                    ->where(function($q) use ($departments) {
+                        foreach ($departments as $deptCode) {
+                            $q->orWhere('code_departement', $deptCode);
+                        }
+                    })
+                    ->with(['groupeParlementaire'])
+                    ->orderBy('nom')
+                    ->get();
+
+                $data['senateurs'] = $senateurs->map(fn($s) => [
+                    'id' => $s->id,
+                    'nom_complet' => $s->nom_complet,
+                    'photo_url' => $s->photo_url,
+                    'departement' => $s->code_departement,
+                    'groupe' => $s->groupeParlementaire ? [
+                        'sigle' => $s->groupeParlementaire->sigle,
+                        'nom' => $s->groupeParlementaire->nom,
+                        'couleur' => $s->groupeParlementaire->couleur_hex,
+                    ] : null,
+                ])->toArray();
+            }
+        }
+
+        return Inertia::render('Representants/Regions', $data);
     }
 }
 

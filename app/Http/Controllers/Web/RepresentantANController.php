@@ -142,7 +142,7 @@ class RepresentantANController extends Controller
                 'trigramme' => $acteur->trigramme,
                 'photo_url' => $acteur->photo_wikipedia_url,
                 'date_naissance' => $acteur->date_naissance?->format('d/m/Y'),
-                'age' => $acteur->date_naissance ? now()->diffInYears($acteur->date_naissance) : null,
+                'age' => $acteur->date_naissance ? $acteur->date_naissance->age : null,
                 'lieu_naissance' => trim("{$acteur->ville_naissance} {$acteur->departement_naissance}"),
                 'profession' => $acteur->profession,
                 'categorie_socio_pro' => $acteur->categorie_socio_pro,
@@ -176,6 +176,12 @@ class RepresentantANController extends Controller
                     'extract' => $acteur->wikipedia_extract,
                 ],
                 'url_hatvp' => $acteur->url_hatvp,
+                'reseaux_sociaux' => [
+                    'twitter' => $acteur->twitter_url,
+                    'facebook' => $acteur->facebook_url,
+                    'linkedin' => $acteur->linkedin_url,
+                    'instagram' => $acteur->instagram_url,
+                ],
                 'adresses' => $acteur->adresses,
             ],
         ]);
@@ -189,7 +195,7 @@ class RepresentantANController extends Controller
         $acteur = ActeurAN::findOrFail($uid);
 
         $query = VoteIndividuelAN::query()
-            ->where('acteur_uid', $uid)
+            ->where('acteur_ref', $uid)
             ->with(['scrutin' => function($q) {
                 $q->where('legislature', 17);
             }])
@@ -213,7 +219,7 @@ class RepresentantANController extends Controller
             ->withQueryString();
 
         // Statistiques
-        $statsQuery = VoteIndividuelAN::where('acteur_uid', $uid)
+        $statsQuery = VoteIndividuelAN::where('acteur_ref', $uid)
             ->whereHas('scrutin', fn($q) => $q->where('legislature', 17));
         
         $total = $statsQuery->count();
@@ -264,7 +270,7 @@ class RepresentantANController extends Controller
         $acteur = ActeurAN::findOrFail($uid);
 
         $query = AmendementAN::query()
-            ->where('acteur_uid', $uid)
+            ->where('acteur_ref', $uid)
             ->with(['dossier', 'texte']);
 
         // Filtres
@@ -299,7 +305,7 @@ class RepresentantANController extends Controller
         $amendements = $query->paginate(30)->withQueryString();
 
         // Statistiques
-        $statsQuery = AmendementAN::where('acteur_uid', $uid);
+        $statsQuery = AmendementAN::where('acteur_ref', $uid);
         $total = $statsQuery->count();
         $adoptes = $statsQuery->clone()->adoptes()->count();
         $rejetes = $statsQuery->clone()->rejetes()->count();
@@ -352,7 +358,7 @@ class RepresentantANController extends Controller
         $acteur = ActeurAN::with(['mandats.organe'])->findOrFail($uid);
 
         // Statistiques globales votes
-        $votesQuery = VoteIndividuelAN::where('acteur_uid', $uid)
+        $votesQuery = VoteIndividuelAN::where('acteur_ref', $uid)
             ->whereHas('scrutin', fn($q) => $q->where('legislature', 17));
         
         $votesTotal = $votesQuery->count();
@@ -361,7 +367,7 @@ class RepresentantANController extends Controller
         $votesAbstention = $votesQuery->clone()->where('position_vote', 'abstention')->count();
 
         // Statistiques amendements
-        $amendementsQuery = AmendementAN::where('acteur_uid', $uid);
+        $amendementsQuery = AmendementAN::where('acteur_ref', $uid);
         $amendementsTotal = $amendementsQuery->count();
         $amendementsAdoptes = $amendementsQuery->clone()->adoptes()->count();
         $amendementsRejetes = $amendementsQuery->clone()->rejetes()->count();
@@ -393,14 +399,14 @@ class RepresentantANController extends Controller
             $date = now()->subMonths($i);
             $mois = $date->format('Y-m');
             
-            $votesCount = VoteIndividuelAN::where('acteur_uid', $uid)
+            $votesCount = VoteIndividuelAN::where('acteur_ref', $uid)
                 ->whereHas('scrutin', function($q) use ($date) {
                     $q->whereYear('date_scrutin', $date->year)
                       ->whereMonth('date_scrutin', $date->month);
                 })
                 ->count();
             
-            $amendementsCount = AmendementAN::where('acteur_uid', $uid)
+            $amendementsCount = AmendementAN::where('acteur_ref', $uid)
                 ->whereYear('date_depot', $date->year)
                 ->whereMonth('date_depot', $date->month)
                 ->count();
@@ -415,7 +421,7 @@ class RepresentantANController extends Controller
         }
 
         // Derniers votes (5)
-        $derniersVotes = VoteIndividuelAN::where('acteur_uid', $uid)
+        $derniersVotes = VoteIndividuelAN::where('acteur_ref', $uid)
             ->whereHas('scrutin', fn($q) => $q->where('legislature', 17))
             ->with('scrutin')
             ->orderBy('created_at', 'desc')
@@ -432,7 +438,7 @@ class RepresentantANController extends Controller
             ]);
 
         // Derniers amendements (5)
-        $derniersAmendements = AmendementAN::where('acteur_uid', $uid)
+        $derniersAmendements = AmendementAN::where('acteur_ref', $uid)
             ->with(['dossier', 'texte'])
             ->orderBy('date_depot', 'desc')
             ->limit(5)

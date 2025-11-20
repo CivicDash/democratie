@@ -1,12 +1,14 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import HemicycleView from '@/Components/Parliament/HemicycleView.vue';
 import RepresentantsMap from '@/Components/Representants/RepresentantsMap.vue';
+import TextInput from '@/Components/TextInput.vue';
 
-defineProps({
+const props = defineProps({
   hasLocation: Boolean,
   depute: Object,
   senateurs: Array,
@@ -14,6 +16,49 @@ defineProps({
   deputesByDepartment: Object,
   senateursByDepartment: Object,
 });
+
+// Simulateur de localisation
+const showLocationSimulator = ref(!props.hasLocation);
+const searchQuery = ref('');
+const searchResults = ref([]);
+const isSearching = ref(false);
+
+const searchLocation = async () => {
+  if (searchQuery.value.length < 2) {
+    searchResults.value = [];
+    return;
+  }
+
+  isSearching.value = true;
+  
+  try {
+    const response = await fetch(`/api/representants/search?q=${encodeURIComponent(searchQuery.value)}`);
+    const data = await response.json();
+    
+    if (data.results) {
+      searchResults.value = data.results;
+    } else if (data.commune) {
+      searchResults.value = [data.commune];
+    } else {
+      searchResults.value = [];
+    }
+  } catch (error) {
+    console.error('Erreur recherche:', error);
+    searchResults.value = [];
+  } finally {
+    isSearching.value = false;
+  }
+};
+
+const selectLocation = (location) => {
+  // Rediriger vers la page avec les paramètres de simulation
+  router.visit(route('representants.mes-representants'), {
+    data: {
+      simulate_postal_code: location.code_postal || location.postal_code,
+    },
+    preserveState: true,
+  });
+};
 </script>
 
 <template>
@@ -52,21 +97,63 @@ defineProps({
         </Card>
 
         <!-- Pas de localisation -->
-        <Card v-if="!hasLocation" class="text-center py-12">
-          <div class="max-w-md mx-auto">
+        <Card v-if="!hasLocation" class="border-2 border-dashed border-gray-300 dark:border-gray-600">
+          <div class="max-w-md mx-auto text-center py-8">
             <div class="text-6xl mb-4">📍</div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Configurez votre localisation
+              Découvrez vos représentants
             </h2>
             <p class="text-gray-600 dark:text-gray-400 mb-6">
-              Pour découvrir vos représentants politiques, veuillez renseigner votre ville et votre circonscription dans votre profil.
+              Entrez votre code postal ou votre ville pour découvrir vos député, sénateurs et maire
             </p>
-            <Link
-              :href="route('profile.edit')"
-              class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
-            >
-              ⚙️ Configurer mon profil
-            </Link>
+            
+            <!-- Simulateur de recherche -->
+            <div class="mb-6">
+              <div class="relative">
+                <TextInput
+                  v-model="searchQuery"
+                  @input="searchLocation"
+                  placeholder="75001 ou Paris..."
+                  class="w-full pr-10"
+                />
+                <div v-if="isSearching" class="absolute right-3 top-3">
+                  <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Résultats de recherche -->
+              <div v-if="searchResults.length > 0" class="mt-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-y-auto text-left">
+                <button
+                  v-for="result in searchResults"
+                  :key="result.insee_code || result.postal_code"
+                  @click="selectLocation(result)"
+                  class="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition"
+                >
+                  <div class="font-medium text-gray-900 dark:text-gray-100">
+                    {{ result.nom || result.city_name }}
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">
+                    {{ result.code_postal || result.postal_code }} - {{ result.departement?.nom || result.department_name }}
+                  </div>
+                </button>
+              </div>
+              
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                💡 Mode démo : vous pouvez rechercher n'importe quelle localisation
+              </p>
+            </div>
+
+            <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+              <Link
+                :href="route('profile.edit')"
+                class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
+              >
+                ⚙️ Configurer mon profil
+              </Link>
+            </div>
           </div>
         </Card>
 

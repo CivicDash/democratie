@@ -32,6 +32,10 @@ class ActeurAN extends Model
         'photo_wikipedia_url',
         'wikipedia_extract',
         'wikipedia_last_sync',
+        'twitter_url',
+        'facebook_url',
+        'linkedin_url',
+        'instagram_url',
         'adresses',
     ];
 
