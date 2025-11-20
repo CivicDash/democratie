@@ -437,50 +437,56 @@ class LegislationController extends Controller
     public function showAmendement(string $uid): Response
     {
         $amendement = AmendementAN::with([
-            'acteur',
+            'auteurActeur',
             'dossier',
             'texte',
         ])->findOrFail($uid);
 
-        // Co-signataires (si disponibles dans JSON)
+        // Co-signataires (si disponibles dans cosignataires_acteur_refs)
         $coSignataires = [];
-        if ($amendement->co_signataires && is_array($amendement->co_signataires)) {
-            $coSignataires = collect($amendement->co_signataires)->map(fn($cs) => [
-                'uid' => $cs['uid'] ?? null,
-                'nom_complet' => $cs['nom_complet'] ?? $cs['nom'] ?? 'Inconnu',
-                'photo_url' => $cs['photo_url'] ?? null,
-            ]);
+        if ($amendement->cosignataires_acteur_refs && is_array($amendement->cosignataires_acteur_refs)) {
+            $coSignataires = ActeurAN::whereIn('uid', $amendement->cosignataires_acteur_refs)
+                ->get()
+                ->map(fn($acteur) => [
+                    'uid' => $acteur->uid,
+                    'nom_complet' => $acteur->nom_complet,
+                    'photo_url' => $acteur->photo_wikipedia_url,
+                ]);
         }
 
         return Inertia::render('Legislation/AmendementShow', [
             'amendement' => [
                 'uid' => $amendement->uid,
-                'numero' => $amendement->numero,
-                'sort' => $amendement->sort,
+                'numero' => $amendement->numero_long ?? $amendement->uid,
+                'sort_code' => $amendement->sort_code,
+                'sort_libelle' => $amendement->sort_libelle,
+                'etat_code' => $amendement->etat_code,
+                'etat_libelle' => $amendement->etat_libelle,
                 'dispositif' => $amendement->dispositif,
-                'expose_sommaire' => $amendement->expose_sommaire,
+                'expose' => $amendement->expose,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'date_sort' => $amendement->date_sort?->format('d/m/Y'),
-                'auteur' => $amendement->acteur ? [
-                    'uid' => $amendement->acteur->uid,
-                    'nom_complet' => $amendement->acteur->nom_complet,
-                    'photo_url' => $amendement->acteur->photo_wikipedia_url,
-                    'groupe' => $amendement->acteur->groupe_politique_actuel ? [
-                        'nom' => $amendement->acteur->groupe_politique_actuel->libelle,
-                        'sigle' => $amendement->acteur->groupe_politique_actuel->libelle_abrege,
+                'auteur' => $amendement->auteurActeur ? [
+                    'uid' => $amendement->auteurActeur->uid,
+                    'nom_complet' => $amendement->auteurActeur->nom_complet,
+                    'photo_url' => $amendement->auteurActeur->photo_wikipedia_url,
+                    'groupe' => $amendement->auteurActeur->groupe_politique_actuel ? [
+                        'nom' => $amendement->auteurActeur->groupe_politique_actuel->libelle,
+                        'sigle' => $amendement->auteurActeur->groupe_politique_actuel->libelle_abrege,
                     ] : null,
                 ] : null,
                 'dossier' => $amendement->dossier ? [
                     'uid' => $amendement->dossier->uid,
                     'titre' => $amendement->dossier->titre,
-                    'titre_court' => $amendement->dossier->titre_court,
+                    'titre_court' => $amendement->dossier->titre_court ?? $amendement->dossier->titre,
                 ] : null,
                 'texte' => $amendement->texte ? [
                     'uid' => $amendement->texte->uid,
                     'titre' => $amendement->texte->titre,
-                    'titre_court' => $amendement->texte->titre_court,
+                    'titre_court' => $amendement->texte->titre_court ?? $amendement->texte->titre,
                 ] : null,
                 'co_signataires' => $coSignataires,
+                'nombre_cosignataires' => $amendement->nombre_cosignataires,
             ],
         ]);
     }

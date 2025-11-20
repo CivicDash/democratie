@@ -89,6 +89,18 @@ class ActeurAN extends Model
     }
 
     /**
+     * Récupère le mandat d'ASSEMBLEE actif
+     */
+    public function getMandatActifAttribute()
+    {
+        return $this->mandats()
+            ->where('type_organe', 'ASSEMBLEE')
+            ->whereNull('date_fin')
+            ->with('organe')
+            ->first();
+    }
+
+    /**
      * Récupère le groupe politique actuel (via mandat GP actif)
      */
     public function getGroupePolitiqueActuelAttribute()

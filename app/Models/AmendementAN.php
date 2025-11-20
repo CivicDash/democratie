@@ -107,17 +107,22 @@ class AmendementAN extends Model
 
     public function scopeAdoptes($query)
     {
-        return $query->where('etat_code', 'ADO');
+        return $query->where('sort_code', 'ADO');
     }
 
     public function scopeRejetes($query)
     {
-        return $query->where('etat_code', 'REJ');
+        return $query->where('sort_code', 'REJ');
     }
 
     public function scopeRetires($query)
     {
-        return $query->where('etat_code', 'RET');
+        return $query->where('sort_code', 'RET');
+    }
+
+    public function scopeTombes($query)
+    {
+        return $query->where('sort_code', 'TOM');
     }
 
     public function scopeParAuteur($query, string $acteurUid)
@@ -140,17 +145,22 @@ class AmendementAN extends Model
      */
     public function getEstAdopteAttribute(): bool
     {
-        return $this->etat_code === 'ADO';
+        return $this->sort_code === 'ADO';
     }
 
     public function getEstRejeteAttribute(): bool
     {
-        return $this->etat_code === 'REJ';
+        return $this->sort_code === 'REJ';
     }
 
     public function getEstRetireAttribute(): bool
     {
-        return $this->etat_code === 'RET';
+        return $this->sort_code === 'RET';
+    }
+
+    public function getEstTombeAttribute(): bool
+    {
+        return $this->sort_code === 'TOM';
     }
 
     public function getEstIrrecevableAttribute(): bool

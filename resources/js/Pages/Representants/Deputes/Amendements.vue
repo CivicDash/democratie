@@ -170,14 +170,14 @@ const getSortLabel = (sort) => {
                     </Badge>
                     <Badge
                       :class="[
-                        amendement.sort === 'Adopté' 
+                        amendement.sort_code === 'ADO' 
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                          : amendement.sort === 'Rejeté'
+                          : amendement.sort_code === 'REJ'
                           ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                           : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
                       ]"
                     >
-                      {{ amendement.sort }}
+                      {{ amendement.sort_libelle || amendement.etat_libelle || 'En cours' }}
                     </Badge>
                     <span class="text-sm text-gray-500 dark:text-gray-400">
                       {{ amendement.date_depot }}
@@ -193,8 +193,8 @@ const getSortLabel = (sort) => {
                   </div>
                   
                   <div class="flex gap-4 text-xs text-gray-500 dark:text-gray-500">
-                    <span v-if="amendement.co_signataires">
-                      👥 {{ amendement.co_signataires }} co-signataire(s)
+                    <span v-if="amendement.cosignataires_count">
+                      👥 {{ amendement.cosignataires_count }} co-signataire(s)
                     </span>
                   </div>
                 </div>

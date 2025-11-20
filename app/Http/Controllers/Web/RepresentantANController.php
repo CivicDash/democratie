@@ -323,18 +323,20 @@ class RepresentantANController extends Controller
         $amendementsData = $amendements->through(function($amendement) {
             return [
                 'uid' => $amendement->uid,
-                'numero' => $amendement->numero,
-                'sort' => $amendement->sort,
+                'numero' => $amendement->numero_long ?? $amendement->uid,
+                'sort_code' => $amendement->sort_code,
+                'sort_libelle' => $amendement->sort_libelle,
+                'etat_libelle' => $amendement->etat_libelle,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
-                'dispositif' => $amendement->dispositif,
-                'co_signataires' => $amendement->co_signataires ? count($amendement->co_signataires) : 0,
+                'dispositif' => $amendement->dispositif ? substr($amendement->dispositif, 0, 200) . '...' : '',
+                'cosignataires_count' => $amendement->nombre_cosignataires,
                 'dossier' => $amendement->dossier ? [
                     'uid' => $amendement->dossier->uid,
-                    'titre_court' => $amendement->dossier->titre_court,
+                    'titre_court' => $amendement->dossier->titre_court ?? $amendement->dossier->titre,
                 ] : null,
                 'texte' => $amendement->texte ? [
                     'uid' => $amendement->texte->uid,
-                    'titre_court' => $amendement->texte->titre_court,
+                    'titre_court' => $amendement->texte->titre_court ?? $amendement->texte->titre,
                 ] : null,
             ];
         });
@@ -445,16 +447,17 @@ class RepresentantANController extends Controller
             ->get()
             ->map(fn($amendement) => [
                 'uid' => $amendement->uid,
-                'numero' => $amendement->numero,
-                'sort' => $amendement->sort,
+                'numero' => $amendement->numero_long ?? $amendement->uid,
+                'sort_code' => $amendement->sort_code,
+                'sort_libelle' => $amendement->sort_libelle,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'dossier' => $amendement->dossier ? [
                     'uid' => $amendement->dossier->uid,
-                    'titre_court' => $amendement->dossier->titre_court,
+                    'titre_court' => $amendement->dossier->titre_court ?? $amendement->dossier->titre,
                 ] : null,
                 'texte' => $amendement->texte ? [
                     'uid' => $amendement->texte->uid,
-                    'titre_court' => $amendement->texte->titre_court,
+                    'titre_court' => $amendement->texte->titre_court ?? $amendement->texte->titre,
                 ] : null,
             ]);
 
