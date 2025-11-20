@@ -102,7 +102,10 @@ class ExtractVotesIndividuelsAN extends Command
     private function extractVotesOrgane(ScrutinAN $scrutin, array $organe): void
     {
         $organeRef = $organe['organeRef'] ?? null;
-        $groupes = $organe['groups'] ?? $organe['groupe'] ?? [];
+        
+        // La structure est: organe.groupes.groupe[] (tableau)
+        $groupesData = $organe['groupes'] ?? [];
+        $groupes = $groupesData['groupe'] ?? [];
 
         // Si un seul groupe, transformer en tableau
         if (isset($groupes['organeRef'])) {
@@ -119,15 +122,20 @@ class ExtractVotesIndividuelsAN extends Command
         $groupeRef = $groupe['organeRef'] ?? null;
         $positionGroupe = $groupe['vote']['positionMajoritaire'] ?? null;
 
-        // Parcourir les différentes positions (pour, contre, abstention, nonVotant)
-        $positions = ['pour', 'contre', 'abstention', 'nonVotant'];
+        // Parcourir les différentes positions (PLURIEL dans le JSON !)
+        $positionsMap = [
+            'pours' => 'pour',
+            'contres' => 'contre',
+            'abstentions' => 'abstention',
+            'nonVotants' => 'non_votant',
+        ];
 
-        foreach ($positions as $position) {
-            if (!isset($groupe['vote']['decompteNominatif'][$position]['votant'])) {
+        foreach ($positionsMap as $jsonKey => $dbPosition) {
+            if (!isset($groupe['vote']['decompteNominatif'][$jsonKey]['votant'])) {
                 continue;
             }
 
-            $votants = $groupe['vote']['decompteNominatif'][$position]['votant'];
+            $votants = $groupe['vote']['decompteNominatif'][$jsonKey]['votant'];
 
             // Si un seul votant, transformer en tableau
             if (isset($votants['acteurRef'])) {
@@ -139,7 +147,7 @@ class ExtractVotesIndividuelsAN extends Command
                     $scrutin,
                     $votant,
                     $groupeRef,
-                    $position === 'nonVotant' ? 'non_votant' : $position,
+                    $dbPosition,
                     $positionGroupe
                 );
             }
