@@ -240,21 +240,21 @@ class ImportAmendementsAN extends Command
                 'division_type' => $pointeurFragmentTexte['division']['type'] ?? null,
                 
                 // Contenu
-                'cartouche_informatif' => $corps['cartoucheInformatif'] ?? null,
-                'dispositif' => $corps['dispositif'] ?? null,
-                'expose' => $corps['exposeSommaire'] ?? null,
+                'cartouche_informatif' => $this->extractText($corps['cartoucheInformatif'] ?? null),
+                'dispositif' => $this->extractText($corps['dispositif'] ?? null),
+                'expose' => $this->extractText($corps['exposeSommaire'] ?? null),
                 
                 // Cycle de vie
                 'date_depot' => $this->parseDate($cycleDeVie['dateDepot'] ?? null),
                 'date_publication' => $this->parseDate($cycleDeVie['datePublication'] ?? null),
                 'soumis_article_40' => (bool)($cycleDeVie['soumisArticle40'] ?? false),
-                'etat_code' => $cycleDeVie['etat'] ?? null,
-                'etat_libelle' => $cycleDeVie['etatLibelle'] ?? null,
-                'sous_etat_code' => $cycleDeVie['sousEtat'] ?? null,
-                'sous_etat_libelle' => $cycleDeVie['sousEtatLibelle'] ?? null,
+                'etat_code' => $this->extractText($cycleDeVie['etat'] ?? null),
+                'etat_libelle' => $this->extractText($cycleDeVie['etatLibelle'] ?? null),
+                'sous_etat_code' => $this->extractText($cycleDeVie['sousEtat'] ?? null),
+                'sous_etat_libelle' => $this->extractText($cycleDeVie['sousEtatLibelle'] ?? null),
                 'date_sort' => $this->parseDate($cycleDeVie['dateSort'] ?? null),
-                'sort_code' => $cycleDeVie['sort'] ?? null,
-                'sort_libelle' => $cycleDeVie['sortLibelle'] ?? null,
+                'sort_code' => $this->extractText($cycleDeVie['sort'] ?? null),
+                'sort_libelle' => $this->extractText($cycleDeVie['sortLibelle'] ?? null),
             ]
         );
 
@@ -330,6 +330,51 @@ class ImportAmendementsAN extends Command
         }
 
         return null;
+    }
+
+    /**
+     * Extrait le texte d'un champ qui peut être string, array ou null
+     */
+    private function extractText($value): ?string
+    {
+        if (is_null($value)) {
+            return null;
+        }
+
+        // Si c'est une string, la retourner
+        if (is_string($value)) {
+            return $value;
+        }
+
+        // Si c'est un array, essayer d'extraire le texte
+        if (is_array($value)) {
+            // Si c'est un array avec une clé 'texte'
+            if (isset($value['texte'])) {
+                return $this->extractText($value['texte']);
+            }
+            
+            // Si c'est un array avec une clé 'p' (paragraphe)
+            if (isset($value['p'])) {
+                if (is_string($value['p'])) {
+                    return $value['p'];
+                }
+                if (is_array($value['p'])) {
+                    // Joindre les paragraphes
+                    return implode("\n\n", array_map(fn($p) => is_string($p) ? $p : json_encode($p), $value['p']));
+                }
+            }
+            
+            // Si c'est un array de strings, les joindre
+            if (array_is_list($value) && count($value) > 0 && is_string($value[0])) {
+                return implode("\n", $value);
+            }
+            
+            // Sinon, convertir en JSON pour ne pas perdre l'info
+            return json_encode($value, JSON_UNESCAPED_UNICODE);
+        }
+
+        // Autres types : convertir en string
+        return (string) $value;
     }
 }
 
