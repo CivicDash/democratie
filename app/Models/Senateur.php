@@ -72,6 +72,11 @@ class Senateur extends Model
         return $this->hasMany(VoteSenat::class, 'senateur_matricule', 'matricule');
     }
 
+    public function amendementsSenat(): HasMany
+    {
+        return $this->hasMany(AmendementSenat::class, 'auteur_senateur_matricule', 'matricule');
+    }
+
     /**
      * Scopes
      */
@@ -134,6 +139,14 @@ class Senateur extends Model
         return $this->mandatsLocaux()
             ->get()
             ->groupBy('type_mandat');
+    }
+
+    public function getAgeAttribute(): ?int
+    {
+        if (!$this->date_naissance) {
+            return null;
+        }
+        return $this->date_naissance->age;
     }
 }
 
