@@ -7,7 +7,7 @@ return new class extends Migration
 {
     /**
      * Vue pour les sénateurs complets
-     * Map les tables SQL natives vers une structure compatible avec notre modèle Senateur
+     * Map les tables SQL natives (avec leurs vrais noms de colonnes) vers une structure Laravel-friendly
      */
     public function up(): void
     {
@@ -15,107 +15,50 @@ return new class extends Migration
             CREATE OR REPLACE VIEW v_senateurs_complets AS
             SELECT 
                 -- Identité
-                sen.id::text AS matricule,
+                sen.senmat AS matricule,
                 CASE 
-                    WHEN sen.civilite = 'M.' THEN 'M.'
-                    WHEN sen.civilite = 'Mme' THEN 'Mme'
-                    ELSE sen.civilite
+                    WHEN qua.quacod = 'M' THEN 'M.'
+                    WHEN qua.quacod = 'F' THEN 'Mme'
+                    ELSE qua.quacod
                 END AS civilite,
-                COALESCE(sennom.nom, '') AS nom_usuel,
-                COALESCE(sennom.prenom, '') AS prenom_usuel,
+                sen.sennomuse AS nom_usuel,
+                sen.senprenomuse AS prenom_usuel,
                 
                 -- État
-                CASE 
-                    WHEN sen.etat = 'ACTIF' THEN 'ACTIF'::text
-                    ELSE 'ANCIEN'::text
-                END AS etat,
+                sen.etasencod AS etat,
                 
                 -- Dates
                 sen.sendatnai::date AS date_naissance,
                 sen.sendatdec::date AS date_deces,
                 
-                -- Groupe politique actuel (sous-requête)
-                (
-                    SELECT libgrp.libelle
-                    FROM senat_senateurs_memgrpsen msg
-                    JOIN senat_senateurs_grpsenami grp ON msg.groupe_id = grp.id
-                    LEFT JOIN senat_senateurs_libgrpsen libgrp ON grp.id = libgrp.groupe_id 
-                        AND libgrp.libgrpsendatfin IS NULL
-                    WHERE msg.senateur_id = sen.id
-                    AND msg.memgrpsendatsor IS NULL
-                    ORDER BY msg.memgrpsendatent DESC
-                    LIMIT 1
-                ) AS groupe_politique,
+                -- Groupe politique actuel (depuis colonnes dénormalisées)
+                sen.sengrppolliccou AS groupe_politique,
+                sen.sentypappcou AS type_appartenance_groupe,
                 
-                -- Type appartenance groupe
-                (
-                    SELECT CASE 
-                        WHEN msg.type_appartenance = 'M' THEN 'Membre'
-                        WHEN msg.type_appartenance = 'R' THEN 'Rattaché'
-                        ELSE msg.type_appartenance
-                    END
-                    FROM senat_senateurs_memgrpsen msg
-                    WHERE msg.senateur_id = sen.id
-                    AND msg.memgrpsendatsor IS NULL
-                    ORDER BY msg.memgrpsendatent DESC
-                    LIMIT 1
-                ) AS type_appartenance_groupe,
-                
-                -- Commission permanente actuelle
-                (
-                    SELECT libcom.libelle
-                    FROM senat_senateurs_memcom mc
-                    JOIN senat_senateurs_com ON mc.commission_id = senat_senateurs_com.id
-                    LEFT JOIN senat_senateurs_libcom libcom ON senat_senateurs_com.id = libcom.commission_id
-                        AND libcom.libcomdatfin IS NULL
-                    WHERE mc.senateur_id = sen.id
-                    AND mc.memcomdatfin IS NULL
-                    AND senat_senateurs_com.typorg = 'COMPER'  -- Commission permanente
-                    ORDER BY mc.memcomdatdeb DESC
-                    LIMIT 1
-                ) AS commission_permanente,
+                -- Commission permanente actuelle (depuis colonnes dénormalisées)
+                sen.sencomliccou AS commission_permanente,
                 
                 -- Circonscription (département pour les sénateurs)
-                (
-                    SELECT dpt.libelle
-                    FROM senat_senateurs_elusen es
-                    JOIN senat_senateurs_dpt dpt ON es.departement_id = dpt.id
-                    WHERE es.senateur_id = sen.id
-                    AND es.eludatfin IS NULL
-                    ORDER BY es.eludatdeb DESC
-                    LIMIT 1
-                ) AS circonscription,
+                sen.sencircou AS circonscription,
                 
                 -- Fonction au bureau du Sénat
-                (
-                    SELECT fonbur.libelle
-                    FROM senat_senateurs_senbur sb
-                    JOIN senat_senateurs_bur bur ON sb.fonction_id = bur.id
-                    WHERE sb.senateur_id = sen.id
-                    AND sb.senburdatfin IS NULL
-                    ORDER BY sb.senburdatdeb DESC
-                    LIMIT 1
-                ) AS fonction_bureau_senat,
+                sen.senburliccou AS fonction_bureau_senat,
                 
-                -- Email (si disponible dans la base)
-                mel.email AS email,
+                -- Email
+                sen.senema AS email,
                 
                 -- Profession
-                pcs.code AS pcs_insee,
-                csp.libelle AS categorie_socio_pro,
-                actpro.description AS description_profession,
+                sen.pcscod AS pcs_insee,
+                sen.catprocod AS categorie_socio_pro,
+                sen.sendespro AS description_profession,
                 
-                -- Timestamps (utiliser syscredat/sysmajdat)
-                sen.syscredat AS created_at,
-                sen.sysmajdat AS updated_at
+                -- Timestamps
+                NOW() AS created_at,
+                NOW() AS updated_at
                 
             FROM senat_senateurs_sen sen
-            LEFT JOIN senat_senateurs_sennom sennom ON sen.id = sennom.senateur_id 
-                AND sennom.sennomdatfin IS NULL
-            LEFT JOIN senat_senateurs_mel mel ON sen.id = mel.senateur_id
-            LEFT JOIN senat_senateurs_actpro actpro ON sen.id = actpro.senateur_id
-            LEFT JOIN senat_senateurs_pcs pcs ON actpro.pcs_id = pcs.id
-            LEFT JOIN senat_senateurs_csp csp ON pcs.csp_id = csp.id
+            LEFT JOIN senat_senateurs_qua qua ON sen.quacod = qua.quacod
+            WHERE sen.etasencod = 'AC' -- Sénateurs actifs uniquement
         ");
         
         $this->info('✅ Vue v_senateurs_complets créée');
