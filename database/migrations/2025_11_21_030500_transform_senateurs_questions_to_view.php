@@ -60,8 +60,6 @@ return new class extends Migration
             LEFT JOIN senat_questions_the the ON q.theid = the.theid
             ORDER BY q.quedatjodep DESC NULLS LAST
         ");
-        
-        $this->info('✅ Vue senateurs_questions créée');
     }
 
     public function down(): void

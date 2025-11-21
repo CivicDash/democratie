@@ -60,8 +60,6 @@ return new class extends Migration
             LEFT JOIN senat_senateurs_qua qua ON sen.quacod = qua.quacod
             WHERE sen.etasencod = 'AC' -- Sénateurs actifs uniquement
         ");
-        
-        $this->info('✅ Vue v_senateurs_complets créée');
     }
 
     public function down(): void

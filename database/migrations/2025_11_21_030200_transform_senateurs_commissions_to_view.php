@@ -36,8 +36,6 @@ return new class extends Migration
             LEFT JOIN senat_senateurs_fonmemcom fonmemcom ON mc.fonmemcomid = fonmemcom.fonmemcomid
             ORDER BY mc.memcomdatdeb DESC
         ");
-        
-        $this->info('✅ Vue senateurs_commissions créée');
     }
 
     public function down(): void

@@ -106,8 +106,6 @@ return new class extends Migration
             FROM senat_senateurs_eta eta
             ORDER BY eta.etaann DESC NULLS LAST
         ");
-        
-        $this->info('✅ Vues senateurs_mandats_locaux et senateurs_etudes créées');
     }
 
     public function down(): void

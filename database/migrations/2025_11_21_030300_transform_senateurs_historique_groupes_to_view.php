@@ -38,8 +38,6 @@ return new class extends Migration
             JOIN senat_senateurs_grpsen grp ON mg.grpsenid = grp.grpsenid
             ORDER BY mg.memgrpsendatent DESC
         ");
-        
-        $this->info('✅ Vue senateurs_historique_groupes créée');
     }
 
     public function down(): void

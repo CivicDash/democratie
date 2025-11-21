@@ -72,8 +72,6 @@ return new class extends Migration
             FROM senat_senateurs_sen sen
             LEFT JOIN senat_senateurs_qua qua ON sen.quacod = qua.quacod
         ");
-        
-        $this->info('✅ Vue senateurs créée à partir des données SQL brutes');
     }
 
     public function down(): void

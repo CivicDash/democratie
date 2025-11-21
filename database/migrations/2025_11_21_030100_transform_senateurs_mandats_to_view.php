@@ -38,8 +38,6 @@ return new class extends Migration
             WHERE elusen.typmanid = 2 -- Type 2 = Mandat sénatorial
             ORDER BY elusen.elusendatent DESC
         ");
-        
-        $this->info('✅ Vue senateurs_mandats créée');
     }
 
     public function down(): void
