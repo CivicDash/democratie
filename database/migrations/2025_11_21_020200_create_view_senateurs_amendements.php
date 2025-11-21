@@ -67,14 +67,14 @@ return new class extends Migration
                 -- Timestamps
                 amd.created_at AS created_at
                 
-            FROM amd
-            LEFT JOIN amdsen ON amd.id = amdsen.amendement_id
-            LEFT JOIN txt_ameli txt ON amd.texte_id = txt.id
-            LEFT JOIN sub ON amd.subdivision_id = sub.id
-            LEFT JOIN sor ON amd.sort_id = sor.id
-            LEFT JOIN avicom ON amd.id = avicom.amendement_id
-            LEFT JOIN avigvt ON amd.id = avigvt.amendement_id
-            LEFT JOIN sea ON amd.seance_id = sea.id
+            FROM senat_ameli_amd amd
+            LEFT JOIN senat_ameli_amdsen amdsen ON amd.id = amdsen.amendement_id
+            LEFT JOIN senat_ameli_txt_ameli txt ON amd.texte_id = txt.id
+            LEFT JOIN senat_ameli_sub sub ON amd.subdivision_id = sub.id
+            LEFT JOIN senat_ameli_sor sor ON amd.sort_id = sor.id
+            LEFT JOIN senat_ameli_avicom avicom ON amd.id = avicom.amendement_id
+            LEFT JOIN senat_ameli_avigvt avigvt ON amd.id = avigvt.amendement_id
+            LEFT JOIN senat_ameli_sea sea ON amd.seance_id = sea.id
             WHERE amdsen.senateur_id IS NOT NULL
             ORDER BY amd.date_depot DESC NULLS LAST
         ");

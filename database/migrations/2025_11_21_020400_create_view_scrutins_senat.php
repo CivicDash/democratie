@@ -53,10 +53,10 @@ return new class extends Migration
                 scr.syscredat AS created_at,
                 scr.sysmajdat AS updated_at
                 
-            FROM scr
-            LEFT JOIN typscr ON scr.type_id = typscr.id
-            LEFT JOIN ses ON scr.session_id = ses.id
-            LEFT JOIN texte txt ON scr.texte_id = txt.id
+            FROM senat_senateurs_scr scr
+            LEFT JOIN senat_senateurs_typscr typscr ON scr.type_id = typscr.id
+            LEFT JOIN senat_senateurs_ses ses ON scr.session_id = ses.id
+            LEFT JOIN senat_senateurs_texte txt ON scr.texte_id = txt.id
             ORDER BY scr.scrdat DESC NULLS LAST
         ");
         

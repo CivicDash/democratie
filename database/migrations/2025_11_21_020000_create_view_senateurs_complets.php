@@ -37,9 +37,9 @@ return new class extends Migration
                 -- Groupe politique actuel (sous-requête)
                 (
                     SELECT libgrp.libelle
-                    FROM memgrpsen msg
-                    JOIN grpsenami grp ON msg.groupe_id = grp.id
-                    LEFT JOIN libgrpsen libgrp ON grp.id = libgrp.groupe_id 
+                    FROM senat_senateurs_memgrpsen msg
+                    JOIN senat_senateurs_grpsenami grp ON msg.groupe_id = grp.id
+                    LEFT JOIN senat_senateurs_libgrpsen libgrp ON grp.id = libgrp.groupe_id 
                         AND libgrp.libgrpsendatfin IS NULL
                     WHERE msg.senateur_id = sen.id
                     AND msg.memgrpsendatsor IS NULL
@@ -54,7 +54,7 @@ return new class extends Migration
                         WHEN msg.type_appartenance = 'R' THEN 'Rattaché'
                         ELSE msg.type_appartenance
                     END
-                    FROM memgrpsen msg
+                    FROM senat_senateurs_memgrpsen msg
                     WHERE msg.senateur_id = sen.id
                     AND msg.memgrpsendatsor IS NULL
                     ORDER BY msg.memgrpsendatent DESC
@@ -64,13 +64,13 @@ return new class extends Migration
                 -- Commission permanente actuelle
                 (
                     SELECT libcom.libelle
-                    FROM memcom mc
-                    JOIN com ON mc.commission_id = com.id
-                    LEFT JOIN libcom ON com.id = libcom.commission_id
+                    FROM senat_senateurs_memcom mc
+                    JOIN senat_senateurs_com ON mc.commission_id = senat_senateurs_com.id
+                    LEFT JOIN senat_senateurs_libcom libcom ON senat_senateurs_com.id = libcom.commission_id
                         AND libcom.libcomdatfin IS NULL
                     WHERE mc.senateur_id = sen.id
                     AND mc.memcomdatfin IS NULL
-                    AND com.typorg = 'COMPER'  -- Commission permanente
+                    AND senat_senateurs_com.typorg = 'COMPER'  -- Commission permanente
                     ORDER BY mc.memcomdatdeb DESC
                     LIMIT 1
                 ) AS commission_permanente,
@@ -78,8 +78,8 @@ return new class extends Migration
                 -- Circonscription (département pour les sénateurs)
                 (
                     SELECT dpt.libelle
-                    FROM elusen es
-                    JOIN dpt ON es.departement_id = dpt.id
+                    FROM senat_senateurs_elusen es
+                    JOIN senat_senateurs_dpt dpt ON es.departement_id = dpt.id
                     WHERE es.senateur_id = sen.id
                     AND es.eludatfin IS NULL
                     ORDER BY es.eludatdeb DESC
@@ -89,8 +89,8 @@ return new class extends Migration
                 -- Fonction au bureau du Sénat
                 (
                     SELECT fonbur.libelle
-                    FROM senbur sb
-                    JOIN bur ON sb.fonction_id = bur.id
+                    FROM senat_senateurs_senbur sb
+                    JOIN senat_senateurs_bur bur ON sb.fonction_id = bur.id
                     WHERE sb.senateur_id = sen.id
                     AND sb.senburdatfin IS NULL
                     ORDER BY sb.senburdatdeb DESC
@@ -109,13 +109,13 @@ return new class extends Migration
                 sen.syscredat AS created_at,
                 sen.sysmajdat AS updated_at
                 
-            FROM sen
-            LEFT JOIN sennom ON sen.id = sennom.senateur_id 
+            FROM senat_senateurs_sen sen
+            LEFT JOIN senat_senateurs_sennom sennom ON sen.id = sennom.senateur_id 
                 AND sennom.sennomdatfin IS NULL
-            LEFT JOIN mel ON sen.id = mel.senateur_id
-            LEFT JOIN actpro ON sen.id = actpro.senateur_id
-            LEFT JOIN pcs ON actpro.pcs_id = pcs.id
-            LEFT JOIN csp ON pcs.csp_id = csp.id
+            LEFT JOIN senat_senateurs_mel mel ON sen.id = mel.senateur_id
+            LEFT JOIN senat_senateurs_actpro actpro ON sen.id = actpro.senateur_id
+            LEFT JOIN senat_senateurs_pcs pcs ON actpro.pcs_id = pcs.id
+            LEFT JOIN senat_senateurs_csp csp ON pcs.csp_id = csp.id
         ");
         
         $this->info('✅ Vue v_senateurs_complets créée');

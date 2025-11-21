@@ -267,12 +267,6 @@ class ImportSenatSQL extends Command
                 }
             }
             $this->newLine();
-            
-            if ($errors > 0) {
-                $this->warn("⚠️  {$errors} erreur(s) SQL");
-            } else {
-                $this->info("✅ Import réussi");
-            }
         }
 
         // Afficher les statistiques

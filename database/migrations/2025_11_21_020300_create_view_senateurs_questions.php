@@ -71,14 +71,14 @@ return new class extends Migration
                 -- Timestamps
                 q.datesynctam AS created_at
                 
-            FROM tam_questions q
-            LEFT JOIN tam_reponses r ON q.id = r.question_id
-            LEFT JOIN naturequestion natq ON q.nature_id = natq.id
-            LEFT JOIN etatquestion etatq ON q.etat_id = etatq.id
-            LEFT JOIN sortquestion sortq ON q.sort_id = sortq.id
-            LEFT JOIN legquestion legq ON q.legislature_id = legq.id
-            LEFT JOIN tam_ministeres m ON q.ministere_id = m.id
-            LEFT JOIN the ON q.theme_id = the.id
+            FROM senat_questions_tam_questions q
+            LEFT JOIN senat_questions_tam_reponses r ON q.id = r.question_id
+            LEFT JOIN senat_questions_naturequestion natq ON q.nature_id = natq.id
+            LEFT JOIN senat_questions_etatquestion etatq ON q.etat_id = etatq.id
+            LEFT JOIN senat_questions_sortquestion sortq ON q.sort_id = sortq.id
+            LEFT JOIN senat_questions_legquestion legq ON q.legislature_id = legq.id
+            LEFT JOIN senat_questions_tam_ministeres m ON q.ministere_id = m.id
+            LEFT JOIN senat_questions_the the ON q.theme_id = the.id
             WHERE q.senateur_id IS NOT NULL
             ORDER BY q.datejodepot DESC NULLS LAST
         ");

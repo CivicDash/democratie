@@ -43,9 +43,9 @@ return new class extends Migration
                 -- Groupe du sénateur au moment du vote
                 (
                     SELECT libgrp.libelle
-                    FROM memgrpsen msg
-                    JOIN grpsenami grp ON msg.groupe_id = grp.id
-                    LEFT JOIN libgrpsen libgrp ON grp.id = libgrp.groupe_id
+                    FROM senat_senateurs_memgrpsen msg
+                    JOIN senat_senateurs_grpsenami grp ON msg.groupe_id = grp.id
+                    LEFT JOIN senat_senateurs_libgrpsen libgrp ON grp.id = libgrp.groupe_id
                     WHERE msg.senateur_id = v.senateur_id
                     AND msg.memgrpsendatent <= scr.scrdat
                     AND (msg.memgrpsendatsor IS NULL OR msg.memgrpsendatsor >= scr.scrdat)
@@ -59,8 +59,8 @@ return new class extends Migration
                 -- Timestamps
                 scr.syscredat AS created_at
                 
-            FROM votes v
-            JOIN scr ON v.scrutin_id = scr.id
+            FROM senat_senateurs_votes v
+            JOIN senat_senateurs_scr scr ON v.scrutin_id = scr.id
             WHERE v.senateur_id IS NOT NULL
             ORDER BY scr.scrdat DESC, v.senateur_id
         ");
