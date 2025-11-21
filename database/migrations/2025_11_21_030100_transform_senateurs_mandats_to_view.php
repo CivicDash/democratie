@@ -17,26 +17,28 @@ return new class extends Migration
         DB::statement("
             CREATE OR REPLACE VIEW senateurs_mandats AS
             SELECT 
-                elusen.elusenid AS id,
-                elusen.senid AS senateur_matricule,
-                elusen.elusendatent::date AS date_debut,
+                elusen.eluid AS id,
+                elusen.senmat AS senateur_matricule,
+                elusen.eludatdeb::date AS date_debut,
                 elusen.eludatfin::date AS date_fin,
                 CASE 
                     WHEN elusen.eludatfin IS NULL THEN true
                     ELSE false
                 END AS actif,
-                dpt.dptcod AS departement_code,
+                LPAD(elusen.dptnum::text, 2, '0') AS departement_code,
                 dpt.dptlib AS departement_nom,
-                elusen.cirnum AS circonscription_numero,
+                NULL AS circonscription_numero,
                 typman.typmanlib AS type_mandat,
+                elusen.eluanndeb AS annee_debut,
+                elusen.eluannfin AS annee_fin,
                 NOW() AS created_at,
                 NOW() AS updated_at
                 
             FROM senat_senateurs_elusen elusen
-            LEFT JOIN senat_senateurs_dpt dpt ON elusen.dptid = dpt.dptid
-            LEFT JOIN senat_senateurs_typman typman ON elusen.typmanid = typman.typmanid
-            WHERE elusen.typmanid = 2 -- Type 2 = Mandat sénatorial
-            ORDER BY elusen.elusendatent DESC
+            LEFT JOIN senat_senateurs_dpt dpt ON elusen.dptnum = dpt.dptnum
+            LEFT JOIN senat_senateurs_typman typman ON elusen.typmancod = typman.typmancod
+            WHERE elusen.typmancod = 'SEN' -- SEN = Mandat sénatorial
+            ORDER BY elusen.eludatdeb DESC NULLS LAST
         ");
     }
 
