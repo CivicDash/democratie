@@ -154,16 +154,23 @@ class RepresentantController extends Controller
         }
 
         // Répartition nationale des députés et sénateurs par département
-        $data['deputesByDepartment'] = DeputeSenateur::deputes()
-            ->enExercice()
-            ->selectRaw('SUBSTRING(circonscription, 1, 2) as department_code, COUNT(*) as count')
+        $data['deputesByDepartment'] = ActeurAN::whereHas('mandats', function($q) {
+                $q->where('type_organe', 'ASSEMBLEE')
+                  ->whereNull('date_fin');
+            })
+            ->join('mandats_an', function($join) {
+                $join->on('acteurs_an.uid', '=', 'mandats_an.acteur_ref')
+                     ->where('mandats_an.type_organe', 'ASSEMBLEE')
+                     ->whereNull('mandats_an.date_fin');
+            })
+            ->selectRaw('SUBSTRING(mandats_an.code_departement, 1, 2) as department_code, COUNT(DISTINCT acteurs_an.uid) as count')
             ->groupBy('department_code')
             ->pluck('count', 'department_code')
             ->toArray();
 
-        $data['senateursByDepartment'] = DeputeSenateur::senateurs()
-            ->enExercice()
-            ->selectRaw('SUBSTRING(circonscription, 1, 2) as department_code, COUNT(*) as count')
+        $data['senateursByDepartment'] = Senateur::where('etat', 'ACTIF')
+            ->selectRaw('SUBSTRING(departement_code, 1, 2) as department_code, COUNT(*) as count')
+            ->whereNotNull('departement_code')
             ->groupBy('department_code')
             ->pluck('count', 'department_code')
             ->toArray();
@@ -319,8 +326,9 @@ class RepresentantController extends Controller
                 ->toArray();
 
             // Compter les députés (via circonscriptions dans mandats AN)
-            $deputesByRegion[$region->code] = \App\Models\ActeurAN::whereHas('mandatActif', function($q) use ($departments) {
+            $deputesByRegion[$region->code] = \App\Models\ActeurAN::whereHas('mandats', function($q) use ($departments) {
                 $q->where('type_organe', 'ASSEMBLEE')
+                  ->whereNull('date_fin')
                   ->where(function($sq) use ($departments) {
                       foreach ($departments as $deptCode) {
                           $sq->orWhere('code_departement', $deptCode);

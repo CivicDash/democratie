@@ -128,15 +128,16 @@ class ParlementController extends Controller
         // Groupes politiques - Députés
         $groupesDeputes = OrganeAN::where('type_organe', 'GP')
             ->where('legislature', 17)
-            ->withCount(['mandatsActifs' => function($q) {
-                $q->where('type_organe', 'GP');
+            ->withCount(['mandats' => function($q) {
+                $q->where('type_organe', 'GP')
+                  ->whereNull('date_fin');
             }])
-            ->orderBy('mandats_actifs_count', 'desc')
+            ->orderBy('mandats_count', 'desc')
             ->get()
             ->map(fn($g) => [
                 'sigle' => $g->libelleAbrev,
                 'nom' => $g->libelle,
-                'effectif' => $g->mandats_actifs_count,
+                'effectif' => $g->mandats_count,
             ]);
 
         // Groupes politiques - Sénateurs (simple count par groupe)
