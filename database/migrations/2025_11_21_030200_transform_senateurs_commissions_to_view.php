@@ -16,25 +16,23 @@ return new class extends Migration
             CREATE OR REPLACE VIEW senateurs_commissions AS
             SELECT 
                 mc.memcomid AS id,
-                mc.senid AS senateur_matricule,
-                com.comlib AS commission_nom,
-                com.comcod AS commission_code,
-                typorg.typorglib AS type_organe,
+                mc.senmat AS senateur_matricule,
+                org.orglib AS commission_nom,
+                mc.orgcod AS commission_code,
+                org.typorgcod AS type_organe,
                 mc.memcomdatdeb::date AS date_debut,
                 mc.memcomdatfin::date AS date_fin,
                 CASE 
                     WHEN mc.memcomdatfin IS NULL THEN true
                     ELSE false
                 END AS actif,
-                fonmemcom.fonmemcomlib AS fonction,
+                mc.memcomtitsup AS fonction,
                 NOW() AS created_at,
                 NOW() AS updated_at
                 
             FROM senat_senateurs_memcom mc
-            JOIN senat_senateurs_com com ON mc.comid = com.comid
-            LEFT JOIN senat_senateurs_typorg typorg ON com.typorgid = typorg.typorgid
-            LEFT JOIN senat_senateurs_fonmemcom fonmemcom ON mc.fonmemcomid = fonmemcom.fonmemcomid
-            ORDER BY mc.memcomdatdeb DESC
+            LEFT JOIN senat_senateurs_org org ON mc.orgcod = org.orgcod
+            ORDER BY mc.memcomdatdeb DESC NULLS LAST
         ");
     }
 
