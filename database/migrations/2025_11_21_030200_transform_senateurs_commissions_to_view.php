@@ -17,7 +17,7 @@ return new class extends Migration
             SELECT 
                 mc.memcomid AS id,
                 mc.senmat AS senateur_matricule,
-                org.orglib AS commission_nom,
+                org.evelib AS commission_nom,
                 mc.orgcod AS commission_code,
                 org.typorgcod AS type_organe,
                 mc.memcomdatdeb::date AS date_debut,
@@ -32,6 +32,7 @@ return new class extends Migration
                 
             FROM senat_senateurs_memcom mc
             LEFT JOIN senat_senateurs_org org ON mc.orgcod = org.orgcod
+            WHERE org.typorgcod IN ('COMPER', 'DELEG', 'COMPAR') -- Commissions, délégations
             ORDER BY mc.memcomdatdeb DESC NULLS LAST
         ");
     }
