@@ -17,7 +17,7 @@ return new class extends Migration
             SELECT 
                 mg.memgrpsenid AS id,
                 mg.senmat AS senateur_matricule,
-                org.orglib AS groupe_nom,
+                org.evelib AS groupe_nom,
                 mg.orgcod AS groupe_code,
                 mg.memgrpsendatent::date AS date_debut,
                 mg.memgrpsendatsor::date AS date_fin,
