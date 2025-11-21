@@ -9,25 +9,18 @@ class ScrutinSenat extends Model
 {
     protected $table = 'scrutins_senat';
 
-    protected $fillable = [
-        'numero',
-        'legislature',
-        'date_scrutin',
-        'titre',
-        'objet',
-        'type_vote',
-        'pour',
-        'contre',
-        'abstentions',
-        'non_votants',
-        'resultat',
-        'url',
-        'donnees_source',
-    ];
+    // Note: Cette table est une VUE SQL en lecture seule
+    protected $fillable = [];
 
     protected $casts = [
         'date_scrutin' => 'date',
-        'donnees_source' => 'array',
+        'session_annee' => 'integer',
+        'numero' => 'integer',
+        'pour' => 'integer',
+        'contre' => 'integer',
+        'votants' => 'integer',
+        'suffrages_exprimes' => 'integer',
+        'majorite_requise' => 'integer',
     ];
 
     /**
@@ -35,7 +28,7 @@ class ScrutinSenat extends Model
      */
     public function votes(): HasMany
     {
-        return $this->hasMany(VoteSenat::class, 'scrutin_senat_id');
+        return $this->hasMany(VoteSenat::class, 'scrutin_id', 'id');
     }
 
     /**
@@ -43,31 +36,30 @@ class ScrutinSenat extends Model
      */
     public function scopeAdoptes($query)
     {
-        return $query->where('resultat', 'adopté');
+        return $query->where('resultat', 'Adopté');
     }
 
     public function scopeRejetes($query)
     {
-        return $query->where('resultat', 'rejeté');
+        return $query->where('resultat', 'Rejeté');
     }
 
-    public function scopeParLegislature($query, string $legislature)
+    public function scopeParSession($query, int $sessionAnnee)
     {
-        return $query->where('legislature', $legislature);
+        return $query->where('session_annee', $sessionAnnee);
     }
 
     /**
      * Accesseurs
      */
-    public function getVotantsAttribute(): int
+    public function getAbstentionsAttribute(): int
     {
-        return $this->pour + $this->contre + $this->abstentions;
+        return $this->suffrages_exprimes - $this->pour - $this->contre;
     }
 
     public function getTauxParticipationAttribute(): float
     {
-        $total = $this->votants + $this->non_votants;
-        return $total > 0 ? round(($this->votants / $total) * 100, 2) : 0;
+        return $this->votants > 0 ? round(($this->suffrages_exprimes / $this->votants) * 100, 2) : 0;
     }
 
     public function getTauxAdoptionAttribute(): ?float
@@ -78,7 +70,7 @@ class ScrutinSenat extends Model
 
     public function getEstAdopteAttribute(): bool
     {
-        return $this->resultat === 'adopté';
+        return $this->resultat === 'Adopté';
     }
 }
 

@@ -9,15 +9,11 @@ class VoteSenat extends Model
 {
     protected $table = 'votes_senat';
 
-    protected $fillable = [
-        'scrutin_senat_id',
-        'senateur_matricule',
-        'position',
-        'donnees_source',
-    ];
+    // Note: Cette table est une VUE SQL en lecture seule
+    protected $fillable = [];
 
     protected $casts = [
-        'donnees_source' => 'array',
+        'date_vote' => 'date',
     ];
 
     /**
@@ -25,12 +21,12 @@ class VoteSenat extends Model
      */
     public function scrutin(): BelongsTo
     {
-        return $this->belongsTo(ScrutinSenat::class, 'scrutin_senat_id');
+        return $this->belongsTo(ScrutinSenat::class, 'scrutin_id', 'id');
     }
 
     public function senateur(): BelongsTo
     {
-        return $this->belongsTo(Senateur::class, 'senateur_matricule', 'matricule');
+        return $this->belongsTo(Senateur::class, 'senateur_matricule', 'id');
     }
 
     /**

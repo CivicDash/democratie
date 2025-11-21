@@ -73,7 +73,7 @@ class Senateur extends Model
 
     public function votesSenat(): HasMany
     {
-        return $this->hasMany(VoteSenat::class, 'senateur_matricule', 'matricule');
+        return $this->hasMany(VoteSenat::class, 'senateur_matricule', 'id');
     }
 
     public function amendementsSenat(): HasMany
