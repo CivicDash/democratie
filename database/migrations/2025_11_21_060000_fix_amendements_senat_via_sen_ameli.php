@@ -27,11 +27,8 @@ return new class extends Migration
         ");
         
         if ($tablesExist[0]->count < 3) {
-            $this->command->warn('⚠️  Tables AMELI non importées, skip');
-            return;
+            return; // Tables non importées, skip
         }
-
-        $this->command->info('✅ Correction de la vue amendements_senat avec jointure via sen_ameli...');
         
         DB::statement("
             CREATE OR REPLACE VIEW amendements_senat AS
@@ -58,16 +55,6 @@ return new class extends Migration
             WHERE amdsen.senid IS NOT NULL AND sen.mat IS NOT NULL
             ORDER BY amd.datdep DESC NULLS LAST
         ");
-
-        $this->command->info('✅ Vue amendements_senat corrigée !');
-        
-        // Afficher quelques stats
-        $count = DB::select("SELECT COUNT(*) as total FROM amendements_senat");
-        $this->command->info("📊 Total amendements dans la vue : {$count[0]->total}");
-        
-        // Test avec un sénateur spécifique
-        $test = DB::select("SELECT COUNT(*) as total FROM amendements_senat WHERE senateur_matricule = '19954N'");
-        $this->command->info("🔍 Amendements pour Catherine Belrhiti (19954N) : {$test[0]->total}");
     }
 
     public function down(): void
