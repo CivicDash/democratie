@@ -227,45 +227,45 @@ class ImportSenatSQL extends Command
         foreach ($sqlFiles as $sqlFile) {
             $this->info("📥 Import de " . basename($sqlFile) . "...");
             
-            $content = file_get_contents($sqlFile);
+            // Utiliser psql directement pour éviter les problèmes de mémoire PHP
+            $dbConfig = config('database.connections.pgsql');
             
-            // Si fresh, supprimer les tables existantes
-            if ($fresh) {
-                $this->info("⚠️  Mode --fresh : suppression des tables existantes...");
-                // Extraire les noms de tables
-                preg_match_all('/CREATE TABLE\s+(\w+)/i', $content, $matches);
-                foreach ($matches[1] as $table) {
-                    try {
-                        DB::statement("DROP TABLE IF EXISTS {$table} CASCADE");
-                        $this->line("   - Table {$table} supprimée");
-                    } catch (\Exception $e) {
-                        $this->warn("   - Impossible de supprimer {$table}");
-                    }
+            $host = $dbConfig['host'];
+            $port = $dbConfig['port'];
+            $database = $dbConfig['database'];
+            $username = $dbConfig['username'];
+            $password = $dbConfig['password'];
+            
+            // Construire la commande psql
+            $command = sprintf(
+                'PGPASSWORD=%s psql -h %s -p %s -U %s -d %s -f %s 2>&1',
+                escapeshellarg($password),
+                escapeshellarg($host),
+                escapeshellarg($port),
+                escapeshellarg($username),
+                escapeshellarg($database),
+                escapeshellarg($sqlFile)
+            );
+            
+            $this->line("🔧 Exécution via psql (cela peut prendre plusieurs minutes)...");
+            
+            // Exécuter la commande
+            $output = [];
+            $returnVar = 0;
+            exec($command, $output, $returnVar);
+            
+            if ($returnVar === 0) {
+                $this->info("✅ Import réussi : " . basename($sqlFile));
+            } else {
+                $this->error("❌ Erreur lors de l'import de " . basename($sqlFile));
+                $this->error("Code retour : {$returnVar}");
+                
+                // Afficher les dernières lignes d'erreur
+                $errorLines = array_slice($output, -10);
+                foreach ($errorLines as $line) {
+                    $this->line("  " . $line);
                 }
             }
-            
-            // Exécuter le SQL par blocs (pour éviter les timeouts)
-            $statements = $this->splitSQLStatements($content);
-            $progressBar = $this->output->createProgressBar(count($statements));
-            $progressBar->start();
-            
-            $errors = 0;
-            foreach ($statements as $statement) {
-                try {
-                    if (!empty(trim($statement))) {
-                        DB::unprepared($statement);
-                    }
-                } catch (\Exception $e) {
-                    $errors++;
-                    if ($errors <= 5) {
-                        $this->newLine();
-                        $this->error("❌ Erreur SQL : " . substr($e->getMessage(), 0, 100));
-                    }
-                }
-                $progressBar->advance();
-            }
-            
-            $progressBar->finish();
             $this->newLine();
             
             if ($errors > 0) {
@@ -277,53 +277,24 @@ class ImportSenatSQL extends Command
 
         // Afficher les statistiques
         $this->newLine();
-        $this->info("📊 Tables créées :");
+        $this->info("📊 Vérification des tables importées...");
         
-        $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE ?", [$config['table_prefix'] . '%']);
-        
-        foreach ($tables as $table) {
-            $count = DB::table($table->tablename)->count();
-            $this->line("   - {$table->tablename} : {$count} lignes");
+        try {
+            $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename LIMIT 20");
+            
+            $this->line("   Échantillon des tables créées :");
+            foreach (array_slice($tables, 0, 10) as $table) {
+                $this->line("   ✓ {$table->tablename}");
+            }
+            
+            if (count($tables) > 10) {
+                $this->line("   ... et " . (count($tables) - 10) . " autres tables");
+            }
+        } catch (\Exception $e) {
+            $this->warn("   Impossible d'afficher les tables : " . $e->getMessage());
         }
 
         return Command::SUCCESS;
-    }
-
-    private function splitSQLStatements(string $sql): array
-    {
-        // Supprimer les commentaires
-        $sql = preg_replace('/--.*$/m', '', $sql);
-        $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
-        
-        // Découper par ';' mais pas dans les strings
-        $statements = [];
-        $current = '';
-        $inString = false;
-        $stringChar = null;
-        
-        for ($i = 0; $i < strlen($sql); $i++) {
-            $char = $sql[$i];
-            
-            if (!$inString && ($char === "'" || $char === '"')) {
-                $inString = true;
-                $stringChar = $char;
-            } elseif ($inString && $char === $stringChar && $sql[$i-1] !== '\\') {
-                $inString = false;
-            }
-            
-            $current .= $char;
-            
-            if (!$inString && $char === ';') {
-                $statements[] = trim($current);
-                $current = '';
-            }
-        }
-        
-        if (!empty(trim($current))) {
-            $statements[] = trim($current);
-        }
-        
-        return $statements;
     }
 }
 
