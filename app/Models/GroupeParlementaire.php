@@ -48,8 +48,9 @@ class GroupeParlementaire extends Model
     
     public function deputes(): HasMany
     {
-        return $this->hasMany(DeputeSenateur::class, 'groupe_politique', 'sigle')
-            ->where('source', $this->source);
+        // Note: Pour simplifier, on compte uniquement les députés AN
+        // Les sénateurs sont comptés via nombre_membres pour les groupes Sénat
+        return $this->hasMany(ActeurAN::class, 'groupe_sigle', 'sigle');
     }
 
     public function votesGroupes(): HasMany
