@@ -41,7 +41,6 @@ return new class extends Migration
                 -- Identité
                 sen.sennomuse AS nom_usuel,
                 sen.senprenomuse AS prenom_usuel,
-                sen.sennompatnai AS nom_patronymique_naissance,
                 sen.sennomuse || ' ' || sen.senprenomuse AS nom_complet,
                 
                 -- Profil
@@ -110,7 +109,6 @@ return new class extends Migration
                 qua.qualib AS civilite,
                 sen.sennomuse AS nom_usuel,
                 sen.senprenomuse AS prenom_usuel,
-                sen.sennompatnai AS nom_patronymique_naissance,
                 sen.sennomuse || ' ' || sen.senprenomuse AS nom_complet,
                 sen.sendaiurl AS url_profil,
                 sen.etasencod AS etat,
