@@ -32,6 +32,9 @@ class Senateur extends Model
         'pcs_insee',
         'categorie_socio_pro',
         'description_profession',
+        'wikipedia_url',
+        'wikipedia_photo',
+        'wikipedia_extract',
     ];
 
     protected $casts = [
