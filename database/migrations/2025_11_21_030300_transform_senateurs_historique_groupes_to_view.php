@@ -16,27 +16,23 @@ return new class extends Migration
             CREATE OR REPLACE VIEW senateurs_historique_groupes AS
             SELECT 
                 mg.memgrpsenid AS id,
-                mg.senid AS senateur_matricule,
-                grp.grppolglo AS groupe_nom,
-                grp.grppolglocod AS groupe_code,
+                mg.senmat AS senateur_matricule,
+                org.orglib AS groupe_nom,
+                mg.orgcod AS groupe_code,
                 mg.memgrpsendatent::date AS date_debut,
                 mg.memgrpsendatsor::date AS date_fin,
                 CASE 
                     WHEN mg.memgrpsendatsor IS NULL THEN true
                     ELSE false
                 END AS actif,
-                CASE 
-                    WHEN mg.typapp = 'M' THEN 'Membre'
-                    WHEN mg.typapp = 'R' THEN 'Rattaché'
-                    WHEN mg.typapp = 'A' THEN 'Apparenté'
-                    ELSE mg.typapp
-                END AS type_appartenance,
+                'Membre' AS type_appartenance,
                 NOW() AS created_at,
                 NOW() AS updated_at
                 
             FROM senat_senateurs_memgrpsen mg
-            JOIN senat_senateurs_grpsen grp ON mg.grpsenid = grp.grpsenid
-            ORDER BY mg.memgrpsendatent DESC
+            LEFT JOIN senat_senateurs_org org ON mg.orgcod = org.orgcod
+            WHERE org.typorgcod = 'GP' -- GP = Groupe politique
+            ORDER BY mg.memgrpsendatent DESC NULLS LAST
         ");
     }
 
