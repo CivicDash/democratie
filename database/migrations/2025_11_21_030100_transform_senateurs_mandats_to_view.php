@@ -37,7 +37,7 @@ return new class extends Migration
             FROM senat_senateurs_elusen elusen
             LEFT JOIN senat_senateurs_dpt dpt ON elusen.dptnum = dpt.dptnum
             LEFT JOIN senat_senateurs_typman typman ON elusen.typmancod = typman.typmancod
-            WHERE elusen.typmancod = 'SEN' -- SEN = Mandat sénatorial
+            WHERE elusen.typmancod = 'SENAT' -- SENAT = Mandat sénatorial
             ORDER BY elusen.eludatdeb DESC NULLS LAST
         ");
     }
