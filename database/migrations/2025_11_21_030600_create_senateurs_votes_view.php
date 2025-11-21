@@ -18,7 +18,7 @@ return new class extends Migration
                 v.scrid AS scrutin_id,
                 scr.scrdat::date AS date_vote,
                 scr.scrint AS intitule,
-                scr.scrobj AS objet,
+                scr.scrintext AS intitule_complet,
                 CASE 
                     WHEN v.posvotcod = 'P' THEN 'pour'
                     WHEN v.posvotcod = 'C' THEN 'contre'
@@ -26,7 +26,11 @@ return new class extends Migration
                     WHEN v.posvotcod = 'NV' THEN 'non_votant'
                     ELSE v.posvotcod
                 END AS position,
-                scr.reslis AS resultat_scrutin,
+                CASE 
+                    WHEN scr.scrpou > scr.scrcon THEN 'Adopté'
+                    WHEN scr.scrcon > scr.scrpou THEN 'Rejeté'
+                    ELSE 'Égalité'
+                END AS resultat_scrutin,
                 NOW() AS created_at,
                 NOW() AS updated_at
                 
