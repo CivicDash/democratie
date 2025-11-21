@@ -85,22 +85,30 @@ class EnrichSenateursWikipedia extends Command
 
     private function enrichSenateur(Senateur $senateur): void
     {
-        // Construire le titre Wikipedia
-        $searchTerm = "{$senateur->prenom_usuel} {$senateur->nom_usuel} sénateur";
-        
         // Rechercher sur Wikipedia
-        $wikiData = $this->wikipediaService->searchPerson($searchTerm);
+        $searchTerm = str_replace(' ', '_', "{$senateur->prenom_usuel}_{$senateur->nom_usuel}");
+        
+        // Essayer d'abord avec l'API summary directe
+        $wikiData = $this->wikipediaService->getPageSummary($searchTerm);
 
-        if (!$wikiData || !isset($wikiData['url'])) {
+        // Si pas trouvé, essayer avec la recherche
+        if (!$wikiData) {
+            $wikiData = $this->wikipediaService->searchByName(
+                $senateur->nom_usuel, 
+                $senateur->prenom_usuel
+            );
+        }
+
+        if (!$wikiData || !isset($wikiData['wikipedia_url'])) {
             $this->notFound++;
             return;
         }
 
         // Mettre à jour le sénateur
         $senateur->update([
-            'wikipedia_url' => $wikiData['url'],
-            'wikipedia_photo' => $wikiData['photo'] ?? null,
-            'wikipedia_extract' => $wikiData['extract'] ?? null,
+            'wikipedia_url' => $wikiData['wikipedia_url'],
+            'wikipedia_photo' => $wikiData['thumbnail'] ?? $wikiData['photo_wikipedia_url'] ?? null,
+            'wikipedia_extract' => $wikiData['extract'] ?? $wikiData['wikipedia_extract'] ?? null,
             'wikipedia_last_sync' => now(),
         ]);
 
