@@ -32,13 +32,8 @@ return new class extends Migration
                 amd.dis AS dispositif,
                 amd.obj AS expose,
                 amd.datdep::date AS date_depot,
-                sor.sorlib AS sort_libelle,
-                amd.sorid AS sort_code,
-                avi_com.avilib AS avis_commission,
-                avi_gvt.avilib AS avis_gouvernement,
-                txt.txtnom AS texte_nom,
-                sub.subart AS article,
-                sub.subalin AS alinea,
+                sor.lib AS sort_libelle,
+                sor.cod AS sort_code,
                 amdsen.nomuse AS auteur_nom,
                 amdsen.prenomuse AS auteur_prenom,
                 amdsen.grpid AS auteur_groupe_id,
@@ -47,11 +42,7 @@ return new class extends Migration
                 
             FROM senat_ameli_amd amd
             LEFT JOIN senat_ameli_amdsen amdsen ON amd.id = amdsen.amdid AND amdsen.rng = 1
-            LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.sorid
-            LEFT JOIN senat_ameli_avicom avi_com ON amd.avcid = avi_com.avicod
-            LEFT JOIN senat_ameli_avigvt avi_gvt ON amd.avgid = avi_gvt.avgcod
-            LEFT JOIN senat_ameli_txt txt ON amd.txtid = txt.txtid
-            LEFT JOIN senat_ameli_sub sub ON amd.subid = sub.subid
+            LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
             WHERE amdsen.senid IS NOT NULL
             ORDER BY amd.datdep DESC NULLS LAST
         ");
