@@ -104,13 +104,17 @@ class EnrichSenateursWikipedia extends Command
             return;
         }
 
-        // Mettre à jour le sénateur
-        $senateur->update([
-            'wikipedia_url' => $wikiData['wikipedia_url'],
-            'wikipedia_photo' => $wikiData['thumbnail'] ?? $wikiData['photo_wikipedia_url'] ?? null,
-            'wikipedia_extract' => $wikiData['extract'] ?? $wikiData['wikipedia_extract'] ?? null,
-            'wikipedia_last_sync' => now(),
-        ]);
+        // Insérer ou mettre à jour dans la table annexe senateurs_wikipedia
+        \DB::table('senateurs_wikipedia')->updateOrInsert(
+            ['senateur_matricule' => $senateur->id],
+            [
+                'wikipedia_url' => $wikiData['wikipedia_url'],
+                'photo_wikipedia_url' => $wikiData['thumbnail'] ?? $wikiData['photo_wikipedia_url'] ?? null,
+                'wikipedia_extract' => $wikiData['extract'] ?? $wikiData['wikipedia_extract'] ?? null,
+                'wikipedia_last_sync' => now(),
+                'updated_at' => now(),
+            ]
+        );
 
         $this->enriched++;
     }
