@@ -540,8 +540,8 @@ class RepresentantANController extends Controller
                 'civilite' => $senateur->civilite,
                 'prenom' => $senateur->prenom_usuel,
                 'nom' => $senateur->nom_usuel,
-                'photo_url' => $senateur->photo_url,
-                'profession' => $senateur->profession,
+                'photo_url' => $senateur->wikipedia_photo ?? null,
+                'profession' => $senateur->description_profession,
                 'circonscription' => $senateur->circonscription,
                 'groupe' => [
                     'nom' => $senateur->groupe_politique,

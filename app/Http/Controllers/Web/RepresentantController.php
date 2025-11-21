@@ -270,83 +270,35 @@ class RepresentantController extends Controller
         ]);
     }
 
+    /* ========================================
+     * DEPRECATED METHODS - DO NOT USE
+     * These methods have been moved to RepresentantANController
+     * and updated to use the new Senateur model with SQL views
+     * ======================================== */
+
     /**
+     * @deprecated Moved to RepresentantANController::senateurs()
      * Liste complète des sénateurs
      */
+    /*
     public function senateurs(Request $request): Response
     {
-        $query = DeputeSenateur::senateurs()
-            ->enExercice()
-            ->with(['groupeParlementaire']);
-
-        // Filtres
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-
-        if ($request->filled('groupe')) {
-            $query->where('groupe_sigle', $request->groupe);
-        }
-
-        if ($request->filled('department')) {
-            $query->where('circonscription', 'like', $request->department . '%');
-        }
-
-        // Tri
-        $sortBy = $request->get('sort', 'nom');
-        $sortOrder = $request->get('order', 'asc');
-
-        switch ($sortBy) {
-            case 'groupe':
-                $query->orderBy('groupe_sigle', $sortOrder);
-                break;
-            case 'department':
-                $query->orderBy('circonscription', $sortOrder);
-                break;
-            default:
-                $query->orderBy('nom', $sortOrder);
-        }
-
-        $senateurs = $query->paginate(30)->withQueryString();
-        
-        // Récupérer les groupes parlementaires pour les filtres et l'hémicycle
-        $groupes = GroupeParlementaire::where('source', 'senat')
-            ->where('actif', true)
-            ->get(['sigle', 'nom', 'couleur_hex', 'position_politique'])
-            ->map(fn($g) => [
-                'sigle' => $g->sigle,
-                'nom' => $g->nom,
-                'couleur_hex' => $g->couleur_hex,
-                'position_politique' => $g->position_politique,
-            ]);
-
-        return Inertia::render('Representants/Senateurs/Index', [
-            'senateurs' => $senateurs,
-            'groupes' => $groupes,
-            'filters' => $request->only(['search', 'groupe', 'department', 'sort', 'order']),
-        ]);
+        // This method is obsolete. Use RepresentantANController::senateurs() instead.
     }
+    */
 
     /**
+     * @deprecated Moved to RepresentantANController::showSenateur()
      * Fiche détaillée d'un sénateur
      */
+    /*
     public function showSenateur(DeputeSenateur $senateur): Response
     {
-        $senateur->load(['groupeParlementaire']);
+        // This method is obsolete. Use RepresentantANController::showSenateur() instead.
+    }
+    */
 
-        return Inertia::render('Representants/Senateurs/Show', [
-            'senateur' => [
-                'id' => $senateur->id,
-                'nom_complet' => $senateur->nom_complet,
-                'civilite' => $senateur->civilite,
-                'prenom' => $senateur->prenom,
-                'nom' => $senateur->nom,
-                'photo_url' => $senateur->photo_url,
-                'age' => $senateur->age,
-                'profession' => $senateur->profession,
-                'department' => substr($senateur->circonscription ?? '', 0, 2),
-                'groupe' => [
-                    'id' => $senateur->groupeParlementaire?->id,
+
                     'nom' => $senateur->groupe_politique,
                     'sigle' => $senateur->groupe_sigle,
                     'couleur' => $senateur->groupeParlementaire?->couleur_hex ?? '#6B7280',
