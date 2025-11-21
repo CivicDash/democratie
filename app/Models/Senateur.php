@@ -11,7 +11,8 @@ class Senateur extends Model
     use HasFactory;
 
     protected $table = 'senateurs';
-    protected $primaryKey = 'matricule';
+    // La vue SQL map senmat à la fois vers 'id' (PK Laravel) et 'matricule' (identifiant Sénat)
+    protected $primaryKey = 'id';
     public $incrementing = false;
     protected $keyType = 'string';
 

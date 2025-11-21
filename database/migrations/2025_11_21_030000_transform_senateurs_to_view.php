@@ -18,6 +18,7 @@ return new class extends Migration
             CREATE OR REPLACE VIEW senateurs AS
             SELECT 
                 -- ID et identité
+                sen.senmat AS id,
                 sen.senmat AS matricule,
                 CASE 
                     WHEN qua.qualib = 'Monsieur' THEN 'M.'
