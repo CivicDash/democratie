@@ -178,12 +178,21 @@ const getVoteIcon = (position) => {
               :key="vote.id"
               class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-red-400 dark:hover:border-red-600 transition"
             >
-              <div class="flex items-start justify-between gap-4">
+              <div class="flex items-start gap-4">
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
                     <span class="text-2xl">{{ getVoteIcon(vote.position) }}</span>
                     <Badge :class="getVoteColor(vote.position)">
                       {{ vote.position.replace('_', '-').toUpperCase() }}
+                    </Badge>
+                    <Badge 
+                      :class="vote.resultat_scrutin === 'Adopté' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                        : vote.resultat_scrutin === 'Rejeté' 
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'"
+                    >
+                      {{ vote.resultat_scrutin }}
                     </Badge>
                     <span class="text-sm text-gray-500 dark:text-gray-400">
                       {{ vote.date_vote }}
@@ -195,10 +204,19 @@ const getVoteIcon = (position) => {
                   <div v-if="vote.intitule_complet" class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                     {{ vote.intitule_complet }}
                   </div>
-                  <div class="flex items-center gap-2 text-xs">
-                    <Badge :class="vote.resultat_scrutin === 'Adopté' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
-                      {{ vote.resultat_scrutin }}
-                    </Badge>
+                  <div v-if="vote.scrutin_pour !== undefined" class="flex gap-4 text-xs text-gray-500 dark:text-gray-500 mt-2">
+                    <span class="flex items-center gap-1">
+                      <span class="text-green-600">✅</span>
+                      Pour: <strong>{{ vote.scrutin_pour || 0 }}</strong>
+                    </span>
+                    <span class="flex items-center gap-1">
+                      <span class="text-red-600">❌</span>
+                      Contre: <strong>{{ vote.scrutin_contre || 0 }}</strong>
+                    </span>
+                    <span v-if="vote.scrutin_votants" class="flex items-center gap-1">
+                      <span>🗳️</span>
+                      Votants: <strong>{{ vote.scrutin_votants }}</strong>
+                    </span>
                   </div>
                 </div>
               </div>

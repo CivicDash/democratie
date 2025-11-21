@@ -9,6 +9,7 @@ use App\Models\OrganeAN;
 use App\Models\VoteIndividuelAN;
 use App\Models\AmendementAN;
 use App\Models\VoteSenat;
+use App\Models\ScrutinSenat;
 use App\Models\AmendementSenat;
 use App\Services\GroupeParlementaireService;
 use App\Services\DisciplineGroupeService;
@@ -719,6 +720,9 @@ class RepresentantANController extends Controller
 
         // Transformer les votes
         $votesData = $votes->through(function($vote) {
+            // Récupérer le scrutin pour avoir les stats
+            $scrutin = ScrutinSenat::find($vote->scrutin_id);
+            
             return [
                 'id' => $vote->id,
                 'position' => $vote->position,
@@ -726,6 +730,9 @@ class RepresentantANController extends Controller
                 'intitule' => $vote->intitule,
                 'intitule_complet' => $vote->intitule_complet,
                 'resultat_scrutin' => $vote->resultat_scrutin,
+                'scrutin_pour' => $scrutin?->pour ?? 0,
+                'scrutin_contre' => $scrutin?->contre ?? 0,
+                'scrutin_votants' => $scrutin?->votants ?? 0,
             ];
         });
 
