@@ -30,8 +30,8 @@ const applyFilters = () => {
 const siegesParGroupe = computed(() => {
   const counts = {};
   props.senateurs.data.forEach(senateur => {
-    const sigle = senateur.groupe_sigle || 'NI';
-    counts[sigle] = (counts[sigle] || 0) + 1;
+    const nom = senateur.groupe?.nom || 'Non inscrit';
+    counts[nom] = (counts[nom] || 0) + 1;
   });
   return counts;
 });
@@ -102,7 +102,7 @@ const siegesParGroupe = computed(() => {
                 class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800"
               >
                 <option value="">Tous les groupes</option>
-                <option v-for="groupe in props.groupes" :key="groupe.sigle" :value="groupe.sigle">
+                <option v-for="groupe in props.groupes" :key="groupe.nom" :value="groupe.nom">
                   {{ groupe.nom }}
                 </option>
               </select>
@@ -129,16 +129,15 @@ const siegesParGroupe = computed(() => {
             <div class="flex flex-wrap gap-4 justify-center">
               <div
                 v-for="groupe in props.groupes"
-                :key="groupe.sigle"
+                :key="groupe.nom"
                 class="flex items-center gap-2 cursor-pointer hover:opacity-75 transition"
-                @click="selectedGroupe = groupe.sigle; applyFilters();"
+                @click="selectedGroupe = groupe.nom; applyFilters();"
               >
                 <div
-                  class="w-6 h-6 rounded-full"
-                  :style="{ backgroundColor: groupe.couleur_hex }"
+                  class="w-6 h-6 rounded-full bg-gray-400"
                 ></div>
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ groupe.sigle }} ({{ siegesParGroupe[groupe.sigle] || 0 }})
+                  {{ groupe.nom }} ({{ siegesParGroupe[groupe.nom] || 0 }})
                 </span>
               </div>
             </div>
