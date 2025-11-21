@@ -29,22 +29,16 @@ return new class extends Migration
                 doc.docnum AS numero,
                 doc.sesann AS session_annee,
                 doc.typdoccod AS type_document_code,
-                typdoc.typdoclib AS type_document,
                 doc.docint AS intitule,
                 doc.doctitcou AS titre_court,
                 doc.docurl AS url_senat,
                 doc.date_depot::date AS date_depot,
                 doc.docdat::date AS date_document,
                 doc.docdatsea::date AS date_seance,
-                lec.leclib AS lecture,
-                eta.etaloilib AS etat,
                 NOW() AS created_at,
                 NOW() AS updated_at
                 
             FROM senat_dosleg_doc doc
-            LEFT JOIN senat_dosleg_typdoc typdoc ON doc.typdoccod = typdoc.typdoccod
-            LEFT JOIN senat_dosleg_lec lec ON doc.lecidt = lec.lecidt
-            LEFT JOIN senat_dosleg_etaloi eta ON doc.etaloiid = eta.etaloiid
             ORDER BY doc.date_depot DESC NULLS LAST, doc.docnum DESC
         ");
     }
