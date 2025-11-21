@@ -224,8 +224,19 @@ class ImportSenatSQL extends Command
             return Command::FAILURE;
         }
 
+        $prefix = $config['table_prefix'] ?? '';
+
         foreach ($sqlFiles as $sqlFile) {
             $this->info("📥 Import de " . basename($sqlFile) . "...");
+            
+            // Transformer le SQL pour ajouter les préfixes
+            $this->line("🔄 Transformation du SQL (ajout préfixe : {$prefix})...");
+            $transformedSqlFile = $this->transformSQLWithPrefix($sqlFile, $prefix);
+            
+            if (!$transformedSqlFile) {
+                $this->error("❌ Erreur lors de la transformation du SQL");
+                continue;
+            }
             
             // Utiliser psql directement pour éviter les problèmes de mémoire PHP
             $dbConfig = config('database.connections.pgsql');
@@ -244,7 +255,7 @@ class ImportSenatSQL extends Command
                 escapeshellarg($port),
                 escapeshellarg($username),
                 escapeshellarg($database),
-                escapeshellarg($sqlFile)
+                escapeshellarg($transformedSqlFile)
             );
             
             $this->line("🔧 Exécution via psql (cela peut prendre plusieurs minutes)...");
@@ -253,6 +264,9 @@ class ImportSenatSQL extends Command
             $output = [];
             $returnVar = 0;
             exec($command, $output, $returnVar);
+            
+            // Nettoyer le fichier temporaire
+            @unlink($transformedSqlFile);
             
             if ($returnVar === 0) {
                 $this->info("✅ Import réussi : " . basename($sqlFile));
@@ -289,6 +303,109 @@ class ImportSenatSQL extends Command
         }
 
         return Command::SUCCESS;
+    }
+    
+    /**
+     * Transforme un fichier SQL pour ajouter un préfixe aux noms de tables
+     * Traite le fichier en streaming pour éviter les problèmes de mémoire
+     */
+    private function transformSQLWithPrefix(string $sqlFile, string $prefix): ?string
+    {
+        if (empty($prefix)) {
+            return $sqlFile; // Pas de préfixe, retourner le fichier original
+        }
+        
+        $tempFile = storage_path('app/temp_' . basename($sqlFile));
+        
+        try {
+            $input = fopen($sqlFile, 'r');
+            $output = fopen($tempFile, 'w');
+            
+            if (!$input || !$output) {
+                throw new \Exception("Impossible d'ouvrir les fichiers");
+            }
+            
+            $lineCount = 0;
+            $transformedCount = 0;
+            
+            while (($line = fgets($input)) !== false) {
+                $lineCount++;
+                
+                // Transformer les instructions CREATE TABLE
+                if (preg_match('/^CREATE TABLE\s+(\w+)/i', $line, $matches)) {
+                    $tableName = $matches[1];
+                    $line = str_replace(
+                        "CREATE TABLE {$tableName}",
+                        "CREATE TABLE {$prefix}{$tableName}",
+                        $line
+                    );
+                    $transformedCount++;
+                }
+                
+                // Transformer les instructions ALTER TABLE
+                if (preg_match('/^ALTER TABLE\s+(\w+)/i', $line, $matches)) {
+                    $tableName = $matches[1];
+                    $line = str_replace(
+                        "ALTER TABLE {$tableName}",
+                        "ALTER TABLE {$prefix}{$tableName}",
+                        $line
+                    );
+                    $transformedCount++;
+                }
+                
+                // Transformer les COPY
+                if (preg_match('/^COPY\s+(\w+)/i', $line, $matches)) {
+                    $tableName = $matches[1];
+                    $line = str_replace(
+                        "COPY {$tableName}",
+                        "COPY {$prefix}{$tableName}",
+                        $line
+                    );
+                    $transformedCount++;
+                }
+                
+                // Transformer les CREATE INDEX
+                if (preg_match('/ON\s+(\w+)\s+USING/i', $line, $matches)) {
+                    $tableName = $matches[1];
+                    $line = str_replace(
+                        "ON {$tableName} USING",
+                        "ON {$prefix}{$tableName} USING",
+                        $line
+                    );
+                }
+                
+                // Transformer les FOREIGN KEY REFERENCES
+                if (preg_match('/REFERENCES\s+(\w+)\s*\(/i', $line, $matches)) {
+                    $tableName = $matches[1];
+                    $line = str_replace(
+                        "REFERENCES {$tableName}",
+                        "REFERENCES {$prefix}{$tableName}",
+                        $line
+                    );
+                }
+                
+                fwrite($output, $line);
+                
+                // Afficher progression tous les 10000 lignes
+                if ($lineCount % 10000 === 0) {
+                    $this->line("   ... {$lineCount} lignes traitées, {$transformedCount} transformations");
+                }
+            }
+            
+            fclose($input);
+            fclose($output);
+            
+            $this->line("   ✓ {$lineCount} lignes traitées, {$transformedCount} transformations appliquées");
+            
+            return $tempFile;
+            
+        } catch (\Exception $e) {
+            $this->error("   Erreur transformation : " . $e->getMessage());
+            if (file_exists($tempFile)) {
+                @unlink($tempFile);
+            }
+            return null;
+        }
     }
 }
 
