@@ -307,6 +307,9 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
     // Sénateurs (nouveaux - Senateur)
     Route::get('/senateurs', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurs'])->name('senateurs.index');
     Route::get('/senateurs/{matricule}', [App\Http\Controllers\Web\RepresentantANController::class, 'showSenateur'])->name('senateurs.show');
+    Route::get('/senateurs/{matricule}/votes', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurVotes'])->name('senateurs.votes');
+    Route::get('/senateurs/{matricule}/amendements', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurAmendements'])->name('senateurs.amendements');
+    Route::get('/senateurs/{matricule}/activite', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurActivite'])->name('senateurs.activite');
 });
 
 /*

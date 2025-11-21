@@ -8,6 +8,8 @@ use App\Models\Senateur;
 use App\Models\OrganeAN;
 use App\Models\VoteIndividuelAN;
 use App\Models\AmendementAN;
+use App\Models\VoteSenat;
+use App\Models\AmendementSenat;
 use App\Services\GroupeParlementaireService;
 use App\Services\DisciplineGroupeService;
 use Illuminate\Http\Request;
@@ -645,6 +647,210 @@ class RepresentantANController extends Controller
                 'telephone' => $senateur->telephone ?? null,
                 'adresse_postale' => $senateur->adresse_postale ?? null,
             ],
+        ]);
+    }
+
+    /**
+     * Page votes d'un sénateur
+     */
+    public function senateurVotes(Request $request, string $matricule): Response
+    {
+        $senateur = Senateur::findOrFail($matricule);
+
+        $query = VoteSenat::query()
+            ->where('senateur_matricule', $matricule)
+            ->with('scrutin');
+
+        // Filtres
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('scrutin', function($q) use ($search) {
+                $q->where('intitule', 'ILIKE', "%{$search}%")
+                  ->orWhere('intitule_complet', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('type')) {
+            $query->where('position', $request->type);
+        }
+
+        $votes = $query->orderBy('created_at', 'desc')
+            ->paginate(30)
+            ->withQueryString();
+
+        // Statistiques
+        $statsQuery = VoteSenat::where('senateur_matricule', $matricule);
+        
+        $total = $statsQuery->count();
+        $pour = $statsQuery->clone()->where('position', 'pour')->count();
+        $contre = $statsQuery->clone()->where('position', 'contre')->count();
+        $abstention = $statsQuery->clone()->where('position', 'abstention')->count();
+
+        $statistiques = [
+            'total' => $total,
+            'pour' => $pour,
+            'contre' => $contre,
+            'abstention' => $abstention,
+            'pour_percent' => $total > 0 ? round(($pour / $total) * 100, 1) : 0,
+            'contre_percent' => $total > 0 ? round(($contre / $total) * 100, 1) : 0,
+            'abstention_percent' => $total > 0 ? round(($abstention / $total) * 100, 1) : 0,
+        ];
+
+        // Transformer les votes
+        $votesData = $votes->through(function($vote) {
+            return [
+                'id' => $vote->id,
+                'position' => $vote->position,
+                'date_vote' => $vote->date_vote?->format('d/m/Y'),
+                'intitule' => $vote->intitule,
+                'intitule_complet' => $vote->intitule_complet,
+                'resultat_scrutin' => $vote->resultat_scrutin,
+            ];
+        });
+
+        return Inertia::render('Representants/Senateurs/Votes', [
+            'senateur' => $this->formatSenateur($senateur),
+            'votes' => $votesData,
+            'statistiques' => $statistiques,
+            'filters' => $request->only(['search', 'type']),
+        ]);
+    }
+
+    /**
+     * Page amendements d'un sénateur
+     */
+    public function senateurAmendements(Request $request, string $matricule): Response
+    {
+        $senateur = Senateur::findOrFail($matricule);
+
+        $query = AmendementSenat::query()
+            ->where('senateur_matricule', $matricule);
+
+        // Filtres
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('numero', 'ILIKE', "%{$search}%")
+                  ->orWhere('dispositif', 'ILIKE', "%{$search}%")
+                  ->orWhere('expose', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('sort')) {
+            $query->where('sort_code', $request->sort);
+        }
+
+        $amendements = $query->orderBy('date_depot', 'desc')
+            ->paginate(30)
+            ->withQueryString();
+
+        // Statistiques
+        $statsQuery = AmendementSenat::where('senateur_matricule', $matricule);
+        
+        $total = $statsQuery->count();
+        $adoptes = $statsQuery->clone()->where('sort_code', 'ADO')->count();
+        $rejetes = $statsQuery->clone()->where('sort_code', 'REJ')->count();
+        $retires = $statsQuery->clone()->where('sort_code', 'RET')->count();
+
+        $statistiques = [
+            'total' => $total,
+            'adoptes' => $adoptes,
+            'rejetes' => $rejetes,
+            'retires' => $retires,
+            'taux_adoption' => $total > 0 ? round(($adoptes / $total) * 100, 1) : 0,
+        ];
+
+        // Transformer les amendements
+        $amendementsData = $amendements->through(function($amendement) {
+            return [
+                'id' => $amendement->id,
+                'numero' => $amendement->numero,
+                'type_amendement' => $amendement->type_amendement,
+                'dispositif' => substr($amendement->dispositif ?? '', 0, 200),
+                'expose' => substr($amendement->expose ?? '', 0, 200),
+                'date_depot' => $amendement->date_depot?->format('d/m/Y'),
+                'sort_code' => $amendement->sort_code,
+                'sort_libelle' => $amendement->sort_libelle,
+                'texte_nom' => $amendement->texte_nom,
+            ];
+        });
+
+        return Inertia::render('Representants/Senateurs/Amendements', [
+            'senateur' => $this->formatSenateur($senateur),
+            'amendements' => $amendementsData,
+            'statistiques' => $statistiques,
+            'filters' => $request->only(['search', 'sort']),
+        ]);
+    }
+
+    /**
+     * Page activité d'un sénateur
+     */
+    public function senateurActivite(string $matricule): Response
+    {
+        $senateur = Senateur::findOrFail($matricule);
+
+        // Statistiques votes
+        $votesQuery = VoteSenat::where('senateur_matricule', $matricule);
+        $votesTotal = $votesQuery->count();
+        $votesPour = $votesQuery->clone()->where('position', 'pour')->count();
+        $votesContre = $votesQuery->clone()->where('position', 'contre')->count();
+        $votesAbstention = $votesQuery->clone()->where('position', 'abstention')->count();
+
+        // Statistiques amendements
+        $amendementsQuery = AmendementSenat::where('senateur_matricule', $matricule);
+        $amendementsTotal = $amendementsQuery->count();
+        $amendementsAdoptes = $amendementsQuery->clone()->where('sort_code', 'ADO')->count();
+        $amendementsRejetes = $amendementsQuery->clone()->where('sort_code', 'REJ')->count();
+        $amendementsRetires = $amendementsQuery->clone()->where('sort_code', 'RET')->count();
+
+        // Derniers votes
+        $derniersVotes = VoteSenat::where('senateur_matricule', $matricule)
+            ->with('scrutin')
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(fn($vote) => [
+                'id' => $vote->id,
+                'position' => $vote->position,
+                'date_vote' => $vote->date_vote?->format('d/m/Y'),
+                'intitule' => $vote->intitule,
+                'resultat_scrutin' => $vote->resultat_scrutin,
+            ]);
+
+        // Derniers amendements
+        $derniersAmendements = AmendementSenat::where('senateur_matricule', $matricule)
+            ->orderBy('date_depot', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(fn($amendement) => [
+                'id' => $amendement->id,
+                'numero' => $amendement->numero,
+                'dispositif' => substr($amendement->dispositif ?? '', 0, 150),
+                'date_depot' => $amendement->date_depot?->format('d/m/Y'),
+                'sort_code' => $amendement->sort_code,
+                'sort_libelle' => $amendement->sort_libelle,
+            ]);
+
+        return Inertia::render('Representants/Senateurs/Activite', [
+            'senateur' => $this->formatSenateur($senateur),
+            'statistiques' => [
+                'votes' => [
+                    'total' => $votesTotal,
+                    'pour' => $votesPour,
+                    'contre' => $votesContre,
+                    'abstention' => $votesAbstention,
+                ],
+                'amendements' => [
+                    'total' => $amendementsTotal,
+                    'adoptes' => $amendementsAdoptes,
+                    'rejetes' => $amendementsRejetes,
+                    'retires' => $amendementsRetires,
+                    'taux_adoption' => $amendementsTotal > 0 ? round(($amendementsAdoptes / $amendementsTotal) * 100, 1) : 0,
+                ],
+            ],
+            'derniers_votes' => $derniersVotes,
+            'derniers_amendements' => $derniersAmendements,
         ]);
     }
 }
