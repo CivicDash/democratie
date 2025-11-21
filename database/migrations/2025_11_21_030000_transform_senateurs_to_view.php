@@ -28,11 +28,8 @@ return new class extends Migration
                 sen.sennomuse AS nom_usuel,
                 sen.senprenomuse AS prenom_usuel,
                 
-                -- État (AC = Actif, AN = Ancien)
-                CASE 
-                    WHEN sen.etasencod = 'AC' THEN 'ACTIF'
-                    ELSE 'ANCIEN'
-                END AS etat,
+                -- État (déjà transformé dans la table)
+                sen.etasencod AS etat,
                 
                 -- Dates
                 sen.sendatnai::date AS date_naissance,
