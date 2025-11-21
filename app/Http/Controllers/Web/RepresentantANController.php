@@ -596,7 +596,7 @@ class RepresentantANController extends Controller
                 'civilite' => $senateur->civilite,
                 'prenom' => $senateur->prenom_usuel,
                 'nom' => $senateur->nom_usuel,
-                'photo_url' => $senateur->wikipedia_photo ?? null,
+                'photo_url' => $senateur->photo_wikipedia_url ?? null,
                 'date_naissance' => $senateur->date_naissance?->format('d/m/Y'),
                 'age' => $senateur->date_naissance?->age,
                 'lieu_naissance' => null, // TODO: Ajouter à la vue SQL si disponible
@@ -608,6 +608,11 @@ class RepresentantANController extends Controller
                     'couleur' => '#6B7280',
                 ],
                 'commission' => $senateur->commission_permanente,
+                'wikipedia' => $senateur->wikipedia_url ? [
+                    'url' => $senateur->wikipedia_url,
+                    'photo' => $senateur->photo_wikipedia_url,
+                    'extract' => $senateur->wikipedia_extract,
+                ] : null,
                 'commissions' => $senateur->commissions->map(fn($c) => [
                     'commission' => $c->commission_nom ?? $c->commission_code ?? 'Commission',
                     'date_debut' => $c->date_debut?->format('d/m/Y'),
