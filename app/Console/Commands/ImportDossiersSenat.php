@@ -94,18 +94,36 @@ class ImportDossiersSenat extends Command
         $progressBar->start();
 
         // 3. Importer les lignes
+        $lineNumber = 1; // Commence à 1 pour l'en-tête
         while (($row = fgetcsv($handle, 0, ';')) !== false) {
+            $lineNumber++;
+            
             if ($limit && $stats['total'] >= $limit) {
                 break;
             }
 
+            // Ignorer les lignes vides ou mal formées
+            if (empty($row) || count($row) < 2) {
+                continue;
+            }
+
             try {
                 $data = array_combine($header, $row);
+                
+                // Si array_combine échoue (nombre de colonnes différent)
+                if ($data === false) {
+                    $stats['erreurs']++;
+                    continue;
+                }
+                
                 $this->importDossier($data, $doMatch, $stats);
             } catch (\Exception $e) {
                 $stats['erreurs']++;
-                $this->newLine();
-                $this->error("❌ Erreur ligne {$stats['total']}: " . $e->getMessage());
+                // Seulement afficher les 5 premières erreurs
+                if ($stats['erreurs'] <= 5) {
+                    $this->newLine();
+                    $this->error("❌ Erreur ligne {$lineNumber}: " . $e->getMessage());
+                }
             }
 
             $stats['total']++;

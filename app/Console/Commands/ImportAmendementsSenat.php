@@ -23,9 +23,7 @@ class ImportAmendementsSenat extends Command
 
     /**
      * API data.senat.fr - Amendements
-     * https://data.senat.fr/data/ameli/AAAAAA.json (où AAAAAA = clé unique)
-     * 
-     * Liste des amendements : https://data.senat.fr/data/opendata/ODSEN_AMEND.csv
+     * Source : API JSON REST endpoint
      */
     public function handle(): int
     {
@@ -45,19 +43,31 @@ class ImportAmendementsSenat extends Command
             $this->warn("⚠️  Mode TEST : {$limit} amendements maximum");
         }
 
-        // Récupérer la liste des amendements depuis le CSV
-        $this->info("📥 Récupération de la liste des amendements...");
-        $csvUrl = 'https://data.senat.fr/data/opendata/ODSEN_AMEND.csv';
+        // Note: Les amendements du Sénat ne sont pas directement disponibles en masse via OpenData
+        // Il faut les récupérer via l'API REST individuellement ou via scraping
         
-        try {
-            $response = Http::timeout(30)->get($csvUrl);
-            
-            if (!$response->successful()) {
-                $this->error("❌ Impossible de récupérer le CSV : " . $response->status());
-                return Command::FAILURE;
-            }
+        $this->error("❌ Les amendements du Sénat ne sont pas disponibles en masse via data.senat.fr");
+        $this->error("   L'API ne fournit pas de liste complète des amendements.");
+        $this->newLine();
+        $this->warn("💡 Alternatives :");
+        $this->warn("   1. Utiliser NosSenateurs.fr (mais service deprecated)");
+        $this->warn("   2. Scraper depuis senat.fr (pages HTML)");
+        $this->warn("   3. Demander l'accès à une API privée");
+        $this->newLine();
+        $this->info("📊 Pour l'instant, seules les données suivantes sont disponibles pour le Sénat :");
+        $this->info("   ✅ Profils sénateurs");
+        $this->info("   ✅ Mandats et groupes");
+        $this->info("   ✅ Commissions");
+        $this->info("   ✅ Mandats locaux");
+        $this->info("   ✅ Formations/Études");
+        $this->info("   ✅ Dossiers législatifs");
+        $this->info("   ❌ Scrutins (non publics)");
+        $this->info("   ❌ Votes individuels (non publics)");
+        $this->info("   ❌ Amendements (non accessibles en masse)");
+        $this->info("   ⚠️  Questions au Gouvernement (voir import:questions-senat)");
 
-            $csvContent = $response->body();
+        return Command::FAILURE;
+    }
             $lines = explode("\n", $csvContent);
             $headers = null;
             $amendements = [];

@@ -21,7 +21,8 @@ class ImportQuestionsSenat extends Command
 
     /**
      * API data.senat.fr - Questions
-     * https://data.senat.fr/data/opendata/ODSEN_QUESTIONS.csv
+     * Source : API JSON REST
+     * Documentation : https://data.senat.fr
      */
     public function handle(): int
     {
@@ -39,19 +40,30 @@ class ImportQuestionsSenat extends Command
             $this->warn("⚠️  Mode TEST : {$limit} questions maximum");
         }
 
-        // Récupérer le CSV
-        $this->info("📥 Téléchargement du CSV...");
-        $csvUrl = 'https://data.senat.fr/data/opendata/ODSEN_QUESTIONS.csv';
+        // Tenter l'API REST
+        $this->info("📥 Tentative de récupération via l'API REST...");
+        
+        // Endpoint possible : /data/senateurs/{MATRICULE}/questions.json
+        // Mais nécessite de boucler sur tous les sénateurs
+        
+        $this->error("❌ Les questions ne sont pas disponibles en masse via data.senat.fr");
+        $this->error("   L'API REST nécessite de récupérer les questions par sénateur individuellement.");
+        $this->newLine();
+        $this->warn("💡 Alternatives :");
+        $this->warn("   1. Boucler sur chaque sénateur (très long ~350 appels API)");
+        $this->warn("   2. Scraper depuis senat.fr");
+        $this->warn("   3. Utiliser NosSenateurs.fr (deprecated)");
+        $this->newLine();
+        $this->info("📊 Exemple d'implémentation possible :");
+        $this->info("   foreach (Senateur::all() as \$senateur) {");
+        $this->info("       \$url = \"https://data.senat.fr/senateurs/\$senateur->matricule.json\";");
+        $this->info("       // Récupérer et parser les questions");
+        $this->info("   }");
+        $this->newLine();
+        $this->warn("⚠️  Cette approche prendrait ~30-45 minutes pour 350 sénateurs");
 
-        try {
-            $response = Http::timeout(60)->get($csvUrl);
-
-            if (!$response->successful()) {
-                $this->error("❌ Erreur HTTP : " . $response->status());
-                return Command::FAILURE;
-            }
-
-            $csvContent = $response->body();
+        return Command::FAILURE;
+    }
             $lines = explode("\n", $csvContent);
             $headers = null;
             $questions = [];
