@@ -48,17 +48,17 @@ class Senateur extends Model
      */
     public function historiqueGroupes(): HasMany
     {
-        return $this->hasMany(SenateurHistoriqueGroupe::class, 'matricule', 'matricule');
+        return $this->hasMany(SenateurHistoriqueGroupe::class, 'senateur_matricule', 'matricule');
     }
 
     public function commissions(): HasMany
     {
-        return $this->hasMany(SenateurCommission::class, 'matricule', 'matricule');
+        return $this->hasMany(SenateurCommission::class, 'senateur_matricule', 'matricule');
     }
 
     public function mandats(): HasMany
     {
-        return $this->hasMany(SenateurMandat::class, 'matricule', 'matricule');
+        return $this->hasMany(SenateurMandat::class, 'senateur_matricule', 'matricule');
     }
 
     public function etudes(): HasMany
