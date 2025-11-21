@@ -22,21 +22,22 @@ class ParlementController extends Controller
         // Effectifs
         $effectifs = [
             'deputes_total' => 577,
-            'deputes_actifs' => ActeurAN::whereHas('mandatActif', function($q) {
-                $q->where('type_organe', 'ASSEMBLEE');
+            'deputes_actifs' => ActeurAN::whereHas('mandats', function($q) {
+                $q->where('type_organe', 'ASSEMBLEE')
+                  ->whereNull('date_fin');
             })->count(),
             'senateurs_total' => 348,
             'senateurs_actifs' => Senateur::actifs()->count(),
         ];
 
         // Répartition par âge
-        $ageDeputes = ActeurAN::whereHas('mandatActif', function($q) {
-            $q->where('type_organe', 'ASSEMBLEE');
+        $ageDeputes = ActeurAN::whereHas('mandats', function($q) {
+            $q->where('type_organe', 'ASSEMBLEE')
+              ->whereNull('date_fin');
         })
         ->whereNotNull('date_naissance')
-        ->selectRaw('EXTRACT(YEAR FROM AGE(date_naissance)) as age')
         ->get()
-        ->pluck('age')
+        ->map(fn($d) => $d->date_naissance->age)
         ->filter();
 
         $ageSenateurs = Senateur::actifs()
@@ -79,9 +80,9 @@ class ParlementController extends Controller
         // Parité Hommes/Femmes
         $parite = [
             'deputes' => [
-                'hommes' => ActeurAN::whereHas('mandatActif', fn($q) => $q->where('type_organe', 'ASSEMBLEE'))
+                'hommes' => ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
                     ->where('civilite', 'M.')->count(),
-                'femmes' => ActeurAN::whereHas('mandatActif', fn($q) => $q->where('type_organe', 'ASSEMBLEE'))
+                'femmes' => ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
                     ->where('civilite', 'Mme')->count(),
             ],
             'senateurs' => [
@@ -99,7 +100,7 @@ class ParlementController extends Controller
             : 0;
 
         // Top 10 professions - Députés
-        $professionsDeputes = ActeurAN::whereHas('mandatActif', fn($q) => $q->where('type_organe', 'ASSEMBLEE'))
+        $professionsDeputes = ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
             ->whereNotNull('profession')
             ->select('profession', DB::raw('count(*) as count'))
             ->groupBy('profession')
@@ -113,9 +114,9 @@ class ParlementController extends Controller
 
         // Top 10 professions - Sénateurs
         $professionsSenateurs = Senateur::actifs()
-            ->whereNotNull('profession')
-            ->select('profession', DB::raw('count(*) as count'))
-            ->groupBy('profession')
+            ->whereNotNull('description_profession')
+            ->select('description_profession as profession', DB::raw('count(*) as count'))
+            ->groupBy('description_profession')
             ->orderBy('count', 'desc')
             ->limit(10)
             ->get()
@@ -140,14 +141,14 @@ class ParlementController extends Controller
 
         // Groupes politiques - Sénateurs (simple count par groupe)
         $groupesSenateurs = Senateur::actifs()
-            ->whereNotNull('groupe_parlementaire_code')
-            ->select('groupe_parlementaire_code', 'groupe_parlementaire_libelle', DB::raw('count(*) as effectif'))
-            ->groupBy('groupe_parlementaire_code', 'groupe_parlementaire_libelle')
+            ->whereNotNull('groupe_politique')
+            ->select('groupe_politique as sigle', DB::raw('count(*) as effectif'))
+            ->groupBy('groupe_politique')
             ->orderBy('effectif', 'desc')
             ->get()
             ->map(fn($g) => [
-                'sigle' => $g->groupe_parlementaire_code,
-                'nom' => $g->groupe_parlementaire_libelle,
+                'sigle' => $g->sigle,
+                'nom' => $g->sigle, // Pas de libellé complet dans la table
                 'effectif' => $g->effectif,
             ]);
 
