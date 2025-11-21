@@ -298,29 +298,6 @@ class RepresentantController extends Controller
     }
     */
 
-
-                    'nom' => $senateur->groupe_politique,
-                    'sigle' => $senateur->groupe_sigle,
-                    'couleur' => $senateur->groupeParlementaire?->couleur_hex ?? '#6B7280',
-                    'position' => $senateur->groupeParlementaire?->position_politique,
-                ],
-                'mandat' => [
-                    'debut' => $senateur->debut_mandat?->format('d/m/Y'),
-                    'fin' => $senateur->fin_mandat?->format('d/m/Y'),
-                    'legislature' => $senateur->legislature,
-                ],
-                'statistiques' => [
-                    'nb_propositions' => $senateur->nb_propositions,
-                    'nb_amendements' => $senateur->nb_amendements,
-                    'taux_presence' => $senateur->taux_presence,
-                ],
-                'fonctions' => $senateur->fonctions,
-                'commissions' => $senateur->commissions,
-                'url_profil' => $senateur->url_profil,
-            ],
-        ]);
-    }
-
     /**
      * Vue par régions
      */
