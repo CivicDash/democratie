@@ -26,7 +26,7 @@ return new class extends Migration
             CREATE OR REPLACE VIEW amendements_senat AS
             SELECT 
                 amd.id AS id,
-                amdsen.senid AS senateur_matricule,
+                amdsen.senid::text AS senateur_matricule,
                 amd.num AS numero,
                 amd.typ AS type_amendement,
                 amd.dis AS dispositif,

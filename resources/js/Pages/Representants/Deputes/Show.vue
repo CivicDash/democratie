@@ -193,6 +193,37 @@ const extractInstagramHandle = (url) => {
           </div>
         </Card>
 
+        <!-- Wikipedia -->
+        <Card v-if="depute.wikipedia">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>📖</span>
+            <span>Wikipedia</span>
+          </h2>
+          <div class="grid md:grid-cols-3 gap-6">
+            <div v-if="depute.wikipedia.photo" class="flex justify-center">
+              <img
+                :src="depute.wikipedia.photo"
+                :alt="depute.nom_complet"
+                class="rounded-lg shadow-lg max-h-64 object-cover"
+              />
+            </div>
+            <div :class="depute.wikipedia.photo ? 'md:col-span-2' : 'md:col-span-3'">
+              <p v-if="depute.wikipedia.extract" class="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                {{ depute.wikipedia.extract }}
+              </p>
+              <a
+                v-if="depute.wikipedia.url"
+                :href="depute.wikipedia.url"
+                target="_blank"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                <span>🔗</span>
+                <span>Voir la page Wikipedia</span>
+              </a>
+            </div>
+          </div>
+        </Card>
+
         <div class="grid md:grid-cols-2 gap-6">
           <!-- Mandats -->
           <Card>

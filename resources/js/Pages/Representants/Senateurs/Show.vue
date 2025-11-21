@@ -114,6 +114,30 @@ defineProps({
           </div>
         </Card>
 
+        <!-- Boutons de navigation vers pages détaillées -->
+        <Card>
+          <div class="grid grid-cols-3 gap-4">
+            <Link
+              :href="route('representants.senateurs.votes', senateur.matricule)"
+              class="text-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              🗳️ Voir les votes
+            </Link>
+            <Link
+              :href="route('representants.senateurs.amendements', senateur.matricule)"
+              class="text-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            >
+              📝 Amendements
+            </Link>
+            <Link
+              :href="route('representants.senateurs.activite', senateur.matricule)"
+              class="text-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            >
+              📊 Activité
+            </Link>
+          </div>
+        </Card>
+
         <!-- Wikipedia -->
         <Card v-if="senateur.wikipedia">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">

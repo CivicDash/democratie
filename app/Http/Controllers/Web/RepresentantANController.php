@@ -496,6 +496,22 @@ class RepresentantANController extends Controller
     }
 
     /**
+     * Formatte un sénateur pour les vues (version basique)
+     */
+    private function formatSenateur(Senateur $senateur): array
+    {
+        return [
+            'id' => $senateur->id,
+            'matricule' => $senateur->matricule,
+            'nom_complet' => trim("{$senateur->prenom_usuel} {$senateur->nom_usuel}"),
+            'nom_usuel' => $senateur->nom_usuel,
+            'prenom_usuel' => $senateur->prenom_usuel,
+            'photo_wikipedia_url' => $senateur->photo_wikipedia_url,
+            'groupe_politique' => $senateur->groupe_politique,
+        ];
+    }
+
+    /**
      * Liste complète des sénateurs (nouvelle version avec Senateur)
      */
     public function senateurs(Request $request): Response
