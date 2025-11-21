@@ -29,21 +29,41 @@ defineProps({
           <span class="text-gray-900 dark:text-gray-100">{{ senateur.nom }}</span>
         </div>
 
-        <!-- Header avec photo -->
+        <!-- Header avec photo + Wikipedia -->
         <Card>
           <div class="grid md:grid-cols-4 gap-8">
             <!-- Photo -->
             <div class="md:col-span-1">
               <div class="w-48 h-48 mx-auto rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-lg">
                 <img
-                  v-if="senateur.photo_url"
-                  :src="senateur.photo_url"
+                  v-if="senateur.wikipedia?.photo"
+                  :src="senateur.wikipedia.photo"
                   :alt="senateur.nom_complet"
                   class="w-full h-full object-cover"
                 />
                 <div v-else class="w-full h-full flex items-center justify-center text-6xl">
                   👤
                 </div>
+              </div>
+              
+              <!-- Liens externes -->
+              <div class="mt-4 space-y-2">
+                <a
+                  v-if="senateur.wikipedia?.url"
+                  :href="senateur.wikipedia.url"
+                  target="_blank"
+                  class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition text-sm"
+                >
+                  📖 Wikipedia
+                </a>
+                <a
+                  v-if="senateur.url_profil"
+                  :href="senateur.url_profil"
+                  target="_blank"
+                  class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition text-sm"
+                >
+                  🏛️ Profil Sénat
+                </a>
               </div>
             </div>
 
@@ -75,6 +95,21 @@ defineProps({
                 </Badge>
               </div>
 
+              <!-- Wikipedia Extract -->
+              <div v-if="senateur.wikipedia?.extract" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6 border-l-4 border-blue-500">
+                <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {{ senateur.wikipedia.extract }}
+                </p>
+                <a
+                  v-if="senateur.wikipedia.url"
+                  :href="senateur.wikipedia.url"
+                  target="_blank"
+                  class="text-blue-600 hover:text-blue-700 text-xs mt-2 inline-block"
+                >
+                  Lire la suite sur Wikipedia →
+                </a>
+              </div>
+
               <div class="flex flex-wrap gap-3 mb-6">
                 <Badge
                   v-if="senateur.groupe"
@@ -92,7 +127,7 @@ defineProps({
               </div>
 
               <!-- Contacts -->
-              <div v-if="senateur.email || senateur.telephone" class="grid grid-cols-2 gap-4 mb-6">
+              <div v-if="senateur.email || senateur.telephone" class="flex flex-wrap gap-4 mb-6">
                 <a
                   v-if="senateur.email"
                   :href="`mailto:${senateur.email}`"
@@ -110,61 +145,28 @@ defineProps({
                   <span class="text-sm text-gray-900 dark:text-gray-100">{{ senateur.telephone }}</span>
                 </a>
               </div>
-            </div>
-          </div>
-        </Card>
 
-        <!-- Boutons de navigation vers pages détaillées -->
-        <Card>
-          <div class="grid grid-cols-3 gap-4">
-            <Link
-              :href="route('representants.senateurs.votes', senateur.matricule)"
-              class="text-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            >
-              🗳️ Voir les votes
-            </Link>
-            <Link
-              :href="route('representants.senateurs.amendements', senateur.matricule)"
-              class="text-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-            >
-              📝 Amendements
-            </Link>
-            <Link
-              :href="route('representants.senateurs.activite', senateur.matricule)"
-              class="text-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-            >
-              📊 Activité
-            </Link>
-          </div>
-        </Card>
-
-        <!-- Wikipedia -->
-        <Card v-if="senateur.wikipedia">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>📖</span>
-            <span>Wikipedia</span>
-          </h2>
-          <div class="grid md:grid-cols-3 gap-6">
-            <div v-if="senateur.wikipedia.photo" class="flex justify-center">
-              <img
-                :src="senateur.wikipedia.photo"
-                :alt="senateur.nom_complet"
-                class="rounded-lg shadow-lg max-h-64 object-cover"
-              />
-            </div>
-            <div :class="senateur.wikipedia.photo ? 'md:col-span-2' : 'md:col-span-3'">
-              <p v-if="senateur.wikipedia.extract" class="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-                {{ senateur.wikipedia.extract }}
-              </p>
-              <a
-                v-if="senateur.wikipedia.url"
-                :href="senateur.wikipedia.url"
-                target="_blank"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                <span>🔗</span>
-                <span>Voir la page Wikipedia</span>
-              </a>
+              <!-- Navigation vers pages détaillées -->
+              <div class="grid grid-cols-3 gap-3 mt-6">
+                <Link
+                  :href="route('representants.senateurs.votes', senateur.matricule)"
+                  class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  🗳️ Voir les votes
+                </Link>
+                <Link
+                  :href="route('representants.senateurs.amendements', senateur.matricule)"
+                  class="text-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                >
+                  📝 Amendements
+                </Link>
+                <Link
+                  :href="route('representants.senateurs.activite', senateur.matricule)"
+                  class="text-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                >
+                  📊 Activité
+                </Link>
+              </div>
             </div>
           </div>
         </Card>

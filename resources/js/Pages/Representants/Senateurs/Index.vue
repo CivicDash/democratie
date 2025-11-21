@@ -202,8 +202,8 @@ const siegesParGroupe = computed(() => {
                     <div class="flex items-center gap-3">
                       <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
                         <img
-                          v-if="senateur.photo_url"
-                          :src="senateur.photo_url"
+                          v-if="senateur.wikipedia?.photo"
+                          :src="senateur.wikipedia.photo"
                           :alt="senateur.nom_complet"
                           class="w-full h-full object-cover"
                         />
