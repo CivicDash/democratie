@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActeurAN;
 use App\Models\DeputeSenateur;
 use App\Models\GroupeParlementaire;
 use App\Models\Profile;
+use App\Models\Senateur;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -153,17 +155,11 @@ class RepresentantController extends Controller
             ])->toArray();
         }
 
-        // Répartition nationale des députés et sénateurs par département
-        $data['deputesByDepartment'] = ActeurAN::whereHas('mandats', function($q) {
-                $q->where('type_organe', 'ASSEMBLEE')
-                  ->whereNull('date_fin');
-            })
-            ->join('mandats_an', function($join) {
-                $join->on('acteurs_an.uid', '=', 'mandats_an.acteur_ref')
-                     ->where('mandats_an.type_organe', 'ASSEMBLEE')
-                     ->whereNull('mandats_an.date_fin');
-            })
-            ->selectRaw('SUBSTRING(mandats_an.code_departement, 1, 2) as department_code, COUNT(DISTINCT acteurs_an.uid) as count')
+        // Répartition nationale des députés par département (via DeputeSenateur qui a la circonscription)
+        $data['deputesByDepartment'] = DeputeSenateur::deputes()
+            ->enExercice()
+            ->whereNotNull('circonscription')
+            ->selectRaw("SUBSTRING(circonscription, 1, 2) as department_code, COUNT(*) as count")
             ->groupBy('department_code')
             ->pluck('count', 'department_code')
             ->toArray();
