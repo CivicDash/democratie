@@ -368,22 +368,28 @@ class RepresentantController extends Controller
                     ->toArray();
 
                 // Députés de la région
-                $deputes = \App\Models\ActeurAN::whereHas('mandatActif', function($q) use ($departments) {
+                // Note: mandatActif est un accessor, pas une relation
+                $deputes = \App\Models\ActeurAN::whereHas('mandats', function($q) use ($departments) {
                     $q->where('type_organe', 'ASSEMBLEE')
+                      ->whereNull('date_fin')
                       ->where(function($sq) use ($departments) {
                           foreach ($departments as $deptCode) {
                               $sq->orWhere('code_departement', $deptCode);
                           }
                       });
                 })
-                ->with(['mandatActif', 'mandatActif.organe'])
+                ->with(['mandats' => function($q) {
+                    $q->where('type_organe', 'ASSEMBLEE')
+                      ->whereNull('date_fin')
+                      ->with('organe');
+                }])
                 ->orderBy('nom')
                 ->get();
 
                 $groupeService = app(\App\Services\GroupeParlementaireService::class);
 
                 $data['deputes'] = $deputes->map(function($d) use ($groupeService) {
-                    $mandat = $d->mandatActif;
+                    $mandat = $d->mandats->first();
                     $groupe = $mandat?->organe;
                     
                     return [

@@ -89,6 +89,14 @@ class ActeurAN extends Model
     }
 
     /**
+     * Alias pour photo_wikipedia_url pour uniformité
+     */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo_wikipedia_url;
+    }
+
+    /**
      * Récupère le mandat d'ASSEMBLEE actif
      */
     public function getMandatActifAttribute()

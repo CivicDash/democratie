@@ -114,6 +114,14 @@ class Senateur extends Model
         return trim("{$this->civilite} {$this->prenom_usuel} {$this->nom_usuel}");
     }
 
+    /**
+     * Alias pour wikipedia_photo pour uniformité avec ActeurAN
+     */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->wikipedia_photo;
+    }
+
     public function getEstActifAttribute(): bool
     {
         return $this->etat === 'ACTIF';
