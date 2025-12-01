@@ -9,14 +9,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Modèle pour les amendements du Sénat (data.senat.fr)
  * 
- * @property string $uid
- * @property string|null $texte_ref
- * @property string|null $auteur_senateur_matricule
- * @property int $legislature
+ * Basé sur la vue SQL amendements_senat qui joint :
+ * - senat_ameli_amd (amendements)
+ * - senat_ameli_amdsen (auteurs)
+ * - sen_ameli (liaison vers matricule sénateur)
+ * 
+ * @property int $id
+ * @property string|null $senateur_matricule - Matricule du sénateur auteur
  * @property string $numero
+ * @property string|null $type_amendement
  * @property string|null $dispositif
  * @property string|null $expose
  * @property string|null $sort_code
+ * @property string|null $sort_libelle
  * @property \Carbon\Carbon|null $date_depot
  */
 class AmendementSenat extends Model
@@ -30,16 +35,20 @@ class AmendementSenat extends Model
 
     protected $fillable = [
         'uid',
+        'id',
         'texte_ref',
-        'auteur_senateur_matricule',
+        'senateur_matricule', // Colonne de la vue SQL
         'legislature',
         'numero',
         'numero_long',
+        'type_amendement',
         'subdiv_type',
         'subdiv_titre',
         'subdiv_mult',
         'auteur_type',
         'auteur_nom',
+        'auteur_prenom',
+        'auteur_groupe_id',
         'auteur_groupe_sigle',
         'cosignataires',
         'nombre_cosignataires',
