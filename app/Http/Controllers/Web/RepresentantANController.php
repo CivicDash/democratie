@@ -204,12 +204,11 @@ class RepresentantANController extends Controller
             }])
             ->whereHas('scrutin', fn($q) => $q->where('legislature', 17));
 
-        // Filtres
+        // Filtres (colonne 'objet' n'existe pas dans scrutins_an)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('scrutin', function($q) use ($search) {
-                $q->where('titre', 'ILIKE', "%{$search}%")
-                  ->orWhere('objet', 'ILIKE', "%{$search}%");
+                $q->where('titre', 'ILIKE', "%{$search}%");
             });
         }
 
@@ -249,10 +248,9 @@ class RepresentantANController extends Controller
                 'scrutin' => [
                     'uid' => $vote->scrutin->uid,
                     'titre' => $vote->scrutin->titre,
-                    'objet' => $vote->scrutin->objet,
-                    'pour' => $vote->scrutin->nombre_pour,
-                    'contre' => $vote->scrutin->nombre_contre,
-                    'abstention' => $vote->scrutin->nombre_abstention,
+                    'pour' => $vote->scrutin->pour,
+                    'contre' => $vote->scrutin->contre,
+                    'abstention' => $vote->scrutin->abstentions,
                 ],
             ];
         });

@@ -241,7 +241,7 @@ class LegislationController extends Controller
                 'uid' => $s->uid,
                 'numero' => $s->numero,
                 'titre' => $s->titre,
-                'objet' => $s->objet,
+                // Note: 'objet' n'existe pas dans scrutins_an
                 'date' => $s->date_scrutin?->format('d/m/Y'),
                 'pour' => $s->pour,
                 'contre' => $s->contre,
@@ -326,7 +326,6 @@ class LegislationController extends Controller
                 'uid' => $scrutin->uid,
                 'numero' => $scrutin->numero,
                 'titre' => $scrutin->titre,
-                'objet' => $scrutin->objet,
                 'date' => $scrutin->date_scrutin?->format('d/m/Y'),
                 'nombre_pour' => $scrutin->pour,
                 'nombre_contre' => $scrutin->contre,
@@ -396,7 +395,6 @@ class LegislationController extends Controller
                 'uid' => $scrutin->uid,
                 'numero' => $scrutin->numero,
                 'titre' => $scrutin->titre,
-                'objet' => $scrutin->objet,
                 'date' => $scrutin->date_scrutin?->format('d/m/Y'),
                 'moment_scrutin' => $scrutin->moment_scrutin,
                 // Utiliser les totaux calculés depuis les votes individuels
