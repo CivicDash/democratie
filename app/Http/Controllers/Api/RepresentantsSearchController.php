@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\FrenchPostalCode;
 use App\Models\ActeurAN;
+use App\Models\DeputeSenateur;
 use App\Models\Senateur;
 use App\Models\Maire;
 use Illuminate\Http\Request;
@@ -135,20 +136,45 @@ class RepresentantsSearchController extends Controller
             ->where('en_exercice', true)
             ->first();
         
-        // Député (par circonscription)
-        // Format circonscription : "Ain (1re circonscription)" -> extraire le département et le numéro
-        // Note: mandatActif est un accessor, pas une relation - on utilise mandats
-        $depute = ActeurAN::whereHas('mandats', function ($q) use ($postalCode) {
-            $q->where('type_organe', 'ASSEMBLEE')
-              ->whereNull('date_fin');
-              // Note: La circonscription n'est pas stockée dans mandats_an
-              // On devrait chercher par département via l'organe
-        })->first();
+        // Député (par circonscription) - utiliser DeputeSenateur qui a la colonne circonscription
+        // Format circonscription dans french_postal_codes : "75-01" pour Paris 1ère
+        $depute = DeputeSenateur::deputes()
+            ->enExercice()
+            ->where('circonscription', $postalCode->circonscription)
+            ->first();
         
-        // Sénateur (par département)
-        $senateurs = Senateur::where('circonscription', 'LIKE', $postalCode->department_name . '%')
-            ->actifs()
+        // Fallback: essayer avec ActeurAN si pas trouvé dans l'ancien système
+        $deputeAN = null;
+        if (!$depute) {
+            // Chercher par département (moins précis mais mieux que rien)
+            $deputeAN = ActeurAN::whereHas('mandats', function ($q) {
+                $q->where('type_organe', 'ASSEMBLEE')
+                  ->whereNull('date_fin');
+            })->first();
+        }
+        
+        // Sénateurs (par département)
+        // Essayer d'abord avec le nouveau modèle Senateur
+        $senateurs = Senateur::actifs()
+            ->where(function($q) use ($postalCode) {
+                // Chercher par nom de département dans la circonscription
+                $q->where('circonscription', 'ILIKE', '%' . $postalCode->department_name . '%')
+                  // Ou par code département si stocké différemment
+                  ->orWhere('circonscription', 'LIKE', $postalCode->department_code . '%');
+            })
             ->get();
+        
+        // Fallback: utiliser DeputeSenateur pour les sénateurs
+        $senateursOld = collect();
+        if ($senateurs->isEmpty()) {
+            $senateursOld = DeputeSenateur::senateurs()
+                ->enExercice()
+                ->where(function($q) use ($postalCode) {
+                    $q->where('circonscription', 'LIKE', $postalCode->department_code . '%')
+                      ->orWhere('circonscription', 'LIKE', '%' . $postalCode->department_name . '%');
+                })
+                ->get();
+        }
         
         return response()->json([
             'commune' => [
@@ -166,26 +192,53 @@ class RepresentantsSearchController extends Controller
                     'nom' => $maire->nom,
                     'prenom' => $maire->prenom,
                     'email' => $maire->email,
+                    'commune' => $maire->commune,
                 ] : null,
                 'depute' => $depute ? [
+                    'id' => $depute->id,
                     'uid' => $depute->uid,
                     'nom' => $depute->nom,
                     'prenom' => $depute->prenom,
+                    'nom_complet' => $depute->nom_complet,
                     'photo_url' => $depute->photo_url,
+                    'groupe' => $depute->groupe_politique,
+                    'circonscription' => $depute->circonscription,
                     'url' => route('representants.deputes.show', $depute->uid),
-                ] : null,
-                'senateurs' => $senateurs->map(fn($s) => [
-                    'matricule' => $s->matricule,
-                    'nom' => $s->nom_usuel,
-                    'prenom' => $s->prenom_usuel,
-                    'url' => route('representants.senateurs.show', $s->matricule),
-                ])->values(),
+                ] : ($deputeAN ? [
+                    'uid' => $deputeAN->uid,
+                    'nom' => $deputeAN->nom,
+                    'prenom' => $deputeAN->prenom,
+                    'nom_complet' => $deputeAN->nom_complet,
+                    'photo_url' => $deputeAN->photo_url,
+                    'url' => route('representants.deputes.show', $deputeAN->uid),
+                    'note' => 'Député du département (circonscription exacte non disponible)',
+                ] : null),
+                'senateurs' => $senateurs->isNotEmpty() 
+                    ? $senateurs->map(fn($s) => [
+                        'matricule' => $s->matricule,
+                        'nom' => $s->nom_usuel,
+                        'prenom' => $s->prenom_usuel,
+                        'nom_complet' => $s->nom_complet,
+                        'photo_url' => $s->photo_url,
+                        'groupe' => $s->groupe_politique,
+                        'url' => route('representants.senateurs.show', $s->matricule),
+                    ])->values()
+                    : $senateursOld->map(fn($s) => [
+                        'id' => $s->id,
+                        'uid' => $s->uid,
+                        'nom' => $s->nom,
+                        'prenom' => $s->prenom,
+                        'nom_complet' => $s->nom_complet,
+                        'photo_url' => $s->photo_url,
+                        'groupe' => $s->groupe_politique,
+                        'url' => route('representants.senateurs.show', $s->uid),
+                    ])->values(),
             ],
             'stats' => [
-                'total_representants' => ($maire ? 1 : 0) + ($depute ? 1 : 0) + $senateurs->count(),
+                'total_representants' => ($maire ? 1 : 0) + ($depute || $deputeAN ? 1 : 0) + max($senateurs->count(), $senateursOld->count()),
                 'has_maire' => $maire !== null,
-                'has_depute' => $depute !== null,
-                'nb_senateurs' => $senateurs->count(),
+                'has_depute' => $depute !== null || $deputeAN !== null,
+                'nb_senateurs' => max($senateurs->count(), $senateursOld->count()),
             ],
         ]);
     }
