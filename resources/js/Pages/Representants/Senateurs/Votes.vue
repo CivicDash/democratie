@@ -204,18 +204,18 @@ const getVoteIcon = (position) => {
                   <div v-if="vote.intitule_complet" class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                     {{ vote.intitule_complet }}
                   </div>
-                  <div v-if="vote.scrutin_pour !== undefined" class="flex gap-4 text-xs text-gray-500 dark:text-gray-500 mt-2">
+                  <div v-if="vote.scrutin" class="flex gap-4 text-xs text-gray-500 dark:text-gray-500 mt-2">
                     <span class="flex items-center gap-1">
                       <span class="text-green-600">✅</span>
-                      Pour: <strong>{{ vote.scrutin_pour || 0 }}</strong>
+                      Pour: <strong>{{ vote.scrutin.pour || 0 }}</strong>
                     </span>
                     <span class="flex items-center gap-1">
                       <span class="text-red-600">❌</span>
-                      Contre: <strong>{{ vote.scrutin_contre || 0 }}</strong>
+                      Contre: <strong>{{ vote.scrutin.contre || 0 }}</strong>
                     </span>
-                    <span v-if="vote.scrutin_votants" class="flex items-center gap-1">
+                    <span v-if="vote.scrutin.votants" class="flex items-center gap-1">
                       <span>🗳️</span>
-                      Votants: <strong>{{ vote.scrutin_votants }}</strong>
+                      Votants: <strong>{{ vote.scrutin.votants }}</strong>
                     </span>
                   </div>
                 </div>

@@ -26,7 +26,8 @@ class VoteSenat extends Model
 
     public function senateur(): BelongsTo
     {
-        return $this->belongsTo(Senateur::class, 'senateur_matricule', 'id');
+        // senateur_matricule dans la vue correspond au matricule du sénateur
+        return $this->belongsTo(Senateur::class, 'senateur_matricule', 'matricule');
     }
 
     /**

@@ -718,11 +718,8 @@ class RepresentantANController extends Controller
             'abstention_percent' => $total > 0 ? round(($abstention / $total) * 100, 1) : 0,
         ];
 
-        // Transformer les votes
+        // Transformer les votes (utilise la relation scrutin déjà chargée)
         $votesData = $votes->through(function($vote) {
-            // Récupérer le scrutin pour avoir les stats
-            $scrutin = ScrutinSenat::find($vote->scrutin_id);
-            
             return [
                 'id' => $vote->id,
                 'position' => $vote->position,
@@ -730,9 +727,14 @@ class RepresentantANController extends Controller
                 'intitule' => $vote->intitule,
                 'intitule_complet' => $vote->intitule_complet,
                 'resultat_scrutin' => $vote->resultat_scrutin,
-                'scrutin_pour' => $scrutin?->pour ?? 0,
-                'scrutin_contre' => $scrutin?->contre ?? 0,
-                'scrutin_votants' => $scrutin?->votants ?? 0,
+                'scrutin_id' => $vote->scrutin_id,
+                'scrutin' => $vote->scrutin ? [
+                    'id' => $vote->scrutin->id,
+                    'pour' => $vote->scrutin->pour ?? 0,
+                    'contre' => $vote->scrutin->contre ?? 0,
+                    'votants' => $vote->scrutin->votants ?? 0,
+                    'resultat' => $vote->scrutin->resultat ?? 'Non déterminé',
+                ] : null,
             ];
         });
 
@@ -765,20 +767,31 @@ class RepresentantANController extends Controller
         }
 
         if ($request->filled('sort')) {
-            $query->where('sort_code', $request->sort);
+            // Utilise les scopes pour supporter tous les formats de codes
+            switch ($request->sort) {
+                case 'ADO':
+                    $query->adoptes();
+                    break;
+                case 'REJ':
+                    $query->rejetes();
+                    break;
+                case 'RET':
+                    $query->retires();
+                    break;
+            }
         }
 
         $amendements = $query->orderBy('date_depot', 'desc')
             ->paginate(30)
             ->withQueryString();
 
-        // Statistiques
+        // Statistiques (utilise les scopes du modèle pour supporter tous les formats de codes)
         $statsQuery = AmendementSenat::where('senateur_matricule', $matricule);
         
         $total = $statsQuery->count();
-        $adoptes = $statsQuery->clone()->where('sort_code', 'ADO')->count();
-        $rejetes = $statsQuery->clone()->where('sort_code', 'REJ')->count();
-        $retires = $statsQuery->clone()->where('sort_code', 'RET')->count();
+        $adoptes = $statsQuery->clone()->adoptes()->count();
+        $rejetes = $statsQuery->clone()->rejetes()->count();
+        $retires = $statsQuery->clone()->retires()->count();
 
         $statistiques = [
             'total' => $total,
@@ -825,12 +838,12 @@ class RepresentantANController extends Controller
         $votesContre = $votesQuery->clone()->where('position', 'contre')->count();
         $votesAbstention = $votesQuery->clone()->where('position', 'abstention')->count();
 
-        // Statistiques amendements
+        // Statistiques amendements (utilise les scopes du modèle)
         $amendementsQuery = AmendementSenat::where('senateur_matricule', $matricule);
         $amendementsTotal = $amendementsQuery->count();
-        $amendementsAdoptes = $amendementsQuery->clone()->where('sort_code', 'ADO')->count();
-        $amendementsRejetes = $amendementsQuery->clone()->where('sort_code', 'REJ')->count();
-        $amendementsRetires = $amendementsQuery->clone()->where('sort_code', 'RET')->count();
+        $amendementsAdoptes = $amendementsQuery->clone()->adoptes()->count();
+        $amendementsRejetes = $amendementsQuery->clone()->rejetes()->count();
+        $amendementsRetires = $amendementsQuery->clone()->retires()->count();
 
         // Derniers votes
         $derniersVotes = VoteSenat::where('senateur_matricule', $matricule)

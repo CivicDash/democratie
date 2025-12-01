@@ -66,10 +66,11 @@ class AmendementSenat extends Model
 
     /**
      * Sénateur auteur
+     * Note: La vue amendements_senat utilise 'senateur_matricule' (via jointure sen_ameli)
      */
     public function auteur(): BelongsTo
     {
-        return $this->belongsTo(Senateur::class, 'auteur_senateur_matricule', 'matricule');
+        return $this->belongsTo(Senateur::class, 'senateur_matricule', 'matricule');
     }
 
     // ========================================================================
@@ -78,26 +79,29 @@ class AmendementSenat extends Model
 
     /**
      * Amendements adoptés
+     * Supporte les codes courts (ADO) et longs (ADOPTE)
      */
     public function scopeAdoptes($query)
     {
-        return $query->where('sort_code', 'ADOPTE');
+        return $query->whereIn('sort_code', ['ADO', 'ADOPTE', 'Adopté']);
     }
 
     /**
      * Amendements rejetés
+     * Supporte les codes courts (REJ) et longs (REJETE)
      */
     public function scopeRejetes($query)
     {
-        return $query->where('sort_code', 'REJETE');
+        return $query->whereIn('sort_code', ['REJ', 'REJETE', 'Rejeté']);
     }
 
     /**
      * Amendements retirés
+     * Supporte les codes courts (RET) et longs (RETIRE)
      */
     public function scopeRetires($query)
     {
-        return $query->where('sort_code', 'RETIRE');
+        return $query->whereIn('sort_code', ['RET', 'RETIRE', 'Retiré']);
     }
 
     /**
@@ -117,7 +121,7 @@ class AmendementSenat extends Model
      */
     public function getEstAdopteAttribute(): bool
     {
-        return $this->sort_code === 'ADOPTE';
+        return in_array($this->sort_code, ['ADO', 'ADOPTE', 'Adopté']);
     }
 
     /**
@@ -125,7 +129,7 @@ class AmendementSenat extends Model
      */
     public function getEstRejeteAttribute(): bool
     {
-        return $this->sort_code === 'REJETE';
+        return in_array($this->sort_code, ['REJ', 'REJETE', 'Rejeté']);
     }
 
     /**
@@ -133,7 +137,7 @@ class AmendementSenat extends Model
      */
     public function getEstRetireAttribute(): bool
     {
-        return $this->sort_code === 'RETIRE';
+        return in_array($this->sort_code, ['RET', 'RETIRE', 'Retiré']);
     }
 }
 

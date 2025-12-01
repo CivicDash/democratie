@@ -73,12 +73,14 @@ class Senateur extends Model
 
     public function votesSenat(): HasMany
     {
-        return $this->hasMany(VoteSenat::class, 'senateur_matricule', 'id');
+        // La vue senateurs_votes a senateur_matricule qui correspond au matricule du sénateur
+        return $this->hasMany(VoteSenat::class, 'senateur_matricule', 'matricule');
     }
 
     public function amendementsSenat(): HasMany
     {
-        return $this->hasMany(AmendementSenat::class, 'auteur_senateur_matricule', 'matricule');
+        // La vue amendements_senat a senateur_matricule (via jointure sen_ameli)
+        return $this->hasMany(AmendementSenat::class, 'senateur_matricule', 'matricule');
     }
 
     /**
