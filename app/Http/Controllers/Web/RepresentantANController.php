@@ -606,6 +606,20 @@ class RepresentantANController extends Controller
             'etudes',
         ])->findOrFail($matricule);
 
+        // Statistiques d'activité (comme pour les députés)
+        $votesTotal = VoteSenat::where('senateur_matricule', $matricule)->count();
+        $amendementsTotal = AmendementSenat::where('senateur_matricule', $matricule)->count();
+        $amendementsAdoptes = AmendementSenat::where('senateur_matricule', $matricule)->adoptes()->count();
+
+        $stats = [
+            'votes_total' => $votesTotal,
+            'amendements_total' => $amendementsTotal,
+            'amendements_adoptes' => $amendementsAdoptes,
+            'taux_adoption_amendements' => $amendementsTotal > 0
+                ? round(($amendementsAdoptes / $amendementsTotal) * 100, 1)
+                : 0,
+        ];
+
         return Inertia::render('Representants/Senateurs/Show', [
             'senateur' => [
                 'matricule' => $senateur->matricule,
@@ -668,6 +682,7 @@ class RepresentantANController extends Controller
                 'email' => $senateur->email,
                 'telephone' => $senateur->telephone ?? null,
                 'adresse_postale' => $senateur->adresse_postale ?? null,
+                'statistiques' => $stats,
             ],
         ]);
     }

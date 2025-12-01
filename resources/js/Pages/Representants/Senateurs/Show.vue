@@ -146,8 +146,24 @@ defineProps({
                 </a>
               </div>
 
+              <!-- Statistiques rapides -->
+              <div v-if="senateur.statistiques" class="grid grid-cols-3 gap-4 mt-6 mb-4">
+                <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div class="text-2xl font-bold text-blue-600">{{ senateur.statistiques.votes_total }}</div>
+                  <div class="text-xs text-gray-600 dark:text-gray-400">Votes</div>
+                </div>
+                <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div class="text-2xl font-bold text-green-600">{{ senateur.statistiques.amendements_total }}</div>
+                  <div class="text-xs text-gray-600 dark:text-gray-400">Amendements</div>
+                </div>
+                <div class="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <div class="text-2xl font-bold text-purple-600">{{ senateur.statistiques.taux_adoption_amendements }}%</div>
+                  <div class="text-xs text-gray-600 dark:text-gray-400">Taux adoption</div>
+                </div>
+              </div>
+
               <!-- Navigation vers pages détaillées -->
-              <div class="grid grid-cols-3 gap-3 mt-6">
+              <div class="grid grid-cols-3 gap-3">
                 <Link
                   :href="route('representants.senateurs.votes', senateur.matricule)"
                   class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
