@@ -782,14 +782,24 @@ class RepresentantANController extends Controller
         if ($request->filled('sort')) {
             // Utilise les scopes pour supporter tous les formats de codes
             switch ($request->sort) {
+                case 'adopte':
                 case 'ADO':
+                case 'A':
                     $query->adoptes();
                     break;
+                case 'rejete':
                 case 'REJ':
+                case 'RJS':
                     $query->rejetes();
                     break;
+                case 'retire':
                 case 'RET':
+                case 'R':
                     $query->retires();
+                    break;
+                case 'tombe':
+                case 'S':
+                    $query->tombes();
                     break;
             }
         }

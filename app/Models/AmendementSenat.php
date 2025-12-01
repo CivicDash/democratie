@@ -88,29 +88,53 @@ class AmendementSenat extends Model
 
     /**
      * Amendements adoptés
-     * Supporte les codes courts (ADO) et longs (ADOPTE)
+     * Codes réels : A (Adopté), AM (Adopté avec modification), AB (Adopté - vote unique)
      */
     public function scopeAdoptes($query)
     {
-        return $query->whereIn('sort_code', ['ADO', 'ADOPTE', 'Adopté']);
+        return $query->whereIn('sort_code', ['A', 'AM', 'AB']);
     }
 
     /**
      * Amendements rejetés
-     * Supporte les codes courts (REJ) et longs (REJETE)
+     * Codes réels : RJS (Rejeté), RJ (Rejeté), RJB (Rejeté - vote unique)
      */
     public function scopeRejetes($query)
     {
-        return $query->whereIn('sort_code', ['REJ', 'REJETE', 'Rejeté']);
+        return $query->whereIn('sort_code', ['RJS', 'RJ', 'RJB']);
     }
 
     /**
      * Amendements retirés
-     * Supporte les codes courts (RET) et longs (RETIRE)
+     * Codes réels : R (Retiré), RET (Retiré)
      */
     public function scopeRetires($query)
     {
-        return $query->whereIn('sort_code', ['RET', 'RETIRE', 'Retiré']);
+        return $query->whereIn('sort_code', ['R', 'RET']);
+    }
+
+    /**
+     * Amendements tombés
+     */
+    public function scopeTombes($query)
+    {
+        return $query->where('sort_code', 'S');
+    }
+
+    /**
+     * Amendements non soutenus
+     */
+    public function scopeNonSoutenus($query)
+    {
+        return $query->where('sort_code', 'N');
+    }
+
+    /**
+     * Amendements satisfaits ou sans objet
+     */
+    public function scopeSatisfaits($query)
+    {
+        return $query->where('sort_code', 'SO');
     }
 
     /**
@@ -130,7 +154,7 @@ class AmendementSenat extends Model
      */
     public function getEstAdopteAttribute(): bool
     {
-        return in_array($this->sort_code, ['ADO', 'ADOPTE', 'Adopté']);
+        return in_array($this->sort_code, ['A', 'AM', 'AB']);
     }
 
     /**
@@ -138,7 +162,7 @@ class AmendementSenat extends Model
      */
     public function getEstRejeteAttribute(): bool
     {
-        return in_array($this->sort_code, ['REJ', 'REJETE', 'Rejeté']);
+        return in_array($this->sort_code, ['RJS', 'RJ', 'RJB']);
     }
 
     /**
@@ -146,7 +170,33 @@ class AmendementSenat extends Model
      */
     public function getEstRetireAttribute(): bool
     {
-        return in_array($this->sort_code, ['RET', 'RETIRE', 'Retiré']);
+        return in_array($this->sort_code, ['R', 'RET']);
+    }
+
+    /**
+     * Indique si l'amendement est tombé
+     */
+    public function getEstTombeAttribute(): bool
+    {
+        return $this->sort_code === 'S';
+    }
+
+    /**
+     * Libellé du sort formaté pour l'affichage
+     */
+    public function getSortLibelleFormateAttribute(): string
+    {
+        return match($this->sort_code) {
+            'A' => 'Adopté',
+            'AM' => 'Adopté (modifié)',
+            'AB' => 'Adopté',
+            'RJS', 'RJ', 'RJB' => 'Rejeté',
+            'R', 'RET' => 'Retiré',
+            'S' => 'Tombé',
+            'N' => 'Non soutenu',
+            'SO' => 'Satisfait',
+            default => $this->sort_libelle ?? 'En cours',
+        };
     }
 }
 

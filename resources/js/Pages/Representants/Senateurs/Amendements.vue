@@ -27,9 +27,18 @@ const applyFilters = () => {
 };
 
 const getSortBadgeClass = (sortCode) => {
-  if (sortCode === 'ADO') return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
-  if (sortCode === 'REJ') return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-  if (sortCode === 'RET') return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+  // Adoptés : A, AM, AB
+  if (['A', 'AM', 'AB'].includes(sortCode)) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+  // Rejetés : RJS, RJ, RJB
+  if (['RJS', 'RJ', 'RJB'].includes(sortCode)) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+  // Retirés : R, RET
+  if (['R', 'RET'].includes(sortCode)) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+  // Tombés : S
+  if (sortCode === 'S') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
+  // Non soutenus : N
+  if (sortCode === 'N') return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+  // Satisfaits : SO
+  if (sortCode === 'SO') return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
   return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300';
 };
 </script>
@@ -134,9 +143,10 @@ const getSortBadgeClass = (sortCode) => {
                 class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800"
               >
                 <option value="">Tous les amendements</option>
-                <option value="ADO">Adoptés</option>
-                <option value="REJ">Rejetés</option>
-                <option value="RET">Retirés</option>
+                <option value="adopte">Adoptés</option>
+                <option value="rejete">Rejetés</option>
+                <option value="retire">Retirés</option>
+                <option value="tombe">Tombés</option>
               </select>
             </div>
             <div class="flex items-end">
