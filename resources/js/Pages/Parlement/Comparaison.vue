@@ -24,16 +24,16 @@ const diffParite = computed(() => {
 </script>
 
 <template>
-  <Head title="Comparaison AN vs Sénat" />
+  <Head title="Statistiques Assemblée Nationale / Sénat" />
 
   <AuthenticatedLayout>
     <div class="py-8">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
         
         <!-- Header -->
         <div class="text-center mb-8">
           <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-            ⚖️ Assemblée Nationale vs Sénat
+            📊 Statistiques Assemblée Nationale / Sénat
           </h1>
           <p class="text-lg text-gray-600 dark:text-gray-400">
             Comparaison des deux chambres du Parlement français

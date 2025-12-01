@@ -325,16 +325,17 @@ class RepresentantController extends Controller
                 ->pluck('code')
                 ->toArray();
 
-            // Compter les députés (via circonscriptions dans mandats AN)
-            $deputesByRegion[$region->code] = \App\Models\ActeurAN::whereHas('mandats', function($q) use ($departments) {
-                $q->where('type_organe', 'ASSEMBLEE')
-                  ->whereNull('date_fin')
-                  ->where(function($sq) use ($departments) {
-                      foreach ($departments as $deptCode) {
-                          $sq->orWhere('code_departement', $deptCode);
-                      }
-                  });
-            })->count();
+            // Compter les députés (via l'ancien modèle DeputeSenateur qui a la circonscription)
+            // Note: mandats_an n'a pas de colonne code_departement
+            $deputesByRegion[$region->code] = \App\Models\DeputeSenateur::deputes()
+                ->enExercice()
+                ->where(function($q) use ($departments) {
+                    foreach ($departments as $deptCode) {
+                        // La circonscription commence par le code département (ex: "01-01")
+                        $q->orWhere('circonscription', 'LIKE', $deptCode . '-%');
+                    }
+                })
+                ->count();
 
             // Compter les sénateurs (via département)
             $senateursByRegion[$region->code] = \App\Models\Senateur::actifs()
@@ -367,40 +368,29 @@ class RepresentantController extends Controller
                     ->pluck('code')
                     ->toArray();
 
-                // Députés de la région
-                // Note: mandatActif est un accessor, pas une relation
-                $deputes = \App\Models\ActeurAN::whereHas('mandats', function($q) use ($departments) {
-                    $q->where('type_organe', 'ASSEMBLEE')
-                      ->whereNull('date_fin')
-                      ->where(function($sq) use ($departments) {
-                          foreach ($departments as $deptCode) {
-                              $sq->orWhere('code_departement', $deptCode);
-                          }
-                      });
-                })
-                ->with(['mandats' => function($q) {
-                    $q->where('type_organe', 'ASSEMBLEE')
-                      ->whereNull('date_fin')
-                      ->with('organe');
-                }])
-                ->orderBy('nom')
-                ->get();
+                // Députés de la région (via DeputeSenateur qui a la circonscription)
+                $deputes = \App\Models\DeputeSenateur::deputes()
+                    ->enExercice()
+                    ->where(function($q) use ($departments) {
+                        foreach ($departments as $deptCode) {
+                            $q->orWhere('circonscription', 'LIKE', $deptCode . '-%');
+                        }
+                    })
+                    ->orderBy('nom')
+                    ->get();
 
                 $groupeService = app(\App\Services\GroupeParlementaireService::class);
 
                 $data['deputes'] = $deputes->map(function($d) use ($groupeService) {
-                    $mandat = $d->mandats->first();
-                    $groupe = $mandat?->organe;
-                    
                     return [
-                        'uid' => $d->uid,
+                        'uid' => $d->uid_an ?? $d->id,
                         'nom_complet' => $d->prenom . ' ' . $d->nom,
                         'photo_url' => $d->photo_url,
-                        'circonscription' => $mandat?->code_departement . '-' . $mandat?->num_circonscription,
-                        'groupe' => $groupe ? [
-                            'sigle' => $groupe->libelleAbrev,
-                            'nom' => $groupe->libelle,
-                            'couleur' => $groupeService->getCouleurGroupe($groupe->libelleAbrev),
+                        'circonscription' => $d->circonscription,
+                        'groupe' => $d->groupe_sigle ? [
+                            'sigle' => $d->groupe_sigle,
+                            'nom' => $d->groupe_sigle,
+                            'couleur' => $groupeService->getCouleurGroupe($d->groupe_sigle),
                         ] : null,
                     ];
                 })->toArray();

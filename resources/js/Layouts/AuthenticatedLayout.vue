@@ -163,7 +163,7 @@ const toggleDarkMode = () => {
                                             </DropdownLink>
                                             <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                             <DropdownLink :href="route('parlement.comparaison')">
-                                                ⚖️ AN vs Sénat
+                                                📊 Statistiques AN / Sénat
                                             </DropdownLink>
                                         </template>
                                     </Dropdown>
@@ -469,7 +469,7 @@ const toggleDarkMode = () => {
                             :href="route('parlement.comparaison')"
                             :active="route().current('parlement.comparaison')"
                         >
-                            ⚖️ AN vs Sénat
+                            📊 Statistiques AN / Sénat
                         </ResponsiveNavLink>
                         
                         <!-- Débat Citoyen -->
