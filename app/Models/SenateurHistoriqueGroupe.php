@@ -9,22 +9,19 @@ class SenateurHistoriqueGroupe extends Model
 {
     protected $table = 'senateurs_historique_groupes';
 
-    protected $fillable = [
-        'matricule',
-        'groupe_politique',
-        'type_appartenance',
-        'date_debut',
-        'date_fin',
-    ];
+    // Vue SQL - pas de fillable nécessaire
+    protected $fillable = [];
 
     protected $casts = [
         'date_debut' => 'date',
         'date_fin' => 'date',
+        'actif' => 'boolean',
     ];
 
     public function senateur(): BelongsTo
     {
-        return $this->belongsTo(Senateur::class, 'matricule', 'matricule');
+        // La vue utilise senateur_matricule
+        return $this->belongsTo(Senateur::class, 'senateur_matricule', 'matricule');
     }
 
     public function scopeActifs($query)

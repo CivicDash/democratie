@@ -9,22 +9,19 @@ class SenateurCommission extends Model
 {
     protected $table = 'senateurs_commissions';
 
-    protected $fillable = [
-        'matricule',
-        'commission',
-        'date_debut',
-        'date_fin',
-        'fonction',
-    ];
+    // Vue SQL - pas de fillable nécessaire
+    protected $fillable = [];
 
     protected $casts = [
         'date_debut' => 'date',
         'date_fin' => 'date',
+        'actif' => 'boolean',
     ];
 
     public function senateur(): BelongsTo
     {
-        return $this->belongsTo(Senateur::class, 'matricule', 'matricule');
+        // La vue utilise senateur_matricule
+        return $this->belongsTo(Senateur::class, 'senateur_matricule', 'matricule');
     }
 
     public function scopeActifs($query)
