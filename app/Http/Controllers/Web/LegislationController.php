@@ -185,13 +185,10 @@ class LegislationController extends Controller
             ->orderBy('date_scrutin', 'desc')
             ->orderBy('numero', 'desc');
 
-        // Recherche
+        // Recherche (colonne 'objet' n'existe pas, utiliser seulement 'titre')
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('titre', 'ILIKE', "%{$search}%")
-                  ->orWhere('objet', 'ILIKE', "%{$search}%");
-            });
+            $query->where('titre', 'ILIKE', "%{$search}%");
         }
 
         $scrutins = $query->paginate(30)->withQueryString();

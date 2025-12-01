@@ -50,19 +50,25 @@ class GlobalSearchController extends Controller
                             ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
                     }
                 })
-                ->with(['mandatActif', 'mandatActif.organe'])
+                // mandatActif est un accessor, pas une relation - on charge les mandats avec organe
+                ->with(['mandats' => function($q) {
+                    $q->where('type_organe', 'ASSEMBLEE')
+                      ->whereNull('date_fin')
+                      ->with('organe');
+                }])
                 ->limit($limit)
                 ->get()
                 ->map(function ($depute) {
+                    $mandatActif = $depute->mandats->first();
                     return [
                         'type' => 'depute',
                         'id' => $depute->uid,
                         'title' => $depute->prenom . ' ' . $depute->nom,
-                        'subtitle' => $depute->mandatActif?->organe?->libelle ?? 'Député',
+                        'subtitle' => $mandatActif?->organe?->libelle ?? 'Député',
                         'description' => $depute->profession,
                         'url' => route('representants.deputes.show', $depute->uid),
-                        'image' => $depute->photo_url,
-                        'badge' => $depute->mandatActif?->organe?->libelleAbrev,
+                        'image' => $depute->photo_wikipedia_url,
+                        'badge' => $depute->groupe_politique_actuel?->libelle_abrege,
                     ];
                 });
 
@@ -105,8 +111,8 @@ class GlobalSearchController extends Controller
             $scrutinsQuery = ScrutinAN::query()
                 ->where(function ($q) use ($query) {
                     if (strlen($query) >= 2) {
-                        $q->where('titre', 'ILIKE', "%{$query}%")
-                            ->orWhere('objet', 'ILIKE', "%{$query}%");
+                        // Note: La colonne 'objet' n'existe pas dans scrutins_an, seulement 'titre'
+                        $q->where('titre', 'ILIKE', "%{$query}%");
                     }
                 });
 

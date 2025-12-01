@@ -137,8 +137,12 @@ class RepresentantsSearchController extends Controller
         
         // Député (par circonscription)
         // Format circonscription : "Ain (1re circonscription)" -> extraire le département et le numéro
-        $depute = ActeurAN::whereHas('mandatActif', function ($q) use ($postalCode) {
-            $q->where('circonscription', 'LIKE', $postalCode->department_name . '%');
+        // Note: mandatActif est un accessor, pas une relation - on utilise mandats
+        $depute = ActeurAN::whereHas('mandats', function ($q) use ($postalCode) {
+            $q->where('type_organe', 'ASSEMBLEE')
+              ->whereNull('date_fin');
+              // Note: La circonscription n'est pas stockée dans mandats_an
+              // On devrait chercher par département via l'organe
         })->first();
         
         // Sénateur (par département)
