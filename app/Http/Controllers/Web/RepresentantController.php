@@ -8,12 +8,26 @@ use App\Models\DeputeSenateur;
 use App\Models\GroupeParlementaire;
 use App\Models\Profile;
 use App\Models\Senateur;
+use App\Services\GroupeParlementaireService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RepresentantController extends Controller
 {
+    /**
+     * Vérifie si la table deputes_senateurs existe
+     */
+    private function deputesSenateursTableExists(): bool
+    {
+        static $exists = null;
+        if ($exists === null) {
+            $exists = Schema::hasTable('deputes_senateurs');
+        }
+        return $exists;
+    }
+
     /**
      * Page "Mes Représentants"
      */
@@ -29,6 +43,8 @@ class RepresentantController extends Controller
             'location' => null,
         ];
 
+        $groupeService = app(GroupeParlementaireService::class);
+        
         // Mode simulation via paramètre GET
         $simulatePostalCode = $request->input('simulate_postal_code');
         
@@ -37,6 +53,8 @@ class RepresentantController extends Controller
             
             if ($postalData) {
                 $data['hasLocation'] = true;
+                $deptCode = substr($postalData->circonscription ?? '', 0, 2);
+                
                 $data['location'] = [
                     'city' => $postalData->city_name,
                     'postal_code' => $postalData->postal_code,
@@ -45,59 +63,37 @@ class RepresentantController extends Controller
                     'is_simulated' => true,
                 ];
 
-                // Député de la circonscription
-                $depute = DeputeSenateur::deputes()
-                    ->enExercice()
-                    ->where('circonscription', $postalData->circonscription)
-                    ->with(['groupeParlementaire'])
-                    ->first();
+                // Député de la circonscription - TODO: implémenter avec ActeurAN
+                // Note: La table deputes_senateurs n'existe plus en production
+                $data['depute'] = null;
 
-                if ($depute) {
-                    $data['depute'] = [
-                        'id' => $depute->id,
-                        'nom_complet' => $depute->nom_complet,
-                        'photo_url' => $depute->photo_url,
-                        'circonscription' => $depute->circonscription,
-                        'profession' => $depute->profession,
-                        'url_profil' => $depute->url_profil,
-                        'groupe' => $depute->groupeParlementaire ? [
-                            'sigle' => $depute->groupeParlementaire->sigle,
-                            'nom' => $depute->groupeParlementaire->nom,
-                            'couleur' => $depute->groupeParlementaire->couleur_hex,
-                        ] : null,
-                        'nb_propositions' => $depute->nb_propositions ?? 0,
-                        'nb_amendements' => $depute->nb_amendements ?? 0,
-                        'taux_presence' => $depute->taux_presence ?? 0,
-                    ];
-                }
-
-                // Sénateurs du département
-                $deptCode = substr($postalData->circonscription, 0, 2);
-                $senateurs = DeputeSenateur::senateurs()
-                    ->enExercice()
-                    ->where('circonscription', 'like', $deptCode . '%')
-                    ->with(['groupeParlementaire'])
+                // Sénateurs du département (via modèle Senateur)
+                $senateurs = Senateur::actifs()
+                    ->where('departement_code', $deptCode)
                     ->get();
 
-                $data['senateurs'] = $senateurs->map(function($senateur) {
+                $data['senateurs'] = $senateurs->map(function($senateur) use ($groupeService) {
                     return [
-                        'id' => $senateur->id,
-                        'nom_complet' => $senateur->nom_complet,
+                        'id' => $senateur->matricule,
+                        'nom_complet' => $senateur->prenom . ' ' . $senateur->nom,
                         'photo_url' => $senateur->photo_url,
                         'profession' => $senateur->profession,
-                        'groupe' => $senateur->groupeParlementaire ? [
-                            'sigle' => $senateur->groupeParlementaire->sigle,
-                            'nom' => $senateur->groupeParlementaire->nom,
-                            'couleur' => $senateur->groupeParlementaire->couleur_hex,
+                        'groupe' => $senateur->groupe_politique ? [
+                            'sigle' => $senateur->groupe_politique,
+                            'nom' => $senateur->groupe_politique,
+                            'couleur' => $groupeService->getCouleurGroupe($senateur->groupe_politique),
                         ] : null,
-                        'nb_propositions' => $senateur->nb_propositions ?? 0,
-                        'nb_amendements' => $senateur->nb_amendements ?? 0,
-                        'taux_presence' => $senateur->taux_presence ?? 0,
+                        'nb_propositions' => 0,
+                        'nb_amendements' => 0,
+                        'taux_presence' => 0,
+                        'url_profil' => route('representants.senateurs.show', $senateur->matricule),
                     ];
                 })->toArray();
             }
         } elseif ($profile && $profile->circonscription && $profile->department_id) {
             $data['hasLocation'] = true;
+            $deptCode = substr($profile->circonscription ?? '', 0, 2);
+            
             $data['location'] = [
                 'city' => $profile->city_name,
                 'postal_code' => $profile->postal_code,
@@ -105,64 +101,38 @@ class RepresentantController extends Controller
                 'department' => $profile->department?->name,
             ];
 
-            // Député de la circonscription
-            $depute = DeputeSenateur::deputes()
-                ->enExercice()
-                ->where('circonscription', $profile->circonscription)
-                ->with(['groupeParlementaire'])
-                ->first();
+            // Député de la circonscription - TODO: implémenter avec ActeurAN
+            // Note: La table deputes_senateurs n'existe plus en production
+            $data['depute'] = null;
 
-            if ($depute) {
-                $data['depute'] = [
-                    'id' => $depute->id,
-                    'nom_complet' => $depute->nom_complet,
-                    'photo_url' => $depute->photo_url,
-                    'groupe' => [
-                        'nom' => $depute->groupe_politique,
-                        'sigle' => $depute->groupe_sigle,
-                        'couleur' => $depute->groupeParlementaire?->couleur_hex ?? '#6B7280',
-                    ],
-                    'circonscription' => $depute->circonscription,
-                    'profession' => $depute->profession,
-                    'nb_propositions' => $depute->nb_propositions,
-                    'nb_amendements' => $depute->nb_amendements,
-                    'taux_presence' => $depute->taux_presence,
-                    'url_profil' => $depute->url_profil,
-                ];
-            }
-
-            // Sénateurs du département
-            $senateurs = DeputeSenateur::senateurs()
-                ->enExercice()
-                ->where('circonscription', 'like', substr($profile->circonscription, 0, 2) . '%')
-                ->with(['groupeParlementaire'])
+            // Sénateurs du département (via modèle Senateur)
+            $senateurs = Senateur::actifs()
+                ->where('departement_code', $deptCode)
                 ->get();
 
-            $data['senateurs'] = $senateurs->map(fn($senateur) => [
-                'id' => $senateur->id,
-                'nom_complet' => $senateur->nom_complet,
-                'photo_url' => $senateur->photo_url,
-                'groupe' => [
-                    'nom' => $senateur->groupe_politique,
-                    'sigle' => $senateur->groupe_sigle,
-                    'couleur' => $senateur->groupeParlementaire?->couleur_hex ?? '#6B7280',
-                ],
-                'profession' => $senateur->profession,
-                'nb_propositions' => $senateur->nb_propositions,
-                'nb_amendements' => $senateur->nb_amendements,
-                'taux_presence' => $senateur->taux_presence,
-                'url_profil' => $senateur->url_profil,
-            ])->toArray();
+            $data['senateurs'] = $senateurs->map(function($senateur) use ($groupeService) {
+                return [
+                    'id' => $senateur->matricule,
+                    'nom_complet' => $senateur->prenom . ' ' . $senateur->nom,
+                    'photo_url' => $senateur->photo_url,
+                    'profession' => $senateur->profession,
+                    'groupe' => $senateur->groupe_politique ? [
+                        'sigle' => $senateur->groupe_politique,
+                        'nom' => $senateur->groupe_politique,
+                        'couleur' => $groupeService->getCouleurGroupe($senateur->groupe_politique),
+                    ] : null,
+                    'nb_propositions' => 0,
+                    'nb_amendements' => 0,
+                    'taux_presence' => 0,
+                    'url_profil' => route('representants.senateurs.show', $senateur->matricule),
+                ];
+            })->toArray();
         }
 
-        // Répartition nationale des députés par département (via DeputeSenateur qui a la circonscription)
-        $data['deputesByDepartment'] = DeputeSenateur::deputes()
-            ->enExercice()
-            ->whereNotNull('circonscription')
-            ->selectRaw("SUBSTRING(circonscription, 1, 2) as department_code, COUNT(*) as count")
-            ->groupBy('department_code')
-            ->pluck('count', 'department_code')
-            ->toArray();
+        // Répartition nationale des députés par département
+        // Note: La table deputes_senateurs n'existe plus, on utilise les données des sénateurs uniquement
+        // TODO: Ajouter les données des députés quand la structure sera disponible
+        $data['deputesByDepartment'] = [];
 
         $data['senateursByDepartment'] = Senateur::where('etat', 'ACTIF')
             ->selectRaw('SUBSTRING(departement_code, 1, 2) as department_code, COUNT(*) as count')
@@ -321,17 +291,10 @@ class RepresentantController extends Controller
                 ->pluck('code')
                 ->toArray();
 
-            // Compter les députés (via l'ancien modèle DeputeSenateur qui a la circonscription)
-            // Note: mandats_an n'a pas de colonne code_departement
-            $deputesByRegion[$region->code] = \App\Models\DeputeSenateur::deputes()
-                ->enExercice()
-                ->where(function($q) use ($departments) {
-                    foreach ($departments as $deptCode) {
-                        // La circonscription commence par le code département (ex: "01-01")
-                        $q->orWhere('circonscription', 'LIKE', $deptCode . '-%');
-                    }
-                })
-                ->count();
+            // Compter les députés par région
+            // Note: La table deputes_senateurs n'existe plus, on met 0 pour l'instant
+            // TODO: Implémenter le comptage via ActeurAN quand les données de circonscription seront disponibles
+            $deputesByRegion[$region->code] = 0;
 
             // Compter les sénateurs (via département)
             $senateursByRegion[$region->code] = \App\Models\Senateur::actifs()
@@ -364,32 +327,10 @@ class RepresentantController extends Controller
                     ->pluck('code')
                     ->toArray();
 
-                // Députés de la région (via DeputeSenateur qui a la circonscription)
-                $deputes = \App\Models\DeputeSenateur::deputes()
-                    ->enExercice()
-                    ->where(function($q) use ($departments) {
-                        foreach ($departments as $deptCode) {
-                            $q->orWhere('circonscription', 'LIKE', $deptCode . '-%');
-                        }
-                    })
-                    ->orderBy('nom')
-                    ->get();
-
-                $groupeService = app(\App\Services\GroupeParlementaireService::class);
-
-                $data['deputes'] = $deputes->map(function($d) use ($groupeService) {
-                    return [
-                        'uid' => $d->uid_an ?? $d->id,
-                        'nom_complet' => $d->prenom . ' ' . $d->nom,
-                        'photo_url' => $d->photo_url,
-                        'circonscription' => $d->circonscription,
-                        'groupe' => $d->groupe_sigle ? [
-                            'sigle' => $d->groupe_sigle,
-                            'nom' => $d->groupe_sigle,
-                            'couleur' => $groupeService->getCouleurGroupe($d->groupe_sigle),
-                        ] : null,
-                    ];
-                })->toArray();
+                // Députés de la région
+                // Note: La table deputes_senateurs n'existe plus
+                // TODO: Implémenter via ActeurAN quand les données de circonscription seront disponibles
+                $data['deputes'] = [];
 
                 // Sénateurs de la région
                 $senateurs = \App\Models\Senateur::actifs()
