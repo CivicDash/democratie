@@ -64,6 +64,30 @@ NC='\033[0m' # No Color
 # FONCTIONS UTILITAIRES
 # ============================================================================
 
+fix_permissions() {
+    # Corriger les permissions des répertoires de stockage si nécessaire
+    local storage_dirs=(
+        "${PROJECT_DIR}/storage/logs"
+        "${PROJECT_DIR}/storage/app"
+        "${PROJECT_DIR}/storage/app/an-data"
+        "${PROJECT_DIR}/storage/app/an-data/zip"
+        "${PROJECT_DIR}/storage/app/an-data/xml"
+        "${PROJECT_DIR}/storage/app/senat-data"
+        "${PROJECT_DIR}/storage/app/hatvp-data"
+    )
+    
+    for dir in "${storage_dirs[@]}"; do
+        if [ ! -d "$dir" ]; then
+            mkdir -p "$dir" 2>/dev/null || true
+        fi
+        # Essayer de rendre le répertoire accessible en écriture
+        chmod 775 "$dir" 2>/dev/null || true
+    done
+    
+    # S'assurer que storage/logs est accessible
+    touch "${PROJECT_DIR}/storage/logs/.gitkeep" 2>/dev/null || true
+}
+
 log() {
     local level="$1"
     local message="$2"
@@ -177,6 +201,9 @@ fi
 # ============================================================================
 
 cd "$PROJECT_DIR"
+
+# Corriger les permissions avant de commencer
+fix_permissions
 
 log "INFO" "=========================================="
 log "INFO" "Démarrage de la synchronisation"

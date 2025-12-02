@@ -14,6 +14,12 @@ class XmlDownloader
     protected int $legislature;
     protected array $storage;
     protected array $cacheConfig;
+    
+    // Configuration des téléchargements
+    protected int $timeout = 600; // 10 minutes
+    protected int $connectTimeout = 30;
+    protected int $maxRetries = 3;
+    protected int $retryDelay = 5; // secondes
 
     public function __construct(?int $legislature = null)
     {
@@ -52,21 +58,22 @@ class XmlDownloader
 
         Log::channel('an-sync')->info("Téléchargement de {$sourceKey} depuis {$url}");
 
-        // Télécharger le fichier ZIP
-        $response = Http::timeout(300)->get($url);
-
-        if (!$response->successful()) {
-            throw new \RuntimeException("Échec du téléchargement : HTTP {$response->status()}");
+        // Télécharger avec streaming et retries
+        $etag = $this->downloadWithRetry($url, $zipPath);
+        
+        // Vérifier que le fichier a été téléchargé
+        if (!File::exists($zipPath) || File::size($zipPath) === 0) {
+            throw new \RuntimeException("Le fichier téléchargé est vide ou n'existe pas");
         }
-
-        // Sauvegarder le ZIP
-        File::put($zipPath, $response->body());
+        
+        $fileSize = File::size($zipPath);
+        Log::channel('an-sync')->info("Fichier téléchargé : " . $this->formatBytes($fileSize));
         
         // Extraire le ZIP
         $extractedFiles = $this->extractZip($zipPath, $sourceKey);
 
         // Mettre à jour le cache
-        $this->updateCache($sourceKey, $url, $response->header('ETag'));
+        $this->updateCache($sourceKey, $url, $etag);
 
         Log::channel('an-sync')->info("Téléchargement terminé : " . count($extractedFiles) . " fichiers extraits");
 
@@ -77,8 +84,126 @@ class XmlDownloader
             'zip_path' => $zipPath,
             'xml_path' => $xmlPath,
             'files' => $extractedFiles,
-            'size' => strlen($response->body()),
+            'size' => $fileSize,
         ];
+    }
+    
+    /**
+     * Télécharge un fichier avec streaming et retries automatiques
+     */
+    protected function downloadWithRetry(string $url, string $destinationPath): ?string
+    {
+        $lastException = null;
+        $etag = null;
+        
+        for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
+            try {
+                Log::channel('an-sync')->info("Tentative {$attempt}/{$this->maxRetries}...");
+                
+                $etag = $this->streamDownload($url, $destinationPath);
+                
+                // Succès
+                return $etag;
+                
+            } catch (\Exception $e) {
+                $lastException = $e;
+                Log::channel('an-sync')->warning("Tentative {$attempt} échouée : {$e->getMessage()}");
+                
+                if ($attempt < $this->maxRetries) {
+                    $delay = $this->retryDelay * $attempt; // Backoff exponentiel
+                    Log::channel('an-sync')->info("Nouvelle tentative dans {$delay}s...");
+                    sleep($delay);
+                }
+            }
+        }
+        
+        throw new \RuntimeException(
+            "Échec du téléchargement après {$this->maxRetries} tentatives : " . 
+            ($lastException ? $lastException->getMessage() : 'Erreur inconnue')
+        );
+    }
+    
+    /**
+     * Télécharge un fichier en streaming (économise la mémoire pour les gros fichiers)
+     */
+    protected function streamDownload(string $url, string $destinationPath): ?string
+    {
+        // Utiliser cURL directement pour un meilleur contrôle
+        $ch = curl_init($url);
+        
+        // Ouvrir le fichier de destination
+        $fp = fopen($destinationPath, 'w');
+        if ($fp === false) {
+            throw new \RuntimeException("Impossible d'ouvrir le fichier de destination : {$destinationPath}");
+        }
+        
+        $etag = null;
+        $headers = [];
+        
+        curl_setopt_array($ch, [
+            CURLOPT_FILE => $fp,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
+            CURLOPT_FAILONERROR => true,
+            CURLOPT_USERAGENT => 'CivicDash/1.0 (Demoscratos)',
+            // Capturer les headers
+            CURLOPT_HEADERFUNCTION => function($ch, $header) use (&$headers, &$etag) {
+                $len = strlen($header);
+                $header = explode(':', $header, 2);
+                if (count($header) >= 2) {
+                    $name = strtolower(trim($header[0]));
+                    $value = trim($header[1]);
+                    $headers[$name] = $value;
+                    if ($name === 'etag') {
+                        $etag = $value;
+                    }
+                }
+                return $len;
+            },
+            // Options pour les gros fichiers
+            CURLOPT_LOW_SPEED_LIMIT => 1000, // 1 KB/s minimum
+            CURLOPT_LOW_SPEED_TIME => 30,    // pendant 30 secondes max
+        ]);
+        
+        $success = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        $errno = curl_errno($ch);
+        
+        curl_close($ch);
+        fclose($fp);
+        
+        if (!$success || $errno !== 0) {
+            // Supprimer le fichier partiel
+            if (File::exists($destinationPath)) {
+                File::delete($destinationPath);
+            }
+            throw new \RuntimeException("cURL error {$errno}: {$error}");
+        }
+        
+        if ($httpCode >= 400) {
+            if (File::exists($destinationPath)) {
+                File::delete($destinationPath);
+            }
+            throw new \RuntimeException("HTTP error {$httpCode}");
+        }
+        
+        return $etag;
+    }
+    
+    /**
+     * Formate une taille en bytes de manière lisible
+     */
+    protected function formatBytes(int $bytes, int $precision = 2): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= pow(1024, $pow);
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
     /**
