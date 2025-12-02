@@ -44,7 +44,7 @@ return new class extends Migration
             ORDER BY elusen.senmat, elusen.eludatdeb DESC NULLS LAST, elusen.dptnum
         ");
 
-        // 2. Corriger la vue senateurs_commissions avec DISTINCT et libellés
+        // 2. Corriger la vue senateurs_commissions avec DISTINCT
         DB::statement("DROP VIEW IF EXISTS senateurs_commissions CASCADE");
         DB::statement("
             CREATE VIEW senateurs_commissions AS
@@ -52,7 +52,7 @@ return new class extends Migration
                 mc.memcomid AS id,
                 TRIM(mc.senmat) AS senateur_matricule,
                 mc.orgcod AS commission_code,
-                COALESCE(org.orglib, mc.orgcod) AS commission_nom,
+                mc.orgcod AS commission_nom,
                 mc.memcomdatdeb::date AS date_debut,
                 mc.memcomdatfin::date AS date_fin,
                 CASE 
@@ -64,7 +64,6 @@ return new class extends Migration
                 NOW() AS updated_at
                 
             FROM senat_senateurs_memcom mc
-            LEFT JOIN senat_senateurs_org org ON mc.orgcod = org.orgcod
             ORDER BY mc.senmat, mc.orgcod, mc.memcomdatdeb DESC NULLS LAST
         ");
 
@@ -75,7 +74,7 @@ return new class extends Migration
             SELECT DISTINCT ON (mg.senmat, mg.orgcod, mg.memgrpsendatent)
                 mg.memgrpsenid AS id,
                 TRIM(mg.senmat) AS senateur_matricule,
-                COALESCE(grp.grppollic, org.orglib, mg.orgcod) AS groupe_nom,
+                COALESCE(grp.grppollic, mg.orgcod) AS groupe_nom,
                 mg.orgcod AS groupe_code,
                 mg.memgrpsendatent::date AS date_debut,
                 mg.memgrpsendatsor::date AS date_fin,
@@ -88,7 +87,6 @@ return new class extends Migration
                 NOW() AS updated_at
                 
             FROM senat_senateurs_memgrpsen mg
-            LEFT JOIN senat_senateurs_org org ON mg.orgcod = org.orgcod
             LEFT JOIN senat_senateurs_grppol grp ON mg.orgcod = grp.grppolcod
             ORDER BY mg.senmat, mg.orgcod, mg.memgrpsendatent DESC NULLS LAST
         ");
