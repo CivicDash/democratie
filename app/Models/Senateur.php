@@ -115,11 +115,47 @@ class Senateur extends Model
     }
 
     /**
-     * Alias pour wikipedia_photo pour uniformité avec ActeurAN
+     * Photo officielle du Sénat (priorité sur Wikipedia)
+     * Format: https://www.senat.fr/senimg/{nom}_{prenom}{matricule}_carre.jpg
+     */
+    public function getPhotoOfficielleAttribute(): ?string
+    {
+        if (!$this->matricule || !$this->nom_usuel || !$this->prenom_usuel) {
+            return null;
+        }
+        
+        // Normaliser le nom et prénom pour l'URL
+        $nom = $this->normalizeForUrl($this->nom_usuel);
+        $prenom = $this->normalizeForUrl($this->prenom_usuel);
+        $matricule = strtolower(trim($this->matricule));
+        
+        return "https://www.senat.fr/senimg/{$nom}_{$prenom}{$matricule}_carre.jpg";
+    }
+
+    /**
+     * Photo URL avec fallback : officielle > Wikipedia > null
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        return $this->wikipedia_photo;
+        // Priorité à la photo officielle du Sénat
+        $photoOfficielle = $this->photo_officielle;
+        if ($photoOfficielle) {
+            return $photoOfficielle;
+        }
+        
+        // Fallback sur Wikipedia
+        return $this->photo_wikipedia_url ?? $this->wikipedia_photo ?? null;
+    }
+
+    /**
+     * Normalise une chaîne pour une URL (minuscules, sans accents)
+     */
+    private function normalizeForUrl(string $text): string
+    {
+        $text = strtolower(trim($text));
+        $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+        $text = preg_replace('/[^a-z0-9]/', '', $text);
+        return $text;
     }
 
     public function getEstActifAttribute(): bool

@@ -89,10 +89,40 @@ class ActeurAN extends Model
     }
 
     /**
-     * Alias pour photo_wikipedia_url pour uniformité
+     * Photo officielle de l'Assemblée Nationale
+     * Format: https://www.assemblee-nationale.fr/dyn/static/tribun/{legislature}/photos/{uid_numerique}.jpg
+     */
+    public function getPhotoOfficielleAttribute(): ?string
+    {
+        if (!$this->uid) {
+            return null;
+        }
+        
+        // Extraire l'ID numérique du UID (format: PAxxxxxx)
+        $uidNumerique = preg_replace('/[^0-9]/', '', $this->uid);
+        
+        if (empty($uidNumerique)) {
+            return null;
+        }
+        
+        // Legislature 17 par défaut (à adapter si besoin)
+        $legislature = 17;
+        
+        return "https://www.assemblee-nationale.fr/dyn/static/tribun/{$legislature}/photos/{$uidNumerique}.jpg";
+    }
+
+    /**
+     * Photo URL avec fallback : officielle > Wikipedia > null
      */
     public function getPhotoUrlAttribute(): ?string
     {
+        // Priorité à la photo officielle de l'AN
+        $photoOfficielle = $this->photo_officielle;
+        if ($photoOfficielle) {
+            return $photoOfficielle;
+        }
+        
+        // Fallback sur Wikipedia
         return $this->photo_wikipedia_url;
     }
 

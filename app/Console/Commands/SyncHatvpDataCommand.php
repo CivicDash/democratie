@@ -350,6 +350,7 @@ class SyncHatvpDataCommand extends Command
 
     /**
      * Importe les détails complets des déclarations
+     * Les données sont extraites directement du fichier declarations.xml global
      */
     private function importDeclarationsDetails(): int
     {
@@ -362,74 +363,120 @@ class SyncHatvpDataCommand extends Command
         $this->info('   (mandats, rémunérations, collaborateurs, patrimoine...)');
         $this->newLine();
 
-        // Récupérer les déclarations existantes en base
-        $query = HatvpDeclaration::query();
+        // Télécharger/utiliser le fichier global
+        $this->info('📥 Chargement du fichier global declarations.xml...');
+        $xmlFile = $this->downloader->downloadAllDeclarations($force);
 
-        if ($this->option('parlementaires')) {
-            $query->whereIn('parlementaire_type', ['senateur', 'depute']);
+        if (!$xmlFile || !file_exists($xmlFile)) {
+            $this->error('❌ Impossible de charger le fichier declarations.xml');
+            return Command::FAILURE;
         }
 
-        if ($this->option('type')) {
-            $query->where('parlementaire_type', $this->option('type'));
-        }
-
-        // Prioriser les déclarations non encore enrichies
-        $query->orderByRaw('CASE WHEN details_imported_at IS NULL THEN 0 ELSE 1 END');
-
-        if ($limit) {
-            $query->limit($limit);
-        }
-
-        $declarations = $query->get();
-        $total = $declarations->count();
-
-        if ($total === 0) {
-            $this->warn('⚠️  Aucune déclaration à enrichir.');
-            $this->info('   Lancez d\'abord : php artisan hatvp:sync --import --parlementaires');
-            return Command::SUCCESS;
-        }
-
-        $this->info("📊 {$total} déclarations à enrichir");
+        $size = round(filesize($xmlFile) / 1024 / 1024, 2);
+        $this->info("✅ Fichier chargé ({$size} Mo)");
         $this->newLine();
 
-        $bar = $this->output->createProgressBar($total);
-        $bar->start();
+        // Parser le fichier XML avec XMLReader pour les gros fichiers
+        $this->info('🔄 Parsing et import des détails...');
+        
+        $reader = new \XMLReader();
+        $reader->open($xmlFile);
+        
+        $count = 0;
+        $imported = 0;
+        $skipped = 0;
+        
+        $parlementairesOnly = $this->option('parlementaires');
+        $typeFilter = $this->option('type');
 
-        foreach ($declarations as $declaration) {
-            try {
-                $result = $this->importDeclarationDetails($declaration, $force);
+        while ($reader->read()) {
+            if ($reader->nodeType === \XMLReader::ELEMENT && $reader->name === 'declaration') {
+                $node = $reader->readOuterXml();
                 
-                if ($result) {
+                // Parser la déclaration complète
+                $data = $this->parser->parseContent($node);
+                
+                if (!$data) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Filtrer les parlementaires si demandé
+                $typeMandat = strtolower($data['general']['code_type_mandat_fichier'] ?? '');
+                
+                if ($parlementairesOnly && !in_array($typeMandat, ['senateur', 'depute'])) {
+                    $skipped++;
+                    continue;
+                }
+
+                if ($typeFilter && $typeMandat !== strtolower($typeFilter)) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Trouver ou créer la déclaration en base
+                $uuid = $data['uuid'] ?? null;
+                if (!$uuid) {
+                    $skipped++;
+                    continue;
+                }
+
+                $declaration = HatvpDeclaration::where('uuid', $uuid)->first();
+                
+                if (!$declaration) {
+                    // Créer la déclaration si elle n'existe pas
+                    $declarant = $data['general']['declarant'] ?? [];
+                    $declaration = HatvpDeclaration::create([
+                        'uuid' => $uuid,
+                        'date_depot' => $data['date_depot'] ?? null,
+                        'type_declaration' => $data['type_declaration'] ?? null,
+                        'parlementaire_type' => $typeMandat ?: null,
+                        'nom' => strtoupper($declarant['nom'] ?? ''),
+                        'prenom' => $declarant['prenom'] ?? '',
+                        'date_naissance' => $declarant['date_naissance'] ?? null,
+                        'type_mandat' => $data['general']['type_mandat'] ?? null,
+                        'code_departement' => $data['general']['code_organe'] ?? null,
+                        'date_debut_mandat' => $data['general']['date_debut_mandat'] ?? null,
+                    ]);
+                }
+
+                // Importer les détails
+                try {
+                    $stats = $this->importDeclarationDetailsFromData($declaration, $data);
+                    $imported++;
                     $this->detailsImported++;
                     
                     if ($verboseDetails) {
-                        $bar->clear();
-                        $this->line("   ✓ {$declaration->nom} {$declaration->prenom} - {$result['mandats']} mandats, {$result['collaborateurs']} collab.");
-                        $bar->display();
+                        $this->line("   ✓ {$declaration->nom} {$declaration->prenom} - {$stats['mandats']} mandats, {$stats['collaborateurs']} collab., {$stats['revenus_total']}€");
+                    }
+                } catch (\Exception $e) {
+                    $this->errors++;
+                    if ($verboseDetails) {
+                        $this->error("   ✗ {$declaration->nom} : " . $e->getMessage());
                     }
                 }
-            } catch (\Exception $e) {
-                $this->errors++;
-                if ($verboseDetails) {
-                    $bar->clear();
-                    $this->error("   ✗ {$declaration->nom} : " . $e->getMessage());
-                    $bar->display();
+
+                $count++;
+                
+                if ($count % 100 === 0) {
+                    $this->line("   Traité : {$count} déclarations...");
+                }
+
+                if ($limit && $imported >= $limit) {
+                    $this->info("   Limite de {$limit} atteinte.");
+                    break;
                 }
             }
-            
-            $bar->advance();
-            
-            // Pause pour éviter de surcharger le serveur HATVP
-            usleep(100000); // 100ms
         }
+        
+        $reader->close();
 
-        $bar->finish();
-        $this->newLine(2);
-
-        // Résumé
+        $this->newLine();
         $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->info("✅ Import des détails terminé");
+        $this->line("   - Traitées : {$count}");
         $this->line("   - Enrichies : {$this->detailsImported}");
+        $this->line("   - Ignorées : {$skipped}");
         if ($this->errors > 0) {
             $this->warn("   - Erreurs : {$this->errors}");
         }
@@ -438,31 +485,10 @@ class SyncHatvpDataCommand extends Command
     }
 
     /**
-     * Importe les détails d'une déclaration individuelle
+     * Importe les détails d'une déclaration à partir des données parsées
      */
-    private function importDeclarationDetails(HatvpDeclaration $declaration, bool $force = false): ?array
+    private function importDeclarationDetailsFromData(HatvpDeclaration $declaration, array $data): array
     {
-        // Construire le slug pour télécharger le XML
-        $slug = $this->buildSlugFromDeclaration($declaration);
-        
-        if (!$slug) {
-            return null;
-        }
-
-        // Télécharger le XML individuel
-        $xmlFile = $this->downloader->downloadDeclaration($slug, $force);
-        
-        if (!$xmlFile || !file_exists($xmlFile)) {
-            return null;
-        }
-
-        // Parser le contenu détaillé
-        $data = $this->parser->parseFile($xmlFile);
-        
-        if (!$data) {
-            return null;
-        }
-
         $stats = [
             'mandats' => 0,
             'collaborateurs' => 0,
@@ -621,48 +647,6 @@ class SyncHatvpDataCommand extends Command
         });
 
         return $stats;
-    }
-
-    /**
-     * Construit le slug pour télécharger une déclaration
-     */
-    private function buildSlugFromDeclaration(HatvpDeclaration $declaration): ?string
-    {
-        if (!$declaration->nom || !$declaration->prenom) {
-            return null;
-        }
-
-        // Extraire l'ID de la déclaration depuis l'UUID (format: diam12345, disp12345, etc.)
-        $uuid = $declaration->uuid;
-        
-        // Le slug est généralement : nom-prenom-typeXXXXX-typemandat-departement
-        // Exemple: bacci-jean-diam17710-senateur-83
-        
-        $nom = $this->slugify($declaration->nom);
-        $prenom = $this->slugify($declaration->prenom);
-        $typeDecl = strtolower(substr($declaration->type_declaration ?? 'dia', 0, 3));
-        $typeMandat = strtolower($declaration->parlementaire_type ?? 'senateur');
-        $dept = $declaration->code_departement ?? '00';
-        
-        // L'ID est dans l'UUID (format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
-        // On extrait les 5 premiers chiffres significatifs
-        $id = preg_replace('/[^0-9]/', '', substr($uuid, 0, 8));
-        if (strlen($id) < 5) {
-            $id = str_pad($id, 5, '0', STR_PAD_LEFT);
-        }
-        
-        return "{$nom}-{$prenom}-{$typeDecl}m{$id}-{$typeMandat}-{$dept}";
-    }
-
-    /**
-     * Slugify une chaîne
-     */
-    private function slugify(string $text): string
-    {
-        $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-        $text = strtolower($text);
-        $text = preg_replace('/[^a-z0-9]+/', '-', $text);
-        return trim($text, '-');
     }
 
     /**
