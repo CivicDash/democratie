@@ -1,11 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import TextInput from '@/Components/TextInput.vue';
-import HemicycleView from '@/Components/HemicycleView.vue';
 
 const props = defineProps({
   deputes: Object,
@@ -13,7 +12,6 @@ const props = defineProps({
   filters: Object,
 });
 
-const viewMode = ref('list'); // 'list' ou 'hemicycle'
 const search = ref(props.filters.search || '');
 const selectedGroupe = ref(props.filters.groupe || '');
 
@@ -26,16 +24,6 @@ const applyFilters = () => {
     preserveScroll: true,
   });
 };
-
-// Calcul des sièges par groupe pour l'hémicycle
-const siegesParGroupe = computed(() => {
-  const counts = {};
-  props.deputes.data.forEach(depute => {
-    const sigle = depute.groupe_sigle || 'NI';
-    counts[sigle] = (counts[sigle] || 0) + 1;
-  });
-  return counts;
-});
 </script>
 
 <template>
@@ -52,29 +40,9 @@ const siegesParGroupe = computed(() => {
               <h1 class="text-4xl font-bold mb-2">🏛️ Assemblée Nationale</h1>
               <p class="text-blue-100 text-lg">577 Députés - 17ème législature</p>
             </div>
-            <div class="flex gap-2">
-              <button
-                @click="viewMode = 'list'"
-                :class="[
-                  'px-4 py-2 rounded-lg font-medium transition',
-                  viewMode === 'list' 
-                    ? 'bg-white text-blue-700' 
-                    : 'bg-blue-600 text-white hover:bg-blue-500'
-                ]"
-              >
-                📋 Liste
-              </button>
-              <button
-                @click="viewMode = 'hemicycle'"
-                :class="[
-                  'px-4 py-2 rounded-lg font-medium transition',
-                  viewMode === 'hemicycle' 
-                    ? 'bg-white text-blue-700' 
-                    : 'bg-blue-600 text-white hover:bg-blue-500'
-                ]"
-              >
-                🏛️ Hémicycle
-              </button>
+            <div class="text-right">
+              <div class="text-3xl font-bold">{{ deputes.total || deputes.data?.length || 0 }}</div>
+              <div class="text-blue-200 text-sm">députés affichés</div>
             </div>
           </div>
         </div>
@@ -119,19 +87,8 @@ const siegesParGroupe = computed(() => {
           </div>
         </Card>
 
-        <!-- Vue Hémicycle -->
-        <Card v-if="viewMode === 'hemicycle'">
-          <HemicycleView
-            :deputes="deputes.data"
-            :groupes="props.groupes"
-            :selectedGroupe="selectedGroupe"
-            @select-depute="(depute) => router.visit(route('representants.deputes.show', depute.id))"
-            @select-groupe="(sigle) => { selectedGroupe = sigle; applyFilters(); }"
-          />
-        </Card>
-
-        <!-- Vue Liste -->
-        <Card v-else>
+        <!-- Liste des députés -->
+        <Card>
           <div class="overflow-x-auto">
             <table class="w-full">
               <thead class="bg-gray-50 dark:bg-gray-800">

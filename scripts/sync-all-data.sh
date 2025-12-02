@@ -359,6 +359,25 @@ post_sync_tasks() {
         fi
     fi
     
+    # Enrichissement Wikipedia (optionnel, limité pour éviter trop de requêtes)
+    if [ "$SYNC_SENAT" = true ]; then
+        log "INFO" "Enrichissement Wikipedia sénateurs (10 max)..."
+        if php artisan enrich:senateurs-wikipedia --limit=10 2>&1 | tee -a "$LOG_FILE"; then
+            log "OK" "Enrichissement Wikipedia sénateurs terminé"
+        else
+            log "WARN" "Enrichissement Wikipedia sénateurs - vérifier les logs"
+        fi
+    fi
+    
+    if [ "$SYNC_AN" = true ]; then
+        log "INFO" "Enrichissement Wikipedia députés (10 max)..."
+        if php artisan import:deputes-wikipedia --limit=10 2>&1 | tee -a "$LOG_FILE"; then
+            log "OK" "Enrichissement Wikipedia députés terminé"
+        else
+            log "WARN" "Enrichissement Wikipedia députés - vérifier les logs"
+        fi
+    fi
+    
     # Nettoyer le cache Laravel
     log "INFO" "Nettoyage du cache..."
     php artisan cache:clear 2>&1 | tee -a "$LOG_FILE"

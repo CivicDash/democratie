@@ -135,6 +135,42 @@ class RepresentantANController extends Controller
             ? round(($stats['amendements_adoptes'] / $stats['amendements_total']) * 100, 1)
             : 0;
 
+        // Déclarations HATVP
+        $declarationsHatvp = [];
+        try {
+            $declarationsHatvp = \App\Models\HatvpDeclaration::where('parlementaire_type', 'depute')
+                ->where('parlementaire_id', $uid)
+                ->orderBy('date_depot', 'desc')
+                ->get()
+                ->map(fn($d) => [
+                    'uuid' => $d->uuid,
+                    'type' => $d->type_declaration,
+                    'type_label' => $d->type_declaration_label,
+                    'date_depot' => $d->date_depot?->format('d/m/Y'),
+                    'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($acteur->nom) . "-" . strtolower($acteur->prenom),
+                ])
+                ->toArray();
+            
+            // Si pas de liaison directe, chercher par nom/prénom
+            if (empty($declarationsHatvp)) {
+                $declarationsHatvp = \App\Models\HatvpDeclaration::where('parlementaire_type', 'depute')
+                    ->where('nom', 'ILIKE', $acteur->nom)
+                    ->where('prenom', 'ILIKE', $acteur->prenom)
+                    ->orderBy('date_depot', 'desc')
+                    ->get()
+                    ->map(fn($d) => [
+                        'uuid' => $d->uuid,
+                        'type' => $d->type_declaration,
+                        'type_label' => $d->type_declaration_label,
+                        'date_depot' => $d->date_depot?->format('d/m/Y'),
+                        'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($acteur->nom) . "-" . strtolower($acteur->prenom),
+                    ])
+                    ->toArray();
+            }
+        } catch (\Exception $e) {
+            // Table peut ne pas exister encore
+        }
+
         return Inertia::render('Representants/Deputes/Show', [
             'depute' => [
                 'uid' => $acteur->uid,
@@ -179,6 +215,7 @@ class RepresentantANController extends Controller
                     'extract' => $acteur->wikipedia_extract,
                 ],
                 'url_hatvp' => $acteur->url_hatvp,
+                'declarations_hatvp' => $declarationsHatvp,
                 'reseaux_sociaux' => [
                     'twitter' => $acteur->twitter_url,
                     'facebook' => $acteur->facebook_url,
@@ -618,6 +655,42 @@ class RepresentantANController extends Controller
                 : 0,
         ];
 
+        // Déclarations HATVP
+        $declarationsHatvp = [];
+        try {
+            $declarationsHatvp = \App\Models\HatvpDeclaration::where('parlementaire_type', 'senateur')
+                ->where('parlementaire_id', $matricule)
+                ->orderBy('date_depot', 'desc')
+                ->get()
+                ->map(fn($d) => [
+                    'uuid' => $d->uuid,
+                    'type' => $d->type_declaration,
+                    'type_label' => $d->type_declaration_label,
+                    'date_depot' => $d->date_depot?->format('d/m/Y'),
+                    'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($senateur->nom_usuel) . "-" . strtolower($senateur->prenom_usuel),
+                ])
+                ->toArray();
+            
+            // Si pas de liaison directe, chercher par nom/prénom
+            if (empty($declarationsHatvp)) {
+                $declarationsHatvp = \App\Models\HatvpDeclaration::where('parlementaire_type', 'senateur')
+                    ->where('nom', 'ILIKE', $senateur->nom_usuel)
+                    ->where('prenom', 'ILIKE', $senateur->prenom_usuel)
+                    ->orderBy('date_depot', 'desc')
+                    ->get()
+                    ->map(fn($d) => [
+                        'uuid' => $d->uuid,
+                        'type' => $d->type_declaration,
+                        'type_label' => $d->type_declaration_label,
+                        'date_depot' => $d->date_depot?->format('d/m/Y'),
+                        'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($senateur->nom_usuel) . "-" . strtolower($senateur->prenom_usuel),
+                    ])
+                    ->toArray();
+            }
+        } catch (\Exception $e) {
+            // Table peut ne pas exister encore
+        }
+
         return Inertia::render('Representants/Senateurs/Show', [
             'senateur' => [
                 'matricule' => $senateur->matricule,
@@ -681,6 +754,7 @@ class RepresentantANController extends Controller
                 'telephone' => $senateur->telephone ?? null,
                 'adresse_postale' => $senateur->adresse_postale ?? null,
                 'statistiques' => $stats,
+                'declarations_hatvp' => $declarationsHatvp,
             ],
         ]);
     }
@@ -824,14 +898,14 @@ class RepresentantANController extends Controller
             'taux_adoption' => $total > 0 ? round(($adoptes / $total) * 100, 1) : 0,
         ];
 
-        // Transformer les amendements (avec décodage HTML)
+        // Transformer les amendements (avec décodage HTML et nettoyage UTF-8)
         $amendementsData = $amendements->through(function($amendement) {
             return [
                 'id' => $amendement->id,
                 'numero' => $amendement->numero,
                 'type_amendement' => $amendement->type_amendement,
-                'dispositif' => substr($amendement->dispositif_decode ?? '', 0, 200),
-                'expose' => substr($amendement->expose_decode ?? '', 0, 200),
+                'dispositif' => $this->cleanUtf8(substr($amendement->dispositif_decode ?? '', 0, 200)),
+                'expose' => $this->cleanUtf8(substr($amendement->expose_decode ?? '', 0, 200)),
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle_formate,
@@ -882,7 +956,7 @@ class RepresentantANController extends Controller
                 'resultat_scrutin' => $vote->resultat_scrutin,
             ]);
 
-        // Derniers amendements (avec décodage HTML)
+        // Derniers amendements (avec décodage HTML et nettoyage UTF-8)
         $derniersAmendements = AmendementSenat::where('senateur_matricule', $matricule)
             ->orderBy('date_depot', 'desc')
             ->limit(5)
@@ -890,7 +964,7 @@ class RepresentantANController extends Controller
             ->map(fn($amendement) => [
                 'id' => $amendement->id,
                 'numero' => $amendement->numero,
-                'dispositif' => substr($amendement->dispositif_decode ?? '', 0, 150),
+                'dispositif' => $this->cleanUtf8(substr($amendement->dispositif_decode ?? '', 0, 150)),
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle_formate,
@@ -916,6 +990,32 @@ class RepresentantANController extends Controller
             'derniers_votes' => $derniersVotes,
             'derniers_amendements' => $derniersAmendements,
         ]);
+    }
+
+    /**
+     * Nettoie une chaîne pour s'assurer qu'elle est en UTF-8 valide
+     */
+    private function cleanUtf8(?string $text): ?string
+    {
+        if ($text === null) {
+            return null;
+        }
+
+        // Convertir en UTF-8 si nécessaire
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            $text = mb_convert_encoding($text, 'UTF-8', 'ISO-8859-1');
+        }
+
+        // Supprimer les caractères non valides
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
+        
+        // Remplacer les séquences UTF-8 invalides
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+
+        // Décoder les entités HTML
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return $text;
     }
 }
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
@@ -12,7 +12,6 @@ const props = defineProps({
   filters: Object,
 });
 
-const viewMode = ref('list'); // 'list' ou 'hemicycle'
 const search = ref(props.filters.search || '');
 const selectedGroupe = ref(props.filters.groupe || '');
 
@@ -25,16 +24,6 @@ const applyFilters = () => {
     preserveScroll: true,
   });
 };
-
-// Calcul des sièges par groupe pour l'hémicycle
-const siegesParGroupe = computed(() => {
-  const counts = {};
-  props.senateurs.data.forEach(senateur => {
-    const nom = senateur.groupe?.nom || 'Non inscrit';
-    counts[nom] = (counts[nom] || 0) + 1;
-  });
-  return counts;
-});
 </script>
 
 <template>
@@ -49,31 +38,11 @@ const siegesParGroupe = computed(() => {
           <div class="flex items-center justify-between">
             <div>
               <h1 class="text-4xl font-bold mb-2">🏛️ Sénat</h1>
-              <p class="text-blue-100 text-lg">348 Sénateurs - 17ème législature</p>
+              <p class="text-red-100 text-lg">348 Sénateurs</p>
             </div>
-            <div class="flex gap-2">
-              <button
-                @click="viewMode = 'list'"
-                :class="[
-                  'px-4 py-2 rounded-lg font-medium transition',
-                  viewMode === 'list' 
-                    ? 'bg-white text-red-700' 
-                    : 'bg-red-600 text-white hover:bg-blue-500'
-                ]"
-              >
-                📋 Liste
-              </button>
-              <button
-                @click="viewMode = 'hemicycle'"
-                :class="[
-                  'px-4 py-2 rounded-lg font-medium transition',
-                  viewMode === 'hemicycle' 
-                    ? 'bg-white text-red-700' 
-                    : 'bg-red-600 text-white hover:bg-blue-500'
-                ]"
-              >
-                🏛️ Hémicycle
-              </button>
+            <div class="text-right">
+              <div class="text-3xl font-bold">{{ senateurs.total || senateurs.data?.length || 0 }}</div>
+              <div class="text-red-200 text-sm">sénateurs affichés</div>
             </div>
           </div>
         </div>
@@ -118,62 +87,8 @@ const siegesParGroupe = computed(() => {
           </div>
         </Card>
 
-        <!-- Vue Hémicycle -->
-        <Card v-if="viewMode === 'hemicycle'">
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Vue de l'Hémicycle
-          </h2>
-          
-          <!-- Répartition des sièges -->
-          <div class="mb-8">
-            <div class="flex flex-wrap gap-4 justify-center">
-              <div
-                v-for="groupe in props.groupes"
-                :key="groupe.nom"
-                class="flex items-center gap-2 cursor-pointer hover:opacity-75 transition"
-                @click="selectedGroupe = groupe.nom; applyFilters();"
-              >
-                <div
-                  class="w-6 h-6 rounded-full bg-gray-400"
-                ></div>
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ groupe.nom }} ({{ siegesParGroupe[groupe.nom] || 0 }})
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Hémicycle SVG simplifié -->
-          <div class="relative w-full aspect-[2/1] bg-gradient-to-b from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-xl overflow-hidden">
-            <svg viewBox="0 0 800 400" class="w-full h-full">
-              <!-- Rangées de sièges en arc de cercle -->
-              <g v-for="(row, rowIndex) in 7" :key="rowIndex">
-                <circle
-                  v-for="(seat, seatIndex) in Math.floor(80 + rowIndex * 10)"
-                  :key="seatIndex"
-                  :cx="400 + Math.cos((Math.PI * seatIndex) / (80 + rowIndex * 10) - Math.PI/2) * (150 + rowIndex * 40)"
-                  :cy="350 - Math.sin((Math.PI * seatIndex) / (80 + rowIndex * 10) - Math.PI/2) * (150 + rowIndex * 40)"
-                  r="3"
-                  :fill="groupes[Math.floor(Math.random() * groupes.length)]?.couleur || '#6B7280'"
-                  class="hover:r-5 transition-all cursor-pointer"
-                />
-              </g>
-              
-              <!-- Tribune centrale -->
-              <rect x="350" y="320" width="100" height="60" fill="#8B4513" rx="5" />
-              <text x="400" y="355" text-anchor="middle" fill="white" font-size="14" font-weight="bold">
-                TRIBUNE
-              </text>
-            </svg>
-          </div>
-
-          <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
-            💡 Vue simplifiée de l'hémicycle avec répartition des groupes parlementaires
-          </p>
-        </Card>
-
-        <!-- Vue Liste -->
-        <Card v-else>
+        <!-- Liste des sénateurs -->
+        <Card>
           <div class="overflow-x-auto">
             <table class="w-full">
               <thead class="bg-gray-50 dark:bg-gray-800">
