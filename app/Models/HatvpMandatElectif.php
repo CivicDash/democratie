@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * Mandat électif déclaré à la HATVP
@@ -36,9 +36,12 @@ class HatvpMandatElectif extends Model
         return $this->belongsTo(HatvpDeclaration::class, 'declaration_id');
     }
 
-    public function remunerations(): HasMany
+    /**
+     * Rémunérations polymorphiques
+     */
+    public function remunerations(): MorphMany
     {
-        return $this->hasMany(HatvpRemuneration::class, 'mandat_id');
+        return $this->morphMany(HatvpRemuneration::class, 'remuneratable');
     }
 
     public function getEstActifAttribute(): bool
@@ -49,6 +52,17 @@ class HatvpMandatElectif extends Model
     public function getTotalRemunerationsAttribute(): float
     {
         return $this->remunerations->sum('montant') ?? 0;
+    }
+
+    /**
+     * Rémunérations par année
+     */
+    public function getRemunerationsParAnneeAttribute(): array
+    {
+        return $this->remunerations
+            ->sortByDesc('annee')
+            ->mapWithKeys(fn($r) => [$r->annee => $r->montant])
+            ->toArray();
     }
 }
 

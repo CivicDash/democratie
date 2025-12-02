@@ -4,7 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 
-defineProps({
+const props = defineProps({
   senateur: Object,
 });
 
@@ -17,6 +17,36 @@ const formatMontant = (montant) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(montant);
+};
+
+// Formater un montant compact (pour le graphique)
+const formatMontantCompact = (montant) => {
+  if (!montant || montant === 0) return '-';
+  if (montant >= 1000000) {
+    return (montant / 1000000).toFixed(1) + 'M€';
+  }
+  if (montant >= 1000) {
+    return Math.round(montant / 1000) + 'k€';
+  }
+  return montant + '€';
+};
+
+// Calculer la hauteur de la barre en fonction du montant max
+const getMaxRevenu = () => {
+  if (!props.senateur.hatvp_summary?.revenus_par_annee) return 1;
+  const revenus = Object.values(props.senateur.hatvp_summary.revenus_par_annee);
+  return Math.max(...revenus.map(r => r.total || 0), 1);
+};
+
+const getBarHeight = (total) => {
+  const maxRevenu = getMaxRevenu();
+  const percentage = (total / maxRevenu) * 100;
+  return `${Math.max(percentage, 5)}%`;
+};
+
+const getSegmentHeight = (value, total) => {
+  if (!total || total === 0) return '0%';
+  return `${(value / total) * 100}%`;
 };
 </script>
 
@@ -315,11 +345,80 @@ const formatMontant = (montant) => {
               </div>
             </div>
 
-            <!-- Revenus par année -->
+            <!-- Revenus par année avec graphique -->
             <div v-if="senateur.hatvp_summary.revenus_par_annee && Object.keys(senateur.hatvp_summary.revenus_par_annee).length > 0" class="mt-4">
-              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
-                💰 Revenus déclarés par année
+              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                📊 Revenus déclarés par année
               </h4>
+              
+              <!-- Graphique en barres -->
+              <div class="mb-6 p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
+                <div class="flex items-end justify-around gap-2 h-40">
+                  <div 
+                    v-for="(revenus, annee) in senateur.hatvp_summary.revenus_par_annee" 
+                    :key="annee"
+                    class="flex flex-col items-center flex-1 max-w-24"
+                  >
+                    <!-- Barre empilée -->
+                    <div class="w-full flex flex-col-reverse rounded-t-lg overflow-hidden" :style="{ height: getBarHeight(revenus.total) }">
+                      <div 
+                        v-if="revenus.mandats > 0"
+                        class="bg-amber-500 transition-all duration-500"
+                        :style="{ height: getSegmentHeight(revenus.mandats, revenus.total) }"
+                        :title="`Mandats: ${formatMontant(revenus.mandats)}`"
+                      ></div>
+                      <div 
+                        v-if="revenus.activites_pro > 0"
+                        class="bg-blue-500 transition-all duration-500"
+                        :style="{ height: getSegmentHeight(revenus.activites_pro, revenus.total) }"
+                        :title="`Activités pro: ${formatMontant(revenus.activites_pro)}`"
+                      ></div>
+                      <div 
+                        v-if="revenus.consultant > 0"
+                        class="bg-purple-500 transition-all duration-500"
+                        :style="{ height: getSegmentHeight(revenus.consultant, revenus.total) }"
+                        :title="`Consultant: ${formatMontant(revenus.consultant)}`"
+                      ></div>
+                      <div 
+                        v-if="revenus.dirigeant > 0"
+                        class="bg-green-500 transition-all duration-500"
+                        :style="{ height: getSegmentHeight(revenus.dirigeant, revenus.total) }"
+                        :title="`Dirigeant: ${formatMontant(revenus.dirigeant)}`"
+                      ></div>
+                    </div>
+                    <!-- Montant total -->
+                    <div class="text-xs font-bold text-amber-700 dark:text-amber-400 mt-1 text-center">
+                      {{ formatMontantCompact(revenus.total) }}
+                    </div>
+                    <!-- Année -->
+                    <div class="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                      {{ annee }}
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Légende -->
+                <div class="flex flex-wrap justify-center gap-4 mt-4 text-xs">
+                  <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 rounded bg-amber-500"></div>
+                    <span class="text-gray-600 dark:text-gray-400">Mandats</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 rounded bg-blue-500"></div>
+                    <span class="text-gray-600 dark:text-gray-400">Activités pro.</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 rounded bg-purple-500"></div>
+                    <span class="text-gray-600 dark:text-gray-400">Consultant</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 rounded bg-green-500"></div>
+                    <span class="text-gray-600 dark:text-gray-400">Dirigeant</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tableau détaillé -->
               <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                   <thead>

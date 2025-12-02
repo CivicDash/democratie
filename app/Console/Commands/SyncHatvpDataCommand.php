@@ -8,14 +8,18 @@ use App\Services\Hatvp\HatvpDataDownloader;
 use App\Services\Hatvp\HatvpXmlParser;
 use App\Models\HatvpDeclaration;
 use App\Models\HatvpMandatElectif;
-use App\Models\HatvpRemuneration;
 use App\Models\HatvpFonctionBenevole;
 use App\Models\HatvpParticipationDirigeante;
 use App\Models\HatvpParticipationFinanciere;
 use App\Models\HatvpCollaborateur;
+use App\Models\HatvpActiviteConsultant;
+use App\Models\HatvpActiviteProfessionnelle;
 use App\Models\HatvpImmeuble;
 use App\Models\HatvpVehicule;
 use App\Models\HatvpRevenu;
+use App\Models\HatvpRemunerationActivitePro;
+use App\Models\HatvpRemunerationConsultant;
+use App\Models\HatvpRemunerationDirigeant;
 
 /**
  * Commande de synchronisation des données HATVP
@@ -24,6 +28,7 @@ use App\Models\HatvpRevenu;
  *   php artisan hatvp:sync                    # Synchroniser toutes les déclarations
  *   php artisan hatvp:sync --parlementaires   # Uniquement députés et sénateurs
  *   php artisan hatvp:sync --status           # Afficher le statut
+ *   php artisan hatvp:sync --import-details   # Importer les détails des déclarations
  */
 class SyncHatvpDataCommand extends Command
 {
@@ -33,8 +38,10 @@ class SyncHatvpDataCommand extends Command
                             {--status : Afficher le statut des données}
                             {--force : Forcer le téléchargement même si le cache est valide}
                             {--analyze : Analyser sans importer}
-                            {--import : Importer les déclarations en base}
-                            {--limit= : Limiter le nombre de déclarations à traiter}';
+                            {--import : Importer les déclarations en base (métadonnées)}
+                            {--import-details : Importer les détails complets des déclarations}
+                            {--limit= : Limiter le nombre de déclarations à traiter}
+                            {--verbose-details : Afficher les détails de chaque déclaration}';
 
     protected $description = 'Synchronise les données Open Data de la HATVP (déclarations d\'intérêts et de patrimoine)';
 
@@ -43,6 +50,7 @@ class SyncHatvpDataCommand extends Command
     private int $imported = 0;
     private int $updated = 0;
     private int $errors = 0;
+    private int $detailsImported = 0;
 
     public function __construct()
     {
@@ -72,6 +80,11 @@ class SyncHatvpDataCommand extends Command
         // Mode import
         if ($this->option('import')) {
             return $this->importDeclarations();
+        }
+
+        // Mode import détails complets
+        if ($this->option('import-details')) {
+            return $this->importDeclarationsDetails();
         }
 
         // Par défaut : synchronisation (téléchargement + analyse)
@@ -302,7 +315,7 @@ class SyncHatvpDataCommand extends Command
     }
 
     /**
-     * Importe une déclaration
+     * Importe une déclaration (métadonnées uniquement)
      */
     private function importDeclaration(array $info): void
     {
@@ -333,6 +346,537 @@ class SyncHatvpDataCommand extends Command
         $this->linkToParlementaire($declaration);
 
         $this->imported++;
+    }
+
+    /**
+     * Importe les détails complets des déclarations
+     */
+    private function importDeclarationsDetails(): int
+    {
+        $force = $this->option('force');
+        $limit = $this->option('limit') ? (int) $this->option('limit') : null;
+        $verboseDetails = $this->option('verbose-details');
+
+        $this->newLine();
+        $this->info('📥 Import des DÉTAILS des déclarations HATVP');
+        $this->info('   (mandats, rémunérations, collaborateurs, patrimoine...)');
+        $this->newLine();
+
+        // Récupérer les déclarations existantes en base
+        $query = HatvpDeclaration::query();
+
+        if ($this->option('parlementaires')) {
+            $query->whereIn('parlementaire_type', ['senateur', 'depute']);
+        }
+
+        if ($this->option('type')) {
+            $query->where('parlementaire_type', $this->option('type'));
+        }
+
+        // Prioriser les déclarations non encore enrichies
+        $query->orderByRaw('CASE WHEN details_imported_at IS NULL THEN 0 ELSE 1 END');
+
+        if ($limit) {
+            $query->limit($limit);
+        }
+
+        $declarations = $query->get();
+        $total = $declarations->count();
+
+        if ($total === 0) {
+            $this->warn('⚠️  Aucune déclaration à enrichir.');
+            $this->info('   Lancez d\'abord : php artisan hatvp:sync --import --parlementaires');
+            return Command::SUCCESS;
+        }
+
+        $this->info("📊 {$total} déclarations à enrichir");
+        $this->newLine();
+
+        $bar = $this->output->createProgressBar($total);
+        $bar->start();
+
+        foreach ($declarations as $declaration) {
+            try {
+                $result = $this->importDeclarationDetails($declaration, $force);
+                
+                if ($result) {
+                    $this->detailsImported++;
+                    
+                    if ($verboseDetails) {
+                        $bar->clear();
+                        $this->line("   ✓ {$declaration->nom} {$declaration->prenom} - {$result['mandats']} mandats, {$result['collaborateurs']} collab.");
+                        $bar->display();
+                    }
+                }
+            } catch (\Exception $e) {
+                $this->errors++;
+                if ($verboseDetails) {
+                    $bar->clear();
+                    $this->error("   ✗ {$declaration->nom} : " . $e->getMessage());
+                    $bar->display();
+                }
+            }
+            
+            $bar->advance();
+            
+            // Pause pour éviter de surcharger le serveur HATVP
+            usleep(100000); // 100ms
+        }
+
+        $bar->finish();
+        $this->newLine(2);
+
+        // Résumé
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info("✅ Import des détails terminé");
+        $this->line("   - Enrichies : {$this->detailsImported}");
+        if ($this->errors > 0) {
+            $this->warn("   - Erreurs : {$this->errors}");
+        }
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Importe les détails d'une déclaration individuelle
+     */
+    private function importDeclarationDetails(HatvpDeclaration $declaration, bool $force = false): ?array
+    {
+        // Construire le slug pour télécharger le XML
+        $slug = $this->buildSlugFromDeclaration($declaration);
+        
+        if (!$slug) {
+            return null;
+        }
+
+        // Télécharger le XML individuel
+        $xmlFile = $this->downloader->downloadDeclaration($slug, $force);
+        
+        if (!$xmlFile || !file_exists($xmlFile)) {
+            return null;
+        }
+
+        // Parser le contenu détaillé
+        $data = $this->parser->parseFile($xmlFile);
+        
+        if (!$data) {
+            return null;
+        }
+
+        $stats = [
+            'mandats' => 0,
+            'collaborateurs' => 0,
+            'activites_pro' => 0,
+            'dirigeant' => 0,
+            'revenus_total' => 0,
+        ];
+
+        // Transaction pour l'intégrité
+        DB::transaction(function () use ($declaration, $data, &$stats) {
+            // 1. Importer les mandats électifs avec rémunérations
+            if (!empty($data['mandats_electifs']['items'])) {
+                foreach ($data['mandats_electifs']['items'] as $mandat) {
+                    $mandatModel = $this->importMandatElectif($declaration, $mandat);
+                    if ($mandatModel) {
+                        $stats['mandats']++;
+                        
+                        // Importer les rémunérations du mandat
+                        if (!empty($mandat['remunerations']['montants'])) {
+                            foreach ($mandat['remunerations']['montants'] as $rem) {
+                                $this->importRemunerationMandat($mandatModel, $rem, $mandat['remunerations']['brut_net'] ?? null);
+                                $stats['revenus_total'] += $rem['montant'] ?? 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Importer les collaborateurs
+            if (!empty($data['collaborateurs']['items'])) {
+                foreach ($data['collaborateurs']['items'] as $collab) {
+                    if ($this->importCollaborateur($declaration, $collab)) {
+                        $stats['collaborateurs']++;
+                    }
+                }
+            }
+
+            // 3. Importer les activités professionnelles avec rémunérations
+            if (!empty($data['activites_professionnelles']['items'])) {
+                foreach ($data['activites_professionnelles']['items'] as $activite) {
+                    $activiteModel = $this->importActiviteProfessionnelle($declaration, $activite);
+                    if ($activiteModel) {
+                        $stats['activites_pro']++;
+                        
+                        // Importer les rémunérations
+                        if (!empty($activite['remunerations']['montants'])) {
+                            foreach ($activite['remunerations']['montants'] as $rem) {
+                                HatvpRemunerationActivitePro::updateOrCreate(
+                                    [
+                                        'activite_id' => $activiteModel->id,
+                                        'annee' => $rem['annee'],
+                                    ],
+                                    [
+                                        'montant' => $rem['montant'],
+                                        'brut_net' => $activite['remunerations']['brut_net'] ?? null,
+                                    ]
+                                );
+                                $stats['revenus_total'] += $rem['montant'] ?? 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Importer les activités de consultant avec rémunérations
+            if (!empty($data['activites_consultant']['items'])) {
+                foreach ($data['activites_consultant']['items'] as $consultant) {
+                    $consultantModel = $this->importActiviteConsultant($declaration, $consultant);
+                    if ($consultantModel) {
+                        // Importer les rémunérations
+                        if (!empty($consultant['remunerations']['montants'])) {
+                            foreach ($consultant['remunerations']['montants'] as $rem) {
+                                HatvpRemunerationConsultant::updateOrCreate(
+                                    [
+                                        'activite_id' => $consultantModel->id,
+                                        'annee' => $rem['annee'],
+                                    ],
+                                    [
+                                        'montant' => $rem['montant'],
+                                        'brut_net' => $consultant['remunerations']['brut_net'] ?? null,
+                                    ]
+                                );
+                                $stats['revenus_total'] += $rem['montant'] ?? 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 5. Importer les participations dirigeantes avec rémunérations
+            if (!empty($data['participations_dirigeantes']['items'])) {
+                foreach ($data['participations_dirigeantes']['items'] as $dirigeant) {
+                    $dirigeantModel = $this->importParticipationDirigeante($declaration, $dirigeant);
+                    if ($dirigeantModel) {
+                        $stats['dirigeant']++;
+                        
+                        // Importer les rémunérations
+                        if (!empty($dirigeant['remunerations']['montants'])) {
+                            foreach ($dirigeant['remunerations']['montants'] as $rem) {
+                                HatvpRemunerationDirigeant::updateOrCreate(
+                                    [
+                                        'participation_id' => $dirigeantModel->id,
+                                        'annee' => $rem['annee'],
+                                    ],
+                                    [
+                                        'montant' => $rem['montant'],
+                                        'brut_net' => $dirigeant['remunerations']['brut_net'] ?? null,
+                                    ]
+                                );
+                                $stats['revenus_total'] += $rem['montant'] ?? 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 6. Importer les fonctions bénévoles
+            if (!empty($data['fonctions_benevoles']['items'])) {
+                foreach ($data['fonctions_benevoles']['items'] as $benevole) {
+                    $this->importFonctionBenevole($declaration, $benevole);
+                }
+            }
+
+            // 7. Importer les participations financières
+            if (!empty($data['participations_financieres']['items'])) {
+                foreach ($data['participations_financieres']['items'] as $financiere) {
+                    $this->importParticipationFinanciere($declaration, $financiere);
+                }
+            }
+
+            // 8. Importer les immeubles (patrimoine)
+            if (!empty($data['immeubles']['items'])) {
+                foreach ($data['immeubles']['items'] as $immeuble) {
+                    $this->importImmeuble($declaration, $immeuble);
+                }
+            }
+
+            // 9. Importer les véhicules (patrimoine)
+            if (!empty($data['vehicules']['items'])) {
+                foreach ($data['vehicules']['items'] as $vehicule) {
+                    $this->importVehicule($declaration, $vehicule);
+                }
+            }
+
+            // 10. Importer les revenus annuels
+            if (!empty($data['revenus']['items'])) {
+                foreach ($data['revenus']['items'] as $revenu) {
+                    $this->importRevenu($declaration, $revenu);
+                }
+            }
+
+            // Marquer la déclaration comme enrichie
+            $declaration->update([
+                'details_imported_at' => now(),
+            ]);
+        });
+
+        return $stats;
+    }
+
+    /**
+     * Construit le slug pour télécharger une déclaration
+     */
+    private function buildSlugFromDeclaration(HatvpDeclaration $declaration): ?string
+    {
+        if (!$declaration->nom || !$declaration->prenom) {
+            return null;
+        }
+
+        // Extraire l'ID de la déclaration depuis l'UUID (format: diam12345, disp12345, etc.)
+        $uuid = $declaration->uuid;
+        
+        // Le slug est généralement : nom-prenom-typeXXXXX-typemandat-departement
+        // Exemple: bacci-jean-diam17710-senateur-83
+        
+        $nom = $this->slugify($declaration->nom);
+        $prenom = $this->slugify($declaration->prenom);
+        $typeDecl = strtolower(substr($declaration->type_declaration ?? 'dia', 0, 3));
+        $typeMandat = strtolower($declaration->parlementaire_type ?? 'senateur');
+        $dept = $declaration->code_departement ?? '00';
+        
+        // L'ID est dans l'UUID (format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
+        // On extrait les 5 premiers chiffres significatifs
+        $id = preg_replace('/[^0-9]/', '', substr($uuid, 0, 8));
+        if (strlen($id) < 5) {
+            $id = str_pad($id, 5, '0', STR_PAD_LEFT);
+        }
+        
+        return "{$nom}-{$prenom}-{$typeDecl}m{$id}-{$typeMandat}-{$dept}";
+    }
+
+    /**
+     * Slugify une chaîne
+     */
+    private function slugify(string $text): string
+    {
+        $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+        $text = strtolower($text);
+        $text = preg_replace('/[^a-z0-9]+/', '-', $text);
+        return trim($text, '-');
+    }
+
+    /**
+     * Importe un mandat électif
+     */
+    private function importMandatElectif(HatvpDeclaration $declaration, array $data): ?HatvpMandatElectif
+    {
+        return HatvpMandatElectif::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'description' => $data['description'] ?? null,
+                'date_debut' => $data['date_debut'] ?? null,
+            ],
+            [
+                'date_fin' => $data['date_fin'] ?? null,
+                'conservee' => $data['conservee'] ?? false,
+                'commentaire' => $data['commentaire'] ?? null,
+            ]
+        );
+    }
+
+    /**
+     * Importe une rémunération de mandat
+     */
+    private function importRemunerationMandat(HatvpMandatElectif $mandat, array $rem, ?string $brutNet): void
+    {
+        DB::table('hatvp_remunerations')->updateOrInsert(
+            [
+                'remuneratable_type' => HatvpMandatElectif::class,
+                'remuneratable_id' => $mandat->id,
+                'annee' => $rem['annee'],
+            ],
+            [
+                'montant' => $rem['montant'],
+                'brut_net' => $brutNet,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+    }
+
+    /**
+     * Importe un collaborateur
+     */
+    private function importCollaborateur(HatvpDeclaration $declaration, array $data): ?HatvpCollaborateur
+    {
+        if (empty($data['nom'])) {
+            return null;
+        }
+
+        return HatvpCollaborateur::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'nom' => $data['nom'],
+            ],
+            [
+                'employeur' => $data['employeur'] ?? null,
+                'description' => $data['description_activite'] ?? null,
+            ]
+        );
+    }
+
+    /**
+     * Importe une activité professionnelle
+     */
+    private function importActiviteProfessionnelle(HatvpDeclaration $declaration, array $data): ?HatvpActiviteProfessionnelle
+    {
+        return HatvpActiviteProfessionnelle::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'employeur' => $data['employeur'] ?? $data['nom_societe'] ?? 'Non précisé',
+                'date_debut' => $data['date_debut'] ?? null,
+            ],
+            [
+                'description' => $data['description'] ?? $data['activite'] ?? null,
+                'date_fin' => $data['date_fin'] ?? null,
+                'conservee' => $data['conservee'] ?? false,
+            ]
+        );
+    }
+
+    /**
+     * Importe une activité de consultant
+     */
+    private function importActiviteConsultant(HatvpDeclaration $declaration, array $data): ?HatvpActiviteConsultant
+    {
+        return HatvpActiviteConsultant::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'nom_employeur' => $data['employeur'] ?? $data['nom_societe'] ?? 'Non précisé',
+                'date_debut' => $data['date_debut'] ?? null,
+            ],
+            [
+                'description' => $data['description'] ?? $data['activite'] ?? null,
+                'date_fin' => $data['date_fin'] ?? null,
+                'conservee' => $data['conservee'] ?? false,
+            ]
+        );
+    }
+
+    /**
+     * Importe une participation dirigeante
+     */
+    private function importParticipationDirigeante(HatvpDeclaration $declaration, array $data): ?HatvpParticipationDirigeante
+    {
+        return HatvpParticipationDirigeante::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'nom_societe' => $data['nom_societe'] ?? 'Non précisé',
+                'date_debut' => $data['date_debut'] ?? null,
+            ],
+            [
+                'description' => $data['description'] ?? $data['activite'] ?? null,
+                'date_fin' => $data['date_fin'] ?? null,
+                'conservee' => $data['conservee'] ?? false,
+            ]
+        );
+    }
+
+    /**
+     * Importe une fonction bénévole
+     */
+    private function importFonctionBenevole(HatvpDeclaration $declaration, array $data): void
+    {
+        HatvpFonctionBenevole::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'nom_structure' => $data['nom_structure'] ?? 'Non précisé',
+            ],
+            [
+                'description' => $data['description_activite'] ?? null,
+            ]
+        );
+    }
+
+    /**
+     * Importe une participation financière
+     */
+    private function importParticipationFinanciere(HatvpDeclaration $declaration, array $data): void
+    {
+        HatvpParticipationFinanciere::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'nom_societe' => $data['nom_societe'] ?? 'Non précisé',
+            ],
+            [
+                'evaluation' => $data['evaluation'] ?? null,
+                'capital_detenu' => $data['capital_detenu'] ?? null,
+                'nombre_parts' => $data['nombre_parts'] ?? null,
+                'commentaire' => $data['commentaire'] ?? null,
+            ]
+        );
+    }
+
+    /**
+     * Importe un immeuble
+     */
+    private function importImmeuble(HatvpDeclaration $declaration, array $data): void
+    {
+        HatvpImmeuble::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'nature' => $data['nature'] ?? 'Non précisé',
+                'code_postal' => $data['code_postal'] ?? null,
+            ],
+            [
+                'adresse' => $data['adresse'] ?? null,
+                'localite' => $data['localite'] ?? null,
+                'superficie_bati' => $data['superficie_bati'] ?? null,
+                'superficie_non_bati' => $data['superficie_non_bati'] ?? null,
+                'date_acquisition' => $data['date_acquisition'] ?? null,
+                'prix_acquisition' => $data['prix_acquisition'] ?? null,
+                'valeur_venale' => $data['valeur_venale'] ?? null,
+                'droit_reel' => $data['droit_reel'] ?? null,
+            ]
+        );
+    }
+
+    /**
+     * Importe un véhicule
+     */
+    private function importVehicule(HatvpDeclaration $declaration, array $data): void
+    {
+        HatvpVehicule::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'nature' => $data['nature'] ?? 'Non précisé',
+                'marque' => $data['marque'] ?? null,
+            ],
+            [
+                'annee_achat' => $data['annee_achat'] ?? null,
+                'valeur_achat' => $data['valeur_achat'] ?? null,
+                'valeur' => $data['valeur'] ?? null,
+            ]
+        );
+    }
+
+    /**
+     * Importe un revenu annuel
+     */
+    private function importRevenu(HatvpDeclaration $declaration, array $data): void
+    {
+        HatvpRevenu::updateOrCreate(
+            [
+                'declaration_id' => $declaration->id,
+                'annee' => $data['annee'] ?? null,
+            ],
+            [
+                'total_elu' => $data['total_elu'] ?? null,
+                'total_conjoint' => $data['total_conjoint'] ?? null,
+                'commentaire' => $data['commentaire'] ?? null,
+                'details' => json_encode($data['revenus'] ?? []),
+            ]
+        );
     }
 
     /**

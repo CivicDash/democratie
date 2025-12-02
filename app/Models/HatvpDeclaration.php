@@ -59,6 +59,7 @@ class HatvpDeclaration extends Model
         'date_fin_mandat',
         'observations_interet',
         'observations_patrimoine',
+        'details_imported_at',
     ];
 
     protected $casts = [
@@ -67,6 +68,7 @@ class HatvpDeclaration extends Model
         'date_debut_mandat' => 'date',
         'date_fin_mandat' => 'date',
         'complete' => 'boolean',
+        'details_imported_at' => 'datetime',
     ];
 
     // ==================== RELATIONS ====================
