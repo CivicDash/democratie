@@ -147,6 +147,9 @@ class XmlDownloader
             CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
             CURLOPT_FAILONERROR => true,
+            // Forcer HTTP/1.1 pour éviter les erreurs HTTP/2 PROTOCOL_ERROR
+            // Les serveurs gouvernementaux ont parfois des problèmes avec HTTP/2
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_USERAGENT => 'CivicDash/1.0 (Demoscratos)',
             // Capturer les headers
             CURLOPT_HEADERFUNCTION => function($ch, $header) use (&$headers, &$etag) {
@@ -164,7 +167,14 @@ class XmlDownloader
             },
             // Options pour les gros fichiers
             CURLOPT_LOW_SPEED_LIMIT => 1000, // 1 KB/s minimum
-            CURLOPT_LOW_SPEED_TIME => 30,    // pendant 30 secondes max
+            CURLOPT_LOW_SPEED_TIME => 60,    // pendant 60 secondes max (augmenté pour les serveurs lents)
+            // Options supplémentaires pour la robustesse
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_ENCODING => '',          // Accepter tous les encodages (gzip, deflate)
+            CURLOPT_TCP_KEEPALIVE => 1,      // Garder la connexion TCP active
+            CURLOPT_TCP_KEEPIDLE => 30,      // Délai avant d'envoyer des keepalive
+            CURLOPT_TCP_KEEPINTVL => 15,     // Intervalle entre les keepalive
         ]);
         
         $success = curl_exec($ch);
