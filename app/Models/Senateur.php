@@ -198,5 +198,34 @@ class Senateur extends Model
         }
         return $this->date_naissance->age;
     }
+
+    /**
+     * Téléphone standard du Sénat (pas de numéro direct disponible dans les données)
+     */
+    public function getTelephoneAttribute(): ?string
+    {
+        // Le Sénat ne publie pas les numéros directs, mais on peut donner le standard
+        return '01 42 34 20 00';
+    }
+
+    /**
+     * Adresse postale standard du Sénat
+     */
+    public function getAdressePostaleAttribute(): string
+    {
+        $civilite = $this->civilite === 'Mme' ? 'Madame' : 'Monsieur';
+        return "{$civilite} {$this->prenom_usuel} {$this->nom_usuel}\nSénateur" . ($this->civilite === 'Mme' ? 'rice' : '') . "\nPalais du Luxembourg\n15, rue de Vaugirard\n75291 Paris Cedex 06";
+    }
+
+    /**
+     * URL du profil sur le site du Sénat
+     */
+    public function getUrlProfilAttribute(): ?string
+    {
+        if (!$this->matricule) {
+            return null;
+        }
+        return "https://www.senat.fr/senateur/{$this->matricule}.html";
+    }
 }
 

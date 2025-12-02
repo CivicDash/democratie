@@ -69,7 +69,7 @@ class RepresentantANController extends Controller
                 'prenom' => $acteur->prenom,
                 'nom' => $acteur->nom,
                 'trigramme' => $acteur->trigramme,
-                'photo_url' => $acteur->photo_wikipedia_url,
+                'photo_url' => $acteur->photo_url, // Priorité photo officielle AN
                 'profession' => $acteur->profession,
                 'groupe' => $groupeActuel ? [
                     'uid' => $groupeActuel->uid,
@@ -179,7 +179,7 @@ class RepresentantANController extends Controller
                 'prenom' => $acteur->prenom,
                 'nom' => $acteur->nom,
                 'trigramme' => $acteur->trigramme,
-                'photo_url' => $acteur->photo_wikipedia_url,
+                'photo_url' => $acteur->photo_url, // Priorité photo officielle AN
                 'date_naissance' => $acteur->date_naissance?->format('d/m/Y'),
                 'age' => $acteur->date_naissance ? $acteur->date_naissance->age : null,
                 'lieu_naissance' => trim("{$acteur->ville_naissance} {$acteur->departement_naissance}"),
@@ -521,7 +521,7 @@ class RepresentantANController extends Controller
             'nom_complet' => $acteur->nom_complet,
             'nom' => $acteur->nom,
             'prenom' => $acteur->prenom,
-            'photo_url' => $acteur->photo_wikipedia_url,
+            'photo_url' => $acteur->photo_url, // Priorité photo officielle AN
             'groupe' => $groupeActuel ? [
                 'uid' => $groupeActuel->uid,
                 'nom' => $groupeActuel->libelle,
@@ -795,13 +795,14 @@ class RepresentantANController extends Controller
                 'civilite' => $senateur->civilite,
                 'prenom' => $senateur->prenom_usuel,
                 'nom' => $senateur->nom_usuel,
-                'photo_url' => $senateur->photo_wikipedia_url ?? null,
+                'photo_url' => $senateur->photo_url, // Priorité photo officielle Sénat
                 'date_naissance' => $senateur->date_naissance?->format('d/m/Y'),
                 'age' => $senateur->date_naissance?->age,
                 'lieu_naissance' => null, // TODO: Ajouter à la vue SQL si disponible
                 'profession' => $senateur->description_profession,
                 'circonscription' => $senateur->circonscription,
                 'etat' => $senateur->etat,
+                'url_profil' => $senateur->url_profil,
                 'groupe' => [
                     'nom' => $senateur->groupe_politique,
                     'couleur' => '#6B7280',

@@ -83,23 +83,23 @@ class SyncAllDataCommand extends Command
         
         if (!$quick) {
             // Import complet des bases SQL
-            $this->runCommand('import:senat-sql', ['type' => 'senateurs'], 'Sénateurs');
+            $this->executeCommand('import:senat-sql', ['type' => 'senateurs'], 'Sénateurs');
             
             if (!$fresh) {
                 // En mode normal, on ne réimporte pas AMELI (très long)
                 $this->info("   ⏭️  AMELI ignoré (utilisez --fresh pour réimporter)");
             } else {
-                $this->runCommand('import:senat-sql', ['type' => 'ameli', '--fresh' => true], 'Amendements AMELI');
+                $this->executeCommand('import:senat-sql', ['type' => 'ameli', '--fresh' => true], 'Amendements AMELI');
             }
             
-            $this->runCommand('import:senat-sql', ['type' => 'questions'], 'Questions');
+            $this->executeCommand('import:senat-sql', ['type' => 'questions'], 'Questions');
         } else {
             $this->info("   ⏭️  Mode rapide : bases SQL ignorées");
         }
         
         // Textes Akoma Ntoso (toujours, car incrémental)
         $since = $quick ? 3 : 30;
-        $this->runCommand('import:akoma-ntoso', ['--since' => $since], "Textes Akoma Ntoso ({$since}j)");
+        $this->executeCommand('import:akoma-ntoso', ['--since' => $since], "Textes Akoma Ntoso ({$since}j)");
     }
 
     private function syncAN(bool $quick, bool $fresh): void
@@ -110,7 +110,7 @@ class SyncAllDataCommand extends Command
         $limit = $quick ? 100 : null;
         $options = $limit ? ['--limit' => $limit] : [];
         
-        $this->runCommand('import:questions-an', $options, 'Questions au Gouvernement');
+        $this->executeCommand('import:questions-an', $options, 'Questions au Gouvernement');
     }
 
     private function syncHatvp(bool $quick, bool $fresh): void
@@ -125,7 +125,7 @@ class SyncAllDataCommand extends Command
             $options['--parlementaires'] = true;
         }
         
-        $this->runCommand('hatvp:sync', $options, 'Déclarations HATVP');
+        $this->executeCommand('hatvp:sync', $options, 'Déclarations HATVP');
     }
 
     private function syncPhotos(bool $quick): void
@@ -137,13 +137,13 @@ class SyncAllDataCommand extends Command
         
         // Sénateurs
         $options = $limit ? ['--limit' => $limit] : [];
-        $this->runCommand('enrich:senateurs-wikipedia', $options, 'Photos sénateurs');
+        $this->executeCommand('enrich:senateurs-wikipedia', $options, 'Photos sénateurs');
         
         // Députés
-        $this->runCommand('enrich:deputes-wikipedia', $options, 'Photos députés');
+        $this->executeCommand('enrich:deputes-wikipedia', $options, 'Photos députés');
     }
 
-    private function runCommand(string $command, array $options = [], string $label = ''): void
+    private function executeCommand(string $command, array $options = [], string $label = ''): void
     {
         $label = $label ?: $command;
         $optionsStr = collect($options)->map(fn($v, $k) => is_bool($v) ? $k : "{$k}={$v}")->implode(' ');

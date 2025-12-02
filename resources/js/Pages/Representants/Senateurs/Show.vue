@@ -107,12 +107,13 @@ const getSegmentHeight = (value, total) => {
             <div class="md:col-span-1">
               <div class="w-48 h-48 mx-auto rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-lg">
                 <img
-                  v-if="senateur.wikipedia?.photo"
-                  :src="senateur.wikipedia.photo"
+                  v-if="senateur.photo_url"
+                  :src="senateur.photo_url"
                   :alt="senateur.nom_complet"
                   class="w-full h-full object-cover"
+                  @error="$event.target.style.display='none'; $event.target.nextElementSibling.style.display='flex'"
                 />
-                <div v-else class="w-full h-full flex items-center justify-center text-6xl">
+                <div class="w-full h-full items-center justify-center text-6xl hidden">
                   👤
                 </div>
               </div>
@@ -120,20 +121,20 @@ const getSegmentHeight = (value, total) => {
               <!-- Liens externes -->
               <div class="mt-4 space-y-2">
                 <a
+                  v-if="senateur.url_profil"
+                  :href="senateur.url_profil"
+                  target="_blank"
+                  class="flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition text-sm border border-red-200 dark:border-red-800"
+                >
+                  🏛️ Profil Sénat
+                </a>
+                <a
                   v-if="senateur.wikipedia?.url"
                   :href="senateur.wikipedia.url"
                   target="_blank"
                   class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition text-sm"
                 >
                   📖 Wikipedia
-                </a>
-                <a
-                  v-if="senateur.url_profil"
-                  :href="senateur.url_profil"
-                  target="_blank"
-                  class="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition text-sm"
-                >
-                  🏛️ Profil Sénat
                 </a>
               </div>
             </div>
@@ -197,24 +198,44 @@ const getSegmentHeight = (value, total) => {
                 </Badge>
               </div>
 
-              <!-- Contacts -->
-              <div v-if="senateur.email || senateur.telephone" class="flex flex-wrap gap-4 mb-6">
-                <a
-                  v-if="senateur.email"
-                  :href="`mailto:${senateur.email}`"
-                  class="flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition"
-                >
-                  <span>📧</span>
-                  <span class="text-sm text-gray-900 dark:text-gray-100">{{ senateur.email }}</span>
-                </a>
-                <a
-                  v-if="senateur.telephone"
-                  :href="`tel:${senateur.telephone}`"
-                  class="flex items-center gap-2 px-4 py-3 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition"
-                >
-                  <span>📞</span>
-                  <span class="text-sm text-gray-900 dark:text-gray-100">{{ senateur.telephone }}</span>
-                </a>
+              <!-- Contacts - Fiche contact complète -->
+              <div class="mb-6 p-4 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800/50 dark:to-slate-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  📬 Contact
+                </h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                  <!-- Email & Téléphone -->
+                  <div class="space-y-2">
+                    <a
+                      v-if="senateur.email"
+                      :href="`mailto:${senateur.email}`"
+                      class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition border border-gray-200 dark:border-gray-700"
+                    >
+                      <span class="text-blue-500">📧</span>
+                      <span class="text-sm text-gray-900 dark:text-gray-100 break-all">{{ senateur.email }}</span>
+                    </a>
+                    <a
+                      v-if="senateur.telephone"
+                      :href="`tel:${senateur.telephone.replace(/\s/g, '')}`"
+                      class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition border border-gray-200 dark:border-gray-700"
+                    >
+                      <span class="text-green-500">📞</span>
+                      <div>
+                        <span class="text-sm text-gray-900 dark:text-gray-100">{{ senateur.telephone }}</span>
+                        <span class="text-xs text-gray-500 ml-1">(standard Sénat)</span>
+                      </div>
+                    </a>
+                  </div>
+                  <!-- Adresse postale -->
+                  <div v-if="senateur.adresse_postale" class="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-start gap-2">
+                      <span class="text-amber-500">📮</span>
+                      <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                        {{ senateur.adresse_postale }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Statistiques rapides -->
