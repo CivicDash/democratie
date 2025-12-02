@@ -7,6 +7,17 @@ import Badge from '@/Components/Badge.vue';
 defineProps({
   senateur: Object,
 });
+
+// Formater un montant en euros
+const formatMontant = (montant) => {
+  if (!montant || montant === 0) return '-';
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(montant);
+};
 </script>
 
 <template>
@@ -457,6 +468,156 @@ defineProps({
             Déclarations publiques auprès de la Haute Autorité pour la Transparence de la Vie Publique
           </p>
 
+          <!-- Résumé HATVP consolidé -->
+          <div v-if="senateur.hatvp_summary" class="mb-6 p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 rounded-xl border border-amber-200 dark:border-amber-700">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div class="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                <div class="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                  {{ senateur.hatvp_summary.nombre_mandats || 0 }}
+                </div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Mandats cumulés</div>
+              </div>
+              <div class="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                <div class="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                  {{ senateur.hatvp_summary.nombre_emplois || 0 }}
+                </div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Fonctions/Emplois</div>
+              </div>
+              <div class="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                <div class="text-2xl font-bold text-purple-700 dark:text-purple-400">
+                  {{ senateur.hatvp_summary.nombre_collaborateurs || 0 }}
+                </div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Collaborateurs</div>
+              </div>
+              <div class="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ senateur.hatvp_summary.declaration_date }}
+                </div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Dernière déclaration</div>
+              </div>
+            </div>
+
+            <!-- Revenus par année -->
+            <div v-if="senateur.hatvp_summary.revenus_par_annee && Object.keys(senateur.hatvp_summary.revenus_par_annee).length > 0" class="mt-4">
+              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+                💰 Revenus déclarés par année
+              </h4>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-gray-600 dark:text-gray-400 border-b border-amber-200 dark:border-amber-700">
+                      <th class="py-2 px-2">Année</th>
+                      <th class="py-2 px-2 text-right">Mandats</th>
+                      <th class="py-2 px-2 text-right">Activités pro.</th>
+                      <th class="py-2 px-2 text-right">Consultant</th>
+                      <th class="py-2 px-2 text-right">Dirigeant</th>
+                      <th class="py-2 px-2 text-right font-bold">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr 
+                      v-for="(revenus, annee) in senateur.hatvp_summary.revenus_par_annee" 
+                      :key="annee"
+                      class="border-b border-amber-100 dark:border-amber-800"
+                    >
+                      <td class="py-2 px-2 font-medium">{{ annee }}</td>
+                      <td class="py-2 px-2 text-right">{{ formatMontant(revenus.mandats) }}</td>
+                      <td class="py-2 px-2 text-right">{{ formatMontant(revenus.activites_pro) }}</td>
+                      <td class="py-2 px-2 text-right">{{ formatMontant(revenus.consultant) }}</td>
+                      <td class="py-2 px-2 text-right">{{ formatMontant(revenus.dirigeant) }}</td>
+                      <td class="py-2 px-2 text-right font-bold text-amber-700 dark:text-amber-400">
+                        {{ formatMontant(revenus.total) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Mandats électifs avec indemnités -->
+            <div v-if="senateur.hatvp_summary.mandats_electifs && senateur.hatvp_summary.mandats_electifs.length > 0" class="mt-4">
+              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+                🏛️ Mandats électifs déclarés
+              </h4>
+              <div class="space-y-2">
+                <div 
+                  v-for="(mandat, index) in senateur.hatvp_summary.mandats_electifs" 
+                  :key="index"
+                  class="p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg"
+                >
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <div class="font-medium text-gray-900 dark:text-gray-100">{{ mandat.description }}</div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ mandat.date_debut }} 
+                        <span v-if="mandat.date_fin">→ {{ mandat.date_fin }}</span>
+                        <span v-else class="text-green-600">→ En cours</span>
+                      </div>
+                    </div>
+                    <div v-if="mandat.total_remunerations > 0" class="text-right">
+                      <div class="text-sm font-bold text-amber-700 dark:text-amber-400">
+                        {{ formatMontant(mandat.total_remunerations) }}
+                      </div>
+                      <div class="text-xs text-gray-500">Total déclaré</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activités professionnelles parallèles -->
+            <div v-if="senateur.hatvp_summary.activites_professionnelles && senateur.hatvp_summary.activites_professionnelles.length > 0" class="mt-4">
+              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+                💼 Activités professionnelles parallèles
+              </h4>
+              <div class="space-y-2">
+                <div 
+                  v-for="(activite, index) in senateur.hatvp_summary.activites_professionnelles" 
+                  :key="index"
+                  class="p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg"
+                >
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <div class="font-medium text-gray-900 dark:text-gray-100">{{ activite.employeur }}</div>
+                      <div v-if="activite.description" class="text-sm text-gray-600 dark:text-gray-400">
+                        {{ activite.description }}
+                      </div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ activite.date_debut }} 
+                        <span v-if="activite.date_fin">→ {{ activite.date_fin }}</span>
+                        <span v-else-if="activite.actif" class="text-green-600">→ En cours</span>
+                      </div>
+                    </div>
+                    <div v-if="activite.total_remunerations > 0" class="text-right">
+                      <div class="text-sm font-bold text-blue-700 dark:text-blue-400">
+                        {{ formatMontant(activite.total_remunerations) }}
+                      </div>
+                      <div class="text-xs text-gray-500">Total déclaré</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Collaborateurs parlementaires -->
+            <div v-if="senateur.hatvp_summary.collaborateurs && senateur.hatvp_summary.collaborateurs.length > 0" class="mt-4">
+              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+                👥 Collaborateurs parlementaires ({{ senateur.hatvp_summary.collaborateurs.length }})
+              </h4>
+              <div class="flex flex-wrap gap-2">
+                <Badge 
+                  v-for="(collab, index) in senateur.hatvp_summary.collaborateurs" 
+                  :key="index"
+                  class="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                  :title="collab.description"
+                >
+                  {{ collab.nom }}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <!-- Liste des déclarations -->
           <div class="space-y-3">
             <a
               v-for="(declaration, index) in senateur.declarations_hatvp"

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Activité professionnelle (5 dernières années) déclarée à la HATVP
@@ -34,6 +35,24 @@ class HatvpActiviteProfessionnelle extends Model
     public function declaration(): BelongsTo
     {
         return $this->belongsTo(HatvpDeclaration::class, 'declaration_id');
+    }
+
+    public function remunerations(): HasMany
+    {
+        return $this->hasMany(HatvpRemunerationActivitePro::class, 'activite_id');
+    }
+
+    public function getTotalRemunerationsAttribute(): float
+    {
+        return $this->remunerations->sum('montant') ?? 0;
+    }
+
+    public function getRemunerationsParAnneeAttribute(): array
+    {
+        return $this->remunerations
+            ->sortByDesc('annee')
+            ->pluck('montant', 'annee')
+            ->toArray();
     }
 }
 

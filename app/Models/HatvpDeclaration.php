@@ -249,5 +249,162 @@ class HatvpDeclaration extends Model
     {
         return $this->mandatsElectifs()->where('conservee', true)->count();
     }
+
+    /**
+     * Calcule le total des rémunérations des mandats électifs pour une année
+     */
+    public function getTotalRemunerationsMandats(?int $annee = null): float
+    {
+        $total = 0;
+        
+        foreach ($this->mandatsElectifs as $mandat) {
+            $query = $mandat->remunerations();
+            if ($annee) {
+                $query->where('annee', $annee);
+            }
+            $total += $query->sum('montant') ?? 0;
+        }
+        
+        return $total;
+    }
+
+    /**
+     * Calcule le total des rémunérations des activités professionnelles pour une année
+     */
+    public function getTotalRemunerationsActivitesPro(?int $annee = null): float
+    {
+        $total = 0;
+        
+        foreach ($this->activitesProfessionnelles as $activite) {
+            $query = $activite->remunerations();
+            if ($annee) {
+                $query->where('annee', $annee);
+            }
+            $total += $query->sum('montant') ?? 0;
+        }
+        
+        return $total;
+    }
+
+    /**
+     * Calcule le total des rémunérations des activités de consultant pour une année
+     */
+    public function getTotalRemunerationsConsultant(?int $annee = null): float
+    {
+        $total = 0;
+        
+        foreach ($this->activitesConsultant as $activite) {
+            $query = $activite->remunerations();
+            if ($annee) {
+                $query->where('annee', $annee);
+            }
+            $total += $query->sum('montant') ?? 0;
+        }
+        
+        return $total;
+    }
+
+    /**
+     * Calcule le total des rémunérations des participations dirigeantes pour une année
+     */
+    public function getTotalRemunerationsDirigeant(?int $annee = null): float
+    {
+        $total = 0;
+        
+        foreach ($this->participationsDirigeantes as $participation) {
+            $query = $participation->remunerations();
+            if ($annee) {
+                $query->where('annee', $annee);
+            }
+            $total += $query->sum('montant') ?? 0;
+        }
+        
+        return $total;
+    }
+
+    /**
+     * Calcule le total consolidé de tous les revenus pour une année
+     */
+    public function getTotalRevenusConsolides(?int $annee = null): float
+    {
+        return $this->getTotalRemunerationsMandats($annee)
+            + $this->getTotalRemunerationsActivitesPro($annee)
+            + $this->getTotalRemunerationsConsultant($annee)
+            + $this->getTotalRemunerationsDirigeant($annee);
+    }
+
+    /**
+     * Retourne les revenus consolidés par année
+     */
+    public function getRevenusParAnneeAttribute(): array
+    {
+        $revenusParAnnee = [];
+        
+        // Collecter toutes les années disponibles
+        $annees = collect();
+        
+        foreach ($this->mandatsElectifs as $mandat) {
+            $annees = $annees->merge($mandat->remunerations->pluck('annee'));
+        }
+        foreach ($this->activitesProfessionnelles as $activite) {
+            $annees = $annees->merge($activite->remunerations->pluck('annee'));
+        }
+        foreach ($this->activitesConsultant as $activite) {
+            $annees = $annees->merge($activite->remunerations->pluck('annee'));
+        }
+        foreach ($this->participationsDirigeantes as $participation) {
+            $annees = $annees->merge($participation->remunerations->pluck('annee'));
+        }
+        
+        // Calculer le total pour chaque année
+        foreach ($annees->unique()->sortDesc() as $annee) {
+            $revenusParAnnee[$annee] = [
+                'mandats' => $this->getTotalRemunerationsMandats($annee),
+                'activites_pro' => $this->getTotalRemunerationsActivitesPro($annee),
+                'consultant' => $this->getTotalRemunerationsConsultant($annee),
+                'dirigeant' => $this->getTotalRemunerationsDirigeant($annee),
+                'total' => $this->getTotalRevenusConsolides($annee),
+            ];
+        }
+        
+        return $revenusParAnnee;
+    }
+
+    /**
+     * Compte le nombre total d'emplois/fonctions
+     */
+    public function getNombreEmploisAttribute(): int
+    {
+        return $this->mandatsElectifs()->where('conservee', true)->count()
+            + $this->activitesProfessionnelles()->where('conservee', true)->count()
+            + $this->activitesConsultant()->where('conservee', true)->count()
+            + $this->participationsDirigeantes()->where('conservee', true)->count()
+            + $this->fonctionsBenevoles()->where('conservee', true)->count();
+    }
+
+    /**
+     * Compte le nombre de collaborateurs parlementaires
+     */
+    public function getNombreCollaborateursAttribute(): int
+    {
+        return $this->collaborateurs()->count();
+    }
+
+    /**
+     * Accesseur pour le formatage de la date de dépôt
+     */
+    public function getDateDepotFormatedAttribute(): string
+    {
+        return $this->date_depot?->format('d/m/Y') ?? '';
+    }
+
+    /**
+     * URL vers la fiche HATVP
+     */
+    public function getUrlHatvpAttribute(): string
+    {
+        $slug = strtolower(str_replace(' ', '-', "{$this->nom}-{$this->prenom}"));
+        return "https://www.hatvp.fr/fiche-nominative/?declarant={$slug}";
+    }
 }
 

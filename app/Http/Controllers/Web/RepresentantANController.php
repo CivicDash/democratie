@@ -655,37 +655,134 @@ class RepresentantANController extends Controller
                 : 0,
         ];
 
-        // Déclarations HATVP
+        // Déclarations HATVP avec données enrichies
         $declarationsHatvp = [];
+        $hatvpSummary = null;
         try {
-            $declarationsHatvp = \App\Models\HatvpDeclaration::where('parlementaire_type', 'senateur')
-                ->where('parlementaire_id', $matricule)
-                ->orderBy('date_depot', 'desc')
-                ->get()
-                ->map(fn($d) => [
-                    'uuid' => $d->uuid,
-                    'type' => $d->type_declaration,
-                    'type_label' => $d->type_declaration_label,
-                    'date_depot' => $d->date_depot?->format('d/m/Y'),
-                    'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($senateur->nom_usuel) . "-" . strtolower($senateur->prenom_usuel),
-                ])
-                ->toArray();
+            $declarations = \App\Models\HatvpDeclaration::with([
+                'mandatsElectifs.remunerations',
+                'activitesProfessionnelles.remunerations',
+                'activitesConsultant.remunerations',
+                'participationsDirigeantes.remunerations',
+                'collaborateurs',
+                'fonctionsBenevoles',
+            ])
+            ->where('parlementaire_type', 'senateur')
+            ->where('parlementaire_id', $matricule)
+            ->orderBy('date_depot', 'desc')
+            ->get();
             
             // Si pas de liaison directe, chercher par nom/prénom
-            if (empty($declarationsHatvp)) {
-                $declarationsHatvp = \App\Models\HatvpDeclaration::where('parlementaire_type', 'senateur')
-                    ->where('nom', 'ILIKE', $senateur->nom_usuel)
-                    ->where('prenom', 'ILIKE', $senateur->prenom_usuel)
-                    ->orderBy('date_depot', 'desc')
-                    ->get()
-                    ->map(fn($d) => [
-                        'uuid' => $d->uuid,
-                        'type' => $d->type_declaration,
-                        'type_label' => $d->type_declaration_label,
-                        'date_depot' => $d->date_depot?->format('d/m/Y'),
-                        'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($senateur->nom_usuel) . "-" . strtolower($senateur->prenom_usuel),
-                    ])
-                    ->toArray();
+            if ($declarations->isEmpty()) {
+                $declarations = \App\Models\HatvpDeclaration::with([
+                    'mandatsElectifs.remunerations',
+                    'activitesProfessionnelles.remunerations',
+                    'activitesConsultant.remunerations',
+                    'participationsDirigeantes.remunerations',
+                    'collaborateurs',
+                    'fonctionsBenevoles',
+                ])
+                ->where('parlementaire_type', 'senateur')
+                ->where('nom', 'ILIKE', $senateur->nom_usuel)
+                ->where('prenom', 'ILIKE', $senateur->prenom_usuel)
+                ->orderBy('date_depot', 'desc')
+                ->get();
+            }
+
+            // Mapper les déclarations
+            $declarationsHatvp = $declarations->map(fn($d) => [
+                'uuid' => $d->uuid,
+                'type' => $d->type_declaration,
+                'type_label' => $d->type_declaration_label,
+                'date_depot' => $d->date_depot?->format('d/m/Y'),
+                'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($senateur->nom_usuel) . "-" . strtolower($senateur->prenom_usuel),
+            ])->toArray();
+
+            // Calculer le résumé HATVP à partir de la déclaration la plus récente
+            $latestDeclaration = $declarations->first();
+            if ($latestDeclaration) {
+                // Récupérer les revenus par année
+                $revenusParAnnee = $latestDeclaration->revenus_par_annee;
+                
+                // Mandats électifs avec rémunérations
+                $mandatsElectifs = $latestDeclaration->mandatsElectifs->map(fn($m) => [
+                    'description' => $m->description,
+                    'date_debut' => $m->date_debut?->format('d/m/Y'),
+                    'date_fin' => $m->date_fin?->format('d/m/Y'),
+                    'actif' => $m->est_actif,
+                    'remunerations' => $m->remunerations->map(fn($r) => [
+                        'annee' => $r->annee,
+                        'montant' => $r->montant,
+                        'brut_net' => $r->brut_net,
+                    ])->toArray(),
+                    'total_remunerations' => $m->total_remunerations,
+                ])->toArray();
+
+                // Activités professionnelles avec rémunérations
+                $activitesPro = $latestDeclaration->activitesProfessionnelles->map(fn($a) => [
+                    'employeur' => $a->employeur,
+                    'description' => $a->description,
+                    'date_debut' => $a->date_debut?->format('d/m/Y'),
+                    'date_fin' => $a->date_fin?->format('d/m/Y'),
+                    'actif' => $a->conservee && is_null($a->date_fin),
+                    'remunerations' => $a->remunerations->map(fn($r) => [
+                        'annee' => $r->annee,
+                        'montant' => $r->montant,
+                        'brut_net' => $r->brut_net,
+                    ])->toArray(),
+                    'total_remunerations' => $a->total_remunerations,
+                ])->toArray();
+
+                // Activités consultant avec rémunérations
+                $activitesConsultant = $latestDeclaration->activitesConsultant->map(fn($a) => [
+                    'employeur' => $a->nom_employeur,
+                    'description' => $a->description,
+                    'date_debut' => $a->date_debut?->format('d/m/Y'),
+                    'date_fin' => $a->date_fin?->format('d/m/Y'),
+                    'actif' => $a->conservee && is_null($a->date_fin),
+                    'remunerations' => $a->remunerations->map(fn($r) => [
+                        'annee' => $r->annee,
+                        'montant' => $r->montant,
+                        'brut_net' => $r->brut_net,
+                    ])->toArray(),
+                    'total_remunerations' => $a->total_remunerations,
+                ])->toArray();
+
+                // Participations dirigeantes avec rémunérations
+                $participationsDirigeantes = $latestDeclaration->participationsDirigeantes->map(fn($p) => [
+                    'societe' => $p->nom_societe,
+                    'activite' => $p->activite,
+                    'date_debut' => $p->date_debut?->format('d/m/Y'),
+                    'date_fin' => $p->date_fin?->format('d/m/Y'),
+                    'actif' => $p->conservee && is_null($p->date_fin),
+                    'remunerations' => $p->remunerations->map(fn($r) => [
+                        'annee' => $r->annee,
+                        'montant' => $r->montant,
+                        'brut_net' => $r->brut_net,
+                    ])->toArray(),
+                    'total_remunerations' => $p->total_remunerations,
+                ])->toArray();
+
+                // Collaborateurs
+                $collaborateurs = $latestDeclaration->collaborateurs->map(fn($c) => [
+                    'nom' => $c->nom,
+                    'employeur' => $c->employeur,
+                    'description' => $c->description_activite,
+                ])->toArray();
+
+                $hatvpSummary = [
+                    'declaration_date' => $latestDeclaration->date_depot?->format('d/m/Y'),
+                    'declaration_type' => $latestDeclaration->type_declaration_label,
+                    'nombre_mandats' => $latestDeclaration->getNombreMandatsCumules(),
+                    'nombre_emplois' => $latestDeclaration->nombre_emplois,
+                    'nombre_collaborateurs' => $latestDeclaration->nombre_collaborateurs,
+                    'revenus_par_annee' => $revenusParAnnee,
+                    'mandats_electifs' => $mandatsElectifs,
+                    'activites_professionnelles' => $activitesPro,
+                    'activites_consultant' => $activitesConsultant,
+                    'participations_dirigeantes' => $participationsDirigeantes,
+                    'collaborateurs' => $collaborateurs,
+                ];
             }
         } catch (\Exception $e) {
             // Table peut ne pas exister encore
@@ -755,6 +852,7 @@ class RepresentantANController extends Controller
                 'adresse_postale' => $senateur->adresse_postale ?? null,
                 'statistiques' => $stats,
                 'declarations_hatvp' => $declarationsHatvp,
+                'hatvp_summary' => $hatvpSummary,
             ],
         ]);
     }
