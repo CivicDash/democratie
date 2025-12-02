@@ -141,6 +141,34 @@ class RepresentantController extends Controller
             ->pluck('count', 'department_code')
             ->toArray();
 
+        // Données régionales pour la carte interactive
+        $regions = \App\Models\TerritoryRegion::orderBy('name')->get(['id', 'code', 'name']);
+        $deputesByRegion = [];
+        $senateursByRegion = [];
+
+        foreach ($regions as $region) {
+            // Départements de cette région
+            $departments = \App\Models\TerritoryDepartment::where('region_id', $region->id)
+                ->pluck('code')
+                ->toArray();
+
+            // Compter les députés par région (TODO: via ActeurAN)
+            $deputesByRegion[$region->code] = 0;
+
+            // Compter les sénateurs par région
+            $senateursByRegion[$region->code] = Senateur::actifs()
+                ->where(function($q) use ($departments) {
+                    foreach ($departments as $deptCode) {
+                        $q->orWhere('departement_code', $deptCode);
+                    }
+                })
+                ->count();
+        }
+
+        $data['regions'] = $regions->map(fn($r) => ['code' => $r->code, 'name' => $r->name]);
+        $data['deputesByRegion'] = $deputesByRegion;
+        $data['senateursByRegion'] = $senateursByRegion;
+
         return Inertia::render('Representants/MesRepresentants', $data);
     }
 
@@ -272,95 +300,7 @@ class RepresentantController extends Controller
     */
 
     /**
-     * Vue par régions
+     * @deprecated La page régions a été fusionnée dans mesRepresentants avec la carte interactive
      */
-    public function regions(Request $request): Response
-    {
-        $selectedRegionCode = $request->input('region');
-        
-        // Toutes les régions
-        $regions = \App\Models\TerritoryRegion::orderBy('name')->get(['id', 'code', 'name']);
-
-        // Compter députés et sénateurs par région
-        $deputesByRegion = [];
-        $senateursByRegion = [];
-
-        foreach ($regions as $region) {
-            // Départements de cette région
-            $departments = \App\Models\TerritoryDepartment::where('region_id', $region->id)
-                ->pluck('code')
-                ->toArray();
-
-            // Compter les députés par région
-            // Note: La table deputes_senateurs n'existe plus, on met 0 pour l'instant
-            // TODO: Implémenter le comptage via ActeurAN quand les données de circonscription seront disponibles
-            $deputesByRegion[$region->code] = 0;
-
-            // Compter les sénateurs (via département)
-            $senateursByRegion[$region->code] = \App\Models\Senateur::actifs()
-                ->where(function($q) use ($departments) {
-                    foreach ($departments as $deptCode) {
-                        $q->orWhere('departement_code', $deptCode);
-                    }
-                })
-                ->count();
-        }
-
-        $data = [
-            'regions' => $regions,
-            'deputesByRegion' => $deputesByRegion,
-            'senateursByRegion' => $senateursByRegion,
-            'selectedRegion' => null,
-            'deputes' => [],
-            'senateurs' => [],
-        ];
-
-        // Si une région est sélectionnée
-        if ($selectedRegionCode) {
-            $selectedRegion = \App\Models\TerritoryRegion::where('code', $selectedRegionCode)->first();
-
-            if ($selectedRegion) {
-                $data['selectedRegion'] = $selectedRegion;
-
-                // Départements de la région
-                $departments = \App\Models\TerritoryDepartment::where('region_id', $selectedRegion->id)
-                    ->pluck('code')
-                    ->toArray();
-
-                // Députés de la région
-                // Note: La table deputes_senateurs n'existe plus
-                // TODO: Implémenter via ActeurAN quand les données de circonscription seront disponibles
-                $data['deputes'] = [];
-
-                // Sénateurs de la région
-                $senateurs = \App\Models\Senateur::actifs()
-                    ->where(function($q) use ($departments) {
-                        foreach ($departments as $deptCode) {
-                            $q->orWhere('departement_code', $deptCode);
-                        }
-                    })
-                    ->orderBy('nom')
-                    ->get();
-
-                $data['senateurs'] = $senateurs->map(function($s) use ($groupeService) {
-                    $groupe = $s->groupeParlementaireActuel;
-                    
-                    return [
-                        'matricule' => $s->matricule,
-                        'nom_complet' => $s->prenom . ' ' . $s->nom,
-                        'photo_url' => $s->photo_url,
-                        'departement' => $s->departement_code,
-                        'groupe' => $groupe ? [
-                            'sigle' => $groupe->sigle,
-                            'nom' => $groupe->libelle,
-                            'couleur' => $groupeService->getCouleurGroupe($groupe->sigle),
-                        ] : null,
-                    ];
-                })->toArray();
-            }
-        }
-
-        return Inertia::render('Representants/Regions', $data);
-    }
 }
 

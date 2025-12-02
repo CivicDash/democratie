@@ -158,9 +158,6 @@ const toggleDarkMode = () => {
                                             <DropdownLink :href="route('representants.senateurs.index')">
                                                 🏰 Sénateurs
                                             </DropdownLink>
-                                            <DropdownLink :href="route('representants.regions')">
-                                                📍 Par région
-                                            </DropdownLink>
                                             <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                             <DropdownLink :href="route('parlement.comparaison')">
                                                 📊 Statistiques AN / Sénat
@@ -458,12 +455,6 @@ const toggleDarkMode = () => {
                             :active="route().current('representants.senateurs.*')"
                         >
                             🏰 Sénateurs
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
-                            :href="route('representants.regions')"
-                            :active="route().current('representants.regions')"
-                        >
-                            🗺️ Par région
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
                             :href="route('parlement.comparaison')"

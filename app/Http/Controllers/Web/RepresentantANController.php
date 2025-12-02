@@ -824,18 +824,18 @@ class RepresentantANController extends Controller
             'taux_adoption' => $total > 0 ? round(($adoptes / $total) * 100, 1) : 0,
         ];
 
-        // Transformer les amendements
+        // Transformer les amendements (avec décodage HTML)
         $amendementsData = $amendements->through(function($amendement) {
             return [
                 'id' => $amendement->id,
                 'numero' => $amendement->numero,
                 'type_amendement' => $amendement->type_amendement,
-                'dispositif' => substr($amendement->dispositif ?? '', 0, 200),
-                'expose' => substr($amendement->expose ?? '', 0, 200),
+                'dispositif' => substr($amendement->dispositif_decode ?? '', 0, 200),
+                'expose' => substr($amendement->expose_decode ?? '', 0, 200),
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
-                'sort_libelle' => $amendement->sort_libelle,
-                'texte_nom' => $amendement->texte_nom,
+                'sort_libelle' => $amendement->sort_libelle_formate,
+                'texte_nom' => $amendement->texte_nom ?? null,
             ];
         });
 
@@ -882,7 +882,7 @@ class RepresentantANController extends Controller
                 'resultat_scrutin' => $vote->resultat_scrutin,
             ]);
 
-        // Derniers amendements
+        // Derniers amendements (avec décodage HTML)
         $derniersAmendements = AmendementSenat::where('senateur_matricule', $matricule)
             ->orderBy('date_depot', 'desc')
             ->limit(5)
@@ -890,10 +890,10 @@ class RepresentantANController extends Controller
             ->map(fn($amendement) => [
                 'id' => $amendement->id,
                 'numero' => $amendement->numero,
-                'dispositif' => substr($amendement->dispositif ?? '', 0, 150),
+                'dispositif' => substr($amendement->dispositif_decode ?? '', 0, 150),
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
-                'sort_libelle' => $amendement->sort_libelle,
+                'sort_libelle' => $amendement->sort_libelle_formate,
             ]);
 
         return Inertia::render('Representants/Senateurs/Activite', [

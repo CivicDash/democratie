@@ -45,7 +45,7 @@ return new class extends Migration
                 CREATE OR REPLACE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
-                    TRIM(sen_ameli.mat) AS senateur_matricule,  -- ✅ Via sen_ameli.mat (matricule)
+                    TRIM(sen_ameli.mat) AS senateur_matricule,  -- ✅ Via sen_ameli.mat (matricule) avec TRIM
                     amd.num AS numero,
                     amd.typ AS type_amendement,
                     amd.dis AS dispositif,

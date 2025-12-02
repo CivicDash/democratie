@@ -294,8 +294,7 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
     // Mes représentants (ancien système)
     Route::get('/mes-representants', [RepresentantController::class, 'mesRepresentants'])->name('mes-representants');
     
-    // Vue par régions
-    Route::get('/regions', [RepresentantController::class, 'regions'])->name('regions');
+    // Note: La page /regions a été fusionnée dans /mes-representants avec la carte interactive
     
     // Députés (nouveaux - ActeurAN + Wikipedia)
     Route::get('/deputes', [App\Http\Controllers\Web\RepresentantANController::class, 'deputes'])->name('deputes.index');

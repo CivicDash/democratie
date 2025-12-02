@@ -198,5 +198,31 @@ class AmendementSenat extends Model
             default => $this->sort_libelle ?? 'En cours',
         };
     }
+
+    /**
+     * Dispositif décodé (HTML entities)
+     */
+    public function getDispositifDecodeAttribute(): ?string
+    {
+        if (!$this->dispositif) {
+            return null;
+        }
+        // Décoder les entités HTML et nettoyer le HTML
+        $decoded = html_entity_decode($this->dispositif, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Retirer les balises HTML pour un affichage propre
+        return strip_tags($decoded);
+    }
+
+    /**
+     * Exposé décodé (HTML entities)
+     */
+    public function getExposeDecodeAttribute(): ?string
+    {
+        if (!$this->expose) {
+            return null;
+        }
+        $decoded = html_entity_decode($this->expose, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return strip_tags($decoded);
+    }
 }
 

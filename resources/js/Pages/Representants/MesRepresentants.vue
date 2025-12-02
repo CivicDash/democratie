@@ -5,7 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import HemicycleView from '@/Components/Parliament/HemicycleView.vue';
-import RepresentantsMap from '@/Components/Representants/RepresentantsMap.vue';
+import FranceMapInteractive from '@/Components/Statistics/FranceMapInteractive.vue';
 import TextInput from '@/Components/TextInput.vue';
 
 const props = defineProps({
@@ -15,6 +15,28 @@ const props = defineProps({
   location: Object,
   deputesByDepartment: Object,
   senateursByDepartment: Object,
+  regions: Array,
+  deputesByRegion: Object,
+  senateursByRegion: Object,
+});
+
+// Gestion de la carte
+const selectedDepartment = ref(null);
+
+const handleDepartmentSelected = (dept) => {
+  selectedDepartment.value = dept;
+  // Optionnel: naviguer vers les représentants du département
+};
+
+// Données régionales pour la carte (format attendu par FranceMapInteractive)
+const regionalDataForMap = computed(() => {
+  if (!props.regions) return [];
+  return props.regions.map(region => ({
+    region_code: region.code,
+    region_name: region.name,
+    deputesCount: props.deputesByRegion?.[region.code] || 0,
+    senateursCount: props.senateursByRegion?.[region.code] || 0,
+  }));
 });
 
 // Simulateur de localisation
@@ -80,20 +102,67 @@ const selectLocation = (location) => {
           <HemicycleView chamber="senate" />
         </div>
 
-        <!-- Carte de France des Représentants -->
+        <!-- Carte de France Interactive -->
         <Card>
           <div class="mb-4">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              📍 Carte de France des Représentants
+              🗺️ Carte de France Interactive
             </h2>
             <p class="text-gray-600 dark:text-gray-400 mt-1">
-              Visualisez la répartition des députés et sénateurs par département
+              Cliquez sur un département pour découvrir ses représentants
             </p>
           </div>
-          <RepresentantsMap 
-            :deputesByDepartment="deputesByDepartment"
-            :senateursByDepartment="senateursByDepartment"
+          
+          <FranceMapInteractive 
+            :regionalData="regionalDataForMap"
+            heatmapMetric="deputesCount"
+            @department-selected="handleDepartmentSelected"
           />
+
+          <!-- Détail du département sélectionné -->
+          <div v-if="selectedDepartment" class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {{ selectedDepartment.name }} ({{ selectedDepartment.code }})
+              </h3>
+              <button 
+                @click="selectedDepartment = null"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-blue-600">
+                  {{ deputesByDepartment?.[selectedDepartment.code] || 0 }}
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Député(s)</div>
+              </div>
+              <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-red-600">
+                  {{ senateursByDepartment?.[selectedDepartment.code] || 0 }}
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Sénateur(s)</div>
+              </div>
+            </div>
+
+            <div class="flex gap-2">
+              <Link
+                :href="route('representants.deputes.index', { department: selectedDepartment.code })"
+                class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+              >
+                Voir les députés
+              </Link>
+              <Link
+                :href="route('representants.senateurs.index', { department: selectedDepartment.code })"
+                class="flex-1 text-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+              >
+                Voir les sénateurs
+              </Link>
+            </div>
+          </div>
         </Card>
 
         <!-- Pas de localisation -->
