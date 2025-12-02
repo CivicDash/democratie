@@ -33,7 +33,7 @@ return new class extends Migration
                 typman.typmanlib AS type_mandat,
                 elusen.eluanndeb AS annee_debut,
                 elusen.eluannfin AS annee_fin,
-                elusen.elunumord AS numero_mandat,
+                NULL::integer AS numero_mandat,
                 NOW() AS created_at,
                 NOW() AS updated_at
                 
