@@ -67,14 +67,14 @@ return new class extends Migration
             ORDER BY mc.senmat, mc.orgcod, mc.memcomdatdeb DESC NULLS LAST
         ");
 
-        // 3. Corriger la vue senateurs_historique_groupes avec DISTINCT et libellés
+        // 3. Corriger la vue senateurs_historique_groupes avec DISTINCT
         DB::statement("DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE");
         DB::statement("
             CREATE VIEW senateurs_historique_groupes AS
             SELECT DISTINCT ON (mg.senmat, mg.orgcod, mg.memgrpsendatent)
                 mg.memgrpsenid AS id,
                 TRIM(mg.senmat) AS senateur_matricule,
-                COALESCE(grp.grppollic, mg.orgcod) AS groupe_nom,
+                mg.orgcod AS groupe_nom,
                 mg.orgcod AS groupe_code,
                 mg.memgrpsendatent::date AS date_debut,
                 mg.memgrpsendatsor::date AS date_fin,
@@ -87,7 +87,6 @@ return new class extends Migration
                 NOW() AS updated_at
                 
             FROM senat_senateurs_memgrpsen mg
-            LEFT JOIN senat_senateurs_grppol grp ON mg.orgcod = grp.grppolcod
             ORDER BY mg.senmat, mg.orgcod, mg.memgrpsendatent DESC NULLS LAST
         ");
     }
