@@ -14,13 +14,14 @@ return new class extends Migration
         // Supprimer la vue existante
         DB::statement("DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE");
 
-        // Recréer avec jointure sur grppol pour avoir le libellé
+        // Jointure avec senat_senateurs_grppol pour avoir le libellé
+        // La colonne grppollibcou contient le libellé du groupe
         DB::statement("
             CREATE VIEW senateurs_historique_groupes AS
             SELECT DISTINCT ON (mg.senmat, mg.orgcod, mg.memgrpsendatent)
                 mg.memgrpsenid AS id,
                 TRIM(mg.senmat) AS senateur_matricule,
-                COALESCE(grp.grppollib, mg.orgcod) AS groupe_nom,
+                COALESCE(grp.grppollibcou, mg.orgcod) AS groupe_nom,
                 mg.orgcod AS groupe_code,
                 mg.memgrpsendatent::date AS date_debut,
                 mg.memgrpsendatsor::date AS date_fin,
