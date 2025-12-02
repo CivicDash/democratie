@@ -15,13 +15,14 @@ return new class extends Migration
         DB::statement("DROP VIEW IF EXISTS senateurs_commissions CASCADE");
 
         // Recréer avec jointure sur senat_senateurs_com pour avoir le libellé
+        // La colonne evelib contient le libellé de la commission
         DB::statement("
             CREATE VIEW senateurs_commissions AS
             SELECT DISTINCT ON (mc.senmat, mc.orgcod, mc.memcomdatdeb)
                 mc.memcomid AS id,
                 TRIM(mc.senmat) AS senateur_matricule,
                 mc.orgcod AS commission_code,
-                COALESCE(com.comlib, mc.orgcod) AS commission_nom,
+                COALESCE(com.evelib, mc.orgcod) AS commission_nom,
                 mc.memcomdatdeb::date AS date_debut,
                 mc.memcomdatfin::date AS date_fin,
                 CASE 
@@ -33,7 +34,7 @@ return new class extends Migration
                 NOW() AS updated_at
                 
             FROM senat_senateurs_memcom mc
-            LEFT JOIN senat_senateurs_com com ON mc.orgcod = com.comcod
+            LEFT JOIN senat_senateurs_com com ON mc.orgcod = com.orgcod
             ORDER BY mc.senmat, mc.orgcod, mc.memcomdatdeb, mc.memcomdatdeb DESC NULLS LAST
         ");
     }
