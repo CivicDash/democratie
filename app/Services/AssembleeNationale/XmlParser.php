@@ -181,7 +181,7 @@ class XmlParser
     }
 
     /**
-     * Retourne les fichiers XML à parser
+     * Retourne les fichiers XML à parser (recherche récursive)
      */
     protected function getXmlFiles(string $xmlPath): array
     {
@@ -189,18 +189,21 @@ class XmlParser
             throw new \RuntimeException("Répertoire introuvable : {$xmlPath}");
         }
 
-        $files = File::glob($xmlPath . '/*.xml');
+        // Recherche récursive de tous les fichiers .xml
+        $files = File::allFiles($xmlPath);
+        $xmlFiles = [];
         
-        // Chercher aussi dans les sous-répertoires
-        foreach (File::directories($xmlPath) as $subDir) {
-            $files = array_merge($files, File::glob($subDir . '/*.xml'));
+        foreach ($files as $file) {
+            if (strtolower($file->getExtension()) === 'xml') {
+                $xmlFiles[] = $file->getPathname();
+            }
         }
 
-        if (empty($files)) {
+        if (empty($xmlFiles)) {
             throw new \RuntimeException("Aucun fichier XML trouvé dans : {$xmlPath}");
         }
 
-        return $files;
+        return $xmlFiles;
     }
 
     /**
