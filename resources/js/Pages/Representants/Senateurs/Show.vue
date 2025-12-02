@@ -272,189 +272,7 @@ const formatMontant = (montant) => {
           </Card>
         </div>
 
-        <!-- Historique des groupes -->
-        <Card v-if="senateur.historique_groupes && senateur.historique_groupes.length > 0">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>🎨</span>
-            <span>Historique des groupes parlementaires</span>
-          </h2>
-          <div class="space-y-3">
-            <div
-              v-for="(groupe, index) in senateur.historique_groupes"
-              :key="index"
-              class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-            >
-              <div class="flex items-center justify-between">
-                <div class="font-semibold text-gray-900 dark:text-gray-100">
-                  {{ groupe.groupe }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">
-                  {{ groupe.date_debut }}
-                  <span v-if="groupe.date_fin"> → {{ groupe.date_fin }}</span>
-                  <span v-else class="text-green-600 font-medium"> → En cours</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Mandats locaux -->
-        <Card v-if="senateur.mandats_locaux && senateur.mandats_locaux.length > 0">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>🏛️</span>
-            <span>Mandats locaux et autres fonctions</span>
-          </h2>
-          
-          <div class="grid md:grid-cols-2 gap-4">
-            <!-- Mandats municipaux -->
-            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'MUNICIPAL').length > 0">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                🏘️ Mandats municipaux
-              </h3>
-              <div class="space-y-2">
-                <div
-                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'MUNICIPAL')"
-                  :key="index"
-                  class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    {{ mandat.fonction }}
-                  </div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ mandat.collectivite }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {{ mandat.periode }}
-                    <Badge v-if="mandat.en_cours" class="ml-2 bg-green-100 text-green-800 text-xs">
-                      En cours
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Mandats départementaux/régionaux -->
-            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPARTEMENTAL' || m.type_mandat === 'REGIONAL').length > 0">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                🗺️ Mandats départementaux/régionaux
-              </h3>
-              <div class="space-y-2">
-                <div
-                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPARTEMENTAL' || m.type_mandat === 'REGIONAL')"
-                  :key="index"
-                  class="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    {{ mandat.fonction }}
-                  </div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ mandat.collectivite }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {{ mandat.periode }}
-                    <Badge v-if="mandat.en_cours" class="ml-2 bg-green-100 text-green-800 text-xs">
-                      En cours
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Anciens mandats de député -->
-            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPUTE').length > 0">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                🏛️ Anciens mandats de député
-              </h3>
-              <div class="space-y-2">
-                <div
-                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPUTE')"
-                  :key="index"
-                  class="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    Député - {{ mandat.collectivite }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {{ mandat.periode }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Mandats européens -->
-            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'EUROPEEN').length > 0">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                🇪🇺 Mandats européens
-              </h3>
-              <div class="space-y-2">
-                <div
-                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'EUROPEEN')"
-                  :key="index"
-                  class="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    Député européen
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {{ mandat.periode }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Formation et études -->
-        <Card v-if="senateur.etudes && senateur.etudes.length > 0">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>🎓</span>
-            <span>Formation et études</span>
-          </h2>
-          <div class="space-y-3">
-            <div
-              v-for="(etude, index) in senateur.etudes"
-              :key="index"
-              class="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800"
-            >
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <div class="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    {{ etude.diplome || 'Diplôme non précisé' }}
-                  </div>
-                  <div v-if="etude.domaine" class="text-sm text-gray-700 dark:text-gray-300 mb-1">
-                    {{ etude.domaine }}
-                  </div>
-                  <div v-if="etude.etablissement" class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ etude.etablissement }}
-                  </div>
-                </div>
-                <div class="flex flex-col items-end gap-2">
-                  <Badge v-if="etude.niveau" class="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                    {{ etude.niveau }}
-                  </Badge>
-                  <span v-if="etude.annee" class="text-xs text-gray-500 dark:text-gray-500">
-                    {{ etude.annee }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Adresse postale -->
-        <Card v-if="senateur.adresse_postale">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>📮</span>
-            <span>Adresse postale</span>
-          </h2>
-          <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line">
-              {{ senateur.adresse_postale }}
-            </p>
-          </div>
-        </Card>
-
-        <!-- Déclarations HATVP (Transparence) -->
+        <!-- Déclarations HATVP (Transparence) - Placé après mandats et commissions -->
         <Card v-if="senateur.declarations_hatvp && senateur.declarations_hatvp.length > 0">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <span>📋</span>
@@ -665,6 +483,188 @@ const formatMontant = (montant) => {
             >
               En savoir plus sur la HATVP →
             </a>
+          </div>
+        </Card>
+
+        <!-- Historique des groupes -->
+        <Card v-if="senateur.historique_groupes && senateur.historique_groupes.length > 0">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>🎨</span>
+            <span>Historique des groupes parlementaires</span>
+          </h2>
+          <div class="space-y-3">
+            <div
+              v-for="(groupe, index) in senateur.historique_groupes"
+              :key="index"
+              class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+            >
+              <div class="flex items-center justify-between">
+                <div class="font-semibold text-gray-900 dark:text-gray-100">
+                  {{ groupe.groupe }}
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                  {{ groupe.date_debut }}
+                  <span v-if="groupe.date_fin"> → {{ groupe.date_fin }}</span>
+                  <span v-else class="text-green-600 font-medium"> → En cours</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <!-- Mandats locaux -->
+        <Card v-if="senateur.mandats_locaux && senateur.mandats_locaux.length > 0">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>🏛️</span>
+            <span>Mandats locaux et autres fonctions</span>
+          </h2>
+          
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- Mandats municipaux -->
+            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'MUNICIPAL').length > 0">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                🏘️ Mandats municipaux
+              </h3>
+              <div class="space-y-2">
+                <div
+                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'MUNICIPAL')"
+                  :key="index"
+                  class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                >
+                  <div class="font-semibold text-gray-900 dark:text-gray-100">
+                    {{ mandat.fonction }}
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">
+                    {{ mandat.collectivite }}
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    {{ mandat.periode }}
+                    <Badge v-if="mandat.en_cours" class="ml-2 bg-green-100 text-green-800 text-xs">
+                      En cours
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mandats départementaux/régionaux -->
+            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPARTEMENTAL' || m.type_mandat === 'REGIONAL').length > 0">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                🗺️ Mandats départementaux/régionaux
+              </h3>
+              <div class="space-y-2">
+                <div
+                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPARTEMENTAL' || m.type_mandat === 'REGIONAL')"
+                  :key="index"
+                  class="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
+                >
+                  <div class="font-semibold text-gray-900 dark:text-gray-100">
+                    {{ mandat.fonction }}
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">
+                    {{ mandat.collectivite }}
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    {{ mandat.periode }}
+                    <Badge v-if="mandat.en_cours" class="ml-2 bg-green-100 text-green-800 text-xs">
+                      En cours
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Anciens mandats de député -->
+            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPUTE').length > 0">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                🏛️ Anciens mandats de député
+              </h3>
+              <div class="space-y-2">
+                <div
+                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPUTE')"
+                  :key="index"
+                  class="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800"
+                >
+                  <div class="font-semibold text-gray-900 dark:text-gray-100">
+                    Député - {{ mandat.collectivite }}
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    {{ mandat.periode }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mandats européens -->
+            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'EUROPEEN').length > 0">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                🇪🇺 Mandats européens
+              </h3>
+              <div class="space-y-2">
+                <div
+                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'EUROPEEN')"
+                  :key="index"
+                  class="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
+                >
+                  <div class="font-semibold text-gray-900 dark:text-gray-100">
+                    Député européen
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    {{ mandat.periode }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <!-- Formation et études -->
+        <Card v-if="senateur.etudes && senateur.etudes.length > 0">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>🎓</span>
+            <span>Formation et études</span>
+          </h2>
+          <div class="space-y-3">
+            <div
+              v-for="(etude, index) in senateur.etudes"
+              :key="index"
+              class="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800"
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                    {{ etude.diplome || 'Diplôme non précisé' }}
+                  </div>
+                  <div v-if="etude.domaine" class="text-sm text-gray-700 dark:text-gray-300 mb-1">
+                    {{ etude.domaine }}
+                  </div>
+                  <div v-if="etude.etablissement" class="text-sm text-gray-600 dark:text-gray-400">
+                    {{ etude.etablissement }}
+                  </div>
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                  <Badge v-if="etude.niveau" class="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                    {{ etude.niveau }}
+                  </Badge>
+                  <span v-if="etude.annee" class="text-xs text-gray-500 dark:text-gray-500">
+                    {{ etude.annee }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <!-- Adresse postale -->
+        <Card v-if="senateur.adresse_postale">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span>📮</span>
+            <span>Adresse postale</span>
+          </h2>
+          <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p class="text-gray-900 dark:text-gray-100 whitespace-pre-line">
+              {{ senateur.adresse_postale }}
+            </p>
           </div>
         </Card>
 
