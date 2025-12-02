@@ -8,55 +8,47 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
+/**
+ * Commande d'import des bases SQL PostgreSQL du Sénat
+ * 
+ * Cette commande télécharge et importe les dumps SQL PostgreSQL
+ * fournis par le Sénat sur data.senat.fr
+ * 
+ * @see config/senat.php pour la configuration des sources
+ * @see docs/SOURCES_DONNEES_SENAT.md pour la documentation
+ */
 class ImportSenatSQL extends Command
 {
     protected $signature = 'import:senat-sql 
-                            {type : Type de base (questions, debats, ameli)}
+                            {type : Type de base (senateurs, dosleg, questions, debats, ameli)}
                             {--fresh : Vider les tables avant import}
-                            {--analyze : Analyser la structure sans importer}';
+                            {--analyze : Analyser la structure sans importer}
+                            {--list : Lister les bases disponibles}';
 
-    protected $description = 'Importe les bases SQL PostgreSQL du Sénat (Questions, Débats, Amendements)';
-
-    private const DATABASES = [
-        'senateurs' => [
-            'url' => 'https://data.senat.fr/data/senateurs/export_sens.zip',
-            'description' => 'Sénateurs (Profils complets)',
-            'table_prefix' => 'senat_senateurs_',
-        ],
-        'dosleg' => [
-            'url' => 'https://data.senat.fr/data/dosleg/dosleg.zip',
-            'description' => 'Dossiers Législatifs',
-            'table_prefix' => 'senat_dosleg_',
-        ],
-        'questions' => [
-            'url' => 'https://data.senat.fr/data/questions/questions.zip',
-            'description' => 'Questions au Gouvernement',
-            'table_prefix' => 'senat_questions_',
-        ],
-        'debats' => [
-            'url' => 'https://data.senat.fr/data/debats/debats.zip',
-            'description' => 'Comptes rendus des débats',
-            'table_prefix' => 'senat_debats_',
-        ],
-        'ameli' => [
-            'url' => 'https://data.senat.fr/data/ameli/ameli.zip',
-            'description' => 'Amendements (Base AMELI)',
-            'table_prefix' => 'senat_ameli_',
-        ],
-    ];
+    protected $description = 'Importe les bases SQL PostgreSQL du Sénat (Sénateurs, Dossiers, Questions, Débats, Amendements)';
 
     public function handle(): int
     {
+        // Option --list : afficher les bases disponibles
+        if ($this->option('list')) {
+            return $this->listDatabases();
+        }
+
         $type = $this->argument('type');
         $analyzeOnly = $this->option('analyze');
         $fresh = $this->option('fresh');
 
-        if (!isset(self::DATABASES[$type])) {
-            $this->error("❌ Type invalide. Types disponibles : " . implode(', ', array_keys(self::DATABASES)));
+        // Récupérer la configuration depuis config/senat.php
+        $databases = config('senat.databases', []);
+
+        if (!isset($databases[$type])) {
+            $this->error("❌ Type invalide : {$type}");
+            $this->info("   Types disponibles : " . implode(', ', array_keys($databases)));
+            $this->info("   Utilisez --list pour voir les détails");
             return Command::FAILURE;
         }
 
-        $config = self::DATABASES[$type];
+        $config = $databases[$type];
         $this->info("🏛️  Import base SQL Sénat : {$config['description']}");
         $this->info("📊 Source : {$config['url']}");
 
@@ -406,6 +398,42 @@ class ImportSenatSQL extends Command
             }
             return null;
         }
+    }
+
+    /**
+     * Liste les bases de données disponibles
+     */
+    private function listDatabases(): int
+    {
+        $databases = config('senat.databases', []);
+
+        $this->info('');
+        $this->info('🏛️  Bases SQL PostgreSQL du Sénat');
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->newLine();
+
+        $this->table(
+            ['Type', 'Description', 'Préfixe', 'Tables principales'],
+            collect($databases)->map(function ($config, $type) {
+                $tables = array_keys($config['tables'] ?? []);
+                return [
+                    $type,
+                    $config['description'],
+                    $config['table_prefix'],
+                    implode(', ', array_slice($tables, 0, 4)) . (count($tables) > 4 ? '...' : ''),
+                ];
+            })->toArray()
+        );
+
+        $this->newLine();
+        $this->info('📖 Documentation : docs/SOURCES_DONNEES_SENAT.md');
+        $this->newLine();
+        $this->info('💡 Usage :');
+        $this->line('   php artisan import:senat-sql senateurs           # Importer les sénateurs');
+        $this->line('   php artisan import:senat-sql ameli --analyze     # Analyser sans importer');
+        $this->line('   php artisan senat:sync                           # Synchronisation complète');
+
+        return Command::SUCCESS;
     }
 }
 

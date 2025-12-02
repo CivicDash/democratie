@@ -6,14 +6,66 @@ Ce répertoire contient **tous les scripts** nécessaires pour gérer, importer 
 
 ## 📋 TABLE DES MATIÈRES
 
-1. [🎯 Script Principal (RECOMMANDÉ)](#-script-principal-recommandé)
-2. [🚀 Import Bases SQL Sénat (NOUVEAU)](#-import-bases-sql-sénat-nouveau)
-3. [📊 Scripts Import Données Parlementaires](#-scripts-import-données-parlementaires)
-4. [🔍 Scripts Analyse & Diagnostic](#-scripts-analyse--diagnostic)
-5. [📝 Scripts Enrichissement (Ancienne API)](#-scripts-enrichissement-ancienne-api)
-6. [🗺️ Scripts Codes Postaux & Géo](#️-scripts-codes-postaux--géo)
-7. [🧪 Scripts Tests & Debug](#-scripts-tests--debug)
-8. [🗑️ Scripts Obsolètes](#️-scripts-obsolètes)
+1. [🔄 Synchronisation Automatique (CRON)](#-synchronisation-automatique-cron)
+2. [🎯 Script Principal (RECOMMANDÉ)](#-script-principal-recommandé)
+3. [🚀 Import Bases SQL Sénat](#-import-bases-sql-sénat)
+4. [📊 Scripts Import Données Parlementaires](#-scripts-import-données-parlementaires)
+5. [🔍 Scripts Analyse & Diagnostic](#-scripts-analyse--diagnostic)
+6. [📝 Scripts Enrichissement (Ancienne API)](#-scripts-enrichissement-ancienne-api)
+7. [🗺️ Scripts Codes Postaux & Géo](#️-scripts-codes-postaux--géo)
+8. [🧪 Scripts Tests & Debug](#-scripts-tests--debug)
+9. [🗑️ Scripts Obsolètes](#️-scripts-obsolètes)
+
+---
+
+## 🔄 Synchronisation Automatique (CRON)
+
+### `sync-all-data.sh` ⭐⭐⭐ **NOUVEAU**
+
+**Script de synchronisation quotidienne** pour maintenir les données à jour automatiquement.
+
+```bash
+# Synchronisation complète
+./scripts/sync-all-data.sh
+
+# Options spécifiques
+./scripts/sync-all-data.sh --an         # Assemblée Nationale uniquement
+./scripts/sync-all-data.sh --senat      # Sénat uniquement
+./scripts/sync-all-data.sh --hatvp      # HATVP uniquement
+
+# Mode simulation
+./scripts/sync-all-data.sh --dry-run --verbose
+```
+
+#### 📅 Installation du Cron
+
+```bash
+# Installation interactive
+./scripts/install-cron.sh
+
+# Ou manuellement (crontab -e) :
+0 3 * * * /var/www/demoscratos/scripts/sync-all-data.sh >> /var/log/demoscratos/sync.log 2>&1
+```
+
+#### 📊 Sources synchronisées
+
+| Source | Format | Commande Artisan | Données |
+|--------|--------|------------------|---------|
+| **Assemblée Nationale** | XML | `php artisan an:sync` | Députés, scrutins, amendements |
+| **Sénat** | SQL + XML | `php artisan senat:sync` | Sénateurs, votes, textes |
+| **HATVP** | XML | `php artisan hatvp:sync` | Déclarations d'intérêts/patrimoine |
+
+#### ✅ Avantages
+
+- ✅ **Automatisé** - Cron quotidien à 3h du matin
+- ✅ **Incrémental** - Ne télécharge que les nouveautés
+- ✅ **Logs unifiés** - `storage/logs/sync-YYYY-MM-DD.log`
+- ✅ **Lock file** - Empêche les exécutions simultanées
+- ✅ **Mode dry-run** - Tester sans modifier la base
+
+#### 📖 Documentation complète
+
+Voir `docs/SYNCHRONISATION_DONNEES.md`
 
 ---
 

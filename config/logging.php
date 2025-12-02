@@ -127,6 +127,33 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        // Canal pour la synchronisation des données AN
+        'an-sync' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/an-sync.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
+        // Canal pour la synchronisation des données Sénat
+        'senat-sync' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/senat-sync.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
+        // Canal pour la synchronisation des données HATVP
+        'hatvp-sync' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/hatvp-sync.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];
