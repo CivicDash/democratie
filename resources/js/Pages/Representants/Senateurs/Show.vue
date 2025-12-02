@@ -1,11 +1,41 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 
 const props = defineProps({
   senateur: Object,
+});
+
+// États pour les accordéons
+const showAllMandats = ref(false);
+const showAllCommissions = ref(false);
+const showAllMandatsLocaux = ref(false);
+const showAllHistoriqueGroupes = ref(false);
+
+// Mandats groupés par type
+const mandatsGroupes = computed(() => {
+  if (!props.senateur.mandats) return {};
+  const grouped = {};
+  props.senateur.mandats.forEach(m => {
+    const type = m.type || 'Mandat sénatorial';
+    if (!grouped[type]) grouped[type] = [];
+    grouped[type].push(m);
+  });
+  return grouped;
+});
+
+// Commissions actives vs historiques
+const commissionsActives = computed(() => {
+  if (!props.senateur.commissions) return [];
+  return props.senateur.commissions.filter(c => c.actif);
+});
+
+const commissionsHistoriques = computed(() => {
+  if (!props.senateur.commissions) return [];
+  return props.senateur.commissions.filter(c => !c.actif);
 });
 
 // Formater un montant en euros
@@ -229,74 +259,153 @@ const getSegmentHeight = (value, total) => {
         </Card>
 
         <div class="grid md:grid-cols-2 gap-6">
-          <!-- Mandats -->
+          <!-- Mandats - Version compacte avec tableau -->
           <Card>
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <span>📜</span>
               <span>Mandats</span>
+              <Badge v-if="senateur.mandats?.length" class="ml-auto bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 text-xs">
+                {{ senateur.mandats.length }}
+              </Badge>
             </h2>
-            <div v-if="senateur.mandats && senateur.mandats.length > 0" class="space-y-3 max-h-96 overflow-y-auto">
-              <div
-                v-for="(mandat, index) in senateur.mandats"
-                :key="index"
-                :class="[
-                  'p-3 rounded-lg border',
-                  mandat.actif 
-                    ? 'border-green-300 bg-green-50 dark:bg-green-900/20' 
-                    : 'border-gray-200 dark:border-gray-700'
-                ]"
-              >
-                <div class="flex items-start justify-between">
-                  <div>
-                    <div class="font-semibold text-gray-900 dark:text-gray-100">
-                      {{ mandat.type || 'Mandat sénatorial' }}
-                    </div>
-                    <div v-if="mandat.circonscription" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {{ mandat.circonscription }}
-                    </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {{ mandat.date_debut }} 
-                      <span v-if="mandat.date_fin">→ {{ mandat.date_fin }}</span>
-                      <span v-else class="text-green-600 font-medium">→ En cours</span>
-                    </div>
-                  </div>
-                  <Badge v-if="mandat.numero" class="text-xs">
-                    N°{{ mandat.numero }}
-                  </Badge>
-                </div>
+            
+            <div v-if="senateur.mandats && senateur.mandats.length > 0">
+              <!-- Tableau compact -->
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                      <th class="py-2 pr-2">Type</th>
+                      <th class="py-2 px-2">Période</th>
+                      <th class="py-2 pl-2 text-right">Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template v-for="(mandats, type) in mandatsGroupes" :key="type">
+                      <tr 
+                        v-for="(mandat, index) in (showAllMandats ? mandats : mandats.slice(0, 2))"
+                        :key="`${type}-${index}`"
+                        class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      >
+                        <td class="py-2 pr-2">
+                          <div class="font-medium text-gray-900 dark:text-gray-100">{{ type }}</div>
+                          <div v-if="mandat.circonscription" class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ mandat.circonscription }}
+                          </div>
+                        </td>
+                        <td class="py-2 px-2 text-gray-600 dark:text-gray-400">
+                          {{ mandat.date_debut }}
+                          <span v-if="mandat.date_fin"> → {{ mandat.date_fin }}</span>
+                        </td>
+                        <td class="py-2 pl-2 text-right">
+                          <Badge 
+                            :class="mandat.actif 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'"
+                            class="text-xs"
+                          >
+                            {{ mandat.actif ? 'En cours' : 'Terminé' }}
+                          </Badge>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
               </div>
+              
+              <!-- Bouton voir plus -->
+              <button 
+                v-if="senateur.mandats.length > 4"
+                @click="showAllMandats = !showAllMandats"
+                class="mt-3 w-full py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition flex items-center justify-center gap-1"
+              >
+                <span v-if="showAllMandats">▲ Réduire</span>
+                <span v-else>▼ Voir tous les mandats ({{ senateur.mandats.length }})</span>
+              </button>
             </div>
-            <div v-else class="text-center text-gray-500 dark:text-gray-400 py-8">
+            <div v-else class="text-center text-gray-500 dark:text-gray-400 py-6">
               Aucun mandat enregistré
             </div>
           </Card>
 
-          <!-- Commissions -->
+          <!-- Commissions - Version compacte avec tableau -->
           <Card>
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <span>🏛️</span>
               <span>Commissions</span>
+              <Badge v-if="senateur.commissions?.length" class="ml-auto bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 text-xs">
+                {{ senateur.commissions.length }}
+              </Badge>
             </h2>
-            <div v-if="senateur.commissions && senateur.commissions.length > 0" class="space-y-3">
-              <div
-                v-for="(commission, index) in senateur.commissions"
-                :key="index"
-                class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
-              >
-                <div class="font-semibold text-gray-900 dark:text-gray-100">
-                  {{ commission.commission }}
+            
+            <div v-if="senateur.commissions && senateur.commissions.length > 0">
+              <!-- Commissions actives en premier -->
+              <div v-if="commissionsActives.length > 0" class="mb-4">
+                <h3 class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">
+                  Actuelles ({{ commissionsActives.length }})
+                </h3>
+                <div class="space-y-2">
+                  <div 
+                    v-for="(commission, index) in commissionsActives" 
+                    :key="`active-${index}`"
+                    class="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                  >
+                    <div class="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                      {{ commission.commission }}
+                    </div>
+                    <div class="flex items-center justify-between mt-1">
+                      <span class="text-xs text-gray-500 dark:text-gray-400">
+                        Depuis {{ commission.date_debut }}
+                      </span>
+                      <Badge v-if="commission.fonction" class="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs">
+                        {{ commission.fonction }}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-                <div v-if="commission.fonction" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {{ commission.fonction }}
-                </div>
-                <div class="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                  {{ commission.date_debut }}
-                  <span v-if="commission.date_fin"> → {{ commission.date_fin }}</span>
-                  <span v-else class="text-green-600 font-medium"> → En cours</span>
+              </div>
+              
+              <!-- Commissions historiques (déroulant) -->
+              <div v-if="commissionsHistoriques.length > 0">
+                <button 
+                  @click="showAllCommissions = !showAllCommissions"
+                  class="w-full flex items-center justify-between py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-gray-300 transition"
+                >
+                  <span>Historique ({{ commissionsHistoriques.length }})</span>
+                  <span class="text-lg">{{ showAllCommissions ? '▲' : '▼' }}</span>
+                </button>
+                
+                <div v-show="showAllCommissions" class="overflow-x-auto mt-2">
+                  <table class="w-full text-sm">
+                    <thead>
+                      <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                        <th class="py-2 pr-2">Commission</th>
+                        <th class="py-2 px-2">Fonction</th>
+                        <th class="py-2 pl-2 text-right">Période</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr 
+                        v-for="(commission, index) in commissionsHistoriques"
+                        :key="`hist-${index}`"
+                        class="border-b border-gray-100 dark:border-gray-800"
+                      >
+                        <td class="py-2 pr-2 text-gray-700 dark:text-gray-300">
+                          {{ commission.commission }}
+                        </td>
+                        <td class="py-2 px-2 text-gray-500 dark:text-gray-400">
+                          {{ commission.fonction || '-' }}
+                        </td>
+                        <td class="py-2 pl-2 text-right text-xs text-gray-500 dark:text-gray-400">
+                          {{ commission.date_debut }} → {{ commission.date_fin }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
-            <div v-else class="text-center text-gray-500 dark:text-gray-400 py-8">
+            <div v-else class="text-center text-gray-500 dark:text-gray-400 py-6">
               Aucune commission
             </div>
           </Card>
@@ -585,136 +694,132 @@ const getSegmentHeight = (value, total) => {
           </div>
         </Card>
 
-        <!-- Historique des groupes -->
+        <!-- Historique des groupes - Version compacte -->
         <Card v-if="senateur.historique_groupes && senateur.historique_groupes.length > 0">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>🎨</span>
-            <span>Historique des groupes parlementaires</span>
-          </h2>
-          <div class="space-y-3">
-            <div
-              v-for="(groupe, index) in senateur.historique_groupes"
-              :key="index"
-              class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-            >
-              <div class="flex items-center justify-between">
-                <div class="font-semibold text-gray-900 dark:text-gray-100">
-                  {{ groupe.groupe }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">
-                  {{ groupe.date_debut }}
-                  <span v-if="groupe.date_fin"> → {{ groupe.date_fin }}</span>
-                  <span v-else class="text-green-600 font-medium"> → En cours</span>
-                </div>
-              </div>
-            </div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <span>🎨</span>
+              <span>Groupes parlementaires</span>
+            </h2>
+            <Badge class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 text-xs">
+              {{ senateur.historique_groupes.length }}
+            </Badge>
           </div>
+          
+          <!-- Tableau compact -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <th class="py-2 pr-2">Groupe</th>
+                  <th class="py-2 px-2">Début</th>
+                  <th class="py-2 pl-2 text-right">Fin</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  v-for="(groupe, index) in (showAllHistoriqueGroupes ? senateur.historique_groupes : senateur.historique_groupes.slice(0, 3))"
+                  :key="index"
+                  class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                >
+                  <td class="py-2 pr-2 font-medium text-gray-900 dark:text-gray-100">
+                    {{ groupe.groupe }}
+                  </td>
+                  <td class="py-2 px-2 text-gray-600 dark:text-gray-400">
+                    {{ groupe.date_debut }}
+                  </td>
+                  <td class="py-2 pl-2 text-right">
+                    <span v-if="groupe.date_fin" class="text-gray-500 dark:text-gray-400">{{ groupe.date_fin }}</span>
+                    <Badge v-else class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
+                      En cours
+                    </Badge>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Bouton voir plus -->
+          <button 
+            v-if="senateur.historique_groupes.length > 3"
+            @click="showAllHistoriqueGroupes = !showAllHistoriqueGroupes"
+            class="mt-3 w-full py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition flex items-center justify-center gap-1"
+          >
+            <span v-if="showAllHistoriqueGroupes">▲ Réduire</span>
+            <span v-else>▼ Voir tout l'historique ({{ senateur.historique_groupes.length }})</span>
+          </button>
         </Card>
 
-        <!-- Mandats locaux -->
+        <!-- Mandats locaux - Version compacte avec tableau -->
         <Card v-if="senateur.mandats_locaux && senateur.mandats_locaux.length > 0">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>🏛️</span>
-            <span>Mandats locaux et autres fonctions</span>
-          </h2>
-          
-          <div class="grid md:grid-cols-2 gap-4">
-            <!-- Mandats municipaux -->
-            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'MUNICIPAL').length > 0">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                🏘️ Mandats municipaux
-              </h3>
-              <div class="space-y-2">
-                <div
-                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'MUNICIPAL')"
-                  :key="index"
-                  class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    {{ mandat.fonction }}
-                  </div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ mandat.collectivite }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {{ mandat.periode }}
-                    <Badge v-if="mandat.en_cours" class="ml-2 bg-green-100 text-green-800 text-xs">
-                      En cours
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Mandats départementaux/régionaux -->
-            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPARTEMENTAL' || m.type_mandat === 'REGIONAL').length > 0">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                🗺️ Mandats départementaux/régionaux
-              </h3>
-              <div class="space-y-2">
-                <div
-                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPARTEMENTAL' || m.type_mandat === 'REGIONAL')"
-                  :key="index"
-                  class="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    {{ mandat.fonction }}
-                  </div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ mandat.collectivite }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {{ mandat.periode }}
-                    <Badge v-if="mandat.en_cours" class="ml-2 bg-green-100 text-green-800 text-xs">
-                      En cours
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Anciens mandats de député -->
-            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPUTE').length > 0">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                🏛️ Anciens mandats de député
-              </h3>
-              <div class="space-y-2">
-                <div
-                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'DEPUTE')"
-                  :key="index"
-                  class="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    Député - {{ mandat.collectivite }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {{ mandat.periode }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Mandats européens -->
-            <div v-if="senateur.mandats_locaux.filter(m => m.type_mandat === 'EUROPEEN').length > 0">
-              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                🇪🇺 Mandats européens
-              </h3>
-              <div class="space-y-2">
-                <div
-                  v-for="(mandat, index) in senateur.mandats_locaux.filter(m => m.type_mandat === 'EUROPEEN')"
-                  :key="index"
-                  class="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-gray-100">
-                    Député européen
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {{ mandat.periode }}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <span>🏛️</span>
+              <span>Mandats locaux et autres fonctions</span>
+            </h2>
+            <Badge class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 text-xs">
+              {{ senateur.mandats_locaux.length }}
+            </Badge>
           </div>
+          
+          <!-- Tableau compact -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <th class="py-2 pr-2">Type</th>
+                  <th class="py-2 px-2">Fonction</th>
+                  <th class="py-2 px-2">Collectivité</th>
+                  <th class="py-2 pl-2 text-right">Période</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  v-for="(mandat, index) in (showAllMandatsLocaux ? senateur.mandats_locaux : senateur.mandats_locaux.slice(0, 4))"
+                  :key="index"
+                  class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                >
+                  <td class="py-2 pr-2">
+                    <Badge 
+                      :class="{
+                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': mandat.type_mandat === 'MUNICIPAL',
+                        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400': mandat.type_mandat === 'DEPARTEMENTAL' || mandat.type_mandat === 'REGIONAL',
+                        'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400': mandat.type_mandat === 'DEPUTE',
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400': mandat.type_mandat === 'EUROPEEN',
+                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400': !['MUNICIPAL', 'DEPARTEMENTAL', 'REGIONAL', 'DEPUTE', 'EUROPEEN'].includes(mandat.type_mandat)
+                      }"
+                      class="text-xs whitespace-nowrap"
+                    >
+                      {{ mandat.type_mandat === 'MUNICIPAL' ? '🏘️' : mandat.type_mandat === 'DEPARTEMENTAL' || mandat.type_mandat === 'REGIONAL' ? '🗺️' : mandat.type_mandat === 'DEPUTE' ? '🏛️' : mandat.type_mandat === 'EUROPEEN' ? '🇪🇺' : '📋' }}
+                      {{ mandat.type_mandat }}
+                    </Badge>
+                  </td>
+                  <td class="py-2 px-2 font-medium text-gray-900 dark:text-gray-100">
+                    {{ mandat.fonction }}
+                  </td>
+                  <td class="py-2 px-2 text-gray-600 dark:text-gray-400">
+                    {{ mandat.collectivite }}
+                  </td>
+                  <td class="py-2 pl-2 text-right">
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ mandat.periode }}</span>
+                    <Badge v-if="mandat.en_cours" class="ml-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
+                      ✓
+                    </Badge>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Bouton voir plus -->
+          <button 
+            v-if="senateur.mandats_locaux.length > 4"
+            @click="showAllMandatsLocaux = !showAllMandatsLocaux"
+            class="mt-3 w-full py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition flex items-center justify-center gap-1"
+          >
+            <span v-if="showAllMandatsLocaux">▲ Réduire</span>
+            <span v-else>▼ Voir tous les mandats ({{ senateur.mandats_locaux.length }})</span>
+          </button>
         </Card>
 
         <!-- Formation et études -->
