@@ -24,7 +24,7 @@ return new class extends Migration
             // Ministère interrogé
             $table->string('ministere_ref', 20)->nullable();
             $table->string('ministere_sigle', 50)->nullable();
-            $table->string('ministere_nom')->nullable();
+            $table->text('ministere_nom')->nullable();
             
             // Indexation
             $table->string('rubrique')->nullable();

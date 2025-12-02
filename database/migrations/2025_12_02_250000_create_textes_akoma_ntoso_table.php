@@ -26,7 +26,7 @@ return new class extends Migration
             
             // Auteur(s)
             $table->string('auteur_id', 100)->nullable(); // ID auteur (peut être multiple)
-            $table->string('auteur_nom')->nullable();
+            $table->text('auteur_nom')->nullable();
             $table->string('commission', 100)->nullable();
             
             // Dates
