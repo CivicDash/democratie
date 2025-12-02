@@ -33,11 +33,36 @@ class EnrichSenateursWikipedia extends Command
         $limit = (int) $this->option('limit');
         $force = $this->option('force');
 
-        // Query
+        // Vérifier si la table senateurs_wikipedia existe
+        if (!\Schema::hasTable('senateurs_wikipedia')) {
+            $this->warn('⚠️ La table senateurs_wikipedia n\'existe pas.');
+            $this->info('Création de la table...');
+            
+            \Schema::create('senateurs_wikipedia', function ($table) {
+                $table->string('senateur_matricule', 20)->primary();
+                $table->string('wikipedia_url', 500)->nullable();
+                $table->string('photo_wikipedia_url', 500)->nullable();
+                $table->text('wikipedia_extract')->nullable();
+                $table->timestamp('wikipedia_last_sync')->nullable();
+                $table->timestamps();
+            });
+            
+            $this->info('✅ Table créée.');
+        }
+
+        // Query - on récupère les sénateurs actifs
         $query = Senateur::where('etat', 'ACTIF');
         
         if (!$force) {
-            $query->whereNull('wikipedia_url');
+            // Vérifier dans la table annexe si déjà enrichi
+            $enrichedMatricules = \DB::table('senateurs_wikipedia')
+                ->whereNotNull('wikipedia_url')
+                ->pluck('senateur_matricule')
+                ->toArray();
+            
+            if (!empty($enrichedMatricules)) {
+                $query->whereNotIn('matricule', $enrichedMatricules);
+            }
         }
 
         if ($limit > 0) {
@@ -49,6 +74,7 @@ class EnrichSenateursWikipedia extends Command
 
         if ($total === 0) {
             $this->warn('Aucun sénateur à enrichir.');
+            $this->info('💡 Utilisez --force pour forcer la mise à jour des sénateurs déjà enrichis.');
             return Command::SUCCESS;
         }
 
