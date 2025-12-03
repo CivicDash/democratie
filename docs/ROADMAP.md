@@ -2,1022 +2,621 @@
 
 ## 📊 Vue d'ensemble
 
-**État actuel** : 99% Production-Ready  
-**Objectif** : Plateforme nationale de démocratie participative  
+**Projet** : CivicDash - Plateforme citoyenne de transparence démocratique  
+**Objectif** : Rendre la vie politique française accessible et compréhensible  
 **Licence** : AGPL-3.0 Open Source
 
 ---
 
-## 📅 TIMELINE GLOBALE
+## ✅ RÉALISATIONS ACTUELLES (Décembre 2025)
+
+### 🏛️ Données Parlementaires
+
+#### Assemblée Nationale (Législature 17)
+- [x] **Députés** : 577 profils complets avec photos officielles
+- [x] **Scrutins publics** : Import et affichage des votes
+- [x] **Votes individuels** : Détail par député
+- [x] **Amendements** : Textes et auteurs
+- [x] **Dossiers législatifs** : Suivi des textes de loi
+- [x] **Organes** : Commissions, groupes parlementaires
+- [x] **Mandats** : Historique des fonctions
+
+#### Sénat
+- [x] **Sénateurs** : 348 profils avec photos officielles senat.fr
+- [x] **Scrutins** : Votes publics
+- [x] **Votes individuels** : Détail par sénateur
+- [x] **Amendements** : Avec auteurs et sort
+- [x] **Commissions** : Libellés complets (migration récente)
+- [x] **Groupes parlementaires** : Historique avec libellés
+- [x] **Mandats locaux** : Fonctions électives
+
+#### HATVP (Haute Autorité pour la Transparence)
+- [x] **Déclarations de patrimoine** : Import et affichage
+- [x] **Rémunérations** : Graphique par année
+- [x] **Mandats électifs** : Avec rémunérations associées
+- [x] **Activités professionnelles** : Détails
+- [x] **Participations** : Entreprises et fonctions
+
+### 🗺️ Cartographie & Statistiques
+- [x] **Carte interactive France** : Départements cliquables
+- [x] **Hémicycles** : Visualisation AN et Sénat
+- [x] **Statistiques régionales** : Population, densité
+- [x] **Codes postaux** : Recherche par localisation
+- [x] **Indicateurs INSEE** : Données socio-économiques
+
+### 📱 Interface Utilisateur
+- [x] **Responsive mobile** : Navigation adaptée
+- [x] **Dark mode** : Thème sombre
+- [x] **Fiches parlementaires** : Vue détaillée compacte
+- [x] **Tableaux accordéon** : Mandats, commissions
+- [x] **Comparateur** : AN vs Sénat
+
+### 🔧 Infrastructure
+- [x] **Docker** : Environnement containerisé
+- [x] **PostgreSQL** : Base de données avec vues SQL
+- [x] **Synchronisation automatique** : Commandes Artisan
+- [x] **Photos officielles** : AN et Sénat prioritaires
+
+---
+
+## 📅 TIMELINE 2025-2026
 
 ```
-2026 T1 (Janv-Mars)   → 🚀 Production Ready (v1.0)
-2026 T2 (Avril-Juin)  → ⚡ Qualité Production (v1.1)
-2026 T3 (Juil-Sept)   → 💡 Features Avancées (v1.2)
-2026 T4 (Oct-Déc)     → 🌟 Scale & Innovation (v2.0)
+2025 T4 (Déc)     → 🔧 Consolidation & Données
+2026 T1 (Jan-Mar) → 🏠 Refonte UX & Admin
+2026 T2 (Avr-Jun) → 📜 Parcours Législatif & Vote Citoyen
+2026 T3 (Jul-Sep) → 🌐 Open Data & Intégrations
+2026 T4 (Oct-Déc) → 🚀 Lancement Asso & Scale
 ```
 
 ---
 
-## 🎯 PHASE 1 : PRODUCTION READY (2-3 semaines)
-**Version** : 1.0.0  
-**Objectif** : Lancer en beta publique
+## 🔧 PHASE 0 : CONSOLIDATION (Décembre 2025)
+**Objectif** : Stabiliser l'existant et préparer les nouvelles features
 
-### Semaine 1-2 : MVP Production
+### 0.1 : 🧹 Nettoyage & Corrections
+**Statut** : 🔄 En cours
 
-#### Feature 1.1 : 🇫🇷 FranceConnect+ Finalisé
+- [x] Correction doublons sénateurs (vue DISTINCT)
+- [x] Libellés commissions et groupes parlementaires
+- [x] Photos officielles prioritaires
+- [x] Affichage compact mandats/commissions
+- [ ] Vérifier import HATVP rémunérations serveur
+- [ ] Import amendements AN complet
+- [ ] Tests de régression
+
+### 0.2 : 📊 Données Complémentaires
+**Priorité** : 🟡 HAUTE
+
+- [ ] **Questions au Gouvernement** (AN) - Import XML
+- [ ] **Questions Écrites** (Sénat) - Import
+- [ ] **Textes Akoma Ntoso** (Sénat) - Documents législatifs
+- [ ] Proportion hommes/femmes (statistiques)
+
+---
+
+## 🏠 PHASE 1 : REFONTE UX & ADMIN (T1 2026)
+**Objectif** : Améliorer l'expérience utilisateur et les outils admin
+
+### 1.1 : 🎨 Refonte Menu & Navigation
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 2-3 jours  
-**Assigné** : Backend Lead
+**Durée** : 1 semaine
 
 **User Stories** :
-- [ ] En tant que citoyen, je veux me connecter avec mes identifiants impots.gouv.fr
-- [ ] En tant que citoyen, je veux que mon email soit auto-vérifié par l'État
-- [ ] En tant que citoyen, je veux voir un badge "Vérifié par l'État"
+- [ ] En tant qu'utilisateur, je veux une navigation claire et intuitive
+- [ ] En tant qu'utilisateur mobile, je veux un menu adapté au touch
+- [ ] En tant qu'utilisateur, je veux accéder rapidement aux sections clés
 
-**Tâches techniques** :
-- [ ] S'inscrire sur partenaires.franceconnect.gouv.fr
-- [ ] Obtenir CLIENT_ID + CLIENT_SECRET (intégration)
-- [ ] Configurer `.env` et `config/services.php`
-- [ ] Ajouter 3 routes OAuth2 dans `routes/web.php`
-- [ ] Lancer migration `add_franceconnect_to_users_table`
-- [ ] Créer composant Vue `FranceConnectButton.vue` (design officiel)
-- [ ] Implémenter badge "Vérifié par l'État" dans profil
-- [ ] Tests E2E du flow OAuth2 complet
-
-**Critères d'acceptation** :
-- ✅ Login FC+ fonctionnel en intégration
-- ✅ Email auto-vérifié
-- ✅ Badge visible dans profil
-- ✅ Logout FC+ redirige correctement
-
-**Métriques** :
-- 🎯 > 30% users utilisent FC+ dans les 3 mois
+**Tâches** :
+- [ ] Restructurer la navigation principale
+- [ ] Mega-menu avec catégories (Parlement, Données, Participation)
+- [ ] Breadcrumbs sur toutes les pages
+- [ ] Raccourcis clavier (recherche, navigation)
+- [ ] Menu contextuel selon la page
 
 ---
 
-#### Feature 1.2 : 🧪 Tests Additionnels
+### 1.2 : 🏠 Refonte Page d'Accueil
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 3-4 jours  
-**Assigné** : QA Lead
+**Durée** : 1 semaine
 
 **User Stories** :
-- [ ] En tant que dev, je veux être sûr que le cache Redis fonctionne parfaitement
-- [ ] En tant que dev, je veux tester le rate limiting sur tous les endpoints
-- [ ] En tant que dev, je veux valider FranceConnect+ avec des tests automatisés
+- [ ] En tant que visiteur, je veux comprendre immédiatement le projet
+- [ ] En tant que citoyen, je veux voir l'actualité parlementaire récente
+- [ ] En tant qu'utilisateur, je veux accéder aux données les plus consultées
 
-**Tâches techniques** :
-
-**Cache Redis** (1 jour) :
-- [ ] `tests/Feature/Cache/VoteCacheTest.php`
-  - `it('caches vote results for 1 hour')`
-  - `it('invalidates cache when new vote is cast')`
-  - `it('returns cached results 500x faster')`
-- [ ] `tests/Feature/Cache/BudgetCacheTest.php`
-  - `it('caches budget stats for 4 hours')`
-  - `it('caches user allocations for 1 day')`
-  - `it('invalidates all budget cache on allocation change')`
-
-**Rate Limiting** (1 jour) :
-- [ ] `tests/Feature/RateLimit/RateLimitTest.php`
-  - `it('blocks login after 5 failed attempts')`
-  - `it('limits vote to 10 per hour')`
-  - `it('limits post creation to 20 per hour')`
-  - `it('returns 429 with correct headers')`
-  - `it('resets rate limit after cooldown')`
-
-**FranceConnect+** (1-2 jours) :
-- [ ] `tests/Feature/Auth/FranceConnectTest.php`
-  - `it('redirects to franceconnect authorize url')`
-  - `it('creates user from callback with valid data')`
-  - `it('auto-verifies email from franceconnect')`
-  - `it('updates existing user on subsequent login')`
-  - `it('handles franceconnect errors gracefully')`
-
-**Critères d'acceptation** :
-- ✅ 150+ tests Pest passent (actuellement 122)
-- ✅ Coverage > 80%
-- ✅ CI/CD passe sur toutes les branches
-
-**Métriques** :
-- 🎯 0 bugs critiques en production
+**Tâches** :
+- [ ] Hero section avec message clair et CTA
+- [ ] Derniers scrutins (AN + Sénat)
+- [ ] Derniers amendements adoptés
+- [ ] Statistiques clés en temps réel
+- [ ] Carte interactive en preview
+- [ ] Section "Comment ça marche"
+- [ ] Témoignages / Cas d'usage
 
 ---
 
-### Semaine 2-3 : UX Mobile & Recherche
-
-#### Feature 1.3 : 📱 Responsive Mobile
+### 1.3 : 🛠️ Dashboard Admin
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 4-5 jours  
-**Assigné** : Frontend Lead  
-**Statut** : ✅ **TERMINÉ (Oct 2025)**
+**Durée** : 1-2 semaines
 
 **User Stories** :
-- [x] En tant que citoyen mobile, je veux naviguer facilement sur mon smartphone
-- [x] En tant que citoyen mobile, je veux voter depuis mon téléphone
-- [x] En tant que citoyen mobile, je veux allouer mon budget en touch-friendly
+- [ ] En tant qu'admin, je veux voir l'état de santé des imports
+- [ ] En tant qu'admin, je veux modérer le contenu utilisateur
+- [ ] En tant qu'admin, je veux des statistiques d'utilisation
 
-**Réalisations** :
+**Tâches** :
 
-**Navigation Mobile** :
-- [x] BottomNav.vue - Navigation style app native (5 onglets)
-- [x] Hamburger menu enrichi (7+ liens)
-- [x] NotificationBell mobile
-- [x] Touch targets 44x44px minimum
+**Statistiques** :
+- [ ] Nombre d'utilisateurs inscrits / actifs
+- [ ] Pages les plus consultées
+- [ ] Recherches populaires
+- [ ] Temps de réponse API
 
-**Composants Mobile** (7 nouveaux) :
-- [x] BottomNav.vue - Navigation bottom bar
-- [x] SwipeableCard.vue - Swipe gestures (like Tinder)
-- [x] FloatingActionButton.vue - FAB Material Design
-- [x] PullToRefresh.vue - Pull-to-refresh natif
-- [x] ScrollToTop.vue - Retour en haut smooth
-- [x] LegalContextPanel.vue - 100% responsive
-- [x] JurisprudenceCard.vue - Responsive cards
+**Imports & Sync** :
+- [ ] Tableau des derniers imports (date, durée, statut)
+- [ ] Boutons pour relancer manuellement
+- [ ] Logs d'erreurs consultables
+- [ ] Alertes si import échoue
 
-**CSS Global Mobile** (195 lignes) :
-- [x] Touch-friendly tap targets (44px min)
-- [x] Headers responsive (font-size adaptés)
-- [x] Tables → Cards transformation (.mobile-cards)
-- [x] Tabs scroll horizontal (.tab-nav-container)
-- [x] Forms touch-optimized (16px = no zoom iOS)
-- [x] Responsive padding (container, max-w-7xl)
-- [x] Utility classes (.hide-mobile, .show-mobile)
-- [x] Safe area support (iPhone X+ notch)
-
-**Critères d'acceptation** :
-- ✅ Toutes les pages responsive
-- ✅ Touch target min 44x44px
-- ✅ Pas de scroll horizontal
-- ✅ Formulaires keyboard-friendly
-- ✅ Bottom Nav style app native
-- ✅ Pull-to-refresh fonctionnel
-- ✅ FAB avec actions rapides
-- ✅ Swipeable cards pour listes
-
-**Métriques** :
-- 🎯 > 70% trafic mobile attendu dans 6 mois
-- 🎯 Bounce rate mobile < 40%
-- 🎯 ~1000 lignes code mobile total
+**Modération** :
+- [ ] File de signalements
+- [ ] Actions rapides (supprimer, avertir, bannir)
+- [ ] Historique des actions
+- [ ] Statistiques modération
 
 ---
 
-#### Feature 1.4 : 🔍 Recherche Full-Text Meilisearch
+### 1.4 : 📅 Calendrier Législatif
 **Priorité** : 🟡 HAUTE  
-**Durée** : 2-3 jours  
-**Assigné** : Backend Lead
+**Durée** : 1 semaine
 
 **User Stories** :
-- [ ] En tant que citoyen, je veux rechercher des topics par mots-clés
-- [ ] En tant que citoyen, je veux filtrer par type, scope, région
-- [ ] En tant que citoyen, je veux avoir des suggestions en temps réel
+- [ ] En tant que citoyen, je veux voir les prochains débats
+- [ ] En tant que citoyen, je veux être notifié des votes importants
+- [ ] En tant que journaliste, je veux suivre l'agenda parlementaire
 
-**Tâches techniques** :
+**Sources de données** :
+- Agenda AN : https://www2.assemblee-nationale.fr/agendas/
+- Agenda Sénat : https://www.senat.fr/ordre-du-jour/
 
-**Backend Indexation** (1 jour) :
-```php
-// app/Models/Topic.php
-use Laravel\Scout\Searchable;
-
-class Topic extends Model
-{
-    use Searchable;
-    
-    public function toSearchableArray()
-    {
-        return [
-            'id' => $this->id,
-            'title' => $this->title,
-            'description' => $this->description,
-            'type' => $this->type,
-            'scope' => $this->scope,
-            'region_id' => $this->region_id,
-            'created_at' => $this->created_at->timestamp,
-        ];
-    }
-    
-    public function searchableAs()
-    {
-        return 'topics_index';
-    }
-}
-```
-
-- [ ] Ajouter `Searchable` trait à `Topic`, `Post`, `Document`
-- [ ] Configurer index Meilisearch avec filtres
-- [ ] Commande `php artisan scout:import "App\Models\Topic"`
-- [ ] Configurer ranking rules et stop words FR
-
-**Frontend** (1-2 jours) :
-- [ ] Composant `SearchBar.vue` avec autocomplete
-- [ ] Page `Search/Results.vue` avec filtres avancés
-- [ ] Highlighting des résultats (mots recherchés en gras)
-- [ ] Pagination infinie des résultats
-- [ ] Filtres : type, scope, région, date
-- [ ] "Vouliez-vous dire..." pour typos
-
-**API Endpoint** :
-```php
-// app/Http/Controllers/Api/SearchController.php
-public function search(Request $request)
-{
-    $results = Topic::search($request->query('q'))
-        ->where('type', $request->query('type'))
-        ->where('scope', $request->query('scope'))
-        ->paginate(20);
-    
-    return SearchResultResource::collection($results);
-}
-```
-
-**Critères d'acceptation** :
-- ✅ Recherche < 50ms
-- ✅ Autocomplete fonctionne
-- ✅ Filtres combinables
-- ✅ Typo-tolerant (1-2 caractères)
-
-**Métriques** :
-- 🎯 > 40% users utilisent la recherche
-- 🎯 Taux clic résultats > 60%
+**Tâches** :
+- [ ] Composant calendrier Vue (vue mois/semaine/jour)
+- [ ] Import agenda AN (scraping ou API)
+- [ ] Import agenda Sénat
+- [ ] Filtres par type (débat, vote, commission)
+- [ ] Export iCal / Google Calendar
+- [ ] Notifications optionnelles
 
 ---
 
-## ⚡ PHASE 2 : QUALITÉ PRODUCTION (2-3 semaines)
-**Version** : 1.1.0  
-**Objectif** : Excellence opérationnelle
-
-### Semaine 4-5 : Monitoring & Engagement
-
-#### Feature 2.1 : 📊 Monitoring & Observabilité
+### 1.5 : 📅 Calendrier des Réunions
 **Priorité** : 🟡 HAUTE  
-**Durée** : 2-3 jours  
-**Assigné** : DevOps Lead
+**Durée** : 1 semaine
 
 **User Stories** :
-- [ ] En tant que dev, je veux voir toutes les requêtes SQL en temps réel
-- [ ] En tant que admin, je veux être alerté des erreurs en production
-- [ ] En tant que dev, je veux profiler les performances
+- [ ] En tant que citoyen, je veux voir les réunions de commissions
+- [ ] En tant que citoyen, je veux accéder aux comptes-rendus
 
-**Tâches techniques** :
-
-**Telescope (Dev)** (1 jour) :
-```bash
-composer require laravel/telescope --dev
-php artisan telescope:install
-php artisan migrate
-```
-- [ ] Configuration `config/telescope.php`
-- [ ] Watchers : requests, queries, cache, jobs, exceptions
-- [ ] Auth Telescope (admin only)
-- [ ] Accès : http://localhost:7777/telescope
-
-**Sentry (Production)** (1 jour) :
-```bash
-composer require sentry/sentry-laravel
-php artisan sentry:publish --dsn=YOUR_DSN
-```
-- [ ] Compte Sentry.io
-- [ ] Intégration Slack alerts
-- [ ] Error grouping et fingerprinting
-- [ ] Release tracking (tags Git)
-- [ ] Performance monitoring (transactions)
-- [ ] Breadcrumbs pour debug contexte
-
-**Logs Structurés** (1 jour) :
-```php
-// config/logging.php
-'json' => [
-    'driver' => 'single',
-    'path' => storage_path('logs/laravel.log'),
-    'formatter' => Monolog\Formatter\JsonFormatter::class,
-    'level' => 'debug',
-],
-```
-- [ ] Logs JSON pour parsing facile
-- [ ] Contexte enrichi (user_id, request_id, trace_id)
-- [ ] Rotation logs quotidienne
-- [ ] Intégration CloudWatch/ELK (optionnel)
-
-**Dashboard Métriques** :
-- [ ] Page `/admin/metrics` avec graphs
-- [ ] Métriques temps réel : users actifs, votes/h, posts/h
-- [ ] Health checks endpoints (`/health`, `/ready`)
-
-**Critères d'acceptation** :
-- ✅ Telescope accessible en dev
-- ✅ Sentry capture erreurs prod
-- ✅ Alertes Slack fonctionnelles
-- ✅ Logs structurés parsables
-
-**Métriques** :
-- 🎯 MTTR (Mean Time To Recovery) < 30 min
-- 🎯 99.9% uptime
+**Tâches** :
+- [ ] Import réunions commissions (AN + Sénat)
+- [ ] Lien vers vidéos/comptes-rendus
+- [ ] Filtres par commission
+- [ ] Recherche par sujet
 
 ---
 
-#### Feature 2.2 : 📧 Système de Notifications
-**Priorité** : 🟡 HAUTE  
-**Durée** : 3-4 jours  
-**Assigné** : Backend + Frontend Lead
+## 📜 PHASE 2 : PARCOURS LÉGISLATIF & VOTE CITOYEN (T2 2026)
+**Objectif** : Suivre les textes de loi et permettre l'expression citoyenne
+
+### 2.1 : 📜 Vie d'un Texte de Loi
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 2-3 semaines
 
 **User Stories** :
-- [ ] En tant que citoyen, je veux être notifié des nouveaux posts dans mes topics suivis
-- [ ] En tant que citoyen, je veux recevoir un email quand les résultats d'un vote sont publiés
-- [ ] En tant que citoyen, je veux gérer mes préférences de notifications
+- [ ] En tant que citoyen, je veux comprendre le parcours d'une loi
+- [ ] En tant que citoyen, je veux voir les amendements déposés
+- [ ] En tant que citoyen, je veux comparer les versions du texte
 
-**Tâches techniques** :
-
-**Backend Notifications** (2 jours) :
-
-**Notifications Laravel** :
-```php
-// app/Notifications/VoteResultsAvailable.php
-class VoteResultsAvailable extends Notification
-{
-    public function via($notifiable)
-    {
-        return ['mail', 'database'];
-    }
-    
-    public function toMail($notifiable)
-    {
-        return (new MailMessage)
-            ->subject('🗳️ Résultats du vote disponibles')
-            ->greeting('Bonjour ' . $notifiable->name)
-            ->line('Les résultats du scrutin "'.$this->topic->title.'" sont disponibles.')
-            ->action('Voir les résultats', url('/vote/topics/'.$this->topic->id.'/results'))
-            ->line('Merci de votre participation citoyenne !');
-    }
-    
-    public function toDatabase($notifiable)
-    {
-        return [
-            'topic_id' => $this->topic->id,
-            'topic_title' => $this->topic->title,
-            'type' => 'vote_results_available',
-        ];
-    }
-}
+**Parcours législatif à visualiser** :
+```
+📋 Dépôt → 🏛️ Commission → 📖 1ère lecture AN → 📖 1ère lecture Sénat
+        → 🔄 Navette → 📖 2ème lecture → ⚖️ CMP → 🏛️ Conseil Constitutionnel
+        → 📜 Promulgation → 📰 JO
 ```
 
-**Types de notifications** :
-- [ ] `NewPostInFollowedTopic` (nouveau post)
-- [ ] `ReplyToMyPost` (réponse à mon message)
-- [ ] `VoteResultsAvailable` (résultats vote)
-- [ ] `ModerationSanction` (sanction reçue)
-- [ ] `DocumentVerified` (document vérifié)
-- [ ] `BudgetPublished` (budget public publié)
-
-**Queue Jobs** :
-- [ ] Queue `notifications` dédiée
-- [ ] Batch notifications (éviter spam)
-- [ ] Retry logic (3 tentatives)
-
-**Préférences Utilisateur** :
-```php
-// Migration: add_notification_preferences_to_profiles
-$table->json('notification_preferences')->nullable();
-```
-- [ ] Préférences par type (email, in-app)
-- [ ] Fréquence (temps réel, digest quotidien, hebdomadaire)
-- [ ] Page `/profile/notifications`
-
-**Frontend** (1-2 jours) :
-- [ ] Composant `NotificationBell.vue` (header)
-- [ ] Dropdown notifications non lues
-- [ ] Page `Profile/Notifications.vue` (historique)
-- [ ] Page `Profile/NotificationSettings.vue` (préférences)
-- [ ] Badge compteur non lues
-- [ ] Mark as read/unread
-- [ ] Clear all notifications
-
-**Templates Email** :
-- [ ] Template Blade élégant avec logo CivicDash
-- [ ] Footer avec lien désinscription
-- [ ] Responsive email
-- [ ] Test SpamAssassin score
-
-**Critères d'acceptation** :
-- ✅ Notifications in-app temps réel
-- ✅ Emails envoyés en queue
-- ✅ Préférences respectées
-- ✅ Unsubscribe fonctionne
-
-**Métriques** :
-- 🎯 Taux d'ouverture emails > 40%
-- 🎯 Taux clic notifications > 25%
-- 🎯 Engagement +30% avec notifs
+**Tâches** :
+- [ ] Timeline visuelle du parcours
+- [ ] Temps passé à chaque étape
+- [ ] Versions du texte (diff)
+- [ ] Amendements par étape
+- [ ] Votes par chambre
+- [ ] Lien vers texte final (Légifrance)
+- [ ] Intégration Légifrance API
 
 ---
 
-### Semaine 5-6 : International
-
-#### Feature 2.3 : 🌐 Internationalisation (i18n)
-**Priorité** : 🟢 MOYENNE  
-**Durée** : 2-3 jours  
-**Assigné** : Frontend Lead
+### 2.2 : 🗳️ Vote Citoyen sur Textes de Loi
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 2 semaines
 
 **User Stories** :
-- [ ] En tant qu'utilisateur anglophone, je veux utiliser CivicDash en anglais
-- [ ] En tant qu'utilisateur, je veux changer de langue facilement
-- [ ] En tant qu'admin, je veux publier du contenu multilingue
+- [ ] En tant que citoyen, je veux donner mon avis sur un texte
+- [ ] En tant que citoyen, je veux voir comment les élus ont voté
+- [ ] En tant que citoyen, je veux comparer le vote citoyen vs parlementaire
 
-**Tâches techniques** :
+**Fonctionnalités** :
+- [ ] Vote Pour / Contre / Abstention sur textes en cours
+- [ ] Affichage comparatif : 
+  - 📊 Vote citoyen : 65% Pour
+  - 🏛️ Vote AN : 48% Pour
+  - 🏛️ Vote Sénat : 52% Pour
+- [ ] Graphiques de divergence
+- [ ] Historique de mes votes
+- [ ] Partage social
 
-**Backend Laravel** (1 jour) :
-```bash
-composer require laravel-lang/common --dev
-php artisan lang:add en
-php artisan lang:add es  # Espagnol (bonus)
-```
-
-- [ ] Fichiers `lang/fr/*.php` et `lang/en/*.php`
-- [ ] Middleware `SetLocale` (détection navigateur + session)
-- [ ] Helper `__('messages.welcome')`
-- [ ] Traduction validations Laravel
-
-**Frontend Vue i18n** (1-2 jours) :
-```bash
-npm install vue-i18n@9
-```
-
-```javascript
-// resources/js/i18n.js
-import { createI18n } from 'vue-i18n'
-
-const i18n = createI18n({
-    locale: 'fr',
-    fallbackLocale: 'fr',
-    messages: {
-        fr: {
-            nav: {
-                topics: 'Topics',
-                vote: 'Voter',
-                budget: 'Budget',
-                documents: 'Documents',
-            },
-            topics: {
-                create: 'Créer un topic',
-                debate: 'Débat',
-                announcement: 'Annonce',
-                ballot: 'Scrutin',
-            },
-            // ... 300+ traductions
-        },
-        en: {
-            nav: {
-                topics: 'Topics',
-                vote: 'Vote',
-                budget: 'Budget',
-                documents: 'Documents',
-            },
-            // ... traductions EN
-        }
-    }
-})
-```
-
-- [ ] Composant `LanguageSwitcher.vue` (FR/EN)
-- [ ] Traduire toutes les 17 pages
-- [ ] Traduire composants
-- [ ] Dates localisées (moment.js/dayjs)
-- [ ] Nombres formatés (1 000 vs 1,000)
-
-**URLs localisées** :
-```php
-// routes/web.php
-Route::group(['prefix' => '{locale}', 'where' => ['locale' => 'fr|en']], function() {
-    Route::get('/topics', [TopicController::class, 'index'])->name('topics.index');
-    // ...
-});
-```
-
-**Base de données** :
-```php
-// Pour contenu multilingue (optionnel)
-use Spatie\Translatable\HasTranslations;
-
-class Topic extends Model
-{
-    use HasTranslations;
-    
-    public $translatable = ['title', 'description'];
-}
-```
-
-**Critères d'acceptation** :
-- ✅ Interface 100% traduite FR/EN
-- ✅ Switcher langue fonctionne
-- ✅ Dates/nombres localisés
-- ✅ SEO hreflang tags
-
-**Métriques** :
-- 🎯 > 15% trafic international dans 6 mois
+**Règles** :
+- [ ] 1 vote par citoyen par texte
+- [ ] Vote modifiable jusqu'à la clôture
+- [ ] Résultats visibles après clôture
+- [ ] Authentification requise (FranceConnect optionnel)
 
 ---
 
-## 💡 PHASE 3 : FEATURES AVANCÉES (1-2 mois)
-**Version** : 1.2.0  
-**Objectif** : Expérience utilisateur premium
-
-### Mois 2 : UX & Sécurité
-
-#### Feature 3.1 : 🎨 Design System Complet
-**Priorité** : 🟢 MOYENNE  
-**Durée** : 3-4 jours  
-**Assigné** : UI/UX Designer + Frontend Lead
-
-**Deliverables** :
-- [ ] **Palette couleurs** : Bleu/Blanc/Rouge France
-- [ ] **Typographie** : Marianne (police État français)
-- [ ] **Composants UI** : 50+ composants Storybook
-- [ ] **Dark mode** : Switch clair/sombre
-- [ ] **Animations** : Transitions Tailwind
-- [ ] **Accessibilité** : WCAG 2.1 AA
-- [ ] **Documentation** : `docs/DESIGN_SYSTEM.md`
-
----
-
-#### Feature 3.2 : 📱 Progressive Web App (PWA)
-**Priorité** : 🟢 MOYENNE  
-**Durée** : 2-3 jours  
-**Assigné** : Frontend Lead
-
-**Deliverables** :
-```javascript
-// vite.config.js
-import { VitePWA } from 'vite-plugin-pwa'
-
-export default defineConfig({
-    plugins: [
-        VitePWA({
-            registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'robots.txt'],
-            manifest: {
-                name: 'CivicDash - Démocratie Participative',
-                short_name: 'CivicDash',
-                description: 'Plateforme de démocratie participative française',
-                theme_color: '#1e40af',
-                background_color: '#ffffff',
-                display: 'standalone',
-                icons: [
-                    {
-                        src: '/pwa-192x192.png',
-                        sizes: '192x192',
-                        type: 'image/png'
-                    },
-                    {
-                        src: '/pwa-512x512.png',
-                        sizes: '512x512',
-                        type: 'image/png'
-                    }
-                ]
-            },
-            workbox: {
-                runtimeCaching: [
-                    {
-                        urlPattern: /^https:\/\/api\.civicdash\.fr\/.*/i,
-                        handler: 'NetworkFirst',
-                        options: {
-                            cacheName: 'api-cache',
-                            expiration: {
-                                maxEntries: 100,
-                                maxAgeSeconds: 60 * 60 * 24 // 24h
-                            }
-                        }
-                    }
-                ]
-            }
-        })
-    ]
-})
-```
-
-**Features** :
-- [ ] Service Worker
-- [ ] Offline fallback page
-- [ ] Install prompt
-- [ ] App icons (192px, 512px)
-- [ ] Splash screen
-- [ ] Cache stratégies (NetworkFirst, CacheFirst)
-
----
-
-#### Feature 3.3 : 🔐 Sécurité Avancée
+### 2.3 : 📊 Sondages Ouverts
 **Priorité** : 🟡 HAUTE  
-**Durée** : 4-5 jours  
-**Assigné** : Security Lead
-
-**Deliverables** :
-
-**Content Security Policy** :
-```php
-// app/Http/Middleware/SecurityHeaders.php
-$response->headers->set('Content-Security-Policy', 
-    "default-src 'self'; " .
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
-    "style-src 'self' 'unsafe-inline'; " .
-    "img-src 'self' data: https:; " .
-    "connect-src 'self' wss://localhost:*;"
-);
-```
-
-- [ ] CSP headers strict
-- [ ] Subresource Integrity (SRI)
-- [ ] CORS finement configuré
-- [ ] Rate limiting IP (Fail2ban integration)
-- [ ] Audit logs (qui a fait quoi quand)
-- [ ] 2FA pour admins (TOTP)
-- [ ] Penetration testing (OWASP Top 10)
-- [ ] Bug bounty program
-
----
-
-### Mois 3 : Analytics & Optimisations
-
-#### Feature 3.4 : 📊 Analytics & Métriques
-**Priorité** : 🟢 MOYENNE  
-**Durée** : 2-3 jours  
-**Assigné** : Data Analyst + Backend Lead
-
-**Deliverables** :
-- [ ] Plausible Analytics (GDPR-friendly)
-- [ ] Dashboard admin avec graphs (Chart.js)
-- [ ] Métriques métier :
-  - Taux participation votes
-  - Temps moyen allocation budget
-  - Engagement forum (posts/jour)
-  - Taux vérification documents
-- [ ] Export données CSV/Excel
-- [ ] Rapports hebdomadaires automatiques
-
----
-
-#### Feature 3.5 : 🚀 Optimisations Performance
-**Priorité** : 🟡 HAUTE  
-**Durée** : 2-3 jours  
-**Assigné** : Performance Engineer
-
-**Backend** :
-- [ ] Query optimization (N+1 queries)
-- [ ] Database indexing stratégique
-- [ ] Redis cache warming (pré-charger données)
-- [ ] Queue optimization (Horizon fine-tuning)
-- [ ] CDN Cloudflare (assets statiques)
-
-**Frontend** :
-- [ ] Lazy loading routes Vue
-- [ ] Image optimization (WebP, compression)
-- [ ] Code splitting par page
-- [ ] Tree shaking (remove unused code)
-- [ ] Preload critical resources
-- [ ] **Objectif** : Lighthouse score > 90
-
----
-
-#### Feature 3.6 : 📄 Documentation Utilisateur
-**Priorité** : 🟢 MOYENNE  
-**Durée** : 2-3 jours  
-**Assigné** : Tech Writer
-
-**Deliverables** :
-- [ ] Guide utilisateur complet
-- [ ] Tutoriels vidéo (vote, budget)
-- [ ] FAQ (50+ questions)
-- [ ] Page "Comment ça marche ?"
-- [ ] CGU et Politique confidentialité (RGPD)
-- [ ] Guide modérateur
-- [ ] Changelog public
-
----
-
-#### Feature 3.7 : 🧪 Tests E2E (Cypress)
-**Priorité** : 🟡 HAUTE  
-**Durée** : 3-4 jours  
-**Assigné** : QA Lead
-
-**Deliverables** :
-```javascript
-// cypress/e2e/vote-workflow.cy.js
-describe('Vote Anonyme Workflow', () => {
-    it('permet de voter anonymement sur un scrutin', () => {
-        cy.visit('/topics/1')
-        cy.contains('Voter').click()
-        
-        // Demander token
-        cy.contains('Demander un token de vote').click()
-        cy.get('[data-cy=token-value]').should('be.visible')
-        
-        // Voter
-        cy.get('[data-cy=vote-yes]').click()
-        cy.get('[data-cy=confirm-vote]').click()
-        
-        // Vérifier succès
-        cy.contains('Votre vote a été enregistré').should('be.visible')
-    })
-})
-```
-
-**Scénarios critiques** :
-- [ ] Vote anonyme complet
-- [ ] Allocation budget (10 secteurs = 100%)
-- [ ] Modération workflow (report → sanction)
-- [ ] Upload document + vérification
-- [ ] FranceConnect+ login
-- [ ] Responsive mobile
-
-**CI/CD** :
-- [ ] GitHub Actions run Cypress on PR
-- [ ] Visual regression testing (Percy/Applitools)
-- [ ] Tests parallèles (4 workers)
-
----
-
-## 🌟 PHASE 4 : SCALE & INNOVATION (2-3 mois)
-**Version** : 2.0.0  
-**Objectif** : Plateforme nationale scalable
-
-### Mois 4-5 : Features Citoyennes Avancées
-
-#### Feature 4.1 : 📜 Pétitions en Ligne
-**Priorité** : 🟢 MOYENNE  
-**Durée** : 1-2 semaines  
-**Assigné** : Full Stack Team
+**Durée** : 1 semaine
 
 **User Stories** :
-- [ ] En tant que citoyen, je veux créer une pétition
-- [ ] En tant que citoyen, je veux signer une pétition
-- [ ] En tant que citoyen, je veux voir le compteur de signatures
-- [ ] En tant qu'admin, je veux valider les pétitions (modération)
+- [ ] En tant que citoyen, je veux créer un sondage sur un sujet
+- [ ] En tant que citoyen, je veux participer aux sondages
+- [ ] En tant qu'admin, je veux modérer les sondages
 
-**Features** :
-- [ ] Seuils de signatures (100, 1000, 10000, 100000)
-- [ ] Progression visuelle (gauge)
-- [ ] Partage social (Twitter, Facebook, WhatsApp)
-- [ ] Export signataires (CSV anonymisé)
-- [ ] Réponse officielle si seuil atteint
-- [ ] Intégration Assemblée Nationale (si > 100k)
+**Tâches** :
+- [ ] Création de sondages (question + options)
+- [ ] Types : choix unique, choix multiple, échelle
+- [ ] Durée configurable
+- [ ] Résultats en temps réel
+- [ ] Modération avant publication
+- [ ] Export résultats
 
 ---
 
-#### Feature 4.2 : 🏛️ Initiatives Citoyennes
+### 2.4 : 💬 Refonte Forum & Topics
+**Priorité** : 🟡 HAUTE  
+**Durée** : 2 semaines
+
+**User Stories** :
+- [ ] En tant que citoyen, je veux discuter de sujets locaux
+- [ ] En tant que citoyen, je veux taguer mes discussions
+- [ ] En tant que citoyen, je veux rechercher par région/ville
+
+**Améliorations** :
+- [ ] **Tags prédéfinis** : Thématiques (santé, éducation, transport...)
+- [ ] **Géolocalisation** : Région / Département / Ville / Code postal
+- [ ] **Recherche avancée** : Par tags, lieu, date
+- [ ] **Lien avec textes de loi** : Associer discussion à un dossier législatif
+- [ ] **Upvote/Downvote** : Mise en avant des contributions
+- [ ] **Réponses imbriquées** : Threads de discussion
+
+---
+
+### 2.5 : 💰 Budget Participatif Approfondi
 **Priorité** : 🟢 MOYENNE  
-**Durée** : 1-2 semaines  
-**Assigné** : Full Stack Team
+**Durée** : 2 semaines
 
-**Description** :
-Propositions de loi citoyennes avec co-rédaction collaborative
+**User Stories** :
+- [ ] En tant que citoyen, je veux comprendre le budget de l'État
+- [ ] En tant que citoyen, je veux simuler ma propre allocation
+- [ ] En tant que citoyen, je veux comparer avec le budget réel
 
-**Features** :
-- [ ] Éditeur collaboratif (CKEditor)
-- [ ] Versions et historique
-- [ ] Amendements citoyens
-- [ ] Vote sur amendements
-- [ ] Synthèse finale
-- [ ] Transmission élus/ministères
+**Fonctionnalités** :
+- [ ] Visualisation budget État (PLF/PLFSS)
+- [ ] Simulation : "Si j'étais ministre des finances..."
+- [ ] Comparaison allocation citoyenne vs budget voté
+- [ ] Historique budgets (n-5 ans)
+- [ ] Données open data économie.gouv.fr
 
 ---
 
-#### Feature 4.3 : 🗺️ Cartographie Participative
+## 🌐 PHASE 3 : OPEN DATA & INTÉGRATIONS (T3 2026)
+**Objectif** : Enrichir avec des sources externes
+
+### 3.1 : 📚 Intégrations Légifrance
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 2 semaines
+
+**Sources** :
+- API PISTE (Légifrance) : https://piste.gouv.fr/
+- Textes consolidés
+- Jurisprudence
+
+**Tâches** :
+- [ ] Authentification API PISTE
+- [ ] Import textes de loi consolidés
+- [ ] Lien vers articles de loi depuis discussions
+- [ ] Recherche dans les codes
+- [ ] Affichage jurisprudence associée
+
+---
+
+### 3.2 : 📊 Données Open Data Gouvernementales
+**Priorité** : 🟡 HAUTE  
+**Durée** : 2-3 semaines
+
+**Sources identifiées** :
+
+**Économie** :
+- https://data.economie.gouv.fr/api/explore/v2.1/console
+- Budget de l'État, dépenses publiques
+- Marchés publics
+
+**Santé** :
+- https://data.drees.solidarites-sante.gouv.fr/
+- Statistiques hospitalières
+- Indicateurs de santé publique
+
+**INSEE** :
+- Déjà partiellement intégré
+- Enrichir avec données économiques
+
+**Tâches** :
+- [ ] Connecteurs API pour chaque source
+- [ ] Synchronisation périodique
+- [ ] Visualisations dédiées
+- [ ] Corrélations avec votes parlementaires
+
+---
+
+### 3.3 : ⚖️ Conseil Constitutionnel & Ministères
 **Priorité** : 🟢 MOYENNE  
-**Durée** : 1 semaine  
-**Assigné** : Frontend Lead
+**Durée** : 1-2 semaines
 
-**Description** :
-Carte interactive OpenStreetMap pour signalements locaux
+**Sources à explorer** :
+- Conseil Constitutionnel : Décisions QPC
+- Ministères : Données sectorielles
+- Cour des Comptes : Rapports
 
-**Features** :
-- [ ] Carte France avec marqueurs
-- [ ] Signalements géolocalisés (nids de poule, éclairage, etc.)
-- [ ] Photos signalements
-- [ ] Statut traitement (en cours, résolu)
-- [ ] Filtres par type et région
-- [ ] Export données open data
+**Tâches** :
+- [ ] Inventaire open data disponible
+- [ ] Import décisions CC
+- [ ] Lien avec textes de loi censurés/validés
 
 ---
 
-#### Feature 4.4 : 📹 Livestream Débats
-**Priorité** : ⚪ BASSE  
-**Durée** : 1 semaine  
-**Assigné** : Backend Lead
+### 3.4 : 📰 Papiers de Recherche Open Source
+**Priorité** : 🟢 MOYENNE  
+**Durée** : 1 semaine
 
-**Description** :
-Diffusion en direct de débats avec chat modéré
+**Sources** :
+- HAL (archives-ouvertes.fr)
+- OpenEdition
+- Cairn (accès libre)
 
-**Features** :
-- [ ] Intégration YouTube/Twitch Live
-- [ ] Chat temps réel (WebSockets)
-- [ ] Modération chat
-- [ ] Questions citoyennes en direct
-- [ ] Vote sondages pendant le live
-- [ ] Replay vidéo
+**Tâches** :
+- [ ] Recherche par thématique politique
+- [ ] Liens vers études sur sujets débattus
+- [ ] Citation dans discussions
 
 ---
 
-### Mois 5-6 : Intelligence & Scale
+### 3.5 : 🤝 Partenariat Open Data France
+**Priorité** : 🟢 MOYENNE
 
-#### Feature 4.5 : 🤖 ML Auto-Modération
+**Contact** : https://opendatafrance.fr
+
+**Objectifs** :
+- [ ] Présenter le projet
+- [ ] Identifier synergies
+- [ ] Accès à ressources/conseils
+- [ ] Visibilité dans l'écosystème
+
+---
+
+## 🚀 PHASE 4 : LANCEMENT ASSO & SCALE (T4 2026)
+**Objectif** : Structurer le projet et grandir
+
+### 4.1 : 🏢 Création Association CivicDash
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 1 mois
+
+**Tâches** :
+- [ ] Rédaction statuts (loi 1901)
+- [ ] Définition gouvernance
+- [ ] Déclaration préfecture
+- [ ] Compte bancaire association
+- [ ] Site vitrine association
+- [ ] Appel aux bénévoles/contributeurs
+
+**Gouvernance proposée** :
+- Bureau : Président, Trésorier, Secrétaire
+- Conseil d'administration (5-7 membres)
+- Collège développeurs
+- Collège utilisateurs
+
+---
+
+### 4.2 : 📜 Charte Éthique & Bienséance
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 1 semaine
+
+**User Stories** :
+- [ ] En tant que nouvel utilisateur, je dois accepter la charte
+- [ ] En tant que modérateur, je peux sanctionner les violations
+- [ ] En tant qu'utilisateur, je comprends les règles du débat
+
+**Contenu de la charte** :
+- [ ] Respect et bienveillance
+- [ ] Pas de diffamation ni injures
+- [ ] Sources et vérification
+- [ ] Transparence sur les conflits d'intérêts
+- [ ] Protection des données personnelles
+- [ ] Sanctions progressives
+
+**Tâches** :
+- [ ] Page dédiée `/charte`
+- [ ] Modal d'acceptation à l'inscription
+- [ ] Rappel périodique
+- [ ] Lien vers charte dans footer
+
+---
+
+### 4.3 : 🎮 Révision Gamification
 **Priorité** : 🟡 HAUTE  
-**Durée** : 2-3 semaines  
-**Assigné** : ML Engineer
+**Durée** : 1-2 semaines
 
-**Description** :
-Détection automatique contenu toxique/spam avec Machine Learning
+**Objectif** : Encourager la participation constructive
 
-**Features** :
-- [ ] Modèle TensorFlow toxicité (Perspective API)
-- [ ] Score toxicité par message
-- [ ] Auto-flag si score > 80%
-- [ ] Shadowban automatique spammeurs
-- [ ] Dashboard métriques modération
-- [ ] Amélioration continue du modèle
+**Mécaniques** :
+- [ ] **Badges** : Contributeur, Fact-checker, Médiateur
+- [ ] **Niveaux** : Basés sur la qualité (pas quantité)
+- [ ] **Points** : Pour actions positives uniquement
+- [ ] **Classements** : Optionnels, par thématique
+- [ ] **Récompenses** : Visibilité accrue, accès anticipé
 
----
-
-#### Feature 4.6 : 🧠 AI Facilitator
-**Priorité** : ⚪ BASSE  
-**Durée** : 2-3 semaines  
-**Assigné** : ML Engineer
-
-**Description** :
-IA pour faciliter débats et synthétiser discussions
-
-**Features** :
-- [ ] Résumé automatique débats (GPT-4)
-- [ ] Suggestions topics similaires
-- [ ] Détection consensus/dissensus
-- [ ] Graphes de position citoyens
-- [ ] Recommandations personnalisées
-- [ ] Chatbot aide utilisateurs
+**Anti-gaming** :
+- [ ] Pas de points pour volume de posts
+- [ ] Valoriser les sources
+- [ ] Valoriser les réponses constructives
+- [ ] Pénaliser les signalements abusifs
 
 ---
 
-#### Feature 4.7 : ⚙️ Microservices Architecture
+### 4.4 : 🔍 Révision Complète du Site
 **Priorité** : 🟡 HAUTE  
-**Durée** : 1 mois  
-**Assigné** : DevOps + Backend Team
+**Durée** : 2 semaines
 
-**Description** :
-Séparer services pour scaling horizontal
+**Audit à réaliser** :
+- [ ] Performance (Lighthouse)
+- [ ] Accessibilité (WCAG 2.1)
+- [ ] SEO (meta, sitemap, structured data)
+- [ ] Sécurité (headers, OWASP)
+- [ ] UX (tests utilisateurs)
+- [ ] Mobile (responsive parfait)
 
-**Services** :
-- [ ] **Vote Service** (haute charge vote anonyme)
-- [ ] **Budget Service** (calculs allocations)
-- [ ] **Search Service** (Meilisearch dédié)
-- [ ] **Notification Service** (queue emails/push)
-- [ ] **API Gateway** (Kong/Traefik)
-- [ ] **Service Mesh** (Istio)
-- [ ] **Message Bus** (RabbitMQ/Kafka)
+**Corrections** :
+- [ ] Optimisation images
+- [ ] Lazy loading
+- [ ] Cache stratégique
+- [ ] Compression assets
 
 ---
 
-#### Feature 4.8 : ☸️ Kubernetes Production
+### 4.5 : 🇫🇷 FranceConnect+
 **Priorité** : 🟡 HAUTE  
-**Durée** : 2 semaines  
-**Assigné** : DevOps Lead
+**Durée** : 1 semaine
 
-**Description** :
-Déploiement Kubernetes pour haute disponibilité
-
-**Deliverables** :
-- [ ] Cluster Kubernetes (AWS EKS / GCP GKE)
-- [ ] Helm charts
-- [ ] Auto-scaling (HPA)
-- [ ] Rolling updates zero-downtime
-- [ ] Health checks (liveness, readiness)
-- [ ] Ingress NGINX
-- [ ] Cert-manager (SSL auto)
-- [ ] Monitoring (Prometheus + Grafana)
+**Tâches** :
+- [ ] Inscription partenaires.franceconnect.gouv.fr
+- [ ] Intégration OAuth2
+- [ ] Badge "Vérifié par l'État"
+- [ ] Droits étendus pour utilisateurs vérifiés
 
 ---
 
-## 📊 MÉTRIQUES DE SUCCÈS PAR PHASE
+## 📊 SOURCES DE DONNÉES - RÉCAPITULATIF
 
-### Phase 1 (v1.0) - Production Ready
-- 🎯 **1,000 citoyens** inscrits
-- 🎯 **100 topics** créés
-- 🎯 **50 votes** anonymes
-- 🎯 **200 allocations** budget
-- 🎯 **99.5% uptime**
-- 🎯 **Lighthouse score > 80**
+### Déjà intégrées ✅
+| Source | Type | Statut |
+|--------|------|--------|
+| Assemblée Nationale | XML/JSON | ✅ Complet |
+| Sénat | SQL/XML | ✅ Complet |
+| HATVP | XML | ✅ Complet |
+| INSEE | API | ✅ Partiel |
+| Wikipedia | API | ✅ Photos/extraits |
 
-### Phase 2 (v1.1) - Qualité Production
-- 🎯 **5,000 citoyens** inscrits
-- 🎯 **500 topics** créés
-- 🎯 **250 votes** anonymes
-- 🎯 **1,000 allocations** budget
-- 🎯 **30% users FC+**
-- 🎯 **99.9% uptime**
-- 🎯 **MTTR < 30 min**
+### À intégrer 🔄
+| Source | URL | Priorité |
+|--------|-----|----------|
+| Légifrance (PISTE) | piste.gouv.fr | 🔴 Critique |
+| data.economie.gouv.fr | API v2.1 | 🟡 Haute |
+| data.drees.solidarites-sante.gouv.fr | API | 🟡 Haute |
+| Conseil Constitutionnel | À identifier | 🟢 Moyenne |
+| Cour des Comptes | À identifier | 🟢 Moyenne |
 
-### Phase 3 (v1.2) - Features Avancées
-- 🎯 **10,000 citoyens** inscrits
-- 🎯 **1,000 topics** créés
-- 🎯 **500 votes** anonymes
-- 🎯 **3,000 allocations** budget
-- 🎯 **100 documents** vérifiés
-- 🎯 **70% trafic mobile**
-- 🎯 **Lighthouse score > 90**
-
-### Phase 4 (v2.0) - Scale
-- 🎯 **50,000 citoyens** inscrits
-- 🎯 **5,000 topics** créés
-- 🎯 **2,000 votes** anonymes
-- 🎯 **10,000 allocations** budget
-- 🎯 **500 documents** vérifiés
-- 🎯 **99.99% uptime**
-- 🎯 **Temps réponse < 100ms (p95)**
+### À explorer 🔍
+| Source | Contact |
+|--------|---------|
+| Open Data France | opendatafrance.fr |
+| data.gouv.fr | Catalogue général |
+| HAL / OpenEdition | Recherche académique |
 
 ---
 
-## 🏆 VISION LONG TERME (2026+)
+## 🎯 PRIORITÉS IMMÉDIATES (Décembre 2025)
 
-### Plateforme Nationale
-- 🇫🇷 **Partenariat Gouvernement** français
-- 🏛️ **Intégration Assemblée Nationale** (pétitions citoyennes)
-- 🏙️ **Déploiement communes** (toutes villes France > 5000 hab)
-- 🎓 **Éducation civique** (lycées, universités)
+### Cette semaine
+1. ✅ Corriger migrations commissions/groupes
+2. [ ] Pousser et déployer corrections
+3. [ ] Vérifier imports HATVP sur serveur
+4. [ ] Documenter état actuel
 
-### Open Source Européen
-- 🌍 **Fork européen** (Allemagne, Espagne, Italie)
-- 🇪🇺 **Standard EU démocratie participative**
-- 💬 **Communauté 1000+ contributeurs**
-
-### Innovations Technologiques
-- ⛓️ **Blockchain voting** (traçabilité ultime)
-- 🗳️ **Vote liquide** (délégation dynamique)
-- 🔢 **Quadratic voting** (vote préférentiel)
-- 🎭 **VR/AR councils** (réunions métaverse)
+### Semaine prochaine
+1. [ ] Import Questions au Gouvernement
+2. [ ] Tests de non-régression
+3. [ ] Début refonte menu
 
 ---
 
-## 📅 PLANNING VISUEL
+## 📈 MÉTRIQUES DE SUCCÈS
 
-```
-2026 T1          2026 T2          2026 T3          2026 T4
-┌──────────────┬──────────────┬──────────────┬──────────────┐
-│ PHASE 1      │ PHASE 2      │ PHASE 3      │ PHASE 4      │
-│ v1.0         │ v1.1         │ v1.2         │ v2.0         │
-│              │              │              │              │
-│ 🇫🇷 FC+      │ 📊 Monitor   │ 🎨 Design    │ 📜 Pétitions │
-│ 🧪 Tests     │ 📧 Notifs    │ 📱 PWA       │ 🏛️ Init Cit  │
-│ 📱 Mobile    │ 🌐 i18n      │ 🔐 Sécurité  │ 🤖 ML Mod    │
-│ 🔍 Search    │              │ 📊 Analytics │ 🧠 AI Facil  │
-│              │              │ 🚀 Perf      │ ☸️ K8s       │
-│              │              │ 🧪 E2E       │              │
-│              │              │              │              │
-│ Beta Publique│ Prod v1      │ Features++   │ Scale Nation │
-└──────────────┴──────────────┴──────────────┴──────────────┘
-```
+### T1 2026 - Fondations
+- 🎯 Dashboard admin fonctionnel
+- 🎯 Calendrier législatif opérationnel
+- 🎯 Navigation refaite
+- 🎯 100 utilisateurs beta
 
----
+### T2 2026 - Participation
+- 🎯 Vote citoyen lancé
+- 🎯 1000 votes citoyens
+- 🎯 Forum actif (100+ topics)
+- 🎯 500 utilisateurs
 
-## 🎯 PRIORITÉS PAR TRIMESTRE
+### T3 2026 - Données
+- 🎯 5 sources open data intégrées
+- 🎯 API Légifrance connectée
+- 🎯 2000 utilisateurs
 
-### T1 2026 (Janv-Mars) - CRITIQUE 🔴
-1. FranceConnect+ finalisé
-2. Tests additionnels
-3. Responsive mobile
-4. Recherche Meilisearch
-
-### T2 2026 (Avril-Juin) - HAUTE 🟡
-5. Monitoring & Observabilité
-6. Notifications
-7. Internationalisation
-
-### T3 2026 (Juil-Sept) - MOYENNE 🟢
-8. Design System
-9. PWA
-10. Sécurité avancée
-11. Analytics
-12. Optimisations
-13. Documentation
-14. Tests E2E
-
-### T4 2026 (Oct-Déc) - INNOVATION 🌟
-15. Pétitions
-16. Initiatives citoyennes
-17. ML auto-modération
-18. Microservices
-19. Kubernetes
+### T4 2026 - Scale
+- 🎯 Association créée
+- 🎯 Charte acceptée par 100% users
+- 🎯 5000 utilisateurs
+- 🎯 Couverture presse
 
 ---
 
-## 💙 CONCLUSION
+## 🤝 CONTRIBUTION
 
-Cette roadmap transforme CivicDash de **POC fonctionnel** à **plateforme nationale de démocratie participative**.
+### Comment contribuer ?
+1. **Code** : Fork + PR sur GitHub
+2. **Design** : Propositions UI/UX
+3. **Données** : Identifier nouvelles sources
+4. **Traduction** : i18n
+5. **Documentation** : Améliorer les docs
+6. **Tests** : Signaler bugs
 
-**Aujourd'hui** : 95% production-ready  
-**Dans 3 mois** : Plateforme production complète  
-**Dans 6 mois** : 10,000+ citoyens engagés  
-**Dans 1 an** : Standard national français  
-**Dans 2 ans** : Référence européenne  
+### Contact
+- GitHub : github.com/CivicDash
+- Email : contact@civicdash.fr (à créer)
+- Discord : (à créer)
 
-🚀 **Let's change democracy together!** 🇫🇷💙
+---
+
+## 💙 VISION
+
+CivicDash vise à devenir **la référence citoyenne** pour comprendre et participer à la vie démocratique française.
+
+**Notre mission** : Rendre la politique accessible, transparente et participative.
+
+**Nos valeurs** :
+- 🔍 **Transparence** : Toutes les données sont publiques
+- 🤝 **Neutralité** : Pas de biais partisan
+- 🔓 **Open Source** : Code ouvert à tous
+- 🇫🇷 **Citoyenneté** : Pour et par les citoyens
 
 ---
 
 **Maintenu par** : CivicDash Core Team  
-**Version** : 1.0  
-**Dernière mise à jour** : 24 octobre 2026  
+**Version** : 2.0  
+**Dernière mise à jour** : 3 décembre 2025  
 **Licence** : AGPL-3.0 Open Source
-
