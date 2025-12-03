@@ -413,30 +413,10 @@
 
 ---
 
-## 🚀 PHASE 4 : LANCEMENT ASSO & SCALE (T4 2026)
+## 🚀 PHASE 4 : SCALE (T4 2026)
 **Objectif** : Structurer le projet et grandir
 
-### 4.1 : 🏢 Création Association CivicDash
-**Priorité** : 🔴 CRITIQUE  
-**Durée** : 1 mois
-
-**Tâches** :
-- [ ] Rédaction statuts (loi 1901)
-- [ ] Définition gouvernance
-- [ ] Déclaration préfecture
-- [ ] Compte bancaire association
-- [ ] Site vitrine association
-- [ ] Appel aux bénévoles/contributeurs
-
-**Gouvernance proposée** :
-- Bureau : Président, Trésorier, Secrétaire
-- Conseil d'administration (5-7 membres)
-- Collège développeurs
-- Collège utilisateurs
-
----
-
-### 4.2 : 📜 Charte Éthique & Bienséance
+### 4.1 : 📜 Charte Éthique & Bienséance
 **Priorité** : 🔴 CRITIQUE  
 **Durée** : 1 semaine
 
