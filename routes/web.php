@@ -111,7 +111,9 @@ Route::get('/cookies', [PolicyController::class, 'cookies'])->name('cookies');
 |--------------------------------------------------------------------------
 */
 Route::prefix('legislation')->name('legislation.')->group(function () {
-    Route::get('/', [LegislationController::class, 'index'])->name('index');
+    // Hub unifié
+    Route::get('/', [LegislationController::class, 'hub'])->name('hub');
+    Route::get('/propositions', [LegislationController::class, 'index'])->name('index');
     
     // Routes spécifiques AVANT la route générique {id}
     // Groupes parlementaires
@@ -145,6 +147,11 @@ Route::prefix('legislation')->name('legislation.')->group(function () {
     
     // Textes législatifs (NOUVEAU)
     Route::get('/textes/{uid}', [LegislationController::class, 'showTexte'])->name('textes.show');
+    
+    // Redirection /legislation/lois vers /lois (éviter conflit avec route générique)
+    Route::get('/lois', function () {
+        return redirect()->route('lois.index');
+    })->name('lois.redirect');
     
     // Route générique (DOIT être en dernier pour éviter les conflits)
     Route::get('/{proposition}', [LegislationController::class, 'show'])->name('show');

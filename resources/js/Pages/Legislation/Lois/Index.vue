@@ -10,6 +10,7 @@ const props = defineProps({
     etats: Array,
     types: Array,
     annees: Array,
+    thematiques: Array,
     filters: Object,
 });
 
@@ -18,6 +19,8 @@ const selectedEtat = ref(props.filters?.etat || '');
 const selectedType = ref(props.filters?.type || '');
 const selectedAnnee = ref(props.filters?.annee || '');
 const selectedSort = ref(props.filters?.sort || 'recent');
+const selectedThematique = ref(props.filters?.thematique || '');
+const showThematiques = ref(false);
 
 const breadcrumbItems = [
     { label: 'Accueil', href: '/' },
@@ -41,6 +44,7 @@ const applyFilters = () => {
         type: selectedType.value || undefined,
         annee: selectedAnnee.value || undefined,
         sort: selectedSort.value || undefined,
+        thematique: selectedThematique.value || undefined,
     }, {
         preserveState: true,
         preserveScroll: true,
@@ -53,7 +57,24 @@ const resetFilters = () => {
     selectedType.value = '';
     selectedAnnee.value = '';
     selectedSort.value = 'recent';
+    selectedThematique.value = '';
     router.get(route('lois.index'));
+};
+
+const selectThematique = (slug) => {
+    selectedThematique.value = slug;
+    showThematiques.value = false;
+    applyFilters();
+};
+
+const clearThematique = () => {
+    selectedThematique.value = '';
+    applyFilters();
+};
+
+const getSelectedThematique = () => {
+    if (!selectedThematique.value) return null;
+    return props.thematiques?.find(t => t.slug === selectedThematique.value);
 };
 
 let searchTimeout = null;
@@ -62,7 +83,7 @@ watch(search, () => {
     searchTimeout = setTimeout(applyFilters, 500);
 });
 
-watch([selectedEtat, selectedType, selectedAnnee, selectedSort], applyFilters);
+watch([selectedEtat, selectedType, selectedAnnee, selectedSort, selectedThematique], applyFilters);
 
 const getEtatConfig = (code) => {
     const trimmedCode = code?.trim();
@@ -134,6 +155,63 @@ const formatTitre = (titre) => {
 
             <!-- Main Content Full Width -->
             <main class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <!-- Thématiques Tags Bar -->
+                <div v-if="thematiques?.length" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 mb-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">🏷️ Thématiques</span>
+                        <button 
+                            @click="showThematiques = !showThematiques"
+                            class="text-xs text-sky-600 dark:text-sky-400 hover:underline"
+                        >
+                            {{ showThematiques ? 'Réduire' : 'Voir tout (' + thematiques.length + ')' }}
+                        </button>
+                        <button 
+                            v-if="selectedThematique"
+                            @click="clearThematique"
+                            class="ml-auto text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1"
+                        >
+                            <span>✕</span> Effacer le filtre
+                        </button>
+                    </div>
+                    
+                    <!-- Selected Thematique Badge -->
+                    <div v-if="getSelectedThematique()" class="mb-3">
+                        <span 
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold
+                                   bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-2 border-sky-500"
+                        >
+                            <span>{{ getSelectedThematique().icone }}</span>
+                            {{ getSelectedThematique().nom }}
+                            <span class="text-xs opacity-70">({{ getSelectedThematique().count?.toLocaleString() }} lois)</span>
+                            <button @click="clearThematique" class="ml-1 hover:text-rose-600">✕</button>
+                        </span>
+                    </div>
+                    
+                    <!-- Thematiques Grid -->
+                    <div 
+                        :class="[
+                            'flex flex-wrap gap-2 transition-all duration-300 overflow-hidden',
+                            showThematiques ? 'max-h-[500px]' : 'max-h-12'
+                        ]"
+                    >
+                        <button
+                            v-for="theme in thematiques"
+                            :key="theme.slug"
+                            @click="selectThematique(theme.slug)"
+                            :class="[
+                                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all',
+                                selectedThematique === theme.slug
+                                    ? 'bg-sky-500 text-white shadow-md scale-105'
+                                    : 'bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-600'
+                            ]"
+                        >
+                            <span>{{ theme.icone }}</span>
+                            <span class="truncate max-w-[150px]">{{ theme.nom }}</span>
+                            <span class="text-[10px] opacity-60">({{ theme.count }})</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Filters Bar -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700 p-4 mb-6">
                     <div class="flex flex-col lg:flex-row gap-4">

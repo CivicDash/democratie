@@ -16,12 +16,18 @@ class TagController extends Controller
      */
     public function index(): Response
     {
-        $tags = Tag::orderBy('name')->get();
-        $popularTags = Tag::popular(10)->get();
+        $tags = Tag::validated()
+            ->orderBy('nom')
+            ->get();
+
+        $popularTags = Tag::validated()
+            ->orderByDesc('usage_count')
+            ->limit(10)
+            ->get();
 
         return Inertia::render('Tags/Index', [
-            'tags' => $tags,
-            'popularTags' => $popularTags,
+            'tags' => $tags->map(fn($t) => $this->formatTag($t)),
+            'popularTags' => $popularTags->map(fn($t) => $this->formatTag($t)),
         ]);
     }
 
@@ -34,54 +40,39 @@ class TagController extends Controller
     {
         $tag = Tag::where('slug', $slug)->firstOrFail();
 
-        // Scrutins associés
-        $scrutins = $tag->scrutins()
-            ->orderBy('date_scrutin', 'desc')
-            ->paginate(20);
-
-        // Dossiers associés
-        $dossiers = $tag->dossiersLegislatifs()
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        // Lois associées
+        $lois = $tag->lois()
+            ->with('etat')
+            ->orderByDesc('loidatjo')
+            ->limit(20)
+            ->get();
 
         // Topics associés
         $topics = $tag->topics()
-            ->with('author')
+            ->with('user')
             ->withCount('posts')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        // Textes JO associés
+        $textesJo = $tag->textesJo()
+            ->orderByDesc('date_publication')
+            ->limit(20)
+            ->get();
 
         return Inertia::render('Tags/Show', [
-            'tag' => [
-                'id' => $tag->id,
-                'slug' => $tag->slug,
-                'name' => $tag->name,
-                'color' => $tag->color,
-                'icon' => $tag->icon,
-                'description' => $tag->description,
-                'usage_count' => $tag->usage_count,
-            ],
-            'scrutins' => [
-                'data' => $scrutins->map(fn($s) => [
-                    'uid' => $s->uid,
-                    'numero' => $s->numero,
-                    'titre' => $s->titre,
-                    'date' => $s->date_scrutin?->format('d/m/Y'),
-                    'nombre_pour' => $s->pour,
-                    'nombre_contre' => $s->contre,
-                    'nombre_abstention' => $s->abstentions,
-                    'resultat_libelle' => $s->resultat_libelle,
+            'tag' => $this->formatTag($tag),
+            'lois' => [
+                'data' => $lois->map(fn($l) => [
+                    'loicod' => $l->loicod,
+                    'titre' => $l->titre_court,
+                    'numero' => $l->numero,
+                    'date_jo' => $l->loidatjo?->format('d/m/Y'),
+                    'etat' => $l->etat_libelle,
+                    'etat_couleur' => $l->etat_couleur,
                 ]),
-                'total' => $scrutins->total(),
-            ],
-            'dossiers' => [
-                'data' => $dossiers->map(fn($d) => [
-                    'uid' => $d->uid,
-                    'titre' => $d->titre,
-                    'titre_court' => $d->titre_court,
-                    'legislature' => $d->legislature,
-                ]),
-                'total' => $dossiers->total(),
+                'total' => $tag->lois()->count(),
             ],
             'topics' => [
                 'data' => $topics->map(fn($t) => [
@@ -90,12 +81,40 @@ class TagController extends Controller
                     'description' => $t->description,
                     'user_name' => $t->user->name ?? 'Anonyme',
                     'created_at' => $t->created_at->diffForHumans(),
-                    'posts_count' => $t->posts_count,
-                    'votes_count' => $t->ballot_type ? $t->votes()->count() : null,
+                    'posts_count' => $t->posts_count ?? 0,
                 ]),
-                'total' => $topics->total(),
+                'total' => $tag->topics()->count(),
+            ],
+            'textesJo' => [
+                'data' => $textesJo->map(fn($t) => [
+                    'id' => $t->id,
+                    'jorf_id' => $t->jorf_id,
+                    'titre' => $t->titre_court,
+                    'nature' => $t->nature,
+                    'date_publication' => $t->date_publication?->format('d/m/Y'),
+                    'legifrance_url' => $t->legifrance_url,
+                ]),
+                'total' => $tag->textesJo()->count(),
             ],
         ]);
     }
-}
 
+    /**
+     * Format un tag pour le frontend
+     */
+    protected function formatTag(Tag $tag): array
+    {
+        return [
+            'id' => $tag->id,
+            'slug' => $tag->slug,
+            'nom' => $tag->nom,
+            'couleur' => $tag->couleur,
+            'icone' => $tag->icone,
+            'description' => $tag->description,
+            'type' => $tag->type,
+            'source' => $tag->source,
+            'usage_count' => $tag->usage_count,
+            'validated' => $tag->validated,
+        ];
+    }
+}

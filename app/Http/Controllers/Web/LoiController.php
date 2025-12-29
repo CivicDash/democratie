@@ -7,6 +7,8 @@ use App\Models\Loi;
 use App\Models\EtatLoi;
 use App\Models\TypeLoi;
 use App\Models\ThematiqueLoi;
+use App\Models\Tag;
+use App\Models\ScrutinAN;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +44,14 @@ class LoiController extends Controller
                 $q->where('loitit', 'ILIKE', "%{$search}%")
                   ->orWhere('loiint', 'ILIKE', "%{$search}%")
                   ->orWhere('numero', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        // Filtre par thématique (tag)
+        if ($request->filled('thematique')) {
+            $tagSlug = $request->thematique;
+            $query->whereHas('tags', function ($q) use ($tagSlug) {
+                $q->where('slug', $tagSlug);
             });
         }
 
@@ -96,13 +106,28 @@ class LoiController extends Controller
             ->filter()
             ->values();
 
+        // Thématiques (tags officiels)
+        $thematiques = Tag::official()
+            ->validated()
+            ->where('usage_count', '>', 0)
+            ->orderByDesc('usage_count')
+            ->get()
+            ->map(fn ($t) => [
+                'slug' => $t->slug,
+                'nom' => $t->nom,
+                'icone' => $t->icone,
+                'couleur' => $t->couleur,
+                'count' => $t->usage_count,
+            ]);
+
         return Inertia::render('Legislation/Lois/Index', [
             'lois' => $lois,
             'stats' => $stats,
             'etats' => $etats,
             'types' => $types,
             'annees' => $annees,
-            'filters' => $request->only(['etat', 'type', 'annee', 'search', 'sort']),
+            'thematiques' => $thematiques,
+            'filters' => $request->only(['etat', 'type', 'annee', 'search', 'sort', 'thematique']),
         ]);
     }
 
@@ -136,6 +161,36 @@ class LoiController extends Controller
                 ->orderByDesc('loidatjo')
                 ->take(5)
                 ->get();
+        }
+
+        // Scrutins AN liés (recherche par numéro ou titre)
+        $scrutinsLies = collect();
+        $searchTerms = [];
+        
+        // Construire les termes de recherche
+        if (!empty($loi->numero)) {
+            $searchTerms[] = $loi->numero;
+        }
+        
+        // Extraire mots clés du titre (> 5 caractères)
+        $titreMots = preg_split('/\s+/', $loi->loitit ?? '');
+        $motsSignificatifs = array_filter($titreMots, fn($m) => strlen($m) > 8);
+        $motsSignificatifs = array_slice($motsSignificatifs, 0, 3);
+        
+        if (!empty($searchTerms) || !empty($motsSignificatifs)) {
+            $scrutinsQuery = ScrutinAN::query()
+                ->where(function ($q) use ($searchTerms, $motsSignificatifs) {
+                    foreach ($searchTerms as $term) {
+                        $q->orWhere('titre', 'ILIKE', "%{$term}%");
+                    }
+                    foreach ($motsSignificatifs as $mot) {
+                        $q->orWhere('titre', 'ILIKE', "%{$mot}%");
+                    }
+                })
+                ->orderByDesc('date_scrutin')
+                ->limit(10);
+            
+            $scrutinsLies = $scrutinsQuery->get();
         }
 
         return Inertia::render('Legislation/Lois/Show', [
@@ -176,6 +231,16 @@ class LoiController extends Controller
                 'numero' => trim($l->numero ?? ''),
                 'date_jo' => $l->loidatjo?->format('d/m/Y'),
                 'etat_couleur' => $l->etat_couleur,
+            ]),
+            'scrutins' => $scrutinsLies->map(fn ($s) => [
+                'uid' => $s->uid,
+                'numero' => $s->numero,
+                'titre' => \Str::limit($s->titre, 150),
+                'date' => $s->date_scrutin?->format('d/m/Y'),
+                'pour' => $s->pour,
+                'contre' => $s->contre,
+                'abstentions' => $s->abstentions,
+                'resultat' => $s->resultat_libelle,
             ]),
         ]);
     }

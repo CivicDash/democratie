@@ -70,6 +70,23 @@ class Loi extends Model
         );
     }
 
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'loi_tag', 'loi_loicod', 'tag_id', 'loicod', 'id')
+            ->withPivot(['source', 'confidence', 'validated', 'suggested_by'])
+            ->withTimestamps();
+    }
+
+    public function tagsOfficiels(): BelongsToMany
+    {
+        return $this->tags()->wherePivot('source', 'official');
+    }
+
+    public function tagsValides(): BelongsToMany
+    {
+        return $this->tags()->wherePivot('validated', true);
+    }
+
     // ==========================================
     // SCOPES
     // ==========================================

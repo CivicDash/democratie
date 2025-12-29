@@ -9,8 +9,11 @@ use App\Models\AmendementAN;
 use App\Models\DossierLegislatifAN;
 use App\Models\TexteLegislatifAN;
 use App\Models\VoteIndividuelAN;
+use App\Models\Loi;
+use App\Models\Tag;
 use App\Services\GroupeParlementaireService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,9 +23,62 @@ use Inertia\Response;
 class LegislationController extends Controller
 {
     /**
-     * Display list of legislative propositions
+     * Hub Législation - Point d'entrée unifié
      * 
      * GET /legislation
+     */
+    public function hub(): Response
+    {
+        // Stats générales
+        $stats = Cache::remember('legislation_hub_stats', 3600, function () {
+            return [
+                'total' => Loi::count(),
+                'promulguees' => Loi::promulguees()->count(),
+                'en_cours' => Loi::enCours()->count(),
+                'rejetees' => Loi::rejetees()->count(),
+                'cette_annee' => Loi::promulguees()
+                    ->whereYear('loidatjo', now()->year)
+                    ->count(),
+            ];
+        });
+
+        // Thématiques avec compteurs
+        $thematiques = Tag::official()
+            ->validated()
+            ->where('usage_count', '>', 0)
+            ->orderByDesc('usage_count')
+            ->get()
+            ->map(fn ($t) => [
+                'slug' => $t->slug,
+                'nom' => $t->nom,
+                'icone' => $t->icone,
+                'couleur' => $t->couleur,
+                'count' => $t->usage_count,
+            ]);
+
+        // Dernières lois promulguées
+        $dernieresLois = Loi::promulguees()
+            ->orderByDesc('loidatjo')
+            ->limit(10)
+            ->get()
+            ->map(fn ($l) => [
+                'loicod' => trim($l->loicod),
+                'numero' => trim($l->numero ?? ''),
+                'titre' => $l->titre_court,
+                'date_jo' => $l->loidatjo?->format('d/m/Y'),
+            ]);
+
+        return Inertia::render('Legislation/Hub', [
+            'stats' => $stats,
+            'thematiques' => $thematiques,
+            'dernieresLois' => $dernieresLois,
+        ]);
+    }
+
+    /**
+     * Display list of legislative propositions
+     * 
+     * GET /legislation/propositions
      */
     public function index(Request $request): Response
     {

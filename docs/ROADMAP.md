@@ -367,7 +367,82 @@ services:
 
 ---
 
-### 2.1.6 : 📚 Enrichissement Légifrance (Futur)
+### 2.1.6 : 🏷️ Système de Tags & Thématiques ✅ IMPLÉMENTÉ
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 jour → **Terminé le 29/12/2025**
+
+**Implémentation** :
+- [x] Table `tags` étendue (type, source, validated, usage_count)
+- [x] Tables pivot `loi_tag`, `texte_jo_tag`, `topic_tag`
+- [x] Table `tag_suggestions` pour contributions communauté
+- [x] Modèles `Tag`, `TagSuggestion`
+- [x] Commande `sync:tags-senat` pour synchroniser les 30 thématiques officielles
+- [x] 16 962 associations lois ↔ tags créées automatiquement
+- [x] Filtres par thématique sur `/legislation/lois`
+
+**Prochaines étapes** :
+- [ ] Facettes Meilisearch pour recherche
+- [ ] UI suggestion de tags par utilisateurs
+- [ ] Classification IA (CamemBERT) - long terme
+
+---
+
+### 2.1.7 : 🔍 Recherche Globale Intelligente
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 1-2 semaines
+
+**Objectif** : Un seul champ de recherche qui trouve tout, avec résultats groupés par type.
+
+**User Stories** :
+- [ ] En tant que citoyen, je tape "retraite" et je vois lois, députés, scrutins, discussions
+- [ ] En tant que citoyen, je veux des suggestions pendant la frappe
+- [ ] En tant que citoyen, je veux filtrer par type après la recherche
+
+**Fonctionnalités** :
+```
+Recherche "retraite"
+├── 👤 Députés/Sénateurs (5)
+├── 📜 Lois (12)
+├── 📰 Textes JO (8)
+├── 🗳️ Scrutins (3)
+└── 💬 Discussions (15)
+```
+
+**Technique** : Meilisearch (déjà installé)
+- [ ] Index multi-modèles (Loi, ActeurAN, Senateur, ScrutinAN, Topic, TexteJO)
+- [ ] Recherche < 50ms
+- [ ] Typo-tolerant ("retrait" → "retraite")
+- [ ] Highlighting des résultats
+- [ ] Facettes par type de contenu
+- [ ] Suggestions autocomplete
+
+---
+
+### 2.1.8 : 🏛️ Hub Législation Unifié
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 semaine
+
+**Objectif** : Unifier `/tags` et `/legislation/lois` en un seul point d'entrée cohérent.
+
+**Architecture proposée** :
+```
+/legislation
+├── 📊 Vue d'ensemble (stats, tendances, dernières lois)
+├── 🏷️ Explorer par thématique (30 catégories visuelles)
+├── 📜 Toutes les lois (grille + filtres combinés)
+└── 🔍 Recherche avancée
+```
+
+**Tâches** :
+- [ ] Page hub `/legislation` avec 3 modes d'exploration
+- [ ] Fusionner `/tags` → redirection vers `/legislation?thematique=X`
+- [ ] Visualisation par thématique (cards avec icônes, couleurs, stats)
+- [ ] Filtres combinables (État + Année + Thématique)
+- [ ] Barre de recherche contextuelle
+
+---
+
+### 2.1.9 : 📚 Enrichissement Légifrance (Futur)
 **Priorité** : 🟢 MOYENNE  
 **Statut** : ⏸️ En attente (API restreinte)
 

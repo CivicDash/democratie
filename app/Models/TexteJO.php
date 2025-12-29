@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class TexteJO extends Model
 {
@@ -44,6 +45,13 @@ class TexteJO extends Model
     public function loi(): BelongsTo
     {
         return $this->belongsTo(Loi::class, 'loi_loicod', 'loicod');
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'texte_jo_tag')
+            ->withPivot(['source', 'confidence', 'validated', 'suggested_by'])
+            ->withTimestamps();
     }
 
     // ==========================================

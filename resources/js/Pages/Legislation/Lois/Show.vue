@@ -8,6 +8,7 @@ const props = defineProps({
     loi: Object,
     parcours: Array,
     loisSimilaires: Array,
+    scrutins: Array,
 });
 
 const breadcrumbItems = computed(() => [
@@ -306,6 +307,40 @@ const getChambreConfig = (code) => chambreConfig[code] || { icon: '📋', name: 
                                     <div class="w-5 h-5 rounded-full bg-emerald-500" />
                                     <span class="text-sm text-slate-600 dark:text-slate-400">Promulgation</span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Scrutins liés -->
+                        <div v-if="scrutins?.length > 0" class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden">
+                            <div class="p-4 border-b border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800/50">
+                                <h3 class="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <span>🗳️</span> Scrutins liés
+                                    <span class="text-xs text-slate-400 font-normal">({{ scrutins.length }})</span>
+                                </h3>
+                            </div>
+                            <div class="divide-y divide-slate-100 dark:divide-gray-700 max-h-80 overflow-y-auto">
+                                <Link
+                                    v-for="scrutin in scrutins"
+                                    :key="scrutin.uid"
+                                    :href="route('legislation.scrutins.show', scrutin.uid)"
+                                    class="block p-3 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors"
+                                >
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-xs font-mono text-slate-400 dark:text-slate-500 flex-shrink-0">
+                                            #{{ scrutin.numero }}
+                                        </span>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
+                                                {{ scrutin.titre }}
+                                            </p>
+                                            <div class="flex items-center gap-2 mt-1 text-xs">
+                                                <span class="text-emerald-600 dark:text-emerald-400">✓ {{ scrutin.pour }}</span>
+                                                <span class="text-rose-600 dark:text-rose-400">✗ {{ scrutin.contre }}</span>
+                                                <span v-if="scrutin.abstentions" class="text-slate-400">○ {{ scrutin.abstentions }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Link>
                             </div>
                         </div>
 
