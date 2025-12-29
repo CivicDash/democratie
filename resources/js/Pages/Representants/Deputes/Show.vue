@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
   depute: Object,
@@ -51,17 +52,11 @@ const extractInstagramHandle = (url) => {
       <div class="mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <Link :href="route('representants.mes-representants')" class="hover:text-blue-600 transition">
-            Mes Représentants
-          </Link>
-          <span>/</span>
-          <Link :href="route('representants.deputes.index')" class="hover:text-blue-600 transition">
-            Députés
-          </Link>
-          <span>/</span>
-          <span class="text-gray-900 dark:text-gray-100 font-medium">{{ depute.nom }}</span>
-        </div>
+        <Breadcrumb :items="[
+          { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+          { label: 'Députés', href: route('representants.deputes.index'), icon: '👥' },
+          { label: depute.nom, icon: '👤' }
+        ]" />
 
         <!-- Header avec photo + Wikipedia -->
         <Card>

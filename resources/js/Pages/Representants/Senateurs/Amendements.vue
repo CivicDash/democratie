@@ -1,10 +1,11 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import TextInput from '@/Components/TextInput.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
   senateur: Object,
@@ -12,6 +13,13 @@ const props = defineProps({
   filters: Object,
   statistiques: Object,
 });
+
+const breadcrumbItems = computed(() => [
+  { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+  { label: 'Sénateurs', href: route('representants.senateurs.index') },
+  { label: props.senateur.nom_usuel || props.senateur.nom, href: route('representants.senateurs.show', props.senateur.id) },
+  { label: 'Amendements', icon: '📝' },
+]);
 
 const search = ref(props.filters.search || '');
 const sort = ref(props.filters.sort || '');
@@ -51,21 +59,7 @@ const getSortBadgeClass = (sortCode) => {
       <div class="mx-auto sm:px-6 lg:px-8 space-y-6" style="max-width: 100%;">
         
         <!-- Breadcrumb -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-0 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 transition font-medium">
-          <Link :href="route('representants.mes-representants')" class="hover:text-blue-600">
-            Mes Représentants
-          </Link>
-          <span>/</span>
-          <Link :href="route('representants.senateurs.index')" class="hover:text-blue-600">
-            Sénateurs
-          </Link>
-          <span>/</span>
-          <Link :href="route('representants.senateurs.show', senateur.id)" class="hover:text-blue-600">
-            {{ senateur.nom_usuel }}
-          </Link>
-          <span>/</span>
-          <span class="text-gray-900 dark:text-gray-100">Amendements</span>
-        </div>
+        <Breadcrumb :items="breadcrumbItems" />
 
         <!-- Header -->
         <div class="bg-gradient-to-r from-green-700 to-teal-700 rounded-xl shadow-lg p-8 text-white">

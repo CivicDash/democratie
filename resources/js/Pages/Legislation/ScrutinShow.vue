@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
   scrutin: Object,
@@ -48,13 +49,11 @@ const getVoteLabel = (type) => {
       <div class="mx-auto sm:px-6 lg:px-8 space-y-6" style="max-width: 100%;">
         
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <Link :href="route('legislation.index')" class="hover:text-blue-600">
-            Législation
-          </Link>
-          <span>/</span>
-          <span class="text-gray-900 dark:text-gray-100">Scrutin {{ scrutin.numero }}</span>
-        </div>
+        <Breadcrumb :items="[
+          { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+          { label: 'Scrutins', href: route('legislation.scrutins.index'), icon: '🗳️' },
+          { label: `Scrutin n°${scrutin.numero}` }
+        ]" />
 
         <!-- Header -->
         <div class="bg-gradient-to-r from-indigo-700 to-blue-700 rounded-xl shadow-lg p-8 text-white">

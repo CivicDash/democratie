@@ -11,9 +11,15 @@ use App\Models\TopicBallot;
 use App\Models\GroupeParlementaire;
 use App\Models\VoteLegislatif;
 use App\Models\DeputeSenateur;
+use App\Models\ActeurAN;
+use App\Models\Senateur;
+use App\Models\ScrutinAN;
+use App\Models\OrganeAN;
+use App\Models\DashboardStat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -25,44 +31,48 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // 🔥 SUJETS TENDANCES (5 derniers topics populaires)
-        $trendingTopics = Topic::with(['author:id,name'])
-            ->withCount(['posts', 'views'])
-            ->whereIn('status', ['open', 'published']) // Inclure open ET published
-            ->orderByDesc('views_count')
-            ->orderByDesc('created_at') // Tri secondaire par date si même nb de vues
-            ->limit(5)
-            ->get()
-            ->map(function ($topic) {
-                return [
-                    'id' => $topic->id,
-                    'titre' => $topic->title,
-                    'auteur' => $topic->author->name ?? 'Anonyme',
-                    'type' => $topic->type,
-                    'scope' => $topic->scope,
-                    'territoire' => $topic->territory?->name ?? 'National',
-                    'nb_posts' => $topic->posts_count,
-                    'nb_vues' => $topic->views_count,
-                    'created_at' => $topic->created_at->diffForHumans(),
-                ];
-            });
+        // 🔥 SUJETS TENDANCES (5 derniers topics populaires) - Cache 5 min
+        $trendingTopics = Cache::remember('dashboard_trending_topics', 300, function () {
+            return Topic::with(['author:id,name'])
+                ->withCount(['posts', 'views'])
+                ->whereIn('status', ['open', 'published'])
+                ->orderByDesc('views_count')
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get()
+                ->map(function ($topic) {
+                    return [
+                        'id' => $topic->id,
+                        'titre' => $topic->title,
+                        'auteur' => $topic->author->name ?? 'Anonyme',
+                        'type' => $topic->type,
+                        'scope' => $topic->scope,
+                        'territoire' => $topic->territory?->name ?? 'National',
+                        'nb_posts' => $topic->posts_count,
+                        'nb_vues' => $topic->views_count,
+                        'created_at' => $topic->created_at->diffForHumans(),
+                    ];
+                });
+        });
 
-        // 🏛️ PROPOSITIONS DE LOI TENDANCES (par score de vote)
-        $propositionsLegislatives = PropositionLoi::orderByDesc('score_vote')
-            ->limit(5)
-            ->get()
-            ->map(function ($prop) {
-                $stats = VotePropositionLoi::getPropositionStats($prop->id);
-                return [
-                    'id' => $prop->id,
-                    'numero' => $prop->numero,
-                    'titre' => $prop->titre,
-                    'source' => $prop->source,
-                    'statut' => $prop->statut,
-                    'date_depot' => $prop->date_depot?->format('d/m/Y'),
-                    'votes_stats' => $stats,
-                ];
-            });
+        // 🏛️ PROPOSITIONS DE LOI TENDANCES (par score de vote) - Cache 10 min
+        $propositionsLegislatives = Cache::remember('dashboard_propositions', 600, function () {
+            return PropositionLoi::orderByDesc('score_vote')
+                ->limit(5)
+                ->get()
+                ->map(function ($prop) {
+                    $stats = VotePropositionLoi::getPropositionStats($prop->id);
+                    return [
+                        'id' => $prop->id,
+                        'numero' => $prop->numero,
+                        'titre' => $prop->titre,
+                        'source' => $prop->source,
+                        'statut' => $prop->statut,
+                        'date_depot' => $prop->date_depot?->format('d/m/Y'),
+                        'votes_stats' => $stats,
+                    ];
+                });
+        });
 
         // 🗳️ VOTES EN COURS (topics avec scrutin actif)
         $votesEnCours = Topic::where('has_ballot', true)
@@ -126,13 +136,15 @@ class DashboardController extends Controller
             }
         }
 
-        // 📊 STATISTIQUES GLOBALES
-        $globalStats = [
-            'total_topics' => Topic::whereIn('status', ['open', 'published'])->count(),
-            'total_votes' => TopicBallot::count(), // Total des bulletins de vote émis
-            'total_propositions' => PropositionLoi::count(),
-            'total_users_allocated' => UserAllocation::distinct('user_id')->count('user_id'),
-        ];
+        // 📊 STATISTIQUES GLOBALES - Cache 10 min
+        $globalStats = Cache::remember('dashboard_global_stats', 600, function () {
+            return [
+                'total_topics' => Topic::whereIn('status', ['open', 'published'])->count(),
+                'total_votes' => TopicBallot::count(),
+                'total_propositions' => PropositionLoi::count(),
+                'total_users_allocated' => UserAllocation::distinct('user_id')->count('user_id'),
+            ];
+        });
 
         // 🎯 ACTIVITÉ RÉCENTE DE L'UTILISATEUR
         $userActivity = [
@@ -159,36 +171,67 @@ class DashboardController extends Controller
                 ]),
         ];
 
-        // 🏛️ GROUPES PARLEMENTAIRES (top 5 par nombre de députés)
-        $groupesParlementaires = GroupeParlementaire::where('source', 'assemblee')
-            ->where('actif', true)
-            ->orderByDesc('nombre_membres')
-            ->limit(5)
-            ->get()
-            ->map(fn($groupe) => [
-                'id' => $groupe->id,
-                'nom' => $groupe->nom,
-                'sigle' => $groupe->sigle,
-                'couleur' => $groupe->couleur_hex ?? '#6B7280',
-                'nb_deputes' => $groupe->nombre_membres,
-            ]);
+        // 🏛️ GROUPES PARLEMENTAIRES (top 5 par nombre de députés) - Cache 1h
+        $groupesParlementaires = Cache::remember('dashboard_groupes_parl', 3600, function () {
+            return GroupeParlementaire::where('source', 'assemblee')
+                ->where('actif', true)
+                ->orderByDesc('nombre_membres')
+                ->limit(5)
+                ->get()
+                ->map(fn($groupe) => [
+                    'id' => $groupe->id,
+                    'nom' => $groupe->nom,
+                    'sigle' => $groupe->sigle,
+                    'couleur' => $groupe->couleur_hex ?? '#6B7280',
+                    'nb_deputes' => $groupe->nombre_membres,
+                ]);
+        });
 
-        // 📊 VOTES LÉGISLATIFS RÉCENTS (5 derniers)
-        $votesLegislatifs = VoteLegislatif::with('proposition:id,numero,titre')
-            ->orderByDesc('date_vote')
-            ->limit(5)
-            ->get()
-            ->map(fn($vote) => [
-                'id' => $vote->id,
-                'titre' => $vote->titre,
-                'proposition_numero' => $vote->proposition?->numero,
-                'proposition_titre' => $vote->proposition?->titre,
-                'date' => $vote->date_vote->format('d/m/Y'),
-                'pour' => $vote->pour,
-                'contre' => $vote->contre,
-                'abstention' => $vote->abstention,
-                'resultat' => $vote->pour > $vote->contre ? 'adopté' : 'rejeté',
-            ]);
+        // 📊 STATISTIQUES PRÉ-CALCULÉES (table dashboard_stats)
+        // Ces stats sont mises à jour quotidiennement via: php artisan dashboard:calculate-stats
+        $derniersScrutins = collect(DashboardStat::get('derniers_scrutins', []))->take(5);
+        $topDeputes = collect(DashboardStat::get('top_deputes', []))->take(5);
+        $topSenateurs = collect(DashboardStat::get('top_senateurs', []))->take(5);
+        $groupesActifs = collect(DashboardStat::get('groupes_actifs', []))->take(5);
+
+        // 📅 PROCHAINES RÉUNIONS (live - cache 30 min)
+        $prochainesReunions = Cache::remember('dashboard_prochaines_reunions', 1800, function () {
+            return \App\Models\ReunionAN::with('organe:uid,libelle,libelle_abrege')
+                ->aVenir()
+                ->orderBy('date_debut')
+                ->limit(5)
+                ->get()
+                ->map(fn($r) => [
+                    'uid' => $r->uid,
+                    'titre' => $r->titre_odj ?? $r->organe_nom ?? 'Réunion',
+                    'type' => $r->type_reunion,
+                    'emoji' => $r->emoji_type,
+                    'date' => $r->date_debut?->format('d/m H:i'),
+                    'date_relative' => $r->date_debut?->diffForHumans(),
+                    'organe' => $r->organe?->libelle_abrege ?? $r->organe?->libelle,
+                    'organe_couleur' => '#6B7280', // Couleur par défaut
+                    'etat' => $r->etat,
+                ]);
+        });
+
+        // Fallback pour votes législatifs si pas de scrutins
+        $votesLegislatifs = $derniersScrutins->isEmpty() 
+            ? VoteLegislatif::with('proposition:id,numero,titre')
+                ->orderByDesc('date_vote')
+                ->limit(5)
+                ->get()
+                ->map(fn($vote) => [
+                    'id' => $vote->id,
+                    'titre' => $vote->titre,
+                    'proposition_numero' => $vote->proposition?->numero,
+                    'proposition_titre' => $vote->proposition?->titre,
+                    'date' => $vote->date_vote->format('d/m/Y'),
+                    'pour' => $vote->pour,
+                    'contre' => $vote->contre,
+                    'abstention' => $vote->abstention,
+                    'resultat' => $vote->pour > $vote->contre ? 'adopté' : 'rejeté',
+                ])
+            : collect([]);
 
         // 📍 MES REPRÉSENTANTS (député + sénateurs si localisation configurée)
         $mesRepresentants = [
@@ -247,6 +290,11 @@ class DashboardController extends Controller
             'groupesParlementaires' => $groupesParlementaires,
             'votesLegislatifs' => $votesLegislatifs,
             'mesRepresentants' => $mesRepresentants,
+            'derniersScrutins' => $derniersScrutins,
+            'topDeputes' => $topDeputes,
+            'topSenateurs' => $topSenateurs,
+            'groupesActifs' => $groupesActifs,
+            'prochainesReunions' => $prochainesReunions,
         ]);
     }
 }

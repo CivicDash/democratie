@@ -4,6 +4,7 @@ import { ref, computed } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
   senateur: Object,
@@ -88,17 +89,11 @@ const getSegmentHeight = (value, total) => {
       <div class="mx-auto sm:px-6 lg:px-8 space-y-6" style="max-width: 100%;">
         
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <Link :href="route('representants.mes-representants')" class="hover:text-blue-600">
-            Mes Représentants
-          </Link>
-          <span>/</span>
-          <Link :href="route('representants.senateurs.index')" class="hover:text-red-600">
-            Sénateurs
-          </Link>
-          <span>/</span>
-          <span class="text-gray-900 dark:text-gray-100">{{ senateur.nom }}</span>
-        </div>
+        <Breadcrumb :items="[
+          { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+          { label: 'Sénateurs', href: route('representants.senateurs.index'), icon: '🏰' },
+          { label: senateur.nom, icon: '👤' }
+        ]" />
 
         <!-- Header avec photo + Wikipedia -->
         <Card>

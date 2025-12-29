@@ -35,10 +35,46 @@ Route::get('/', function () {
         return redirect()->route('dashboard');
     }
     
-    // Sinon, afficher la page démo
+    // Statistiques pré-calculées (table dashboard_stats)
+    // Mises à jour quotidiennement via: php artisan dashboard:calculate-stats
+    $globalStats = \App\Models\DashboardStat::get('global_stats', [
+        'nb_deputes' => 577,
+        'nb_senateurs' => 348,
+        'nb_scrutins' => 0,
+        'nb_amendements_an' => 0,
+    ]);
+    
+    $stats = [
+        'deputes' => $globalStats['nb_deputes'] ?? 577,
+        'senateurs' => $globalStats['nb_senateurs'] ?? 348,
+        'scrutins' => $globalStats['nb_scrutins'] ?? 0,
+        'amendements' => $globalStats['nb_amendements_an'] ?? 0,
+    ];
+    
+    // Derniers scrutins pré-calculés
+    $derniersScrutins = collect(\App\Models\DashboardStat::get('derniers_scrutins', []))->take(5);
+    
+    // Derniers amendements (fallback cache si pas encore en stats)
+    $derniersAmendements = \Illuminate\Support\Facades\Cache::remember('homepage_amendements', 600, function () {
+        return \App\Models\AmendementAN::where('sort_libelle', 'Adopté')
+            ->orderByDesc('date_depot')
+            ->limit(5)
+            ->get()
+            ->map(fn($a) => [
+                'uid' => $a->uid,
+                'numero' => $a->numero,
+                'auteur' => $a->auteur_libelle,
+                'objet' => \Illuminate\Support\Str::limit($a->expose ?? $a->dispositif ?? 'Amendement', 100),
+                'date' => $a->date_depot?->format('d/m/Y'),
+            ]);
+    });
+    
     return Inertia::render('Demo/Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+        'stats' => $stats,
+        'derniersScrutins' => $derniersScrutins,
+        'derniersAmendements' => $derniersAmendements,
     ]);
 })->name('home');
 
@@ -111,6 +147,22 @@ Route::prefix('legislation')->name('legislation.')->group(function () {
     
     // Route générique (DOIT être en dernier pour éviter les conflits)
     Route::get('/{proposition}', [LegislationController::class, 'show'])->name('show');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Parlement - Calendrier Législatif
+|--------------------------------------------------------------------------
+*/
+Route::prefix('parlement')->name('parlement.')->group(function () {
+    // Calendrier des réunions
+    Route::get('/calendrier', [\App\Http\Controllers\Web\CalendrierController::class, 'index'])->name('calendrier.index');
+    Route::get('/calendrier/semaine', [\App\Http\Controllers\Web\CalendrierController::class, 'semaine'])->name('calendrier.semaine');
+    Route::get('/calendrier/reunion/{uid}', [\App\Http\Controllers\Web\CalendrierController::class, 'show'])->name('calendrier.show');
+    
+    // API pour widgets
+    Route::get('/api/reunions/aujourdhui', [\App\Http\Controllers\Web\CalendrierController::class, 'aujourdhui'])->name('api.reunions.aujourdhui');
+    Route::get('/api/reunions/prochaines', [\App\Http\Controllers\Web\CalendrierController::class, 'prochaines'])->name('api.reunions.prochaines');
 });
 
 /*

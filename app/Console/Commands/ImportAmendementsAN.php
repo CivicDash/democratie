@@ -178,35 +178,52 @@ class ImportAmendementsAN extends Command
 
         // Extraction des données
         $identificationAmd = $amendement['identification'] ?? [];
-        $auteur = $amendement['auteur'] ?? [];
+        $signataires = $amendement['signataires'] ?? [];
+        $auteur = $signataires['auteur'] ?? [];
         $pointeurFragmentTexte = $amendement['pointeurFragmentTexte'] ?? [];
         $corps = $amendement['corps'] ?? [];
         $cycleDeVie = $amendement['cycleDeVie'] ?? [];
 
         // Extraction auteur
-        $auteurType = $auteur['tribunOuGroupe'] ?? $auteur['typeAuteur'] ?? 'Inconnu';
+        $auteurType = $auteur['typeAuteur'] ?? 'Inconnu';
         $auteurActeurRef = null;
         $auteurGroupeRef = null;
         $auteurLibelle = null;
 
-        if (isset($auteur['acteurRef'])) {
-            $auteurActeurRef = $auteur['acteurRef'];
-        } elseif (isset($auteur['organeRef'])) {
-            $auteurGroupeRef = $auteur['organeRef'];
+        // acteurRef peut être une string directe ou contenir @xsi:nil
+        // On vérifie que l'acteur existe dans la base pour éviter les erreurs de FK
+        if (isset($auteur['acteurRef']) && is_string($auteur['acteurRef'])) {
+            $acteurExists = \App\Models\ActeurAN::where('uid', $auteur['acteurRef'])->exists();
+            $auteurActeurRef = $acteurExists ? $auteur['acteurRef'] : null;
         }
-        $auteurLibelle = $auteur['identite'] ?? $auteur['libelle'] ?? null;
+        
+        // groupePolitiqueRef pour le groupe
+        if (isset($auteur['groupePolitiqueRef']) && is_string($auteur['groupePolitiqueRef'])) {
+            $auteurGroupeRef = $auteur['groupePolitiqueRef'];
+        }
+        
+        // Le libellé est dans signataires.libelle
+        $auteurLibelle = $signataires['libelle'] ?? null;
 
-        // Cosignataires
+        // Cosignataires (dans signataires.cosignataires)
         $cosignataires = [];
         $nombreCosignataires = 0;
-        if (isset($amendement['cosignataires']['cosignataire'])) {
-            $cosigsData = $amendement['cosignataires']['cosignataire'];
+        $cosignatairesData = $signataires['cosignataires'] ?? null;
+        
+        // Vérifier que ce n'est pas un @xsi:nil
+        if ($cosignatairesData && is_array($cosignatairesData) && !isset($cosignatairesData['@xsi:nil'])) {
+            $cosigsData = $cosignatairesData['cosignataire'] ?? $cosignatairesData;
+            
+            // Si c'est un seul cosignataire (pas un array de cosignataires)
             if (isset($cosigsData['acteurRef'])) {
                 $cosigsData = [$cosigsData];
             }
-            foreach ($cosigsData as $cosig) {
-                if (isset($cosig['acteurRef'])) {
-                    $cosignataires[] = $cosig['acteurRef'];
+            
+            if (is_array($cosigsData)) {
+                foreach ($cosigsData as $cosig) {
+                    if (isset($cosig['acteurRef']) && is_string($cosig['acteurRef'])) {
+                        $cosignataires[] = $cosig['acteurRef'];
+                    }
                 }
             }
             $nombreCosignataires = count($cosignataires);

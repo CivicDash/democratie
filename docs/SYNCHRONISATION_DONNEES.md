@@ -2,15 +2,36 @@
 
 Ce document décrit le système de synchronisation automatique des données depuis les sources officielles.
 
+> **Dernière mise à jour** : Décembre 2025
+
 ## 📋 Vue d'ensemble
 
 Le système synchronise les données de trois sources :
 
 | Source | Format | Fréquence recommandée | Données |
 |--------|--------|----------------------|---------|
-| **Assemblée Nationale** | XML | Quotidienne | Députés, scrutins, amendements, organes |
+| **Assemblée Nationale** | XML/JSON | Quotidienne | Députés, scrutins, amendements, organes |
 | **Sénat** | PostgreSQL + XML | Quotidienne | Sénateurs, votes, amendements, textes |
 | **HATVP** | XML | Hebdomadaire | Déclarations d'intérêts et patrimoine |
+| **Wikipedia** | API | Hebdomadaire | Photos, extraits biographiques |
+
+---
+
+## ⚡ Commande Principale
+
+```bash
+# Synchronisation complète (tout en une commande)
+php artisan sync:all
+
+# Options disponibles
+php artisan sync:all --quick          # Mode rapide (données récentes uniquement)
+php artisan sync:all --senat          # Sénat uniquement
+php artisan sync:all --an             # Assemblée uniquement
+php artisan sync:all --hatvp          # HATVP uniquement
+php artisan sync:all --photos         # Photos Wikipedia uniquement
+php artisan sync:all --fresh          # Réimport complet (LONG!)
+php artisan sync:all --dry-run        # Simulation sans exécution
+```
 
 ---
 
@@ -80,6 +101,44 @@ php artisan scrutins:recalculer --legislature=17
 | `organes` | Groupes, commissions | `OrganeAN` |
 | `amendements` | Amendements déposés | `AmendementAN` |
 | `dossiers` | Dossiers législatifs | `DossierLegislatif` |
+
+### Commandes d'import détaillées
+
+```bash
+# Import des amendements AN (depuis fichiers JSON téléchargés)
+php artisan import:amendements-an
+php artisan import:amendements-an --legislature=17 --limit=100
+
+# Import des acteurs (députés)
+php artisan import:acteurs-an
+php artisan import:acteurs-an --legislature=17
+
+# Import des scrutins
+php artisan import:scrutins-an
+php artisan import:scrutins-an --legislature=17 --fresh
+
+# Import des organes (groupes, commissions)
+php artisan import:organes-an
+
+# Import des mandats
+php artisan import:mandats-an
+
+# Import des dossiers législatifs
+php artisan import:dossiers-an
+```
+
+### Commandes d'enrichissement
+
+```bash
+# Enrichir les données députés depuis NosDéputés.fr
+php artisan enrich:deputes-from-api
+php artisan enrich:deputes-from-api --limit=50
+
+# Enrichir avec photos Wikipedia
+php artisan enrich:photos-wikipedia
+php artisan enrich:photos-wikipedia --deputes
+php artisan enrich:photos-wikipedia --senateurs
+```
 
 ### Configuration
 
@@ -330,6 +389,110 @@ php artisan migrate:fresh --seed
 
 # Puis resynchroniser
 ./scripts/sync-all-data.sh
+```
+
+---
+
+## 📊 Statistiques Dashboard Pré-calculées
+
+Pour optimiser les performances, les statistiques du dashboard sont pré-calculées et stockées dans la table `dashboard_stats`.
+
+### Commande de calcul
+
+```bash
+# Calcul des statistiques (12 secondes environ)
+php artisan dashboard:calculate-stats
+
+# Forcer le recalcul même si frais (< 12h)
+php artisan dashboard:calculate-stats --force
+```
+
+### Données calculées
+
+| Clé | Description | Taille |
+|-----|-------------|--------|
+| `top_deputes` | Top 10 députés par nombre de votes | ~10 entrées |
+| `top_senateurs` | Top 10 sénateurs par nombre d'amendements | ~10 entrées |
+| `groupes_actifs` | Top 10 groupes par nombre de membres | ~10 entrées |
+| `derniers_scrutins` | 10 derniers scrutins | ~10 entrées |
+| `global_stats` | Compteurs globaux (députés, sénateurs, scrutins, amendements) | 4 valeurs |
+
+### Planification automatique
+
+La commande est planifiée automatiquement via le scheduler Laravel :
+
+```php
+// routes/console.php
+Schedule::command('dashboard:calculate-stats --force')
+    ->dailyAt('04:00')
+    ->description('Recalcul quotidien des statistiques dashboard');
+```
+
+**Configuration cron requise** :
+```bash
+* * * * * php /var/www/artisan schedule:run >> /dev/null 2>&1
+```
+
+### Utilisation dans le code
+
+```php
+use App\Models\DashboardStat;
+
+// Récupérer une statistique
+$topDeputes = DashboardStat::get('top_deputes', []);
+
+// Mettre à jour une statistique
+DashboardStat::set('global_stats', ['nb_deputes' => 577, ...]);
+
+// Vérifier si les stats sont fraîches (< 24h)
+if (!DashboardStat::isFresh('top_deputes', 24)) {
+    Artisan::call('dashboard:calculate-stats');
+}
+```
+
+### Table `dashboard_stats`
+
+```sql
+CREATE TABLE dashboard_stats (
+    id BIGSERIAL PRIMARY KEY,
+    key VARCHAR(255) UNIQUE,      -- Identifiant unique
+    value JSON,                   -- Données pré-calculées
+    calculated_at TIMESTAMP,      -- Date du dernier calcul
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+---
+
+## 🐛 Bugs Connus et Correctifs
+
+### 1. Amendements AN sans auteur (corrigé Déc. 2025)
+
+**Symptôme** : Les amendements importés avaient `auteur_acteur_ref: NULL`, ce qui empêchait le calcul des statistiques par député.
+
+**Cause** : Le fichier `ImportAmendementsAN.php` cherchait l'auteur à un mauvais chemin JSON.
+
+**Correction** :
+```php
+// Avant (incorrect) :
+$auteur = $amendement['auteur'] ?? [];
+
+// Après (correct) :
+$auteur = $amendement['signataires']['auteur'] ?? [];
+```
+
+**Fichier** : `app/Console/Commands/ImportAmendementsAN.php`
+
+**Vérification** :
+```bash
+# Vérifier le lien auteur/amendements
+docker compose exec app php artisan tinker --execute="
+\$avec = \App\Models\AmendementAN::whereNotNull('auteur_acteur_ref')->count();
+\$sans = \App\Models\AmendementAN::whereNull('auteur_acteur_ref')->count();
+echo 'Avec auteur: ' . \$avec . PHP_EOL;
+echo 'Sans auteur: ' . \$sans . PHP_EOL;
+"
 ```
 
 ---

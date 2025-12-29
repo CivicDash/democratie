@@ -2,7 +2,26 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+/*
+|--------------------------------------------------------------------------
+| Tâches Planifiées
+|--------------------------------------------------------------------------
+| Ces commandes s'exécutent automatiquement via le scheduler Laravel.
+| Ajouter au crontab : * * * * * php /var/www/artisan schedule:run >> /dev/null 2>&1
+*/
+
+// Recalcul des statistiques du dashboard tous les jours à 4h du matin
+Schedule::command('dashboard:calculate-stats --force')
+    ->dailyAt('04:00')
+    ->description('Recalcul quotidien des statistiques dashboard');
+
+// Synchronisation des données parlementaires (si activée)
+// Schedule::command('sync:all --quick')
+//     ->dailyAt('05:00')
+//     ->description('Synchronisation quotidienne des données AN/Sénat');

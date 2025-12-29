@@ -5,6 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import TextInput from '@/Components/TextInput.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
   depute: Object,
@@ -55,21 +56,12 @@ const getVoteIcon = (position) => {
       <div class="mx-auto sm:px-6 lg:px-8 space-y-6" style="max-width: 100%;">
         
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <Link :href="route('representants.mes-representants')" class="hover:text-blue-600">
-            Mes Représentants
-          </Link>
-          <span>/</span>
-          <Link :href="route('representants.deputes.index')" class="hover:text-blue-600">
-            Députés
-          </Link>
-          <span>/</span>
-          <Link :href="route('representants.deputes.show', depute.uid)" class="hover:text-blue-600">
-            {{ depute.nom }}
-          </Link>
-          <span>/</span>
-          <span class="text-gray-900 dark:text-gray-100">Votes</span>
-        </div>
+        <Breadcrumb :items="[
+          { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+          { label: 'Députés', href: route('representants.deputes.index'), icon: '👥' },
+          { label: depute.nom, href: route('representants.deputes.show', depute.uid), icon: '👤' },
+          { label: 'Votes', icon: '🗳️' }
+        ]" />
 
         <!-- Header -->
         <div class="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-xl shadow-lg p-8 text-white">

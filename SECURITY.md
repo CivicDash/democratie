@@ -97,3 +97,26 @@ Les chercheurs en sécurité qui signalent des vulnérabilités de manière resp
 
 **Merci de contribuer à la sécurité de CivicDash !** 🔒
 
+
+### 📋 TODO Sécurité (Audit Décembre 2025)
+
+**🔴 Avant mise en production réelle :**
+- [ ] Passer `APP_DEBUG=false`
+- [ ] Activer `SESSION_ENCRYPT=true`
+- [ ] Créer middleware `SecurityHeaders` (X-Frame-Options, CSP, X-Content-Type-Options, etc.)
+- [ ] Configurer CORS explicitement (`config/cors.php`)
+- [ ] Activer WAF ou protection Cloudflare
+
+**🟡 Améliorations recommandées :**
+- [ ] Scanner les fichiers ZIP uploadés ou limiter les types MIME
+- [ ] Ajouter index GIN/GiST sur colonnes de recherche ILIKE fréquentes
+- [ ] Vérifier cookie XSRF côté frontend pour API Sanctum
+- [ ] Audit des logs sensibles (éviter de logger des données personnelles)
+
+**✅ Points validés (audit déc. 2025) :**
+- [x] Système de vote anonyme correctement implémenté (BallotService)
+- [x] Form Requests avec validation stricte
+- [x] Policies d'autorisation complètes
+- [x] Protection injection SQL via Eloquent
+- [x] Rate limiting en place
+- [x] Conformité RGPD (consentements, export données)
