@@ -4,29 +4,62 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
-    reunion: Object,
-    reunionsSimilaires: Array,
+    evenement: Object,
+    similaires: Array,
 });
+
+// Alias pour compatibilité
+const evt = props.evenement;
 
 const breadcrumbItems = [
     { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
     { label: 'Calendrier', href: route('parlement.calendrier.index'), icon: '📅' },
-    { label: props.reunion.organe?.nom || 'Réunion', icon: props.reunion.emoji },
+    { label: evt.instance || evt.typeLabel || 'Événement', icon: evt.icon },
 ];
 
+// Formater la date
+const formatDate = (dateIso) => {
+    if (!dateIso) return '';
+    const d = new Date(dateIso);
+    return d.toLocaleDateString('fr-FR', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
+// Formater l'heure
+const formatHeure = (dateIso) => {
+    if (!dateIso) return '';
+    const d = new Date(dateIso);
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+};
+
 // Couleur d'état
-const getEtatClass = (etat) => {
-    switch (etat) {
-        case 'Confirmé': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-        case 'Annulé': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-        case 'Terminé': return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+const getEtatClass = (statut) => {
+    switch (statut) {
+        case 'confirme': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+        case 'annule': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+        case 'reporte': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
         default: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+    }
+};
+
+const getStatutLabel = (statut) => {
+    switch (statut) {
+        case 'confirme': return 'Confirmé';
+        case 'annule': return 'Annulé';
+        case 'reporte': return 'Reporté';
+        default: return 'Prévu';
     }
 };
 </script>
 
 <template>
-    <Head :title="reunion.titre" />
+    <Head :title="evt.title" />
     
     <AuthenticatedLayout>
         <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950/20">
@@ -35,43 +68,46 @@ const getEtatClass = (etat) => {
                 <!-- Breadcrumb -->
                 <Breadcrumb :items="breadcrumbItems" class="mb-6" />
                 
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-xl p-8 text-white mb-8">
+                <!-- Header avec couleur source -->
+                <div 
+                    class="rounded-2xl shadow-xl p-8 text-white mb-8"
+                    :style="{ background: `linear-gradient(135deg, ${evt.color}, ${evt.color}dd)` }"
+                >
                     <div class="flex flex-col lg:flex-row lg:items-start gap-6">
                         <!-- Icône -->
                         <div class="flex-shrink-0">
                             <div class="w-20 h-20 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center text-4xl">
-                                {{ reunion.emoji }}
+                                {{ evt.icon }}
                             </div>
                         </div>
                         
                         <!-- Infos -->
                         <div class="flex-1">
                             <div class="flex flex-wrap items-center gap-3 mb-3">
-                                <span :class="getEtatClass(reunion.etat)" class="px-3 py-1 rounded-full text-sm font-semibold">
-                                    {{ reunion.etat || 'Prévu' }}
+                                <span :class="getEtatClass(evt.statut)" class="px-3 py-1 rounded-full text-sm font-semibold">
+                                    {{ getStatutLabel(evt.statut) }}
                                 </span>
-                                <span v-if="reunion.type_reunion" class="bg-white/20 px-3 py-1 rounded-full text-sm">
-                                    {{ reunion.type_reunion }}
+                                <span class="bg-white/20 px-3 py-1 rounded-full text-sm font-semibold">
+                                    {{ evt.sourceLabel }}
                                 </span>
-                                <span v-if="reunion.format_reunion" class="bg-white/20 px-3 py-1 rounded-full text-sm">
-                                    {{ reunion.format_reunion }}
+                                <span class="bg-white/20 px-3 py-1 rounded-full text-sm">
+                                    {{ evt.typeLabel }}
                                 </span>
                             </div>
                             
                             <h1 class="text-3xl lg:text-4xl font-bold mb-3">
-                                {{ reunion.titre }}
+                                {{ evt.title }}
                             </h1>
                             
-                            <div class="flex flex-wrap gap-4 text-indigo-100">
+                            <div class="flex flex-wrap gap-4 text-white/90">
                                 <span class="flex items-center gap-2">
-                                    📅 {{ reunion.date_formatee }}
+                                    📅 {{ formatDate(evt.start) }}
                                 </span>
-                                <span v-if="reunion.lieu" class="flex items-center gap-2">
-                                    📍 {{ reunion.lieu }}
+                                <span v-if="evt.lieu" class="flex items-center gap-2">
+                                    📍 {{ evt.lieu }}
                                 </span>
-                                <span v-if="reunion.organe" class="flex items-center gap-2">
-                                    🏛️ {{ reunion.organe.nom }}
+                                <span v-if="evt.instance" class="flex items-center gap-2">
+                                    🏛️ {{ evt.instance }}
                                 </span>
                             </div>
                         </div>
@@ -79,18 +115,22 @@ const getEtatClass = (etat) => {
                     
                     <!-- Badges -->
                     <div class="flex flex-wrap gap-3 mt-6">
-                        <span v-if="reunion.visio" class="bg-white/20 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2">
-                            💻 Visioconférence
-                        </span>
-                        <span v-if="reunion.presse" class="bg-white/20 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2">
-                            📰 Ouverte à la presse
-                        </span>
-                        <span v-if="reunion.video" class="bg-white/20 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2">
-                            🎥 Captation vidéo
-                        </span>
-                        <span v-if="reunion.reunion_internationale" class="bg-white/20 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2">
-                            🌍 Réunion internationale
-                        </span>
+                        <a 
+                            v-if="evt.urlVideo" 
+                            :href="evt.urlVideo"
+                            target="_blank"
+                            class="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 transition"
+                        >
+                            🎥 Voir la vidéo
+                        </a>
+                        <a 
+                            v-if="evt.urlSource" 
+                            :href="evt.urlSource"
+                            target="_blank"
+                            class="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 transition"
+                        >
+                            🔗 Source officielle
+                        </a>
                     </div>
                 </div>
                 
@@ -98,57 +138,17 @@ const getEtatClass = (etat) => {
                     <!-- Contenu principal -->
                     <div class="lg:col-span-2 space-y-6">
                         
-                        <!-- Ordre du jour -->
-                        <div v-if="reunion.odj_resume?.length || reunion.odj_convocation?.length" 
+                        <!-- Description -->
+                        <div v-if="evt.description" 
                             class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                             <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                📋 Ordre du jour
+                                📋 Description
                             </h2>
                             
-                            <ol class="space-y-3">
-                                <li 
-                                    v-for="(item, index) in (reunion.odj_resume || reunion.odj_convocation)"
-                                    :key="index"
-                                    class="flex gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
-                                >
-                                    <span class="flex-shrink-0 w-8 h-8 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center font-bold text-sm">
-                                        {{ index + 1 }}
-                                    </span>
-                                    <span class="text-slate-700 dark:text-slate-300 flex-1">
-                                        {{ item }}
-                                    </span>
-                                </li>
-                            </ol>
-                        </div>
-                        
-                        <!-- Personnes auditionnées -->
-                        <div v-if="reunion.personnes_auditionnees?.length" 
-                            class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                                👥 Personnes auditionnées
-                            </h2>
-                            
-                            <div class="space-y-3">
-                                <div 
-                                    v-for="(personne, index) in reunion.personnes_auditionnees"
-                                    :key="index"
-                                    class="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
-                                >
-                                    <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center text-xl">
-                                        👤
-                                    </div>
-                                    <div>
-                                        <p class="font-semibold text-slate-900 dark:text-white">
-                                            {{ personne.identite }}
-                                        </p>
-                                        <p v-if="personne.qualite" class="text-sm text-slate-500 dark:text-slate-400">
-                                            {{ personne.qualite }}
-                                        </p>
-                                        <p v-if="personne.organisme" class="text-sm text-indigo-600 dark:text-indigo-400">
-                                            {{ personne.organisme }}
-                                        </p>
-                                    </div>
-                                </div>
+                            <div class="prose dark:prose-invert max-w-none">
+                                <p class="text-slate-700 dark:text-slate-300 whitespace-pre-line">
+                                    {{ evt.description }}
+                                </p>
                             </div>
                         </div>
                         
@@ -160,20 +160,38 @@ const getEtatClass = (etat) => {
                             
                             <dl class="grid sm:grid-cols-2 gap-4">
                                 <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Source</dt>
+                                    <dd class="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span 
+                                            class="w-3 h-3 rounded-full" 
+                                            :style="{ backgroundColor: evt.color }"
+                                        ></span>
+                                        {{ evt.sourceLabel }}
+                                    </dd>
+                                </div>
+                                <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Type</dt>
+                                    <dd class="text-slate-900 dark:text-white">{{ evt.icon }} {{ evt.typeLabel }}</dd>
+                                </div>
+                                <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Début</dt>
+                                    <dd class="text-slate-900 dark:text-white">{{ formatDate(evt.start) }}</dd>
+                                </div>
+                                <div v-if="evt.end" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Fin</dt>
+                                    <dd class="text-slate-900 dark:text-white">{{ formatDate(evt.end) }}</dd>
+                                </div>
+                                <div v-if="evt.lieu" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg sm:col-span-2">
+                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Lieu</dt>
+                                    <dd class="text-slate-900 dark:text-white">📍 {{ evt.lieu }}</dd>
+                                </div>
+                                <div v-if="evt.instance" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg sm:col-span-2">
+                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Instance / Organe</dt>
+                                    <dd class="text-slate-900 dark:text-white">{{ evt.instance }}</dd>
+                                </div>
+                                <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                                     <dt class="text-sm text-slate-500 dark:text-slate-400">Identifiant</dt>
-                                    <dd class="font-mono text-sm text-slate-900 dark:text-white">{{ reunion.uid }}</dd>
-                                </div>
-                                <div v-if="reunion.date_creation" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Date de création</dt>
-                                    <dd class="text-slate-900 dark:text-white">{{ reunion.date_creation }}</dd>
-                                </div>
-                                <div v-if="reunion.compte_rendu_ref" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Compte-rendu</dt>
-                                    <dd class="font-mono text-sm text-indigo-600 dark:text-indigo-400">{{ reunion.compte_rendu_ref }}</dd>
-                                </div>
-                                <div v-if="reunion.pays?.length" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                                    <dt class="text-sm text-slate-500 dark:text-slate-400">Pays concernés</dt>
-                                    <dd class="text-slate-900 dark:text-white">{{ reunion.pays.join(', ') }}</dd>
+                                    <dd class="font-mono text-xs text-slate-700 dark:text-slate-300 break-all">{{ evt.uid }}</dd>
                                 </div>
                             </dl>
                         </div>
@@ -194,37 +212,60 @@ const getEtatClass = (etat) => {
                                 </Link>
                                 
                                 <a
-                                    v-if="reunion.organe"
-                                    :href="`https://www.assemblee-nationale.fr/dyn/${reunion.organe.uid}`"
+                                    v-if="evt.urlSource"
+                                    :href="evt.urlSource"
                                     target="_blank"
                                     class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
                                 >
-                                    🌐 Voir sur assemblee-nationale.fr
+                                    🌐 Page officielle
+                                </a>
+                                
+                                <a
+                                    v-if="evt.urlVideo"
+                                    :href="evt.urlVideo"
+                                    target="_blank"
+                                    class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition"
+                                >
+                                    🎥 Voir la vidéo
                                 </a>
                             </div>
                         </div>
                         
-                        <!-- Réunions similaires -->
-                        <div v-if="reunionsSimilaires?.length" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <!-- Événements similaires -->
+                        <div v-if="similaires?.length" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                             <h3 class="font-bold text-slate-900 dark:text-white mb-4">
-                                Autres réunions de {{ reunion.organe?.nom || 'cet organe' }}
+                                Événements similaires
                             </h3>
                             
                             <div class="space-y-3">
                                 <Link
-                                    v-for="r in reunionsSimilaires"
-                                    :key="r.uid"
-                                    :href="route('parlement.calendrier.show', r.uid)"
+                                    v-for="s in similaires"
+                                    :key="s.uid"
+                                    :href="route('parlement.calendrier.show', s.uid)"
                                     class="block p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 transition"
                                 >
-                                    <p class="font-semibold text-slate-900 dark:text-white text-sm">
-                                        {{ r.date_courte }}
-                                    </p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-1">
-                                        {{ r.titre }}
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span 
+                                            class="w-2 h-2 rounded-full" 
+                                            :style="{ backgroundColor: s.color }"
+                                        ></span>
+                                        <p class="font-semibold text-slate-900 dark:text-white text-sm">
+                                            {{ formatHeure(s.start) }}
+                                        </p>
+                                    </div>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                                        {{ s.title }}
                                     </p>
                                 </Link>
                             </div>
+                        </div>
+                        
+                        <!-- Info source -->
+                        <div class="bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800 rounded-xl p-6">
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                <span class="font-semibold">Source des données:</span><br/>
+                                {{ evt.source === 'an' ? 'Assemblée nationale - Agenda.json' : 'Sénat - Flux iCal' }}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -233,4 +274,3 @@ const getEtatClass = (etat) => {
         </div>
     </AuthenticatedLayout>
 </template>
-

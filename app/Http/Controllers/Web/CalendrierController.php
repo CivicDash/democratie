@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\EvenementLegislatif;
 use App\Models\ReunionAN;
 use App\Models\OrganeAN;
 use Carbon\Carbon;
@@ -13,77 +14,73 @@ use Inertia\Inertia;
 class CalendrierController extends Controller
 {
     /**
-     * Page principale du calendrier législatif
+     * Page principale du calendrier législatif unifié (AN + Sénat)
      */
     public function index(Request $request)
     {
         $mois = $request->get('mois', now()->month);
         $annee = $request->get('annee', now()->year);
-        $type = $request->get('type'); // Commission, Séance, etc.
-        $organe = $request->get('organe');
+        $source = $request->get('source'); // 'an', 'senat', ou null pour tous
+        $type = $request->get('type'); // 'seance', 'commission', etc.
         
         // Date de référence
         $dateRef = Carbon::createFromDate($annee, $mois, 1);
         
-        // Réunions du mois
-        $reunions = ReunionAN::with('organe:uid,libelle,libelle_abrege')
-            ->mois($annee, $mois)
+        // Événements du mois depuis la table unifiée
+        $evenements = EvenementLegislatif::query()
+            ->mois($dateRef)
+            ->confirmes()
+            ->when($source, fn($q) => $q->source($source))
             ->when($type, fn($q) => $q->type($type))
-            ->when($organe, fn($q) => $q->where('organe_ref', $organe))
             ->orderBy('date_debut')
             ->get()
-            ->map(fn($r) => $this->formatReunion($r));
+            ->map(fn($e) => $e->toCalendarEvent());
         
-        // Grouper par jour pour le calendrier
-        $reunionsParJour = $reunions->groupBy(function ($r) {
-            return Carbon::parse($r['date_debut'])->format('Y-m-d');
-        });
+        // Grouper par jour pour le calendrier (convertir en tableau pour Inertia)
+        $evenementsParJour = $evenements->groupBy(function ($e) {
+            return Carbon::parse($e['start'])->format('Y-m-d');
+        })->map(fn($items) => $items->values()->all())->all();
         
         // Statistiques du mois
         $stats = [
-            'total' => $reunions->count(),
-            'confirmees' => $reunions->where('etat', 'Confirmé')->count(),
-            'annulees' => $reunions->where('etat', 'Annulé')->count(),
-            'commissions' => $reunions->where('type_reunion', 'Commission')->count(),
-            'seances' => $reunions->where('type_reunion', 'Séance publique')->count(),
+            'total' => $evenements->count(),
+            'an' => $evenements->where('source', 'an')->count(),
+            'senat' => $evenements->where('source', 'senat')->count(),
+            'elysee' => $evenements->where('source', 'elysee')->count(),
+            'seances' => $evenements->where('type', 'seance')->count(),
+            'commissions' => $evenements->where('type', 'commission')->count(),
+            'reunions' => $evenements->where('type', 'reunion')->count(),
         ];
         
-        // Types de réunions disponibles
-        $typesDisponibles = ReunionAN::select('type_reunion')
+        // Types disponibles
+        $typesDisponibles = EvenementLegislatif::select('type')
             ->distinct()
-            ->whereNotNull('type_reunion')
-            ->pluck('type_reunion')
-            ->toArray();
-        
-        // Organes avec réunions
-        $organesDisponibles = Cache::remember('calendrier_organes', 3600, function () {
-            return OrganeAN::whereIn('uid', function ($query) {
-                $query->select('organe_ref')
-                    ->from('reunions_an')
-                    ->distinct();
-            })
-            ->select('uid', 'libelle', 'libelle_abrege')
-            ->orderBy('libelle')
-            ->get()
-            ->map(fn($o) => [
-                'uid' => $o->uid,
-                'nom' => $o->libelle_abrege ?? $o->libelle,
+            ->pluck('type')
+            ->map(fn($t) => [
+                'value' => $t,
+                'label' => EvenementLegislatif::ICONES[$t] ?? '📅' . ' ' . ucfirst($t),
             ]);
-        });
+        
+        // Sources
+        $sourcesDisponibles = [
+            ['value' => 'an', 'label' => '🔵 Assemblée nationale', 'couleur' => '#0055A4'],
+            ['value' => 'senat', 'label' => '🔴 Sénat', 'couleur' => '#DC143C'],
+            ['value' => 'elysee', 'label' => '🟡 Élysée', 'couleur' => '#FFD700'],
+        ];
         
         return Inertia::render('Parlement/Calendrier/Index', [
-            'reunions' => $reunions,
-            'reunionsParJour' => $reunionsParJour,
+            'evenements' => $evenements,
+            'evenementsParJour' => $evenementsParJour,
             'stats' => $stats,
             'mois' => (int)$mois,
             'annee' => (int)$annee,
             'dateRef' => $dateRef->format('Y-m-d'),
             'filtres' => [
+                'source' => $source,
                 'type' => $type,
-                'organe' => $organe,
             ],
             'typesDisponibles' => $typesDisponibles,
-            'organesDisponibles' => $organesDisponibles,
+            'sourcesDisponibles' => $sourcesDisponibles,
         ]);
     }
 
@@ -93,16 +90,19 @@ class CalendrierController extends Controller
     public function semaine(Request $request)
     {
         $date = $request->get('date', now()->format('Y-m-d'));
+        $source = $request->get('source');
+        
         $dateRef = Carbon::parse($date);
         $debutSemaine = $dateRef->copy()->startOfWeek();
         $finSemaine = $dateRef->copy()->endOfWeek();
         
-        $reunions = ReunionAN::with('organe:uid,libelle,libelle_abrege')
+        $evenements = EvenementLegislatif::query()
             ->periode($debutSemaine, $finSemaine)
-            ->where('etat', '!=', 'Annulé')
+            ->confirmes()
+            ->when($source, fn($q) => $q->source($source))
             ->orderBy('date_debut')
             ->get()
-            ->map(fn($r) => $this->formatReunion($r));
+            ->map(fn($e) => $e->toCalendarEvent());
         
         // Grouper par jour
         $joursArray = [];
@@ -113,8 +113,8 @@ class CalendrierController extends Controller
                 'date' => $jourKey,
                 'label' => $jour->translatedFormat('l j'),
                 'estAujourdhui' => $jour->isToday(),
-                'reunions' => $reunions->filter(fn($r) => 
-                    Carbon::parse($r['date_debut'])->format('Y-m-d') === $jourKey
+                'evenements' => $evenements->filter(fn($e) => 
+                    Carbon::parse($e['start'])->format('Y-m-d') === $jourKey
                 )->values(),
             ];
         }
@@ -124,122 +124,132 @@ class CalendrierController extends Controller
             'debutSemaine' => $debutSemaine->format('Y-m-d'),
             'finSemaine' => $finSemaine->format('Y-m-d'),
             'semaineLabel' => $debutSemaine->translatedFormat('j M') . ' - ' . $finSemaine->translatedFormat('j M Y'),
+            'filtres' => ['source' => $source],
         ]);
     }
 
     /**
-     * Détail d'une réunion
+     * Détail d'un événement
      */
     public function show(string $uid)
     {
+        // Chercher d'abord dans la table unifiée
+        $evenement = EvenementLegislatif::where('uid', $uid)->first();
+        
+        if ($evenement) {
+            // Événements similaires
+            $similaires = EvenementLegislatif::where('source', $evenement->source)
+                ->where('type', $evenement->type)
+                ->where('uid', '!=', $uid)
+                ->aVenir()
+                ->orderBy('date_debut')
+                ->limit(5)
+                ->get()
+                ->map(fn($e) => $e->toCalendarEvent());
+            
+            return Inertia::render('Parlement/Calendrier/Show', [
+                'evenement' => array_merge($evenement->toCalendarEvent(), [
+                    'description' => $evenement->description,
+                    'urlDossier' => $evenement->url_dossier,
+                ]),
+                'similaires' => $similaires,
+            ]);
+        }
+        
+        // Fallback: chercher dans reunions_an (ancienne table)
         $reunion = ReunionAN::with('organe')
             ->where('uid', $uid)
             ->firstOrFail();
         
-        // Réunions similaires (même organe, même mois)
         $reunionsSimilaires = ReunionAN::where('organe_ref', $reunion->organe_ref)
             ->where('uid', '!=', $uid)
             ->whereMonth('date_debut', $reunion->date_debut?->month ?? now()->month)
             ->orderBy('date_debut')
             ->limit(5)
             ->get()
-            ->map(fn($r) => $this->formatReunion($r));
+            ->map(fn($r) => $this->formatReunionLegacy($r));
         
         return Inertia::render('Parlement/Calendrier/Show', [
-            'reunion' => $this->formatReunionDetailed($reunion),
-            'reunionsSimilaires' => $reunionsSimilaires,
+            'evenement' => $this->formatReunionDetailedLegacy($reunion),
+            'similaires' => $reunionsSimilaires,
         ]);
     }
 
     /**
-     * API: Réunions du jour (pour widget dashboard)
+     * API: Événements du jour (pour widget dashboard)
      */
     public function aujourdhui()
     {
-        $reunions = ReunionAN::with('organe:uid,libelle,libelle_abrege')
-            ->aujourdhui()
-            ->where('etat', '!=', 'Annulé')
+        $evenements = EvenementLegislatif::query()
+            ->jour(now())
+            ->confirmes()
             ->orderBy('date_debut')
             ->limit(10)
             ->get()
-            ->map(fn($r) => $this->formatReunion($r));
+            ->map(fn($e) => $e->toCalendarEvent());
         
         return response()->json([
             'date' => now()->format('Y-m-d'),
-            'reunions' => $reunions,
-            'count' => $reunions->count(),
+            'evenements' => $evenements,
+            'count' => $evenements->count(),
         ]);
     }
 
     /**
-     * API: Prochaines réunions (pour widget)
+     * API: Prochains événements (pour widget)
      */
     public function prochaines(Request $request)
     {
         $limit = $request->get('limit', 5);
+        $source = $request->get('source');
         
-        $reunions = ReunionAN::with('organe:uid,libelle,libelle_abrege')
+        $evenements = EvenementLegislatif::query()
             ->aVenir()
+            ->confirmes()
+            ->when($source, fn($q) => $q->source($source))
             ->orderBy('date_debut')
             ->limit($limit)
             ->get()
-            ->map(fn($r) => $this->formatReunion($r));
+            ->map(fn($e) => $e->toCalendarEvent());
         
         return response()->json([
-            'reunions' => $reunions,
+            'evenements' => $evenements,
         ]);
     }
 
-    /**
-     * Formater une réunion pour l'affichage
-     */
-    private function formatReunion(ReunionAN $reunion): array
+    // ========================================
+    // MÉTHODES LEGACY (pour compatibilité)
+    // ========================================
+
+    private function formatReunionLegacy(ReunionAN $reunion): array
     {
         return [
             'uid' => $reunion->uid,
-            'titre' => $reunion->titre_odj ?? $reunion->organe_nom ?? 'Réunion',
-            'type_reunion' => $reunion->type_reunion,
-            'emoji' => $reunion->emoji_type,
-            'date_debut' => $reunion->date_debut?->toIso8601String(),
-            'date_formatee' => $reunion->date_formatee,
-            'date_courte' => $reunion->date_courte,
-            'heure' => $reunion->date_debut?->format('H:i'),
+            'title' => $reunion->titre_odj ?? $reunion->organe_nom ?? 'Réunion',
+            'start' => $reunion->date_debut?->toIso8601String(),
+            'end' => $reunion->date_fin?->toIso8601String(),
+            'source' => 'an',
+            'sourceLabel' => 'Assemblée nationale',
+            'type' => 'reunion',
+            'typeLabel' => $reunion->type_reunion ?? 'Réunion',
+            'color' => '#0055A4',
+            'icon' => '📋',
             'lieu' => $reunion->lieu_libelle,
-            'etat' => $reunion->etat,
-            'couleur_etat' => $reunion->couleur_etat,
-            'organe' => $reunion->organe ? [
-                'uid' => $reunion->organe->uid,
-                'nom' => $reunion->organe->libelle_abrege ?? $reunion->organe->libelle,
-                'couleur' => '#6B7280', // Couleur par défaut
-            ] : null,
-            'nb_points_odj' => $reunion->nb_points_odj,
-            'est_en_cours' => $reunion->est_en_cours,
-            'est_a_venir' => $reunion->est_a_venir,
-            'visio' => $reunion->visio_conference,
-            'presse' => $reunion->ouverture_presse,
-            'video' => $reunion->captation_video,
+            'description' => null,
+            'instance' => $reunion->organe?->libelle,
+            'urlSource' => null,
+            'urlVideo' => null,
+            'statut' => $reunion->etat === 'Annulé' ? 'annule' : 'confirme',
         ];
     }
 
-    /**
-     * Formater une réunion avec tous les détails
-     */
-    private function formatReunionDetailed(ReunionAN $reunion): array
+    private function formatReunionDetailedLegacy(ReunionAN $reunion): array
     {
-        $base = $this->formatReunion($reunion);
+        $base = $this->formatReunionLegacy($reunion);
         
         return array_merge($base, [
-            'odj_convocation' => $reunion->odj_convocation,
-            'odj_resume' => $reunion->odj_resume,
-            'points_odj' => $reunion->points_odj,
-            'participants_internes' => $reunion->participants_internes,
-            'personnes_auditionnees' => $reunion->personnes_auditionnees,
-            'format_reunion' => $reunion->format_reunion,
-            'date_creation' => $reunion->date_creation?->format('d/m/Y'),
-            'compte_rendu_ref' => $reunion->compte_rendu_ref,
-            'reunion_internationale' => $reunion->reunion_internationale,
-            'pays' => $reunion->pays_reunion_internationale,
+            'description' => $reunion->odj_resume ?? $reunion->odj_convocation,
+            'urlDossier' => null,
         ]);
     }
 }
-

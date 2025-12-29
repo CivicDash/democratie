@@ -5,15 +5,15 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
-    reunions: Array,
-    reunionsParJour: Object,
+    evenements: Array,
+    evenementsParJour: Object,
     stats: Object,
     mois: Number,
     annee: Number,
     dateRef: String,
     filtres: Object,
     typesDisponibles: Array,
-    organesDisponibles: Array,
+    sourcesDisponibles: Array,
 });
 
 const breadcrumbItems = [
@@ -21,6 +21,10 @@ const breadcrumbItems = [
     { label: 'Parlement' },
     { label: 'Calendrier Législatif', icon: '📅' },
 ];
+
+// Filtres locaux
+const filtreSource = ref(props.filtres?.source || null);
+const filtreType = ref(props.filtres?.type || null);
 
 // Noms des mois
 const nomsMois = [
@@ -33,14 +37,33 @@ const moisPrecedent = () => {
     let m = props.mois - 1;
     let a = props.annee;
     if (m < 1) { m = 12; a--; }
-    router.get(route('parlement.calendrier.index'), { mois: m, annee: a }, { preserveState: true });
+    naviguer({ mois: m, annee: a });
 };
 
 const moisSuivant = () => {
     let m = props.mois + 1;
     let a = props.annee;
     if (m > 12) { m = 1; a++; }
-    router.get(route('parlement.calendrier.index'), { mois: m, annee: a }, { preserveState: true });
+    naviguer({ mois: m, annee: a });
+};
+
+const naviguer = (params = {}) => {
+    router.get(route('parlement.calendrier.index'), {
+        mois: params.mois ?? props.mois,
+        annee: params.annee ?? props.annee,
+        source: filtreSource.value,
+        type: filtreType.value,
+    }, { preserveState: true });
+};
+
+const appliquerFiltres = () => {
+    naviguer({});
+};
+
+const reinitialiserFiltres = () => {
+    filtreSource.value = null;
+    filtreType.value = null;
+    naviguer({});
 };
 
 // Générer les jours du calendrier
@@ -60,7 +83,7 @@ const joursCalendrier = computed(() => {
             numero: d.getDate(),
             estMoisCourant: false,
             estAujourdhui: false,
-            reunions: [],
+            evenements: [],
         });
     }
     
@@ -74,7 +97,7 @@ const joursCalendrier = computed(() => {
             numero: i,
             estMoisCourant: true,
             estAujourdhui: dateStr === aujourdhui,
-            reunions: props.reunionsParJour[dateStr] || [],
+            evenements: props.evenementsParJour[dateStr] || [],
         });
     }
     
@@ -87,7 +110,7 @@ const joursCalendrier = computed(() => {
             numero: i,
             estMoisCourant: false,
             estAujourdhui: false,
-            reunions: [],
+            evenements: [],
         });
     }
     
@@ -103,16 +126,11 @@ const semainesCalendrier = computed(() => {
     return semaines;
 });
 
-// Couleur selon le type
-const getCouleurType = (type) => {
-    const couleurs = {
-        'Commission': 'bg-blue-500',
-        'Séance publique': 'bg-purple-500',
-        'Délégation': 'bg-green-500',
-        'Mission': 'bg-orange-500',
-        'Groupe': 'bg-pink-500',
-    };
-    return couleurs[type] || 'bg-gray-500';
+// Formater l'heure depuis une date ISO
+const formatHeure = (dateIso) => {
+    if (!dateIso) return '';
+    const d = new Date(dateIso);
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 };
 </script>
 
@@ -131,32 +149,112 @@ const getCouleurType = (type) => {
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                         <div>
                             <h1 class="text-4xl font-bold mb-2 flex items-center gap-3">
-                                📅 Calendrier Législatif
+                                📅 Calendrier Législatif Unifié
                             </h1>
                             <p class="text-indigo-100 text-lg">
-                                Agenda des réunions de l'Assemblée Nationale
+                                Agenda de l'Assemblée Nationale et du Sénat
                             </p>
                         </div>
                         
                         <!-- Stats rapides -->
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
                             <div class="bg-white/10 backdrop-blur rounded-xl px-4 py-3 text-center">
                                 <p class="text-3xl font-bold">{{ stats.total }}</p>
-                                <p class="text-xs text-indigo-200">Réunions</p>
+                                <p class="text-xs text-indigo-200">Total</p>
                             </div>
-                            <div class="bg-white/10 backdrop-blur rounded-xl px-4 py-3 text-center">
-                                <p class="text-3xl font-bold text-green-300">{{ stats.confirmees }}</p>
-                                <p class="text-xs text-indigo-200">Confirmées</p>
+                            <div class="bg-blue-500/30 backdrop-blur rounded-xl px-4 py-3 text-center">
+                                <p class="text-3xl font-bold">{{ stats.an }}</p>
+                                <p class="text-xs text-blue-200">🔵 AN</p>
                             </div>
-                            <div class="bg-white/10 backdrop-blur rounded-xl px-4 py-3 text-center">
-                                <p class="text-3xl font-bold">{{ stats.commissions }}</p>
-                                <p class="text-xs text-indigo-200">Commissions</p>
+                            <div class="bg-red-500/30 backdrop-blur rounded-xl px-4 py-3 text-center">
+                                <p class="text-3xl font-bold">{{ stats.senat }}</p>
+                                <p class="text-xs text-red-200">🔴 Sénat</p>
+                            </div>
+                            <div class="bg-yellow-500/30 backdrop-blur rounded-xl px-4 py-3 text-center">
+                                <p class="text-3xl font-bold">{{ stats.elysee || 0 }}</p>
+                                <p class="text-xs text-yellow-200">🟡 Élysée</p>
                             </div>
                             <div class="bg-white/10 backdrop-blur rounded-xl px-4 py-3 text-center">
                                 <p class="text-3xl font-bold">{{ stats.seances }}</p>
                                 <p class="text-xs text-indigo-200">Séances</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Filtres -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 mb-6">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <!-- Filtre Source -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Source:</span>
+                            <div class="flex gap-2">
+                                <button
+                                    @click="filtreSource = null; appliquerFiltres()"
+                                    class="px-3 py-1.5 text-sm rounded-lg transition"
+                                    :class="filtreSource === null 
+                                        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 font-semibold' 
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
+                                >
+                                    Tous
+                                </button>
+                                <button
+                                    @click="filtreSource = 'an'; appliquerFiltres()"
+                                    class="px-3 py-1.5 text-sm rounded-lg transition flex items-center gap-1"
+                                    :class="filtreSource === 'an' 
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 font-semibold' 
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
+                                >
+                                    🔵 AN
+                                </button>
+                                <button
+                                    @click="filtreSource = 'senat'; appliquerFiltres()"
+                                    class="px-3 py-1.5 text-sm rounded-lg transition flex items-center gap-1"
+                                    :class="filtreSource === 'senat' 
+                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 font-semibold' 
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
+                                >
+                                    🔴 Sénat
+                                </button>
+                                <button
+                                    @click="filtreSource = 'elysee'; appliquerFiltres()"
+                                    class="px-3 py-1.5 text-sm rounded-lg transition flex items-center gap-1"
+                                    :class="filtreSource === 'elysee' 
+                                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300 font-semibold' 
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
+                                >
+                                    🟡 Élysée
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Séparateur -->
+                        <div class="hidden sm:block w-px h-6 bg-slate-300 dark:bg-slate-600"></div>
+                        
+                        <!-- Filtre Type -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Type:</span>
+                            <select
+                                v-model="filtreType"
+                                @change="appliquerFiltres()"
+                                class="text-sm rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 focus:ring-indigo-500"
+                            >
+                                <option :value="null">Tous les types</option>
+                                <option value="seance">🏛️ Séance publique</option>
+                                <option value="commission">👥 Commission</option>
+                                <option value="reunion">📋 Réunion</option>
+                                <option value="audition">🎤 Audition</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Reset -->
+                        <button
+                            v-if="filtreSource || filtreType"
+                            @click="reinitialiserFiltres()"
+                            class="ml-auto text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                        >
+                            ✕ Réinitialiser
+                        </button>
                     </div>
                 </div>
                 
@@ -221,27 +319,27 @@ const getCouleurType = (type) => {
                                 >
                                     {{ jour.numero }}
                                 </span>
-                                <span v-if="jour.reunions.length > 0" class="text-xs text-slate-500 dark:text-slate-400">
-                                    {{ jour.reunions.length }}
+                                <span v-if="jour.evenements.length > 0" class="text-xs text-slate-500 dark:text-slate-400">
+                                    {{ jour.evenements.length }}
                                 </span>
                             </div>
                             
-                            <!-- Réunions du jour -->
+                            <!-- Événements du jour -->
                             <div class="space-y-1">
                                 <Link
-                                    v-for="reunion in jour.reunions.slice(0, 3)"
-                                    :key="reunion.uid"
-                                    :href="route('parlement.calendrier.show', reunion.uid)"
+                                    v-for="evt in jour.evenements.slice(0, 3)"
+                                    :key="evt.uid"
+                                    :href="route('parlement.calendrier.show', evt.uid)"
                                     class="block text-xs p-1.5 rounded truncate hover:opacity-80 transition text-white"
-                                    :class="getCouleurType(reunion.type_reunion)"
-                                    :title="reunion.titre"
+                                    :style="{ backgroundColor: evt.color }"
+                                    :title="evt.title"
                                 >
-                                    <span class="font-medium">{{ reunion.heure }}</span>
-                                    {{ reunion.organe?.nom || reunion.type_reunion }}
+                                    <span class="font-medium">{{ formatHeure(evt.start) }}</span>
+                                    {{ evt.icon }} {{ evt.instance || evt.typeLabel }}
                                 </Link>
                                 
-                                <div v-if="jour.reunions.length > 3" class="text-xs text-slate-500 dark:text-slate-400 pl-1">
-                                    +{{ jour.reunions.length - 3 }} autres
+                                <div v-if="jour.evenements.length > 3" class="text-xs text-slate-500 dark:text-slate-400 pl-1">
+                                    +{{ jour.evenements.length - 3 }} autres
                                 </div>
                             </div>
                         </div>
@@ -251,108 +349,103 @@ const getCouleurType = (type) => {
                 <!-- Légende -->
                 <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
                     <h3 class="font-semibold text-slate-900 dark:text-white mb-3">Légende</h3>
-                    <div class="flex flex-wrap gap-4">
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded bg-blue-500"></div>
-                            <span class="text-sm text-slate-600 dark:text-slate-400">Commission</span>
+                    <div class="flex flex-wrap gap-6">
+                        <!-- Sources -->
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">Sources:</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded" style="background-color: #0055A4"></div>
+                                <span class="text-sm text-slate-600 dark:text-slate-400">Assemblée nationale</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded" style="background-color: #DC143C"></div>
+                                <span class="text-sm text-slate-600 dark:text-slate-400">Sénat</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 rounded" style="background-color: #FFD700"></div>
+                                <span class="text-sm text-slate-600 dark:text-slate-400">Élysée</span>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded bg-purple-500"></div>
-                            <span class="text-sm text-slate-600 dark:text-slate-400">Séance publique</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded bg-green-500"></div>
-                            <span class="text-sm text-slate-600 dark:text-slate-400">Délégation</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded bg-orange-500"></div>
-                            <span class="text-sm text-slate-600 dark:text-slate-400">Mission</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded bg-pink-500"></div>
-                            <span class="text-sm text-slate-600 dark:text-slate-400">Groupe</span>
+                        
+                        <!-- Types -->
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-medium text-slate-600 dark:text-slate-400">Types:</span>
+                            <span class="text-sm text-slate-600 dark:text-slate-400">🏛️ Séance</span>
+                            <span class="text-sm text-slate-600 dark:text-slate-400">👥 Commission</span>
+                            <span class="text-sm text-slate-600 dark:text-slate-400">📋 Réunion</span>
+                            <span class="text-sm text-slate-600 dark:text-slate-400">🎤 Audition</span>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Liste des réunions du mois -->
+                <!-- Liste des événements du mois -->
                 <div class="mt-8">
                     <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                        📋 Toutes les réunions de {{ nomsMois[mois - 1] }}
+                        📋 Tous les événements de {{ nomsMois[mois - 1] }}
                     </h2>
                     
                     <div class="grid gap-4">
                         <Link
-                            v-for="reunion in reunions"
-                            :key="reunion.uid"
-                            :href="route('parlement.calendrier.show', reunion.uid)"
+                            v-for="evt in evenements"
+                            :key="evt.uid"
+                            :href="route('parlement.calendrier.show', evt.uid)"
                             class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 hover:border-indigo-500 dark:hover:border-indigo-600 transition-all hover:shadow-md"
                         >
                             <div class="flex items-start gap-4">
                                 <!-- Date/Heure -->
-                                <div class="flex-shrink-0 text-center bg-slate-100 dark:bg-slate-700 rounded-lg p-3 min-w-[80px]">
-                                    <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                        {{ new Date(reunion.date_debut).getDate() }}
+                                <div class="flex-shrink-0 text-center rounded-lg p-3 min-w-[80px]"
+                                    :style="{ backgroundColor: evt.color + '15' }">
+                                    <p class="text-2xl font-bold" :style="{ color: evt.color }">
+                                        {{ new Date(evt.start).getDate() }}
                                     </p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400 uppercase">
-                                        {{ nomsMois[new Date(reunion.date_debut).getMonth()].slice(0, 3) }}
+                                        {{ nomsMois[new Date(evt.start).getMonth()].slice(0, 3) }}
                                     </p>
                                     <p class="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-1">
-                                        {{ reunion.heure }}
+                                        {{ formatHeure(evt.start) }}
                                     </p>
                                 </div>
                                 
                                 <!-- Contenu -->
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span class="text-lg">{{ reunion.emoji }}</span>
+                                    <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                        <span class="text-lg">{{ evt.icon }}</span>
                                         <span
-                                            v-if="reunion.organe"
                                             class="px-2 py-1 text-xs font-semibold rounded text-white"
-                                            :style="{ backgroundColor: reunion.organe.couleur }"
+                                            :style="{ backgroundColor: evt.color }"
                                         >
-                                            {{ reunion.organe.nom }}
+                                            {{ evt.sourceLabel }}
                                         </span>
-                                        <span
-                                            class="px-2 py-1 text-xs font-semibold rounded"
-                                            :class="{
-                                                'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': reunion.etat === 'Confirmé',
-                                                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': reunion.etat === 'Annulé',
-                                                'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300': !['Confirmé', 'Annulé'].includes(reunion.etat),
-                                            }"
-                                        >
-                                            {{ reunion.etat || 'Prévu' }}
+                                        <span class="px-2 py-1 text-xs font-semibold rounded bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                                            {{ evt.typeLabel }}
+                                        </span>
+                                        <span v-if="evt.instance" class="text-xs text-slate-500 dark:text-slate-400">
+                                            • {{ evt.instance }}
                                         </span>
                                     </div>
                                     
                                     <h3 class="font-semibold text-slate-900 dark:text-white line-clamp-2">
-                                        {{ reunion.titre }}
+                                        {{ evt.title }}
                                     </h3>
                                     
                                     <div class="flex flex-wrap gap-3 mt-2 text-sm text-slate-500 dark:text-slate-400">
-                                        <span v-if="reunion.lieu" class="flex items-center gap-1">
-                                            📍 {{ reunion.lieu }}
+                                        <span v-if="evt.lieu" class="flex items-center gap-1">
+                                            📍 {{ evt.lieu }}
                                         </span>
-                                        <span v-if="reunion.nb_points_odj" class="flex items-center gap-1">
-                                            📋 {{ reunion.nb_points_odj }} point(s) à l'ordre du jour
-                                        </span>
-                                        <span v-if="reunion.visio" class="flex items-center gap-1">
-                                            💻 Visioconférence
-                                        </span>
-                                        <span v-if="reunion.presse" class="flex items-center gap-1">
-                                            📰 Ouverte à la presse
-                                        </span>
-                                        <span v-if="reunion.video" class="flex items-center gap-1">
-                                            🎥 Captation vidéo
+                                        <span v-if="evt.urlVideo" class="flex items-center gap-1 text-blue-500">
+                                            🎥 Vidéo disponible
                                         </span>
                                     </div>
                                 </div>
                             </div>
                         </Link>
                         
-                        <div v-if="reunions.length === 0" class="text-center py-12 text-slate-500 dark:text-slate-400">
+                        <div v-if="evenements.length === 0" class="text-center py-12 text-slate-500 dark:text-slate-400">
                             <p class="text-5xl mb-4">📅</p>
-                            <p class="text-lg">Aucune réunion prévue ce mois-ci</p>
+                            <p class="text-lg">Aucun événement prévu ce mois-ci</p>
+                            <p v-if="filtreSource || filtreType" class="text-sm mt-2">
+                                Essayez de modifier les filtres
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -361,4 +454,3 @@ const getCouleurType = (type) => {
         </div>
     </AuthenticatedLayout>
 </template>
-
