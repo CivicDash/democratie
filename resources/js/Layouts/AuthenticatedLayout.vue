@@ -253,6 +253,13 @@ onUnmounted(() => {
                                                 title="Dossiers Législatifs"
                                                 description="Textes de loi en cours et adoptés"
                                             />
+                                            <MegaMenuLink
+                                                :href="route('lois.index')"
+                                                icon="⚖️"
+                                                title="Cycle de vie des Lois"
+                                                description="Navette parlementaire complète"
+                                                badge="Nouveau"
+                                            />
                                             <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
                                             <MegaMenuLink
                                                 :href="route('tags.index')"
@@ -340,6 +347,15 @@ onUnmounted(() => {
                                     :active="route().current('moderation.*')"
                                 >
                                     🛡️ Modération
+                                </NavLink>
+                                
+                                <!-- Administration (si admin) -->
+                                <NavLink
+                                    v-if="$page.props.auth.user.roles?.includes('admin')"
+                                    :href="route('admin.dashboard')"
+                                    :active="route().current('admin.*')"
+                                >
+                                    ⚙️ Admin
                                 </NavLink>
                             </div>
                         </div>
@@ -532,6 +548,7 @@ onUnmounted(() => {
                             <div v-show="expandedSection === 'legislation'" class="pl-4 space-y-1 mt-1">
                                 <ResponsiveNavLink :href="route('legislation.scrutins.index')">🗳️ Scrutins</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('legislation.index')">📜 Dossiers</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('lois.index')">⚖️ Cycle de vie des Lois</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('tags.index')">🏷️ Thèmes</ResponsiveNavLink>
                             </div>
                         </div>
@@ -579,6 +596,12 @@ onUnmounted(() => {
                         >
                             <ResponsiveNavLink :href="route('moderation.dashboard')">
                                 🛡️ Modération
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink
+                                v-if="$page.props.auth.user.roles?.includes('admin')"
+                                :href="route('admin.dashboard')"
+                            >
+                                ⚙️ Administration
                             </ResponsiveNavLink>
                         </div>
                     </div>

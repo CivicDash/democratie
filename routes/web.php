@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\RepresentantController;
 use App\Http\Controllers\Web\ParlementController;
 use App\Http\Controllers\Web\FranceStatisticsController;
 use App\Http\Controllers\Web\TagController;
+use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PolicyController;
 use Illuminate\Foundation\Application;
@@ -163,6 +164,17 @@ Route::prefix('parlement')->name('parlement.')->group(function () {
     // API pour widgets
     Route::get('/api/reunions/aujourdhui', [\App\Http\Controllers\Web\CalendrierController::class, 'aujourdhui'])->name('api.reunions.aujourdhui');
     Route::get('/api/reunions/prochaines', [\App\Http\Controllers\Web\CalendrierController::class, 'prochaines'])->name('api.reunions.prochaines');
+});
+
+// ==========================================
+// LOIS - Cycle de vie législatif
+// ==========================================
+Route::prefix('lois')->name('lois.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Web\LoiController::class, 'index'])->name('index');
+    Route::get('/statistiques', [\App\Http\Controllers\Web\LoiController::class, 'statistiques'])->name('statistiques');
+    Route::get('/recherche', [\App\Http\Controllers\Web\LoiController::class, 'search'])->name('search');
+    Route::get('/{loicod}', [\App\Http\Controllers\Web\LoiController::class, 'show'])->name('show');
+    Route::get('/{loicod}/timeline', [\App\Http\Controllers\Web\LoiController::class, 'timeline'])->name('timeline');
 });
 
 /*
@@ -332,9 +344,10 @@ Route::prefix('statistiques')->name('statistics.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Admin/Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/imports', [AdminController::class, 'imports'])->name('imports');
+    Route::get('/imports/{import}', [AdminController::class, 'showImport'])->name('imports.show');
+    Route::post('/run-command', [AdminController::class, 'runCommand'])->name('run-command');
 });
 
 /*

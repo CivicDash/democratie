@@ -75,21 +75,21 @@
 **Objectif** : Stabiliser l'existant et préparer les nouvelles features
 
 ### 0.1 : 🧹 Nettoyage & Corrections
-**Statut** : 🔄 En cours
+**Statut** : ✅ Terminé
 
 - [x] Correction doublons sénateurs (vue DISTINCT)
 - [x] Libellés commissions et groupes parlementaires
 - [x] Photos officielles prioritaires
 - [x] Affichage compact mandats/commissions
-- [ ] Vérifier import HATVP rémunérations serveur
-- [ ] Import amendements AN complet
+- [x] Vérifier import HATVP rémunérations serveur
+- [x] Import amendements AN complet
 - [ ] Tests de régression
 
 ### 0.2 : 📊 Données Complémentaires
 **Priorité** : 🟡 HAUTE
 
-- [ ] **Questions au Gouvernement** (AN) - Import XML
-- [ ] **Questions Écrites** (Sénat) - Import
+- [x] **Questions au Gouvernement** (AN) - Import XML
+- [ ] **Questions Écrites** (Sénat) - Import base SQL externe
 - [ ] **Textes Akoma Ntoso** (Sénat) - Documents législatifs
 - [ ] Proportion hommes/femmes (statistiques)
 
@@ -160,25 +160,27 @@
 - [x] Table `dashboard_stats` pré-calculée + scheduler quotidien
 - [x] Commande `dashboard:calculate-stats`
 
-**Dashboard Admin** (🔄 À faire) :
+**Dashboard Admin** (✅ Terminé - Décembre 2025) :
 
 **Statistiques** :
-- [ ] Nombre d'utilisateurs inscrits / actifs
-- [ ] Pages les plus consultées
-- [ ] Recherches populaires
-- [ ] Temps de réponse API
+- [x] Nombre d'utilisateurs inscrits / actifs
+- [ ] Pages les plus consultées (analytics externe recommandé)
+- [ ] Recherches populaires (reporté)
+- [ ] Temps de réponse API (monitoring externe recommandé)
 
 **Imports & Sync** :
-- [ ] Tableau des derniers imports (date, durée, statut)
-- [ ] Boutons pour relancer manuellement
-- [ ] Logs d'erreurs consultables
-- [ ] Alertes si import échoue
+- [x] Tableau des derniers imports (date, durée, statut)
+- [x] Boutons pour relancer manuellement
+- [x] Logs d'erreurs consultables
+- [x] Alertes si import échoue
+- [x] Table `import_logs` pour traçabilité
+- [x] Modèle `ImportLog` avec helpers (start, finish, fail)
 
-**Modération** :
-- [ ] File de signalements
-- [ ] Actions rapides (supprimer, avertir, bannir)
-- [ ] Historique des actions
-- [ ] Statistiques modération
+**Modération** (existant) :
+- [x] File de signalements
+- [x] Actions rapides (supprimer, avertir, bannir)
+- [x] Historique des actions
+- [x] Statistiques modération
 
 ---
 
@@ -203,8 +205,10 @@
 - [x] Page détail réunion `/parlement/calendrier/reunion/{uid}`
 - [x] Widget "Prochaines réunions" sur dashboard
 - [x] Intégration menu navigation
-- [ ] Import agenda Sénat
-- [ ] Filtres par type (débat, vote, commission)
+- [x] Import agenda Sénat (iCal via sabre/vobject)
+- [x] Import agenda Élysée (scraping HTML)
+- [x] Table unifiée `evenements_legislatifs`
+- [x] Filtres par source (AN, Sénat, Élysée)
 - [ ] Export iCal / Google Calendar
 - [ ] Notifications optionnelles
 
@@ -281,30 +285,96 @@ services:
 ## 📜 PHASE 2 : PARCOURS LÉGISLATIF & VOTE CITOYEN (T2 2026)
 **Objectif** : Suivre les textes de loi et permettre l'expression citoyenne
 
-### 2.1 : 📜 Vie d'un Texte de Loi
+### 2.1 : 📜 Vie d'un Texte de Loi ✅ IMPLÉMENTÉ
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 2-3 semaines
+**Durée** : 2-3 semaines → **Terminé le 29/12/2025**
 
 **User Stories** :
-- [ ] En tant que citoyen, je veux comprendre le parcours d'une loi
-- [ ] En tant que citoyen, je veux voir les amendements déposés
+- [x] En tant que citoyen, je veux comprendre le parcours d'une loi
+- [x] En tant que citoyen, je veux voir les amendements déposés
 - [ ] En tant que citoyen, je veux comparer les versions du texte
 
-**Parcours législatif à visualiser** :
+**Parcours législatif visualisé** :
 ```
 📋 Dépôt → 🏛️ Commission → 📖 1ère lecture AN → 📖 1ère lecture Sénat
         → 🔄 Navette → 📖 2ème lecture → ⚖️ CMP → 🏛️ Conseil Constitutionnel
         → 📜 Promulgation → 📰 JO
 ```
 
+**Documentation** : `docs/ARCHITECTURE_LOIS.md`
+
+**Données disponibles** :
+- 12 088 lois dans `senat_dosleg_loi`
+- 16 337 lectures (navette) dans `senat_dosleg_lecture`
+- 21 350 passages par chambre dans `senat_dosleg_lecass`
+- 30 thématiques dans `senat_dosleg_the`
+- 9 types de lecture (1ère, 2ème, CMP, définitive...)
+- 6 états (promulgué, en cours, rejeté, caduc, fusionné, retiré)
+
 **Tâches** :
-- [ ] Timeline visuelle du parcours
-- [ ] Temps passé à chaque étape
-- [ ] Versions du texte (diff)
-- [ ] Amendements par étape
-- [ ] Votes par chambre
-- [ ] Lien vers texte final (Légifrance)
-- [ ] Intégration Légifrance API
+- [x] Modèles Laravel (`Loi`, `LectureLoi`, `PassageChambre`, `TypeLecture`, `EtatLoi`, `ThematiqueLoi`)
+- [x] `LoiController` avec index, show, timeline, search, statistiques
+- [x] Page liste des lois avec filtres (état, type, année, recherche)
+- [x] Page détail avec timeline visuelle du parcours AN ↔ Sénat
+- [x] Barre de progression dynamique
+- [x] Lien vers JO Légifrance
+- [x] Lois similaires par thématique
+- [ ] Versions du texte (diff) - *Phase 2.1.5*
+- [ ] Intégration Légifrance API - *Phase 2.1.5*
+
+---
+
+### 2.1.5 : 📰 Import Journal Officiel (DILA/data.gouv.fr) ✅ IMPLÉMENTÉ
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 jour → **Terminé le 29/12/2025**
+
+**Source** : [Exports DILA sur data.gouv.fr](https://echanges.dila.gouv.fr/OPENDATA/JORF/) - Open Data gratuit
+
+**Contexte** : L'API Légifrance (PISTE) est réservée aux éditeurs juridiques accrédités. Alternative : import des exports XML quotidiens du Journal Officiel.
+
+**Données importées** :
+- 📜 **Lois** publiées au JO avec numéro, NOR, date
+- 📋 **Décrets** d'application
+- ⚖️ **Ordonnances**
+- 📰 **Articles** (contenu optionnel)
+- 🔗 **URL Légifrance** générée automatiquement
+
+**Implémentation** :
+- [x] Table `textes_jo` (métadonnées : titre, nature, numéro, NOR, dates)
+- [x] Table `articles_jo` (contenu des articles, optionnel)
+- [x] Modèles `TexteJO` et `ArticleJO`
+- [x] Commande `import:jorf` avec options :
+  - `--days=N` : importer les N derniers jours
+  - `--date=YYYYMMDD` : date spécifique
+  - `--lois-only` : filtrer LOI, DECRET, ORDONNANCE
+  - `--with-articles` : importer le contenu des articles
+- [x] Liaison automatique avec `senat_dosleg_loi` via numéro
+- [x] Nettoyage automatique après import (économie espace disque)
+
+**Résultats test (28/12/2025)** :
+```
+148 textes importés :
+├── 122 décrets
+├── 20 lois  
+├── 6 ordonnances
+└── 19 liés aux lois existantes ✅
+```
+
+**Optimisation espace disque** :
+- Archives ~5 MB/jour, supprimées après traitement
+- Stockage 0 fichiers permanents
+- Option `--lois-only` pour réduire le volume
+
+---
+
+### 2.1.6 : 📚 Enrichissement Légifrance (Futur)
+**Priorité** : 🟢 MOYENNE  
+**Statut** : ⏸️ En attente (API restreinte)
+
+**Note** : L'API Légifrance sur PISTE nécessite une accréditation spécifique (éditeurs juridiques, administrations). Pour un accès complet aux textes consolidés et à la jurisprudence, explorer :
+- Partenariat avec un éditeur accrédité
+- Demande d'accès institutionnel
+- Scraping Légifrance.gouv.fr (CGU à vérifier)
 
 ---
 
@@ -576,6 +646,8 @@ services:
 | HATVP | XML | ✅ Complet |
 | INSEE | API | ✅ Partiel |
 | Wikipedia | API | ✅ Photos/extraits |
+| DILA/JORF | XML (data.gouv.fr) | ✅ Lois, décrets, ordonnances |
+| Élysée | HTML (scraping) | ✅ Agenda présidentiel |
 
 ### À intégrer 🔄
 | Source | URL | Priorité |

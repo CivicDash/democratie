@@ -545,24 +545,46 @@ const formatNumber = (num) => {
                             </p>
                         </div>
                         
-                        <div class="grid md:grid-cols-2 gap-6 mb-8">
+                        <div class="grid md:grid-cols-3 gap-6 mb-8">
                             <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                                 <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
-                                    <span>👤</span> Compte Administrateur
+                                    <span>⚙️</span> Rôle Admin
                                 </h4>
-                                <div class="space-y-2 text-sm">
-                                    <div class="font-mono bg-white/10 rounded-lg px-3 py-2">admin@civicdash.fr</div>
-                                    <div class="text-emerald-100">Mot de passe : <span class="font-mono font-bold text-white">password</span></div>
+                                <div class="space-y-2 text-sm text-emerald-100">
+                                    <p>Accès complet à la plateforme :</p>
+                                    <ul class="list-disc list-inside text-xs space-y-1">
+                                        <li>Gestion des imports de données</li>
+                                        <li>Tableau de bord administrateur</li>
+                                        <li>Configuration système</li>
+                                    </ul>
                                 </div>
                             </div>
                             
                             <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                                 <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
-                                    <span>🎭</span> Comptes Citoyens
+                                    <span>🛡️</span> Rôle Modérateur
                                 </h4>
-                                <div class="space-y-2 text-sm">
-                                    <div class="font-mono bg-white/10 rounded-lg px-3 py-2">citoyen1@demo.civicdash.fr</div>
-                                    <div class="text-emerald-100">Mot de passe : <span class="font-mono font-bold text-white">demo2025</span></div>
+                                <div class="space-y-2 text-sm text-emerald-100">
+                                    <p>Modération communautaire :</p>
+                                    <ul class="list-disc list-inside text-xs space-y-1">
+                                        <li>Gestion des signalements</li>
+                                        <li>Sanctions utilisateurs</li>
+                                        <li>Statistiques modération</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                                <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
+                                    <span>🎭</span> Rôle Citoyen
+                                </h4>
+                                <div class="space-y-2 text-sm text-emerald-100">
+                                    <p>Accès utilisateur standard :</p>
+                                    <ul class="list-disc list-inside text-xs space-y-1">
+                                        <li>Consultation des données</li>
+                                        <li>Suivi des représentants</li>
+                                        <li>Participation aux débats</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>

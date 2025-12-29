@@ -46,8 +46,8 @@ class TagController extends Controller
 
         // Topics associés
         $topics = $tag->topics()
-            ->with('user')
-            ->withCount('comments')
+            ->with('author')
+            ->withCount('posts')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -90,7 +90,7 @@ class TagController extends Controller
                     'description' => $t->description,
                     'user_name' => $t->user->name ?? 'Anonyme',
                     'created_at' => $t->created_at->diffForHumans(),
-                    'comments_count' => $t->comments_count,
+                    'posts_count' => $t->posts_count,
                     'votes_count' => $t->ballot_type ? $t->votes()->count() : null,
                 ]),
                 'total' => $topics->total(),

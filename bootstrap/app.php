@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Rate limiting personnalisé
         $middleware->alias([
             'rate.limit' => \App\Http\Middleware\RateLimitMiddleware::class,
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

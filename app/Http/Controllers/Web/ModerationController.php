@@ -25,16 +25,21 @@ class ModerationController extends Controller
      */
     public function dashboard(): Response
     {
-        $stats = $this->moderationService->getModeratorStats();
+        $stats = [
+            'pending_reports' => Report::where('status', 'pending')->count(),
+            'investigating_reports' => Report::where('status', 'reviewing')->count(),
+            'resolved_today' => Report::where('status', 'resolved')->whereDate('updated_at', today())->count(),
+            'active_moderators' => User::role('moderator')->count(),
+        ];
         
-        $recentReports = Report::with(['reporter', 'reportable', 'assignee'])
+        $recentReports = Report::with(['reporter', 'reportable'])
             ->latest()
             ->take(10)
             ->get();
         
         $topModerators = User::role('moderator')
-            ->withCount(['resolvedReports'])
-            ->orderByDesc('resolved_reports_count')
+            ->withCount(['sanctions as resolved_count'])
+            ->orderByDesc('resolved_count')
             ->take(5)
             ->get();
 
@@ -50,7 +55,7 @@ class ModerationController extends Controller
      */
     public function reports(Request $request): Response
     {
-        $query = Report::with(['reporter', 'reportable', 'assignee']);
+        $query = Report::with(['reporter', 'reportable', 'moderator']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -85,7 +90,7 @@ class ModerationController extends Controller
      */
     public function showReport(Report $report): Response
     {
-        $report->load(['reporter', 'reportable', 'assignee']);
+        $report->load(['reporter', 'reportable', 'moderator']);
 
         return Inertia::render('Moderation/ReportDetail', [
             'report' => $report,
@@ -211,7 +216,7 @@ class ModerationController extends Controller
      */
     public function stats(): Response
     {
-        $stats = $this->moderationService->getModeratorStats();
+        $stats = $this->moderationService->getModerationStats();
         $topModerators = $this->moderationService->getTopModerators();
 
         return Inertia::render('Moderation/Stats', [
