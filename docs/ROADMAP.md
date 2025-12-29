@@ -100,52 +100,67 @@
 
 ### 1.1 : 🎨 Refonte Menu & Navigation
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 1 semaine
+**Durée** : 1 semaine  
+**Statut** : ✅ TERMINÉ (Décembre 2025)
 
 **User Stories** :
-- [ ] En tant qu'utilisateur, je veux une navigation claire et intuitive
-- [ ] En tant qu'utilisateur mobile, je veux un menu adapté au touch
-- [ ] En tant qu'utilisateur, je veux accéder rapidement aux sections clés
+- [x] En tant qu'utilisateur, je veux une navigation claire et intuitive
+- [x] En tant qu'utilisateur mobile, je veux un menu adapté au touch
+- [x] En tant qu'utilisateur, je veux accéder rapidement aux sections clés
 
 **Tâches** :
-- [ ] Restructurer la navigation principale
-- [ ] Mega-menu avec catégories (Parlement, Données, Participation)
-- [ ] Breadcrumbs sur toutes les pages
-- [ ] Raccourcis clavier (recherche, navigation)
-- [ ] Menu contextuel selon la page
+- [x] Restructurer la navigation principale
+- [x] Mega-menu avec catégories (Parlement, Données, Participation)
+- [x] Breadcrumbs sur toutes les pages (composant réutilisable)
+- [x] Raccourcis clavier (Cmd/Ctrl+K recherche, G+H accueil, G+D députés, G+S sénateurs)
+- [x] CommandPalette pour navigation rapide
+- [ ] Menu contextuel selon la page (reporté)
 
 ---
 
 ### 1.2 : 🏠 Refonte Page d'Accueil
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 1 semaine
+**Durée** : 1 semaine  
+**Statut** : ✅ TERMINÉ (Décembre 2025)
 
 **User Stories** :
-- [ ] En tant que visiteur, je veux comprendre immédiatement le projet
-- [ ] En tant que citoyen, je veux voir l'actualité parlementaire récente
-- [ ] En tant qu'utilisateur, je veux accéder aux données les plus consultées
+- [x] En tant que visiteur, je veux comprendre immédiatement le projet
+- [x] En tant que citoyen, je veux voir l'actualité parlementaire récente
+- [x] En tant qu'utilisateur, je veux accéder aux données les plus consultées
 
 **Tâches** :
-- [ ] Hero section avec message clair et CTA
-- [ ] Derniers scrutins (AN + Sénat)
-- [ ] Derniers amendements adoptés
-- [ ] Statistiques clés en temps réel
-- [ ] Carte interactive en preview
-- [ ] Section "Comment ça marche"
-- [ ] Témoignages / Cas d'usage
+- [x] Hero section avec message clair et CTA
+- [x] Derniers scrutins (AN) avec widget cliquable
+- [x] Derniers amendements adoptés
+- [x] Statistiques clés en temps réel (compteurs animés)
+- [x] Design moderne emerald/teal avec dark mode
+- [ ] Carte interactive en preview (reporté)
+- [ ] Section "Comment ça marche" (reporté)
+- [ ] Témoignages / Cas d'usage (reporté)
 
 ---
 
-### 1.3 : 🛠️ Dashboard Admin
+### 1.3 : 🛠️ Dashboard Utilisateur & Admin
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 1-2 semaines
+**Durée** : 1-2 semaines  
+**Statut** : 🔄 EN COURS (Décembre 2025)
 
 **User Stories** :
+- [x] En tant qu'utilisateur, je veux un dashboard interactif
 - [ ] En tant qu'admin, je veux voir l'état de santé des imports
 - [ ] En tant qu'admin, je veux modérer le contenu utilisateur
-- [ ] En tant qu'admin, je veux des statistiques d'utilisation
 
-**Tâches** :
+**Dashboard Utilisateur** (✅ Terminé) :
+- [x] Refonte full-page responsive
+- [x] Widget Top 5 députés actifs (par votes)
+- [x] Widget Top 5 sénateurs actifs (par amendements)
+- [x] Widget Groupes parlementaires avec couleurs
+- [x] Widget Derniers scrutins cliquables
+- [x] Widget Agenda AN (prochaines réunions)
+- [x] Table `dashboard_stats` pré-calculée + scheduler quotidien
+- [x] Commande `dashboard:calculate-stats`
+
+**Dashboard Admin** (🔄 À faire) :
 
 **Statistiques** :
 - [ ] Nombre d'utilisateurs inscrits / actifs
@@ -169,20 +184,25 @@
 
 ### 1.4 : 📅 Calendrier Législatif
 **Priorité** : 🟡 HAUTE  
-**Durée** : 1 semaine
+**Durée** : 1 semaine  
+**Statut** : 🔄 EN COURS (Décembre 2025)
 
 **User Stories** :
-- [ ] En tant que citoyen, je veux voir les prochains débats
+- [x] En tant que citoyen, je veux voir les prochains débats
 - [ ] En tant que citoyen, je veux être notifié des votes importants
-- [ ] En tant que journaliste, je veux suivre l'agenda parlementaire
+- [x] En tant que journaliste, je veux suivre l'agenda parlementaire
 
 **Sources de données** :
-- Agenda AN : https://www2.assemblee-nationale.fr/agendas/
+- Agenda AN : https://www2.assemblee-nationale.fr/agendas/ → Agenda.json.zip ✅
 - Agenda Sénat : https://www.senat.fr/ordre-du-jour/
 
 **Tâches** :
-- [ ] Composant calendrier Vue (vue mois/semaine/jour)
-- [ ] Import agenda AN (scraping ou API)
+- [x] Modèle ReunionAN + migration
+- [x] Commande `import:reunions-an` depuis Agenda.json.zip
+- [x] Page calendrier mensuel `/parlement/calendrier`
+- [x] Page détail réunion `/parlement/calendrier/reunion/{uid}`
+- [x] Widget "Prochaines réunions" sur dashboard
+- [x] Intégration menu navigation
 - [ ] Import agenda Sénat
 - [ ] Filtres par type (débat, vote, commission)
 - [ ] Export iCal / Google Calendar
@@ -203,6 +223,58 @@
 - [ ] Lien vers vidéos/comptes-rendus
 - [ ] Filtres par commission
 - [ ] Recherche par sujet
+
+---
+
+## 🔧 PHASE 1.5 : MIGRATION TECHNIQUE (T1 2026)
+**Objectif** : Moderniser l'infrastructure pour de meilleures performances
+
+### 1.6 : 🚀 Migration PHP 8.5 + FrankenPHP
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 semaine
+
+**Contexte** :
+PHP 8.5 (sorti le 20 novembre 2025) apporte des fonctionnalités clés pour CivicDash.
+FrankenPHP remplace Nginx + PHP-FPM par un serveur Go moderne avec mode worker.
+
+**Nouvelles fonctionnalités PHP 8.5** :
+- **Opérateur Pipe `|>`** : Chaînage élégant des transformations de données
+- **Extension URI native** : Parsing URLs API AN/Sénat plus propre
+- **cURL handles persistants** : ~10x plus rapide pour imports massifs
+- **Attribut `#[\NoDiscard]`** : Sécurité API renforcée
+- **Clone avec modification** : Simplification DTOs readonly
+
+**Avantages FrankenPHP** :
+- Mode worker = application en mémoire (~10x plus rapide que PHP-FPM)
+- HTTP/2 + HTTP/3 + Early Hints natifs
+- Caddy intégré = HTTPS automatique
+- Un seul binaire, configuration simplifiée
+- Support Laravel Octane natif
+
+**Tâches** :
+- [ ] Créer branche `feature/frankenphp`
+- [ ] Mettre à jour Dockerfile vers `dunglas/frankenphp:php8.5-alpine`
+- [ ] Configurer Laravel Octane avec driver FrankenPHP
+- [ ] Tester imports lourds (amendements, réunions) - détection memory leaks
+- [ ] Adapter docker-compose.yml (suppression nginx)
+- [ ] Tests de charge et benchmarks
+- [ ] Migration production
+
+**Configuration cible** :
+```yaml
+# docker-compose.yml
+services:
+  app:
+    image: dunglas/frankenphp:php8.5-alpine
+    environment:
+      - FRANKENPHP_CONFIG=worker ./public/index.php
+    # Plus besoin de nginx séparé !
+```
+
+**Points de vigilance** :
+- [ ] Vérifier compatibilité dépendances (Meilisearch SDK, Spatie, Inertia)
+- [ ] Auditer singletons et états persistants (mode worker)
+- [ ] Configurer Xdebug/Telescope pour debug
 
 ---
 
@@ -597,6 +669,6 @@ CivicDash vise à devenir **la référence citoyenne** pour comprendre et partic
 ---
 
 **Maintenu par** : CivicDash Core Team  
-**Version** : 2.0  
-**Dernière mise à jour** : 3 décembre 2025  
+**Version** : 2.1  
+**Dernière mise à jour** : 29 décembre 2025  
 **Licence** : AGPL-3.0 Open Source
