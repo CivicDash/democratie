@@ -5,10 +5,21 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import HatvpDeclarationCard from '@/Components/HatvpDeclarationCard.vue';
 
 const props = defineProps({
   depute: Object,
 });
+
+// Formater la date pour les questions
+const formatDate = (dateStr) => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
 
 const hasReseauxSociaux = computed(() => {
   return props.depute.reseaux_sociaux?.twitter ||
@@ -41,6 +52,15 @@ const extractInstagramHandle = (url) => {
   const match = url.match(/instagram\.com\/([^/?]+)/i);
   return match ? '@' + match[1] : null;
 };
+
+// Format montant avec séparateur de milliers
+const formatMontant = (montant) => {
+  if (!montant && montant !== 0) return '-';
+  const num = typeof montant === 'string' ? parseFloat(montant.replace(/\s/g, '').replace(',', '.')) : montant;
+  if (isNaN(num)) return montant;
+  return new Intl.NumberFormat('fr-FR').format(Math.round(num));
+};
+
 
 </script>
 
@@ -359,6 +379,79 @@ const extractInstagramHandle = (url) => {
           </div>
         </Card>
 
+        <!-- Questions au Gouvernement -->
+        <Card v-if="depute.dernieres_questions && depute.dernieres_questions.length > 0">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <span>❓</span>
+              <span>Questions au Gouvernement</span>
+              <Badge v-if="depute.questions_stats?.total" class="ml-2 bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs">
+                {{ depute.questions_stats.total }} questions
+              </Badge>
+            </h2>
+            <Link
+              :href="route('questions.depute', depute.uid)"
+              class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+            >
+              Voir toutes les questions →
+            </Link>
+          </div>
+          
+          <!-- Stats rapides -->
+          <div v-if="depute.questions_stats" class="grid grid-cols-3 gap-4 mb-4">
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ depute.questions_stats.total || 0 }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">Total</div>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ depute.questions_stats.repondues || 0 }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">Répondues</div>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ depute.questions_stats.en_attente || 0 }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">En attente</div>
+            </div>
+          </div>
+          
+          <!-- Liste des dernières questions -->
+          <div class="space-y-3">
+            <Link
+              v-for="q in depute.dernieres_questions"
+              :key="q.uid"
+              :href="route('questions.show', q.uid)"
+              class="block p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition group"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded-full">
+                      {{ q.type }}
+                    </span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ formatDate(q.date_question) }}
+                    </span>
+                  </div>
+                  <div class="font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-2">
+                    {{ q.analyse || q.rubrique || 'Question #' + q.numero }}
+                  </div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <span v-if="q.ministere_sigle">🏛️ {{ q.ministere_sigle }}</span>
+                  </div>
+                </div>
+                <div class="shrink-0">
+                  <Badge
+                    :class="q.date_reponse 
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' 
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'"
+                  >
+                    {{ q.date_reponse ? '✅ Répondue' : '⏳ En attente' }}
+                  </Badge>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </Card>
+
         <!-- Déclarations HATVP (Transparence) -->
         <Card v-if="depute.declarations_hatvp && depute.declarations_hatvp.length > 0">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
@@ -422,6 +515,13 @@ const extractInstagramHandle = (url) => {
             </a>
           </div>
         </Card>
+
+        <!-- Déclarations HATVP - Composant standardisé -->
+        <HatvpDeclarationCard 
+          v-if="depute.hatvp_summary" 
+          :summary="depute.hatvp_summary"
+          parlementaire-type="depute"
+        />
 
         <!-- Contacts -->
         <Card v-if="(depute.adresses && depute.adresses.length > 0) || hasReseauxSociaux">

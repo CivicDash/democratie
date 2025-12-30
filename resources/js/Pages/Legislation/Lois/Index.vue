@@ -25,7 +25,7 @@ const showThematiques = ref(false);
 const breadcrumbItems = [
     { label: 'Accueil', href: '/' },
     { label: 'Législation' },
-    { label: 'Cycle de vie des Lois' },
+    { label: 'Lois' },
 ];
 
 const etatConfig = {
@@ -97,7 +97,7 @@ const formatTitre = (titre) => {
 </script>
 
 <template>
-    <Head title="Lois - Cycle de vie législatif" />
+    <Head title="Lois - Législation française" />
 
     <AuthenticatedLayout>
         <div class="min-h-screen bg-slate-50 dark:bg-gray-900">
@@ -121,9 +121,10 @@ const formatTitre = (titre) => {
                                 </div>
                                 <div>
                                     <h1 class="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
-                                        Cycle de vie des Lois
+                                        Lois
                                     </h1>
                                     <p class="mt-1 text-slate-500 dark:text-slate-400">
+                                        Parcours législatif, scrutins et amendements
                                         Suivez le parcours législatif de chaque texte à travers l'Assemblée et le Sénat
                                     </p>
                                 </div>

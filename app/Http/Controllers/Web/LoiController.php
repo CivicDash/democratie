@@ -10,6 +10,11 @@ use App\Models\TypeLoi;
 use App\Models\ThematiqueLoi;
 use App\Models\Tag;
 use App\Models\ScrutinAN;
+use App\Models\AmendementAN;
+use App\Models\AmendementSenat;
+use App\Models\CitizenLawStats;
+use App\Models\Topic;
+use App\Models\CitizenLawVote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -35,8 +40,10 @@ class LoiController extends Controller
             $query->where('typloicod', $request->type);
         }
 
-        if ($request->filled('annee')) {
-            $query->whereYear('loidatjo', $request->annee);
+        // Par défaut, filtrer sur l'année en cours si pas d'autre filtre d'année
+        $annee = $request->get('annee', date('Y'));
+        if ($annee && $annee !== 'all') {
+            $query->whereYear('loidatjo', $annee);
         }
 
         if ($request->filled('search')) {
@@ -144,23 +151,52 @@ class LoiController extends Controller
             'lectures.typeLecture',
             'lectures.passages',
             'lectures.seances',
-        ])->where('loicod', $loicod)->firstOrFail();
+        ])->whereRaw("TRIM(loicod) = ?", [trim($loicod)])->firstOrFail();
 
         // Construire le parcours législatif
         $parcours = $loi->getParcours();
+
+        // Calculer les stats d'amendements depuis le parcours
+        $totalAmendements = collect($parcours)->sum('nb_amendements');
+        $amendementsAdoptes = collect($parcours)->sum('amendements_adoptes');
 
         // Statistiques pré-calculées (ou fallback)
         $loiStats = LoiStats::forLoi(trim($loi->loicod));
         $stats = $loiStats ? $loiStats->toViewArray() : [
             'etapes_total' => count($parcours),
-            'amendements_total' => 0,
-            'amendements_adoptes' => 0,
-            'taux_adoption_amendements' => 0,
+            'etapes_an' => collect($parcours)->where('chambre', 'A')->count(),
+            'etapes_senat' => collect($parcours)->where('chambre', 'S')->count(),
+            'amendements_total' => $totalAmendements,
+            'amendements_adoptes' => $amendementsAdoptes,
+            'taux_adoption_amendements' => $totalAmendements > 0 ? round(($amendementsAdoptes / $totalAmendements) * 100, 1) : 0,
             'scrutins_total' => 0,
             'duree_jours' => null,
             'score_engagement' => 0,
             'calculated_at' => null,
         ];
+
+        // Calcul durée si on a des dates
+        if (!$stats['duree_jours'] && count($parcours) > 0) {
+            // Chercher la première date réelle dans le parcours
+            $premierPassage = collect($parcours)->first(fn($p) => !empty($p['date']));
+            
+            if ($premierPassage && !empty($premierPassage['date'])) {
+                try {
+                    $dateDebut = \Carbon\Carbon::parse($premierPassage['date']);
+                    $dateFin = $loi->loidatjo ?? now();
+                    $duree = $dateDebut->diffInDays($dateFin, false);
+                    // S'assurer que la durée est positive
+                    $stats['duree_jours'] = max(0, abs($duree));
+                } catch (\Exception $e) {
+                    // Fallback: utiliser l'année de session
+                    if (!empty($premierPassage['session']) && $loi->loidatjo) {
+                        $anneeDebut = (int) $premierPassage['session'];
+                        $dateDebut = \Carbon\Carbon::create($anneeDebut, 1, 1);
+                        $stats['duree_jours'] = max(0, abs($dateDebut->diffInDays($loi->loidatjo)));
+                    }
+                }
+            }
+        }
 
         // Lois similaires (même thématique ou type)
         $loisSimilaires = collect();
@@ -201,10 +237,57 @@ class LoiController extends Controller
                         $q->orWhere('titre', 'ILIKE', "%{$mot}%");
                     }
                 })
+                // Priorité: scrutins solennels d'abord, puis par date
+                ->orderByRaw("CASE WHEN type_vote_code = 'SPS' THEN 0 ELSE 1 END")
                 ->orderByDesc('date_scrutin')
-                ->limit(10);
+                ->limit(30);
             
             $scrutinsLies = $scrutinsQuery->get();
+        }
+        
+        // Catégoriser les scrutins
+        $scrutinsSolennels = $scrutinsLies->filter(fn($s) => $s->type_vote_code === 'SPS');
+        $scrutinsAmendements = $scrutinsLies->filter(fn($s) => 
+            $s->type_vote_code !== 'SPS' && 
+            (str_contains(strtolower($s->titre), 'amendement') || str_contains(strtolower($s->titre), 'sous-amendement'))
+        );
+        $scrutinsAutres = $scrutinsLies->filter(fn($s) => 
+            $s->type_vote_code !== 'SPS' && 
+            !str_contains(strtolower($s->titre), 'amendement') && 
+            !str_contains(strtolower($s->titre), 'sous-amendement')
+        );
+
+        // Extraire les positions des groupes politiques depuis le scrutin solennel
+        $groupesPositions = $this->extractGroupesPositions($scrutinsSolennels->first());
+
+        // Rechercher les amendements liés via le dossier AN (liaison directe)
+        $dossierAN = $this->findDossierAN($loi);
+        $amendementsLies = $this->findAmendementsLies($loi, $dossierAN);
+
+        // Trouver les parlementaires clés associés à cette loi
+        $parlementairesAssocies = $this->findParlementairesAssocies($loi, $dossierAN);
+
+        // Débats citoyens liés à cette loi
+        $debatsLies = Topic::forLoi(trim($loi->loicod))
+            ->with(['author', 'category'])
+            ->withCount('posts')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get()
+            ->map(fn($t) => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'status' => $t->status,
+                'author' => $t->author?->name,
+                'posts_count' => $t->posts_count,
+                'created_at' => $t->created_at->format('d/m/Y'),
+            ]);
+
+        // Statistiques de vote citoyen
+        $citizenVoteStats = CitizenLawStats::getForLoi(trim($loi->loicod));
+        $userVote = null;
+        if (auth()->check()) {
+            $userVote = CitizenLawVote::getUserVote(auth()->id(), trim($loi->loicod));
         }
 
         return Inertia::render('Legislation/Lois/Show', [
@@ -247,17 +330,425 @@ class LoiController extends Controller
                 'date_jo' => $l->loidatjo?->format('d/m/Y'),
                 'etat_couleur' => $l->etat_couleur,
             ]),
-            'scrutins' => $scrutinsLies->map(fn ($s) => [
+            // Scrutins catégorisés
+            'scrutinsSolennels' => $scrutinsSolennels->map(fn ($s) => [
+                'uid' => $s->uid,
+                'numero' => $s->numero,
+                'titre' => \Str::limit($s->titre, 200),
+                'date' => $s->date_scrutin?->format('d/m/Y'),
+                'pour' => $s->pour_calcule,
+                'contre' => $s->contre_calcule,
+                'abstentions' => $s->abstentions_calcule,
+                'resultat' => $s->resultat_format,
+                'type' => 'solennel',
+            ])->values(),
+            'scrutinsAmendements' => $scrutinsAmendements->map(fn ($s) => [
+                'uid' => $s->uid,
+                'numero' => $s->numero,
+                'titre' => \Str::limit($s->titre, 200),
+                'date' => $s->date_scrutin?->format('d/m/Y'),
+                'pour' => $s->pour_calcule,
+                'contre' => $s->contre_calcule,
+                'abstentions' => $s->abstentions_calcule,
+                'resultat' => $s->resultat_format,
+                'type' => 'amendement',
+            ])->values(),
+            'scrutinsAutres' => $scrutinsAutres->map(fn ($s) => [
+                'uid' => $s->uid,
+                'numero' => $s->numero,
+                'titre' => \Str::limit($s->titre, 200),
+                'date' => $s->date_scrutin?->format('d/m/Y'),
+                'pour' => $s->pour_calcule,
+                'contre' => $s->contre_calcule,
+                'abstentions' => $s->abstentions_calcule,
+                'resultat' => $s->resultat_format,
+                'type' => 'article',
+            ])->values(),
+            // Conserver l'ancien format pour compatibilité
+            'scrutins' => $scrutinsLies->take(10)->map(fn ($s) => [
                 'uid' => $s->uid,
                 'numero' => $s->numero,
                 'titre' => \Str::limit($s->titre, 150),
                 'date' => $s->date_scrutin?->format('d/m/Y'),
-                'pour' => $s->pour,
-                'contre' => $s->contre,
-                'abstentions' => $s->abstentions,
-                'resultat' => $s->resultat_libelle,
-            ]),
+                'pour' => $s->pour_calcule,
+                'contre' => $s->contre_calcule,
+                'abstentions' => $s->abstentions_calcule,
+                'resultat' => $s->resultat_format,
+            ])->values(),
+            'citizenVoteStats' => [
+                'stats' => $citizenVoteStats,
+                'user_vote' => $userVote,
+            ],
+            'groupesPositions' => $groupesPositions,
+            'amendementsLies' => $amendementsLies,
+            'dossierAN' => $dossierAN,
+            'parlementairesAssocies' => $parlementairesAssocies,
+            'debatsLies' => $debatsLies,
         ]);
+    }
+
+    /**
+     * Trouver les parlementaires clés associés à une loi
+     */
+    private function findParlementairesAssocies(Loi $loi, ?array $dossierAN): array
+    {
+        $rapporteurs = [];
+        $auteurs = [];
+
+        // Si on a un dossier AN avec textes, chercher les auteurs d'amendements
+        if ($dossierAN && !empty($dossierAN['textes'])) {
+            $numerosTextes = collect($dossierAN['textes'])
+                ->pluck('numero')
+                ->filter()
+                ->map(fn($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
+                ->toArray();
+
+            if (!empty($numerosTextes)) {
+                // Auteurs d'amendements avec leur fréquence
+                $auteursQuery = AmendementAN::query()
+                    ->where('legislature', 17)
+                    ->whereNotNull('auteur_acteur_ref')
+                    ->where(function ($q) use ($numerosTextes) {
+                        foreach ($numerosTextes as $num) {
+                            $q->orWhere('uid', 'LIKE', "%B{$num}%");
+                        }
+                    })
+                    ->selectRaw('auteur_acteur_ref, auteur_libelle, COUNT(*) as nb_amendements')
+                    ->groupBy('auteur_acteur_ref', 'auteur_libelle')
+                    ->orderByDesc('nb_amendements')
+                    ->limit(10)
+                    ->get();
+
+                foreach ($auteursQuery as $a) {
+                    $libelle = html_entity_decode($a->auteur_libelle ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                    
+                    // Détecter si c'est un rapporteur
+                    if (stripos($libelle, 'rapporteur') !== false) {
+                        // Extraire le nom du rapporteur
+                        $rapporteurs[] = [
+                            'uid' => $a->auteur_acteur_ref,
+                            'libelle' => $libelle,
+                            'nb_amendements' => $a->nb_amendements,
+                        ];
+                    } else {
+                        $auteurs[] = [
+                            'uid' => $a->auteur_acteur_ref,
+                            'libelle' => $libelle,
+                            'nb_amendements' => $a->nb_amendements,
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Enrichir avec les infos des acteurs
+        $rapporteursEnrichis = [];
+        foreach (array_slice($rapporteurs, 0, 2) as $r) {
+            $acteur = \App\Models\ActeurAN::find($r['uid']);
+            if ($acteur) {
+                $rapporteursEnrichis[] = [
+                    'uid' => $r['uid'],
+                    'nom' => $acteur->nom_complet,
+                    'photo' => $acteur->photo_wikipedia_url,
+                    'groupe' => $acteur->groupe_politique_actuel?->libelle_abrege,
+                    'role' => 'Rapporteur',
+                    'nb_amendements' => $r['nb_amendements'],
+                ];
+            }
+        }
+
+        $auteursEnrichis = [];
+        foreach (array_slice($auteurs, 0, 6) as $a) {
+            $acteur = \App\Models\ActeurAN::find($a['uid']);
+            if ($acteur) {
+                $auteursEnrichis[] = [
+                    'uid' => $a['uid'],
+                    'nom' => $acteur->nom_complet,
+                    'photo' => $acteur->photo_wikipedia_url,
+                    'groupe' => $acteur->groupe_politique_actuel?->libelle_abrege,
+                    'nb_amendements' => $a['nb_amendements'],
+                ];
+            }
+        }
+
+        return [
+            'rapporteurs' => $rapporteursEnrichis,
+            'auteurs_principaux' => $auteursEnrichis,
+            'total_auteurs' => count($rapporteurs) + count($auteurs),
+        ];
+    }
+
+    /**
+     * Trouver le dossier AN correspondant à une loi Sénat
+     */
+    private function findDossierAN(Loi $loi): ?array
+    {
+        // Extraire l'ID du dossier depuis l'URL AN
+        $urlAN = $loi->url_an;
+        if (!$urlAN) {
+            return null;
+        }
+
+        // Pattern: DLR5L17N50724 ou similaire
+        if (!preg_match('/(DLR\d+L\d+N\d+)/', $urlAN, $matches)) {
+            return null;
+        }
+
+        $dossierRef = $matches[1];
+
+        // Chercher le dossier
+        $dossier = DB::table('dossiers_legislatifs_an')
+            ->where('uid', $dossierRef)
+            ->first();
+
+        if (!$dossier) {
+            return ['ref' => $dossierRef, 'existe' => false, 'textes' => []];
+        }
+
+        // Chercher les textes liés
+        $textes = DB::table('textes_legislatifs_an')
+            ->where('dossier_ref', $dossierRef)
+            ->get()
+            ->map(fn($t) => [
+                'uid' => $t->uid,
+                'type' => $t->type_texte,
+                'numero' => $t->numero,
+                'titre' => $t->titre,
+                'date_depot' => $t->date_depot,
+            ])
+            ->toArray();
+
+        return [
+            'ref' => $dossierRef,
+            'existe' => true,
+            'titre' => $dossier->titre,
+            'legislature' => $dossier->legislature,
+            'textes' => $textes,
+        ];
+    }
+
+    /**
+     * Rechercher les amendements liés à une loi
+     */
+    private function findAmendementsLies(Loi $loi, ?array $dossierAN): array
+    {
+        $amendementsAN = collect();
+        $liaisonDirecte = false;
+
+        // MÉTHODE 1: Liaison directe via les numéros de textes du dossier AN
+        if ($dossierAN && !empty($dossierAN['textes'])) {
+            $numerosTextes = collect($dossierAN['textes'])
+                ->pluck('numero')
+                ->filter()
+                ->map(fn($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
+                ->toArray();
+
+            if (!empty($numerosTextes)) {
+                // Les UIDs d'amendements contiennent "B" + numero texte
+                $amendementsAN = AmendementAN::query()
+                    ->where('legislature', 17)
+                    ->where(function ($q) use ($numerosTextes) {
+                        foreach ($numerosTextes as $num) {
+                            $q->orWhere('uid', 'LIKE', "%B{$num}%");
+                        }
+                    })
+                    ->orderByDesc('date_depot')
+                    ->limit(100)
+                    ->get()
+                    ->map(function($a) {
+                        // Extraire le numéro de texte depuis l'UID (format: AMANR5L17PO...B1009P...)
+                        $texteRef = null;
+                        if ($a->uid && preg_match('/B(\d+)P/', $a->uid, $matches)) {
+                            $texteRef = $matches[1];
+                        }
+                        
+                        return [
+                            'uid' => $a->uid,
+                            'numero' => $a->numero_long,
+                            'texte_ref' => $texteRef,
+                            'article' => $a->article_designation_courte ?? $a->division_titre,
+                            'auteur' => html_entity_decode($a->auteur_libelle ?? 'Inconnu'),
+                            'sort' => $a->sort_libelle,
+                            'sort_code' => $a->sort_code,
+                            'date_depot' => $a->date_depot?->format('d/m/Y'),
+                            'expose' => \Str::limit(strip_tags($a->expose ?? ''), 150),
+                            'chambre' => 'AN',
+                            'url' => $texteRef && $a->numero_long ? "https://www.assemblee-nationale.fr/dyn/17/amendements/{$texteRef}/{$a->numero_long}" : null,
+                        ];
+                    });
+
+                $liaisonDirecte = $amendementsAN->count() > 0;
+            }
+        }
+
+        // MÉTHODE 2: Fallback par mots-clés si pas de liaison directe ou peu de résultats
+        if (!$liaisonDirecte || $amendementsAN->count() < 5) {
+            $motsExclus = [
+                'pour', 'dans', 'avec', 'cette', 'projet', 'proposition', 'relative', 
+                'relatif', 'portant', 'visant', 'autorisant', 'ratification', 'convention',
+                'article', 'articles', 'loi', 'lois', 'code', 'texte', 'textes',
+                'transposition', 'accords', 'nationaux', 'interprofessionnels',
+                'modifiant', 'modification', 'dispositions', 'diverses'
+            ];
+            
+            $titre = strtolower($loi->loitit ?? '');
+            $titreMots = preg_split('/[\s,\-\'\"]+/', $titre);
+            
+            $motsSignificatifs = array_filter($titreMots, function($m) use ($motsExclus) {
+                $m = trim($m);
+                return strlen($m) > 4 && !in_array($m, $motsExclus) && !preg_match('/^\d+$/', $m);
+            });
+            
+            foreach ($loi->thematiques->pluck('libelle')->toArray() as $theme) {
+                $themeMots = preg_split('/[\s,\-]+/', strtolower($theme));
+                foreach ($themeMots as $m) {
+                    if (strlen($m) > 4 && !in_array($m, $motsExclus)) {
+                        $motsSignificatifs[] = $m;
+                    }
+                }
+            }
+            
+            $motsSignificatifs = array_unique(array_values($motsSignificatifs));
+            $motsSignificatifs = array_slice($motsSignificatifs, 0, 6);
+
+            if (!empty($motsSignificatifs) && !$liaisonDirecte) {
+                $amendementsAN = AmendementAN::query()
+                    ->where('legislature', 17)
+                    ->where(function ($q) use ($motsSignificatifs) {
+                        foreach ($motsSignificatifs as $mot) {
+                            $q->orWhere('dispositif', 'ILIKE', "%{$mot}%")
+                              ->orWhere('expose', 'ILIKE', "%{$mot}%")
+                              ->orWhere('division_titre', 'ILIKE', "%{$mot}%");
+                        }
+                    })
+                    ->orderByDesc('date_depot')
+                    ->limit(50)
+                    ->get()
+                    ->map(function($a) {
+                        // Extraire le numéro de texte depuis l'UID (format: AMANR5L17PO...B1009P...)
+                        $texteRef = null;
+                        if ($a->uid && preg_match('/B(\d+)P/', $a->uid, $matches)) {
+                            $texteRef = $matches[1];
+                        }
+                        
+                        return [
+                            'uid' => $a->uid,
+                            'numero' => $a->numero_long,
+                            'texte_ref' => $texteRef,
+                            'article' => $a->article_designation_courte ?? $a->division_titre,
+                            'auteur' => html_entity_decode($a->auteur_libelle ?? 'Inconnu'),
+                            'sort' => $a->sort_libelle,
+                            'sort_code' => $a->sort_code,
+                            'date_depot' => $a->date_depot?->format('d/m/Y'),
+                            'expose' => \Str::limit(strip_tags($a->expose ?? ''), 150),
+                            'chambre' => 'AN',
+                            'url' => $texteRef && $a->numero_long ? "https://www.assemblee-nationale.fr/dyn/17/amendements/{$texteRef}/{$a->numero_long}" : null,
+                        ];
+                    });
+            }
+        }
+
+        // Chercher dans les amendements Sénat (par mots-clés uniquement)
+        $motsSignificatifs = $motsSignificatifs ?? [];
+        $amendementsSenat = collect();
+        
+        if (!empty($motsSignificatifs)) {
+            $amendementsSenat = AmendementSenat::query()
+                ->where('date_depot', '>=', now()->subMonths(12))
+                ->where(function ($q) use ($motsSignificatifs) {
+                    foreach ($motsSignificatifs as $mot) {
+                        $q->orWhere('dispositif', 'ILIKE', "%{$mot}%")
+                          ->orWhere('expose', 'ILIKE', "%{$mot}%");
+                    }
+                })
+                ->orderByDesc('date_depot')
+                ->limit(50)
+                ->get()
+                ->map(fn($a) => [
+                    'uid' => 'SEN-' . $a->id,
+                    'numero' => $a->numero,
+                    'texte_ref' => $a->texte_ref,
+                    'session' => $a->session ?? '2024-2025',
+                    'article' => $a->subdiv_titre ?? $a->type_amendement,
+                    'auteur' => trim(($a->auteur_prenom ?? '') . ' ' . ($a->auteur_nom ?? 'Inconnu')),
+                    'sort' => $a->sort_libelle_formate,
+                    'sort_code' => $a->sort_code,
+                    'date_depot' => $a->date_depot?->format('d/m/Y'),
+                    'expose' => \Str::limit(strip_tags($a->expose ?? ''), 150),
+                    'chambre' => 'Sénat',
+                    'url' => $a->url ?? ($a->texte_ref ? "https://www.senat.fr/amendements/" . ($a->session ?? '2024-2025') . "/{$a->texte_ref}/{$a->numero}.html" : null),
+                ]);
+        }
+
+        // Fusionner et trier par date
+        $amendements = $amendementsAN->concat($amendementsSenat)
+            ->sortByDesc('date_depot')
+            ->values();
+
+        // Grouper par sort
+        $parSort = $amendements->groupBy('sort')->map->count();
+
+        return [
+            'amendements' => $amendements->take(30)->toArray(),
+            'total' => $amendements->count(),
+            'total_an' => $amendementsAN->count(),
+            'total_senat' => $amendementsSenat->count(),
+            'par_sort' => $parSort->toArray(),
+            'mots_cles' => $motsSignificatifs ?? [],
+            'liaison_directe' => $liaisonDirecte,
+        ];
+    }
+
+    /**
+     * Extraire les positions des groupes politiques depuis un scrutin
+     */
+    private function extractGroupesPositions(?ScrutinAN $scrutin): array
+    {
+        if (!$scrutin || !$scrutin->ventilation_votes) {
+            return ['pour' => [], 'contre' => [], 'abstention' => []];
+        }
+
+        $groupes = $scrutin->ventilation_votes['organe']['groupes'] ?? [];
+        $pour = [];
+        $contre = [];
+        $abstention = [];
+
+        foreach ($groupes as $g) {
+            $organe = $g['organe'] ?? [];
+            $vote = $g['vote']['decompteVoix'] ?? [];
+
+            $groupeInfo = [
+                'nom' => $organe['libelle'] ?? 'Groupe inconnu',
+                'sigle' => $organe['libelleAbrev'] ?? substr($organe['libelle'] ?? '', 0, 10),
+                'pour' => $vote['pour'] ?? 0,
+                'contre' => $vote['contre'] ?? 0,
+                'abstentions' => $vote['abstentions'] ?? 0,
+                'non_votants' => $vote['nonVotants'] ?? 0,
+            ];
+
+            // Déterminer la position dominante du groupe
+            $totalVotes = $groupeInfo['pour'] + $groupeInfo['contre'] + $groupeInfo['abstentions'];
+            if ($totalVotes > 0) {
+                if ($groupeInfo['pour'] > $groupeInfo['contre'] && $groupeInfo['pour'] > $groupeInfo['abstentions']) {
+                    $pour[] = $groupeInfo;
+                } elseif ($groupeInfo['contre'] > $groupeInfo['pour'] && $groupeInfo['contre'] > $groupeInfo['abstentions']) {
+                    $contre[] = $groupeInfo;
+                } else {
+                    $abstention[] = $groupeInfo;
+                }
+            }
+        }
+
+        // Trier par nombre de votes
+        usort($pour, fn($a, $b) => $b['pour'] <=> $a['pour']);
+        usort($contre, fn($a, $b) => $b['contre'] <=> $a['contre']);
+        usort($abstention, fn($a, $b) => $b['abstentions'] <=> $a['abstentions']);
+
+        return [
+            'pour' => $pour,
+            'contre' => $contre,
+            'abstention' => $abstention,
+        ];
     }
 
     /**
@@ -268,7 +759,7 @@ class LoiController extends Controller
         $loi = Loi::with([
             'lectures.typeLecture',
             'lectures.passages',
-        ])->where('loicod', $loicod)->firstOrFail();
+        ])->whereRaw("TRIM(loicod) = ?", [trim($loicod)])->firstOrFail();
 
         return response()->json([
             'loicod' => $loicod,

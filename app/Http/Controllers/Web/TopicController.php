@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Loi;
 use App\Models\Topic;
 use App\Models\TopicCategory;
 use App\Models\TerritoryRegion;
@@ -184,13 +185,28 @@ class TopicController extends Controller
     /**
      * Formulaire de création
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $this->authorize('create', Topic::class);
+
+        // Si on vient d'une loi, pré-remplir les infos
+        $prefilledLoi = null;
+        if ($request->has('loi_cod')) {
+            $loi = Loi::where('loicod', $request->loi_cod)->first();
+            if ($loi) {
+                $prefilledLoi = [
+                    'loicod' => trim($loi->loicod),
+                    'numero' => trim($loi->numero ?? ''),
+                    'titre' => $loi->titre_court ?? $loi->loitit,
+                    'suggested_title' => 'Débat : ' . ($loi->titre_court ?? \Str::limit($loi->loitit, 100)),
+                ];
+            }
+        }
 
         return Inertia::render('Topics/Create', [
             'regions' => TerritoryRegion::orderBy('name')->get(),
             'departments' => TerritoryDepartment::with('region')->orderBy('name')->get(),
+            'prefilledLoi' => $prefilledLoi,
         ]);
     }
 

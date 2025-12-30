@@ -148,13 +148,18 @@ class Senateur extends Model
     }
 
     /**
-     * Normalise une chaîne pour une URL (minuscules, sans accents)
+     * Normalise une chaîne pour une URL de photo Sénat
+     * Les tirets sont remplacés par des underscores, les espaces supprimés
      */
     private function normalizeForUrl(string $text): string
     {
         $text = strtolower(trim($text));
+        // Translittération des accents
         $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-        $text = preg_replace('/[^a-z0-9]/', '', $text);
+        // Remplacer les tirets par des underscores (pour les prénoms composés)
+        $text = str_replace('-', '_', $text);
+        // Supprimer tout ce qui n'est pas alphanumérique ou underscore
+        $text = preg_replace('/[^a-z0-9_]/', '', $text);
         return $text;
     }
 

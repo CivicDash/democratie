@@ -686,72 +686,270 @@ Recherche "retraite"
 
 ---
 
-### 2.2 : 🗳️ Vote Citoyen sur Textes de Loi
+### 2.2 : 🗳️ Vote Citoyen sur Textes de Loi ✅ IMPLÉMENTÉ
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 2 semaines
+**Durée** : 2 semaines → **Terminé le 30/12/2025**
 
 **User Stories** :
-- [ ] En tant que citoyen, je veux donner mon avis sur un texte
-- [ ] En tant que citoyen, je veux voir comment les élus ont voté
-- [ ] En tant que citoyen, je veux comparer le vote citoyen vs parlementaire
+- [x] En tant que citoyen, je veux donner mon avis sur une loi
+- [x] En tant que citoyen, je veux voir comment les élus ont voté
+- [x] En tant que citoyen, je veux comparer le vote citoyen vs parlementaire
+
+**Architecture technique** :
+```sql
+-- Tables implémentées
+CREATE TABLE citizen_law_votes (...);     -- Votes individuels
+CREATE TABLE citizen_law_stats (...);     -- Stats pré-calculées
+```
 
 **Fonctionnalités** :
-- [ ] Vote Pour / Contre / Abstention sur textes en cours
-- [ ] Affichage comparatif : 
-  - 📊 Vote citoyen : 65% Pour
-  - 🏛️ Vote AN : 48% Pour
-  - 🏛️ Vote Sénat : 52% Pour
-- [ ] Graphiques de divergence
-- [ ] Historique de mes votes
-- [ ] Partage social
+- [x] Widget vote sur page `/lois/{id}` (👍 Pour / 👎 Contre)
+- [x] **Score de popularité** (-100 à +100) avec labels :
+  - 🔥 Très populaire / 👍 Populaire / ⚖️ Avis partagés / ⚠️ Controversée / 🚫 Impopulaire
+- [x] Seuil 5 votes minimum pour afficher le score
+- [x] Barre de progression visuelle Pour/Contre
+- [x] Stats pré-calculées (table `citizen_law_stats`)
+- [x] Recalcul automatique après chaque vote
 
 **Règles** :
-- [ ] 1 vote par citoyen par texte
-- [ ] Vote modifiable jusqu'à la clôture
-- [ ] Résultats visibles après clôture
-- [ ] Authentification requise (FranceConnect optionnel)
+- [x] 1 vote par utilisateur par loi
+- [x] Vote modifiable à tout moment
+- [x] Résultats visibles en temps réel
+- [x] Authentification requise
+
+**Tâches** :
+- [x] Migration `citizen_law_votes` + `citizen_law_stats`
+- [x] Modèles `CitizenLawVote`, `CitizenLawStats`
+- [x] API vote (POST/DELETE `/api/lois/{loiCod}/vote`)
+- [x] Composant `LawVoteWidget.vue` avec score de popularité
+- [x] Intégration page `/lois/{id}` (sidebar)
+- [x] Commande `demo:generate-votes` pour votes synthétiques
 
 ---
 
-### 2.3 : 📊 Sondages Ouverts
+### 2.2.5 : 💬 Débats Citoyens Liés aux Lois ✅ IMPLÉMENTÉ
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 jour → **Terminé le 30/12/2025**
+
+**Fonctionnalités** :
+- [x] Liaison `Topic` ↔ `Loi` (colonne `loi_cod` sur topics)
+- [x] Section "Débat citoyen" sur page détail loi
+- [x] Bouton "Lancer le débat" avec pré-remplissage
+- [x] Liste des débats existants liés à la loi
+- [x] Création topic avec loi pré-sélectionnée (`/topics/create?loi_cod=...`)
+
+---
+
+### 2.2.6 : 📝 Enrichissement Page Loi ✅ IMPLÉMENTÉ
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 jour → **Terminé le 30/12/2025**
+
+**Améliorations** :
+- [x] **Amendements cliquables** : Liens vers AN/Sénat
+  - AN : `assemblee-nationale.fr/dyn/17/amendements/{texte}/{numero}`
+  - Sénat : `senat.fr/amendements/{session}/{texte}/{numero}.html`
+- [x] **Scrutins dans le corps principal** (pas sidebar)
+  - Catégorisation : Vote final ⭐ / Articles 📄 / Amendements 📝
+  - Design en grille avec couleurs par catégorie
+- [x] **Durée corrigée** : Calcul basé sur dates réelles du parcours
+- [x] **Parlementaires impliqués** : Rapporteurs et auteurs principaux d'amendements
+
+---
+
+### 2.3 : 💡 Idées Citoyennes & Propositions (REFONTE) ✅ PHASE 1 IMPLÉMENTÉE
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 3 semaines  
+**Statut** : ✅ Phase 1 terminée (30/12/2025)
+
+**Objectif** : Refondre le système de Topics existant en un système d'idées/propositions citoyennes structuré avec assistant de création.
+
+**User Stories** :
+- [x] En tant que citoyen, je veux soumettre une idée/proposition guidée
+- [x] En tant que citoyen, je veux voter pour les idées que je soutiens
+- [x] En tant que citoyen, je veux interpeller mes élus sur des sujets concrets
+- [x] En tant que citoyen, je veux filtrer par niveau géographique et thématique
+- [x] En tant que citoyen, je veux lier mon idée à une loi ou un élu
+
+**Niveaux géographiques** :
+```
+🇫🇷 National     → Tous les citoyens, tous les élus
+🗺️ Régional      → Citoyens de la région
+📍 Départemental → Citoyens du département, sénateurs
+🏠 Communal      → Citoyens de la commune, député, maire
+```
+
+**Architecture technique** (refonte table `topics`) :
+```sql
+-- Extension table topics existante
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS idea_type VARCHAR(30);
+-- Types: proposal, question, debate, petition, interpellation
+
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS loi_cod VARCHAR(20);
+-- Liaison avec une loi (déjà fait ✅)
+
+-- Liaisons avec élus (nouvelle table)
+CREATE TABLE topic_elus (
+    id BIGSERIAL PRIMARY KEY,
+    topic_id BIGINT REFERENCES topics(id),
+    elu_type VARCHAR(20),       -- depute, senateur, maire
+    elu_id VARCHAR(50),         -- uid AN, id sénateur, id maire
+    interpellation BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP
+);
+
+-- Statistiques pré-calculées
+ALTER TABLE topics ADD COLUMN votes_pour INT DEFAULT 0;
+ALTER TABLE topics ADD COLUMN votes_contre INT DEFAULT 0;
+ALTER TABLE topics ADD COLUMN score INT DEFAULT 0;
+```
+
+**Assistant de création (étapes)** :
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  📝 CRÉER UNE PROPOSITION                          Étape 1/5   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  🎯 Quel type de contribution ?                                 │
+│                                                                 │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
+│  │ 💡 Idée     │ │ ❓ Question │ │ 💬 Débat    │               │
+│  │ Proposer    │ │ Demander    │ │ Discuter    │               │
+│  └─────────────┘ └─────────────┘ └─────────────┘               │
+│                                                                 │
+│  ┌─────────────┐ ┌─────────────┐                               │
+│  │ 📜 Pétition │ │ 📢 Interpel │                               │
+│  │ Mobiliser   │ │ Élus        │                               │
+│  └─────────────┘ └─────────────┘                               │
+│                                                                 │
+│                                            [Suivant →]          │
+└─────────────────────────────────────────────────────────────────┘
+
+Étape 2: 📍 Portée géographique
+Étape 3: 🏷️ Catégorie & Tags (suggestions IA)
+Étape 4: 📜 Loi liée (optionnel, recherche)
+Étape 5: 👤 Élus concernés (optionnel, géo-suggéré)
+```
+
+**Interface liste** :
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  💡 PROPOSITIONS CITOYENNES              [📝 Nouvelle idée]    │
+├─────────────────────────────────────────────────────────────────┤
+│  📍 [🇫🇷 Tous] [📍 Mon territoire]                              │
+│  🎯 [Tous] [💡 Idées] [❓ Questions] [📢 Interpellations]       │
+│  🏷️ [Santé] [Éducation] [Transport] [Environnement] [+]        │
+│  📊 [🔥 Tendance] [🆕 Récent] [💬 Actif] [✅ Résolu]            │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │ 💡 IDÉE · 📍 National · 🏷️ Logement                       │ │
+│  │                                                           │ │
+│  │ Réduire les frais de notaire pour les primo-accédants     │ │
+│  │                                                           │ │
+│  │ 📜 PLF 2025 · 👤 3 élus interpellés                       │ │
+│  │                                                           │ │
+│  │ [👍 1,234] [👎 156] [💬 89]  ████████░░ 89%  🔥 Tendance  │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │ 📢 INTERPELLATION · 📍 Loire-Atlantique                   │ │
+│  │                                                           │ │
+│  │ @SophieBlutel : Position sur la réforme des retraites ?   │ │
+│  │                                                           │ │
+│  │ 👤 Députée 4e circo · ⏳ En attente de réponse            │ │
+│  │                                                           │ │
+│  │ [👍 567] [💬 34]  👥 234 soutiens                         │ │
+│  └───────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Tâches Phase 1 (✅ Complétées)** :
+- [x] Migration extension `topics` (idea_type, votes_pour, score, slug, published_at)
+- [x] Table `topic_elus` pour liaisons avec élus
+- [x] Table `topic_votes` pour votes citoyens
+- [x] Table `topic_tags` pour tags multiples
+- [x] Modèle `TopicElu.php` avec relations et accessors
+- [x] Modèle `TopicVote.php` avec Wilson score
+- [x] Extension modèle `Topic.php` (scopes, accessors, boot)
+- [x] Controller `ParticipationController` (hub, index, create, store, vote)
+- [x] Page `/participation` - Hub participation citoyenne
+- [x] Page `/participation/idees` - Liste avec filtres avancés
+- [x] Page `/participation/idees/nouvelle` - Wizard 5 étapes
+- [x] Routes web participation
+- [x] Composant `CreateIdea.vue` (wizard 5 étapes)
+- [x] Composant `Ideas/Index.vue` (liste + filtres + tri)
+- [x] Composant `Hub.vue` (page d'accueil participation)
+
+**Tâches Phase 2 (À faire)** :
+- [ ] Page `/participation/idees/{id}` (détail + débat + élus)
+- [ ] Suggestions IA pour tags (basé sur titre/description)
+- [ ] Géo-suggestion élus selon scope (recherche live)
+- [ ] Interpellation : notification à l'élu (email)
+- [ ] Réponses d'élus (interface dédiée)
+- [ ] Modération admin améliorée
+- [ ] Gamification (badges participation)
+
+---
+
+### 2.4 : 💬 Débat Structuré & Forum
+**Priorité** : 🟡 HAUTE  
+**Durée** : 2 semaines
+
+**User Stories** :
+- [ ] En tant que citoyen, je veux débattre sur une idée ou une loi
+- [ ] En tant que citoyen, je veux répondre à un commentaire
+- [ ] En tant que citoyen, je veux signaler un contenu inapproprié
+
+**Fonctionnalités** :
+- [ ] Commentaires imbriqués (threads)
+- [ ] Vote sur les commentaires (👍/👎)
+- [ ] Mise en avant des contributions de qualité
+- [ ] Signalement + modération
+- [ ] Mention d'utilisateurs (@pseudo)
+- [ ] Notifications en temps réel
+
+**Règles de modération** :
+```yaml
+Création:
+  - Authentification requise
+  - Contenu: 10-5000 caractères
+  - Rate limit: 10 commentaires/heure
+
+Anti-manipulation:
+  - Détection multi-comptes
+  - Captcha après actions suspectes
+  - Bannissement progressif
+
+Modération:
+  - File de signalements
+  - Actions: avertir, masquer, supprimer, bannir
+  - Historique des actions
+```
+
+---
+
+### 2.5 : 🎮 Gamification Participation
 **Priorité** : 🟡 HAUTE  
 **Durée** : 1 semaine
 
-**User Stories** :
-- [ ] En tant que citoyen, je veux créer un sondage sur un sujet
-- [ ] En tant que citoyen, je veux participer aux sondages
-- [ ] En tant qu'admin, je veux modérer les sondages
+**Badges citoyens** :
+```
+🏅 "Première idée"      → A proposé une idée
+🗳️ "Voix citoyenne"     → 100 votes donnés
+⭐ "Influenceur"        → Idée avec 1000+ votes pour
+💬 "Débatteur"          → 50 commentaires constructifs
+🔔 "Lanceur d'alerte"   → Idée reprise médiatiquement
+✅ "Vérifié"            → Compte FranceConnect
+```
 
-**Tâches** :
-- [ ] Création de sondages (question + options)
-- [ ] Types : choix unique, choix multiple, échelle
-- [ ] Durée configurable
-- [ ] Résultats en temps réel
-- [ ] Modération avant publication
-- [ ] Export résultats
-
----
-
-### 2.4 : 💬 Refonte Forum & Topics
-**Priorité** : 🟡 HAUTE  
-**Durée** : 2 semaines
-
-**User Stories** :
-- [ ] En tant que citoyen, je veux discuter de sujets locaux
-- [ ] En tant que citoyen, je veux taguer mes discussions
-- [ ] En tant que citoyen, je veux rechercher par région/ville
-
-**Améliorations** :
-- [ ] **Tags prédéfinis** : Thématiques (santé, éducation, transport...)
-- [ ] **Géolocalisation** : Région / Département / Ville / Code postal
-- [ ] **Recherche avancée** : Par tags, lieu, date
-- [ ] **Lien avec textes de loi** : Associer discussion à un dossier législatif
-- [ ] **Upvote/Downvote** : Mise en avant des contributions
-- [ ] **Réponses imbriquées** : Threads de discussion
+**Tableau de bord utilisateur** :
+- [ ] Mes idées et leur score
+- [ ] Mes votes sur les lois (historique)
+- [ ] Comparaison avec vote parlementaire
+- [ ] "Vous êtes aligné à X% avec le groupe Y"
 
 ---
 
-### 2.5 : 💰 Budget Participatif Approfondi
+### 2.6 : 💰 Budget Participatif Approfondi
 **Priorité** : 🟢 MOYENNE  
 **Durée** : 2 semaines
 
@@ -975,9 +1173,9 @@ Recherche "retraite"
 
 ---
 
-## 🎯 PRIORITÉS IMMÉDIATES (Décembre 2025)
+## 🎯 PRIORITÉS IMMÉDIATES (Décembre 2025 - Janvier 2026)
 
-### ✅ Accompli cette semaine (23-29 décembre)
+### ✅ Accompli semaine 1 (23-29 décembre)
 1. ✅ Corriger migrations commissions/groupes
 2. ✅ Refonte menu & navigation avec mega-menu
 3. ✅ Breadcrumbs + raccourcis clavier (Cmd+K, G+H, G+D, G+S, G+L)
@@ -990,11 +1188,26 @@ Recherche "retraite"
 10. ✅ Hub législation unifié `/legislation`
 11. ✅ Liaison scrutins AN ↔ lois
 
-### Prochaines étapes
-1. [ ] Questions Écrites Sénat (import base SQL)
-2. [ ] Recherche globale Meilisearch multi-modèles
-3. [ ] Tests de non-régression
-4. [ ] Migration PHP 8.5 + FrankenPHP
+### ✅ Accompli semaine 2 (30 décembre)
+12. ✅ Vote citoyen sur les lois avec score de popularité
+13. ✅ Liaison débats citoyens ↔ lois
+14. ✅ Amendements cliquables (liens AN/Sénat)
+15. ✅ Scrutins dans le corps principal de la page loi
+16. ✅ Parlementaires impliqués (rapporteurs, auteurs amendements)
+17. ✅ Stats pré-calculées élus (Députés/Sénateurs/Maires)
+18. ✅ Correction durée des lois (valeurs négatives)
+
+### 🔄 En cours
+1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
+2. 🔄 Interpellation des élus
+
+### Prochaines étapes (Janvier 2026)
+1. [ ] Wizard création idée (5 étapes)
+2. [ ] Liaison idées ↔ élus (interpellation)
+3. [ ] Suggestions IA pour catégories/tags
+4. [ ] Questions Écrites Sénat (import base SQL)
+5. [ ] Recherche globale Meilisearch multi-modèles
+6. [ ] Migration PHP 8.5 + FrankenPHP
 
 ---
 
@@ -1057,6 +1270,6 @@ CivicDash vise à devenir **la référence citoyenne** pour comprendre et partic
 ---
 
 **Maintenu par** : CivicDash Core Team  
-**Version** : 2.1  
-**Dernière mise à jour** : 29 décembre 2025  
+**Version** : 2.2  
+**Dernière mise à jour** : 30 décembre 2025  
 **Licence** : AGPL-3.0 Open Source

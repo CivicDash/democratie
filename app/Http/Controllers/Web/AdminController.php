@@ -139,6 +139,7 @@ class AdminController extends Controller
             ['name' => 'dashboard:calculate-stats', 'label' => 'Stats dashboard', 'description' => 'Recalculer statistiques', 'icon' => '📊', 'category' => 'system', 'dangerous' => false],
             ['name' => 'calculate:parlementaires-stats', 'label' => 'Stats parlementaires', 'description' => 'Pré-calcul stats députés/sénateurs', 'icon' => '📈', 'category' => 'system', 'dangerous' => false],
             ['name' => 'calculate:lois-stats', 'label' => 'Stats lois', 'description' => 'Pré-calcul stats des lois', 'icon' => '📜', 'category' => 'system', 'dangerous' => false],
+            ['name' => 'calculate:elus-global-stats', 'label' => 'Stats élus globales', 'description' => 'Statistiques comparatives (députés/sénateurs/maires)', 'icon' => '🏛️', 'category' => 'system', 'dangerous' => false],
             ['name' => 'cache:clear', 'label' => 'Vider cache', 'description' => 'Effacer les caches', 'icon' => '🗑️', 'category' => 'system', 'dangerous' => true],
             ['name' => 'optimize:clear', 'label' => 'Optimiser', 'description' => 'Vider tous les caches', 'icon' => '⚡', 'category' => 'system', 'dangerous' => true],
         ];
@@ -186,7 +187,7 @@ class AdminController extends Controller
             // Autres
             'import:deputes', 'import:maires', 'import:maires-datagouv', 'import:organes-parlementaires', 'import:akoma-ntoso',
             // Système
-            'dashboard:calculate-stats', 'calculate:parlementaires-stats', 'calculate:lois-stats', 'cache:clear', 'optimize:clear',
+            'dashboard:calculate-stats', 'calculate:parlementaires-stats', 'calculate:lois-stats', 'calculate:elus-global-stats', 'cache:clear', 'optimize:clear',
         ];
 
         if (!in_array($command, $allowedCommands)) {

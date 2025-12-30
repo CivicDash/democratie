@@ -88,7 +88,7 @@ const isActive = (pattern) => {
                                     >
                                         <div 
                                             v-show="showRepresentantsMenu"
-                                            class="absolute left-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50"
+                                            class="absolute left-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50"
                                         >
                                             <Link 
                                                 :href="route('representants.mes-representants')" 
@@ -100,21 +100,92 @@ const isActive = (pattern) => {
                                                     <div class="text-xs text-slate-500">Par code postal</div>
                                                 </div>
                                             </Link>
+                                            
                                             <hr class="my-2 border-slate-200 dark:border-slate-700">
-                                            <Link 
-                                                :href="route('representants.deputes.index')" 
-                                                class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700"
-                                            >
-                                                <span class="text-lg">🏛️</span>
-                                                <span class="text-slate-700 dark:text-slate-300">Députés</span>
-                                            </Link>
-                                            <Link 
-                                                :href="route('representants.senateurs.index')" 
-                                                class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700"
-                                            >
-                                                <span class="text-lg">🏛️</span>
-                                                <span class="text-slate-700 dark:text-slate-300">Sénateurs</span>
-                                            </Link>
+                                            
+                                            <!-- Assemblée Nationale - Submenu -->
+                                            <div class="relative group/an">
+                                                <div class="flex items-center justify-between px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer border-l-2 border-transparent hover:border-indigo-500">
+                                                    <div class="flex items-center gap-3">
+                                                        <span class="text-lg">🏛️</span>
+                                                        <span class="font-medium text-slate-900 dark:text-white">Assemblée Nationale</span>
+                                                    </div>
+                                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </div>
+                                                <!-- Submenu AN -->
+                                                <div class="absolute left-full top-0 ml-1 w-60 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 opacity-0 invisible group-hover/an:opacity-100 group-hover/an:visible transition-all duration-150">
+                                                    <Link 
+                                                        :href="route('representants.deputes.index')" 
+                                                        class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                    >
+                                                        <span class="text-lg">👥</span>
+                                                        <div>
+                                                            <div class="text-slate-700 dark:text-slate-300 font-medium">Députés</div>
+                                                            <div class="text-xs text-slate-500">577 représentants</div>
+                                                        </div>
+                                                    </Link>
+                                                    <Link 
+                                                        :href="route('questions.index')" 
+                                                        class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                    >
+                                                        <span class="text-lg">❓</span>
+                                                        <div>
+                                                            <div class="text-slate-700 dark:text-slate-300 font-medium">Questions au Gouvernement</div>
+                                                            <div class="text-xs text-slate-500">Interpellations des députés</div>
+                                                        </div>
+                                                    </Link>
+                                                    <Link 
+                                                        :href="route('legislation.scrutins.index')" 
+                                                        class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                    >
+                                                        <span class="text-lg">🗳️</span>
+                                                        <div>
+                                                            <div class="text-slate-700 dark:text-slate-300 font-medium">Votes et scrutins</div>
+                                                            <div class="text-xs text-slate-500">Votes en séance publique</div>
+                                                        </div>
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Sénat - Submenu -->
+                                            <div class="relative group/senat">
+                                                <div class="flex items-center justify-between px-4 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer border-l-2 border-transparent hover:border-rose-500">
+                                                    <div class="flex items-center gap-3">
+                                                        <span class="text-lg">🏰</span>
+                                                        <span class="font-medium text-slate-900 dark:text-white">Sénat</span>
+                                                    </div>
+                                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </div>
+                                                <!-- Submenu Sénat -->
+                                                <div class="absolute left-full top-0 ml-1 w-60 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 opacity-0 invisible group-hover/senat:opacity-100 group-hover/senat:visible transition-all duration-150">
+                                                    <Link 
+                                                        :href="route('representants.senateurs.index')" 
+                                                        class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                    >
+                                                        <span class="text-lg">👥</span>
+                                                        <div>
+                                                            <div class="text-slate-700 dark:text-slate-300 font-medium">Sénateurs</div>
+                                                            <div class="text-xs text-slate-500">348 représentants</div>
+                                                        </div>
+                                                    </Link>
+                                                    <Link 
+                                                        :href="route('legislation.scrutins-senat.index')" 
+                                                        class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                                    >
+                                                        <span class="text-lg">🗳️</span>
+                                                        <div>
+                                                            <div class="text-slate-700 dark:text-slate-300 font-medium">Scrutins</div>
+                                                            <div class="text-xs text-slate-500">Votes au Sénat</div>
+                                                        </div>
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                            
+                                            <hr class="my-2 border-slate-200 dark:border-slate-700">
                                             <Link 
                                                 :href="route('groupes.index')" 
                                                 class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700"
@@ -303,36 +374,58 @@ const isActive = (pattern) => {
                 <div :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }" class="lg:hidden border-t border-slate-200 dark:border-slate-700">
                     <div class="px-4 py-4 space-y-2">
                         <!-- Mes Représentants -->
-                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">👥 Représentants</div>
-                        <Link :href="route('representants.mes-representants')" class="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            📍 Mes Représentants
+                        <Link :href="route('representants.mes-representants')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>📍</span> Mes Représentants
                         </Link>
-                        <Link :href="route('representants.deputes.index')" class="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            Députés
+                        
+                        <!-- Assemblée Nationale -->
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-2">🏛️ Assemblée Nationale</div>
+                        <Link :href="route('representants.deputes.index')" class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span class="flex items-center gap-2"><span>👥</span> Députés</span>
+                            <span class="text-xs text-slate-400">577</span>
                         </Link>
-                        <Link :href="route('representants.senateurs.index')" class="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            Sénateurs
+                        <Link :href="route('questions.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>❓</span> Questions au Gouv.
+                        </Link>
+                        <Link :href="route('legislation.scrutins.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>🗳️</span> Scrutins publics
+                        </Link>
+                        
+                        <!-- Sénat -->
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-2">🏰 Sénat</div>
+                        <Link :href="route('representants.senateurs.index')" class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span class="flex items-center gap-2"><span>👥</span> Sénateurs</span>
+                            <span class="text-xs text-slate-400">348</span>
+                        </Link>
+                        <Link :href="route('legislation.scrutins-senat.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>🗳️</span> Scrutins
+                        </Link>
+                        
+                        <!-- Autres Parlementaires -->
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-2">🎭 Parlement</div>
+                        <Link :href="route('groupes.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>🎨</span> Groupes politiques
+                        </Link>
+                        <Link :href="route('parlement.comparaison')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>📊</span> Statistiques Élus
                         </Link>
                         
                         <!-- Législation -->
-                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">📜 Législation</div>
-                        <Link :href="route('legislation.hub')" class="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            🔍 Explorer
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-2">📜 Législation</div>
+                        <Link :href="route('legislation.hub')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>🔍</span> Explorer
                         </Link>
-                        <Link :href="route('lois.index')" class="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            Lois en cours
-                        </Link>
-                        <Link :href="route('legislation.scrutins.index')" class="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            Scrutins
+                        <Link :href="route('lois.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>⚖️</span> Lois en cours
                         </Link>
                         
                         <!-- Autres -->
-                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Autres</div>
-                        <Link :href="route('parlement.calendrier.index')" class="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            📅 Calendrier
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-2">Autres</div>
+                        <Link :href="route('parlement.calendrier.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>📅</span> Calendrier
                         </Link>
-                        <Link :href="route('topics.index')" class="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            💬 Forum
+                        <Link :href="route('topics.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>💬</span> Forum
                         </Link>
                     </div>
 
@@ -394,6 +487,7 @@ const isActive = (pattern) => {
                             <ul class="space-y-2 text-sm">
                                 <li><Link :href="route('representants.deputes.index')" class="hover:text-white transition-colors">Députés</Link></li>
                                 <li><Link :href="route('representants.senateurs.index')" class="hover:text-white transition-colors">Sénateurs</Link></li>
+                                <li><Link :href="route('questions.index')" class="hover:text-white transition-colors">Questions au Gouvernement</Link></li>
                                 <li><Link :href="route('groupes.index')" class="hover:text-white transition-colors">Groupes politiques</Link></li>
                             </ul>
                         </div>

@@ -187,21 +187,48 @@ onUnmounted(() => {
                                                 description="Trouvez vos élus par code postal"
                                             />
                                             <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
+                                            <!-- Assemblée Nationale -->
+                                            <div class="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                🏛️ Assemblée Nationale
+                                            </div>
                                             <MegaMenuLink
                                                 :href="route('representants.deputes.index')"
                                                 icon="👥"
                                                 title="Députés"
-                                                description="Assemblée Nationale"
+                                                description="577 représentants"
                                                 badge="577"
                                                 badge-color="indigo"
                                             />
                                             <MegaMenuLink
+                                                :href="route('questions.index')"
+                                                icon="❓"
+                                                title="Questions au Gouvernement"
+                                                description="Interpellations des députés"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('legislation.scrutins.index')"
+                                                icon="🗳️"
+                                                title="Scrutins publics"
+                                                description="Votes en séance"
+                                            />
+                                            
+                                            <!-- Sénat -->
+                                            <div class="px-3 py-1 mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                🏰 Sénat
+                                            </div>
+                                            <MegaMenuLink
                                                 :href="route('representants.senateurs.index')"
-                                                icon="🏰"
+                                                icon="👥"
                                                 title="Sénateurs"
-                                                description="Sénat de la République"
+                                                description="348 représentants"
                                                 badge="348"
-                                                badge-color="indigo"
+                                                badge-color="rose"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('legislation.scrutins-senat.index')"
+                                                icon="🗳️"
+                                                title="Scrutins"
+                                                description="Votes au Sénat"
                                             />
                                             <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
                                             <MegaMenuLink
@@ -213,8 +240,8 @@ onUnmounted(() => {
                                             <MegaMenuLink
                                                 :href="route('parlement.comparaison')"
                                                 icon="📊"
-                                                title="Comparaison AN / Sénat"
-                                                description="Visualisez les deux chambres"
+                                                title="Statistiques Élus"
+                                                description="Députés, Sénateurs, Maires"
                                             />
                                             <MegaMenuLink
                                                 :href="route('parlement.calendrier.index')"
@@ -242,30 +269,22 @@ onUnmounted(() => {
                                     <template #content>
                                         <div class="p-2">
                                             <MegaMenuLink
-                                                :href="route('legislation.scrutins.index')"
-                                                icon="🗳️"
-                                                title="Scrutins Publics"
-                                                description="Votes de l'Assemblée et du Sénat"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('legislation.index')"
-                                                icon="📜"
-                                                title="Dossiers Législatifs"
-                                                description="Textes de loi en cours et adoptés"
-                                            />
-                                            <MegaMenuLink
                                                 :href="route('lois.index')"
                                                 icon="⚖️"
-                                                title="Cycle de vie des Lois"
-                                                description="Navette parlementaire complète"
-                                                badge="Nouveau"
+                                                title="Lois"
+                                                description="Parcours législatif, votes, amendements"
                                             />
-                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
+                                            <MegaMenuLink
+                                                :href="route('legislation.scrutins.index')"
+                                                icon="🗳️"
+                                                title="Scrutins"
+                                                description="Tous les votes publics AN & Sénat"
+                                            />
                                             <MegaMenuLink
                                                 :href="route('tags.index')"
                                                 icon="🏷️"
-                                                title="Explorer par Thème"
-                                                description="Santé, Éducation, Environnement..."
+                                                title="Par Thématique"
+                                                description="Filtrer par domaine"
                                             />
                                         </div>
                                     </template>
@@ -286,6 +305,22 @@ onUnmounted(() => {
                                     </template>
                                     <template #content>
                                         <div class="p-2">
+                                            <!-- Idées Citoyennes - NOUVEAU -->
+                                            <MegaMenuLink
+                                                :href="route('participation.ideas.index')"
+                                                icon="💡"
+                                                title="Idées Citoyennes"
+                                                description="Propositions de la communauté"
+                                                badge="Nouveau"
+                                                badge-color="emerald"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('participation.ideas.create')"
+                                                icon="✨"
+                                                title="Nouvelle Proposition"
+                                                description="Partagez votre idée"
+                                            />
+                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
                                             <MegaMenuLink
                                                 :href="route('topics.index')"
                                                 icon="📝"
@@ -297,21 +332,13 @@ onUnmounted(() => {
                                                 icon="🔥"
                                                 title="Sujets Tendances"
                                                 description="Les plus populaires"
-                                                badge="Hot"
-                                                badge-color="red"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('topics.create')"
-                                                icon="➕"
-                                                title="Créer un Débat"
-                                                description="Lancez une discussion"
                                             />
                                             <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
                                             <MegaMenuLink
                                                 :href="route('budget.index')"
                                                 icon="💰"
                                                 title="Budget Participatif"
-                                                description="Répartissez le budget de l'État"
+                                                description="Répartissez le budget"
                                             />
                                         </div>
                                     </template>
@@ -528,8 +555,9 @@ onUnmounted(() => {
                                 <ResponsiveNavLink :href="route('representants.mes-representants')">📍 Mes Représentants</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('representants.deputes.index')">👥 Députés</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('representants.senateurs.index')">🏰 Sénateurs</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('questions.index')">❓ Questions au Gouvernement</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('legislation.groupes.index')">🎨 Groupes</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('parlement.comparaison')">📊 Comparaison</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('parlement.comparaison')">📊 Stats Élus</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('parlement.calendrier.index')">📅 Calendrier</ResponsiveNavLink>
                             </div>
                         </div>
@@ -546,9 +574,9 @@ onUnmounted(() => {
                                 </svg>
                             </button>
                             <div v-show="expandedSection === 'legislation'" class="pl-4 space-y-1 mt-1">
-                                <ResponsiveNavLink :href="route('legislation.scrutins.index')">🗳️ Scrutins</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('legislation.index')">📜 Dossiers</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('lois.index')">⚖️ Cycle de vie des Lois</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('lois.index')">⚖️ Lois</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('legislation.scrutins.index')">🗳️ Scrutins AN</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('legislation.scrutins-senat.index')">🗳️ Scrutins Sénat</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('tags.index')">🏷️ Thèmes</ResponsiveNavLink>
                             </div>
                         </div>
@@ -565,9 +593,9 @@ onUnmounted(() => {
                                 </svg>
                             </button>
                             <div v-show="expandedSection === 'participation'" class="pl-4 space-y-1 mt-1">
+                                <ResponsiveNavLink :href="route('participation.ideas.index')">💡 Idées Citoyennes</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('participation.ideas.create')" class="text-emerald-600 dark:text-emerald-400 font-medium">✨ Nouvelle Proposition</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('topics.index')">📝 Forum Citoyen</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('topics.trending')">🔥 Tendances</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('topics.create')">➕ Créer un Débat</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('budget.index')">💰 Budget Participatif</ResponsiveNavLink>
                             </div>
                         </div>

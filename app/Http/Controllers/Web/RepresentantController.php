@@ -7,10 +7,12 @@ use App\Models\ActeurAN;
 use App\Models\DeputeCirconscription;
 use App\Models\DeputeSenateur;
 use App\Models\GroupeParlementaire;
+use App\Models\Maire;
 use App\Models\Profile;
 use App\Models\Senateur;
 use App\Services\GroupeParlementaireService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,6 +44,7 @@ class RepresentantController extends Controller
             'hasLocation' => false,
             'depute' => null,
             'senateurs' => [],
+            'maire' => null,
             'location' => null,
         ];
 
@@ -94,6 +97,9 @@ class RepresentantController extends Controller
                         'url_profil' => route('representants.senateurs.show', $senateur->matricule),
                     ];
                 })->toArray();
+
+                // Maire de la commune
+                $data['maire'] = $this->findMaireByPostalCode($simulatePostalCode);
             }
         } elseif ($profile && $profile->circonscription && $profile->department_id) {
             $data['hasLocation'] = true;
@@ -134,6 +140,11 @@ class RepresentantController extends Controller
                     'url_profil' => route('representants.senateurs.show', $senateur->matricule),
                 ];
             })->toArray();
+
+            // Maire de la commune
+            if ($profile->postal_code) {
+                $data['maire'] = $this->findMaireByPostalCode($profile->postal_code);
+            }
         }
 
         // Répartition nationale des députés par département
@@ -175,6 +186,18 @@ class RepresentantController extends Controller
         $data['regions'] = $regions->map(fn($r) => ['code' => $r->code, 'name' => $r->name]);
         $data['deputesByRegion'] = $deputesByRegion;
         $data['senateursByRegion'] = $senateursByRegion;
+
+        // Statistiques pour le bandeau hero
+        $data['stats'] = Cache::remember('mes_representants_stats', 3600, function () {
+            return [
+                'deputes' => ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))->count(),
+                'senateurs' => Senateur::actifs()->count(),
+                'maires' => Maire::count(),
+                'discussions' => \App\Models\Topic::published()->count(),
+                'votes_citoyens' => \App\Models\TopicVote::count(),
+                'propositions' => \App\Models\Topic::where('idea_type', 'proposal')->published()->count(),
+            ];
+        });
 
         return Inertia::render('Representants/MesRepresentants', $data);
     }
@@ -337,6 +360,41 @@ class RepresentantController extends Controller
             'not_found' => true,
             'message' => "Député de la {$numCirco}" . ($numCirco === 1 ? 'ère' : 'ème') . " circonscription " . ($deptName ? "de {$deptName}" : ''),
             'circonscription' => $circonscription,
+        ];
+    }
+
+    /**
+     * Trouver le maire d'une commune via le code postal
+     */
+    private function findMaireByPostalCode(string $postalCode): ?array
+    {
+        $maire = \App\Models\Maire::enExercice()
+            ->byPostalCode($postalCode)
+            ->first();
+
+        if (!$maire) {
+            return null;
+        }
+
+        return [
+            'id' => $maire->id,
+            'uid' => $maire->uid,
+            'nom_complet' => $maire->nom_complet ?? trim("{$maire->prenom} {$maire->nom}"),
+            'civilite' => $maire->civilite,
+            'commune' => $maire->nom_commune,
+            'code_commune' => $maire->code_commune,
+            'departement' => $maire->nom_departement,
+            'code_departement' => $maire->code_departement,
+            'profession' => $maire->profession,
+            'categorie_socio_pro' => $maire->categorie_socio_pro,
+            'nuance_politique' => $maire->nuance_politique,
+            'nuance_libelle' => $maire->nuance_libelle,
+            'nuance_couleur' => $maire->nuance_couleur,
+            'debut_mandat' => $maire->debut_mandat?->format('d/m/Y'),
+            'email' => $maire->email,
+            'telephone' => $maire->telephone,
+            'site_web' => $maire->site_web,
+            'population_commune' => $maire->population_commune,
         ];
     }
 

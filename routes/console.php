@@ -31,6 +31,11 @@ Schedule::command('calculate:lois-stats --force')
     ->dailyAt('04:45')
     ->description('Recalcul quotidien des statistiques lois pré-calculées');
 
+// Recalcul des statistiques globales des élus (page comparaison)
+Schedule::command('calculate:elus-global-stats --force')
+    ->dailyAt('05:00')
+    ->description('Recalcul quotidien des statistiques globales élus (députés/sénateurs/maires)');
+
 // Synchronisation des données parlementaires (si activée)
 // Schedule::command('sync:all --quick')
 //     ->dailyAt('05:00')

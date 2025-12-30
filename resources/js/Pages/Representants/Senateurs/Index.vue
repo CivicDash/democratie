@@ -5,11 +5,22 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import TextInput from '@/Components/TextInput.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
   senateurs: Object,
   groupes: Array,
   filters: Object,
+  stats: {
+    type: Object,
+    default: () => ({
+      total: 348,
+      groupes: 8,
+      femmes_pct: 35,
+      age_moyen: 60,
+      serie: 2,
+    })
+  },
 });
 
 const search = ref(props.filters.search || '');
@@ -24,39 +35,130 @@ const applyFilters = () => {
     preserveScroll: true,
   });
 };
+
+const breadcrumbs = [
+    { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+    { label: 'Parlement', href: route('representants.mes-representants'), icon: '🏛️' },
+    { label: 'Sénat', current: true, icon: '🏰' },
+];
 </script>
 
 <template>
   <Head title="Sénateurs - Sénat" />
 
   <AuthenticatedLayout>
-    <div class="py-4 sm:py-8">
-      <div class="px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6 max-w-full mx-auto">
+    <!-- Hero Section Full Width -->
+    <section class="relative overflow-hidden bg-gradient-to-br from-rose-900 via-rose-800 to-pink-900">
+      <!-- Background Pattern -->
+      <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+      </div>
+      
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+        <!-- Breadcrumb -->
+        <Breadcrumb :items="breadcrumbs" variant="light" class="mb-6" />
         
-        <!-- Header - Responsive -->
-        <div class="bg-gradient-to-r from-red-700 to-red-800 rounded-xl shadow-lg p-4 sm:p-8 text-white">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 class="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">🏛️ Sénat</h1>
-              <p class="text-red-100 text-sm sm:text-lg">348 Sénateurs</p>
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <!-- Titre -->
+          <div>
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight flex items-center gap-4">
+              <span class="text-4xl">🏰</span>
+              Sénat
+            </h1>
+            <p class="text-rose-200 text-lg">
+              La chambre haute du Parlement français, représentante des collectivités territoriales
+            </p>
+          </div>
+          
+          <!-- Stats rapides -->
+          <div class="flex flex-wrap gap-4">
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+              <div class="text-2xl md:text-3xl font-bold text-white">348</div>
+              <div class="text-rose-200 text-xs uppercase tracking-wide">Sièges</div>
             </div>
-            <div class="text-left sm:text-right">
-              <div class="text-2xl sm:text-3xl font-bold">{{ senateurs.total || senateurs.data?.length || 0 }}</div>
-              <div class="text-red-200 text-xs sm:text-sm">sénateurs affichés</div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+              <div class="text-2xl md:text-3xl font-bold text-white">{{ senateurs.total || stats.total || 348 }}</div>
+              <div class="text-rose-200 text-xs uppercase tracking-wide">Sénateurs</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+              <div class="text-2xl md:text-3xl font-bold text-amber-400">6 ans</div>
+              <div class="text-rose-200 text-xs uppercase tracking-wide">Mandat</div>
             </div>
           </div>
         </div>
 
-        <!-- Filtres - Responsive -->
+        <!-- Stats secondaires -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+          <div class="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">👥</span>
+              <div>
+                <div class="text-xl font-bold text-white">{{ stats.groupes || 8 }}</div>
+                <div class="text-rose-300 text-sm">Groupes politiques</div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">👩</span>
+              <div>
+                <div class="text-xl font-bold text-white">{{ stats.femmes_pct || 35 }}%</div>
+                <div class="text-rose-300 text-sm">Femmes sénatrices</div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">📊</span>
+              <div>
+                <div class="text-xl font-bold text-white">{{ stats.age_moyen || 60 }} ans</div>
+                <div class="text-rose-300 text-sm">Âge moyen</div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🗳️</span>
+              <div>
+                <div class="text-xl font-bold text-white">Série {{ stats.serie || 2 }}</div>
+                <div class="text-rose-300 text-sm">Prochaine élection</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Liens rapides -->
+        <div class="flex flex-wrap gap-3 mt-6">
+          <Link 
+            :href="route('legislation.scrutins-senat.index')"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg border border-white/20 transition-colors"
+          >
+            🗳️ Scrutins publics
+          </Link>
+          <Link 
+            :href="route('legislation.groupes.index')"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg border border-white/20 transition-colors"
+          >
+            🎨 Groupes parlementaires
+          </Link>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contenu principal -->
+    <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        
+        <!-- Filtres -->
         <Card>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                🔍 Rechercher
+                🔍 Rechercher un sénateur
               </label>
               <TextInput
                 v-model="search"
-                placeholder="Nom, prénom..."
+                placeholder="Nom, prénom, circonscription..."
                 @keyup.enter="applyFilters"
                 class="w-full min-h-[44px]"
               />
@@ -71,24 +173,40 @@ const applyFilters = () => {
                 class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 min-h-[44px]"
               >
                 <option value="">Tous les groupes</option>
-                <option v-for="groupe in props.groupes" :key="groupe.nom" :value="groupe.nom">
-                  {{ groupe.nom }}
+                <option v-for="groupe in props.groupes" :key="groupe.sigle" :value="groupe.sigle">
+                  {{ groupe.nom }} ({{ groupe.sigle }})
                 </option>
               </select>
             </div>
-            <div class="flex items-end sm:col-span-2 lg:col-span-1">
+            <div class="flex items-end sm:col-span-2 lg:col-span-1 gap-2">
+              <button
+                @click="applyFilters"
+                class="flex-1 px-4 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition min-h-[44px] font-medium"
+              >
+                🔎 Rechercher
+              </button>
               <button
                 @click="search = ''; selectedGroupe = ''; applyFilters()"
-                class="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition min-h-[44px]"
+                class="px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition min-h-[44px]"
+                title="Réinitialiser"
               >
-                🔄 Réinitialiser
+                🔄
               </button>
             </div>
           </div>
         </Card>
 
-        <!-- Liste des sénateurs -->
+        <!-- Résultats -->
         <Card>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+              📋 Liste des sénateurs
+            </h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+              {{ senateurs.total || senateurs.data?.length || 0 }} résultat(s)
+            </span>
+          </div>
+
           <!-- Vue Desktop : Table -->
           <div class="hidden lg:block overflow-x-auto">
             <table class="w-full">
@@ -111,15 +229,15 @@ const applyFilters = () => {
               <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 <tr
                   v-for="senateur in senateurs.data"
-                  :key="senateur.id"
+                  :key="senateur.matricule"
                   class="hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                 >
                   <td class="px-4 py-4">
                     <div class="flex items-center gap-3">
                       <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
                         <img
-                          v-if="senateur.wikipedia?.photo"
-                          :src="senateur.wikipedia.photo"
+                          v-if="senateur.photo_url"
+                          :src="senateur.photo_url"
                           :alt="senateur.nom_complet"
                           class="w-full h-full object-cover"
                         />
@@ -145,7 +263,7 @@ const applyFilters = () => {
                         color: '#fff'
                       }"
                     >
-                      {{ senateur.groupe.nom }}
+                      {{ senateur.groupe.sigle || senateur.groupe.nom }}
                     </Badge>
                     <span v-else class="text-gray-500 dark:text-gray-400 text-sm">Non inscrit</span>
                   </td>
@@ -155,9 +273,9 @@ const applyFilters = () => {
                   <td class="px-4 py-4 text-right">
                     <Link
                       :href="route('representants.senateurs.show', senateur.matricule)"
-                      class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
+                      class="inline-flex items-center px-4 py-2 bg-rose-600 text-white text-sm rounded-lg hover:bg-rose-700 transition font-medium"
                     >
-                      Voir la fiche
+                      Voir la fiche →
                     </Link>
                   </td>
                 </tr>
@@ -169,7 +287,7 @@ const applyFilters = () => {
           <div class="lg:hidden space-y-4">
             <Link
               v-for="senateur in senateurs.data"
-              :key="senateur.id"
+              :key="senateur.matricule"
               :href="route('representants.senateurs.show', senateur.matricule)"
               class="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition active:bg-gray-50 dark:active:bg-gray-700"
             >
@@ -177,8 +295,8 @@ const applyFilters = () => {
                 <!-- Photo -->
                 <div class="w-14 h-14 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
                   <img
-                    v-if="senateur.wikipedia?.photo"
-                    :src="senateur.wikipedia.photo"
+                    v-if="senateur.photo_url"
+                    :src="senateur.photo_url"
                     :alt="senateur.nom_complet"
                     class="w-full h-full object-cover"
                   />
@@ -205,7 +323,7 @@ const applyFilters = () => {
                       }"
                       class="text-xs"
                     >
-                      {{ senateur.groupe.nom }}
+                      {{ senateur.groupe.sigle || senateur.groupe.nom }}
                     </Badge>
                     <span class="text-xs text-gray-500 dark:text-gray-400">
                       📍 {{ senateur.circonscription }}
@@ -223,7 +341,7 @@ const applyFilters = () => {
             </Link>
           </div>
 
-          <!-- Pagination - Responsive -->
+          <!-- Pagination -->
           <div v-if="senateurs.links" class="mt-6 flex flex-wrap justify-center gap-1 sm:gap-2">
             <Link
               v-for="(link, index) in senateurs.links"
@@ -233,7 +351,7 @@ const applyFilters = () => {
               :class="[
                 'px-2 sm:px-3 py-2 rounded text-xs sm:text-sm min-h-[44px] flex items-center justify-center',
                 link.active 
-                  ? 'bg-red-600 text-white' 
+                  ? 'bg-rose-600 text-white' 
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600',
                 !link.url && 'opacity-50 cursor-not-allowed pointer-events-none'
               ]"

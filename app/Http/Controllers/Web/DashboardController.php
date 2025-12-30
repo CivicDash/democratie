@@ -34,10 +34,10 @@ class DashboardController extends Controller
         // 🔥 SUJETS TENDANCES (5 derniers topics populaires) - Cache 5 min
         $trendingTopics = Cache::remember('dashboard_trending_topics', 300, function () {
             return Topic::with(['author:id,name'])
-                ->withCount(['posts', 'views'])
+                ->withCount('posts')
                 ->whereIn('status', ['open', 'published'])
-                ->orderByDesc('views_count')
-                ->orderByDesc('created_at')
+                ->orderByDesc('topics.views_count')
+                ->orderByDesc('topics.created_at')
                 ->limit(5)
                 ->get()
                 ->map(function ($topic) {
@@ -49,7 +49,7 @@ class DashboardController extends Controller
                         'scope' => $topic->scope,
                         'territoire' => $topic->territory?->name ?? 'National',
                         'nb_posts' => $topic->posts_count,
-                        'nb_vues' => $topic->views_count,
+                        'nb_vues' => $topic->views_count ?? 0,
                         'created_at' => $topic->created_at->diffForHumans(),
                     ];
                 });

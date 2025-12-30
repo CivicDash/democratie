@@ -12,9 +12,11 @@ use App\Models\VoteSenat;
 use App\Models\ScrutinSenat;
 use App\Models\AmendementSenat;
 use App\Models\ParlementaireStats;
+use App\Models\QuestionAN;
 use App\Services\GroupeParlementaireService;
 use App\Services\DisciplineGroupeService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -96,10 +98,30 @@ class RepresentantANController extends Controller
                 'couleur' => $groupeService->getCouleurGroupe($g->libelle_abrege),
             ]);
 
+        // Statistiques pour le bandeau hero
+        $stats = Cache::remember('deputes_index_stats', 3600, function () {
+            $totalDeputes = ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))->count();
+            $nbGroupes = OrganeAN::groupesPolitiques()->where('legislature', 17)->actifs()->count();
+            $femmes = ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
+                ->where('civilite', 'Mme')
+                ->count();
+            $femmesPercent = $totalDeputes > 0 ? round(($femmes / $totalDeputes) * 100) : 0;
+            
+            return [
+                'total' => $totalDeputes,
+                'actifs' => 577,
+                'groupes' => $nbGroupes,
+                'femmes_pct' => $femmesPercent,
+                'age_moyen' => 50, // À calculer dynamiquement si besoin
+                'questions_semaine' => \App\Models\QuestionAN::where('date_question', '>=', now()->subWeek())->count(),
+            ];
+        });
+
         return Inertia::render('Representants/Deputes/Index', [
             'deputes' => $deputesData,
             'groupes' => $groupes,
             'filters' => $request->only(['search', 'groupe', 'sort', 'order']),
+            'stats' => $stats,
         ]);
     }
 
@@ -158,37 +180,115 @@ class RepresentantANController extends Controller
             ];
         }
 
-        // Déclarations HATVP
+        // Déclarations HATVP avec détail des revenus
         $declarationsHatvp = [];
+        $hatvpSummary = null;
         try {
-            $declarationsHatvp = \App\Models\HatvpDeclaration::where('parlementaire_type', 'depute')
-                ->where('parlementaire_id', $uid)
-                ->orderBy('date_depot', 'desc')
-                ->get()
-                ->map(fn($d) => [
-                    'uuid' => $d->uuid,
-                    'type' => $d->type_declaration,
-                    'type_label' => $d->type_declaration_label,
-                    'date_depot' => $d->date_depot?->format('d/m/Y'),
-                    'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($acteur->nom) . "-" . strtolower($acteur->prenom),
-                ])
-                ->toArray();
-            
-            // Si pas de liaison directe, chercher par nom/prénom
-            if (empty($declarationsHatvp)) {
-                $declarationsHatvp = \App\Models\HatvpDeclaration::where('parlementaire_type', 'depute')
-                    ->where('nom', 'ILIKE', $acteur->nom)
-                    ->where('prenom', 'ILIKE', $acteur->prenom)
-                    ->orderBy('date_depot', 'desc')
-                    ->get()
-                    ->map(fn($d) => [
-                        'uuid' => $d->uuid,
-                        'type' => $d->type_declaration,
-                        'type_label' => $d->type_declaration_label,
-                        'date_depot' => $d->date_depot?->format('d/m/Y'),
-                        'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($acteur->nom) . "-" . strtolower($acteur->prenom),
-                    ])
-                    ->toArray();
+            $declarations = \App\Models\HatvpDeclaration::with([
+                'mandatsElectifs.remunerations',
+                'activitesProfessionnelles.remunerations',
+                'activitesConsultant.remunerations',
+                'participationsDirigeantes.remunerations',
+                'collaborateurs',
+                'fonctionsBenevoles',
+            ])
+            ->where('parlementaire_type', 'depute')
+            ->where(function($q) use ($uid, $acteur) {
+                $q->where('parlementaire_id', $uid)
+                  ->orWhere(function($q2) use ($acteur) {
+                      $q2->where('nom', 'ILIKE', $acteur->nom)
+                         ->where('prenom', 'ILIKE', $acteur->prenom);
+                  });
+            })
+            ->orderBy('date_depot', 'desc')
+            ->get();
+
+            $declarationsHatvp = $declarations->map(fn($d) => [
+                'uuid' => $d->uuid,
+                'type' => $d->type_declaration,
+                'type_label' => $d->type_declaration_label,
+                'date_depot' => $d->date_depot?->format('d/m/Y'),
+                'url' => "https://www.hatvp.fr/fiche-nominative/?declarant=" . strtolower($acteur->nom) . "-" . strtolower($acteur->prenom),
+            ])->toArray();
+
+            // Construire le résumé détaillé depuis la déclaration la plus récente
+            $latestDeclaration = $declarations->first();
+            if ($latestDeclaration) {
+                // Revenus par année (toutes catégories)
+                $revenusParAnnee = $latestDeclaration->revenus_par_annee ?? [];
+                
+                // Mandats électifs avec rémunérations
+                $mandatsElectifs = $latestDeclaration->mandatsElectifs->map(fn($m) => [
+                    'description' => $m->description_mandat ?? $m->description ?? 'Mandat électif',
+                    'date_debut' => $m->date_debut instanceof \Carbon\Carbon ? $m->date_debut->format('d/m/Y') : ($m->date_debut ? \Carbon\Carbon::parse($m->date_debut)->format('d/m/Y') : null),
+                    'date_fin' => $m->date_fin instanceof \Carbon\Carbon ? $m->date_fin->format('d/m/Y') : ($m->date_fin ? \Carbon\Carbon::parse($m->date_fin)->format('d/m/Y') : null),
+                    'conserve' => $m->conservee,
+                    'remunerations' => $m->remunerations->map(fn($r) => [
+                        'annee' => $r->annee,
+                        'montant' => $r->montant,
+                        'brut_net' => $r->brut_net,
+                    ])->sortByDesc('annee')->values()->toArray(),
+                    'total_remunerations' => $m->remunerations->sum('montant'),
+                ])->toArray();
+                
+                // Activités professionnelles avec rémunérations
+                $activitesPro = $latestDeclaration->activitesProfessionnelles->map(fn($a) => [
+                    'description' => $a->description ?? 'Activité professionnelle',
+                    'employeur' => $a->employeur,
+                    'date_debut' => $a->date_debut instanceof \Carbon\Carbon ? $a->date_debut->format('d/m/Y') : ($a->date_debut ? \Carbon\Carbon::parse($a->date_debut)->format('d/m/Y') : null),
+                    'date_fin' => $a->date_fin instanceof \Carbon\Carbon ? $a->date_fin->format('d/m/Y') : ($a->date_fin ? \Carbon\Carbon::parse($a->date_fin)->format('d/m/Y') : null),
+                    'conservee' => $a->conservee,
+                    'remunerations' => $a->remunerations->map(fn($r) => [
+                        'annee' => $r->annee,
+                        'montant' => $r->montant,
+                        'brut_net' => $r->brut_net,
+                    ])->sortByDesc('annee')->values()->toArray(),
+                    'total_remunerations' => $a->remunerations->sum('montant'),
+                ])->toArray();
+                
+                // Activités consultant
+                $activitesConsultant = $latestDeclaration->activitesConsultant->map(fn($a) => [
+                    'description' => $a->description ?? 'Activité de conseil',
+                    'date_debut' => $a->date_debut instanceof \Carbon\Carbon ? $a->date_debut->format('d/m/Y') : ($a->date_debut ? \Carbon\Carbon::parse($a->date_debut)->format('d/m/Y') : null),
+                    'date_fin' => $a->date_fin instanceof \Carbon\Carbon ? $a->date_fin->format('d/m/Y') : ($a->date_fin ? \Carbon\Carbon::parse($a->date_fin)->format('d/m/Y') : null),
+                    'remunerations' => $a->remunerations->map(fn($r) => [
+                        'annee' => $r->annee,
+                        'montant' => $r->montant,
+                        'brut_net' => $r->brut_net,
+                    ])->sortByDesc('annee')->values()->toArray(),
+                    'total_remunerations' => $a->remunerations->sum('montant'),
+                ])->toArray();
+                
+                // Participations dirigeantes
+                $participationsDirigeantes = $latestDeclaration->participationsDirigeantes->map(fn($p) => [
+                    'societe' => $p->nom_societe ?? $p->societe ?? 'Société',
+                    'activite' => $p->activite,
+                    'date_debut' => $p->date_debut instanceof \Carbon\Carbon ? $p->date_debut->format('d/m/Y') : ($p->date_debut ? \Carbon\Carbon::parse($p->date_debut)->format('d/m/Y') : null),
+                    'date_fin' => $p->date_fin instanceof \Carbon\Carbon ? $p->date_fin->format('d/m/Y') : ($p->date_fin ? \Carbon\Carbon::parse($p->date_fin)->format('d/m/Y') : null),
+                    'remunerations' => $p->remunerations->map(fn($r) => [
+                        'annee' => $r->annee,
+                        'montant' => $r->montant,
+                        'brut_net' => $r->brut_net,
+                    ])->sortByDesc('annee')->values()->toArray(),
+                    'total_remunerations' => $p->remunerations->sum('montant'),
+                ])->toArray();
+
+                $hatvpSummary = [
+                    'declaration_date' => $latestDeclaration->date_depot?->format('d/m/Y'),
+                    'declaration_type' => $latestDeclaration->type_declaration_label,
+                    'nombre_mandats' => $latestDeclaration->mandatsElectifs->count(),
+                    'nombre_emplois' => $latestDeclaration->activitesProfessionnelles->count(),
+                    'nombre_collaborateurs' => $latestDeclaration->collaborateurs->count(),
+                    'revenus_par_annee' => $revenusParAnnee,
+                    'mandats_electifs' => $mandatsElectifs,
+                    'activites_professionnelles' => $activitesPro,
+                    'activites_consultant' => $activitesConsultant,
+                    'participations_dirigeantes' => $participationsDirigeantes,
+                    'fonctions_benevoles' => $latestDeclaration->fonctionsBenevoles->map(fn($f) => [
+                        'description' => $f->description,
+                        'organisme' => $f->organisme,
+                    ])->toArray(),
+                ];
             }
         } catch (\Exception $e) {
             // Table peut ne pas exister encore
@@ -214,9 +314,9 @@ class RepresentantANController extends Controller
                     'scrutin' => [
                         'uid' => $scrutin->uid,
                         'titre' => $scrutin->titre,
-                        'resultat' => $scrutin->resultat_libelle ?? ($scrutin->resultat_code ?? 'Non déterminé'),
-                        'pour' => $scrutin->pour,
-                        'contre' => $scrutin->contre,
+                        'resultat' => $scrutin->resultat_format,
+                        'pour' => $scrutin->pour_calcule,
+                        'contre' => $scrutin->contre_calcule,
                     ],
                 ];
             });
@@ -267,6 +367,7 @@ class RepresentantANController extends Controller
                 ],
                 'url_hatvp' => $acteur->url_hatvp,
                 'declarations_hatvp' => $declarationsHatvp,
+                'hatvp_summary' => $hatvpSummary,
                 'reseaux_sociaux' => [
                     'twitter' => $acteur->twitter_url,
                     'facebook' => $acteur->facebook_url,
@@ -275,8 +376,58 @@ class RepresentantANController extends Controller
                 ],
                 'adresses' => $acteur->adresses,
                 'derniers_votes' => $derniersVotes,
+                'questions_stats' => $this->getQuestionsStats($uid),
+                'dernieres_questions' => $this->getDernieresQuestions($uid),
             ],
         ]);
+    }
+
+    /**
+     * Statistiques des questions pour un député
+     */
+    protected function getQuestionsStats(string $uid): array
+    {
+        $total = QuestionAN::where('acteur_ref', $uid)->count();
+        $repondues = QuestionAN::where('acteur_ref', $uid)->whereNotNull('date_reponse')->count();
+        
+        $parRubrique = QuestionAN::where('acteur_ref', $uid)
+            ->selectRaw('rubrique, count(*) as nb')
+            ->groupBy('rubrique')
+            ->orderByDesc('nb')
+            ->limit(5)
+            ->get()
+            ->map(fn($r) => ['rubrique' => $r->rubrique, 'nb' => $r->nb])
+            ->toArray();
+
+        return [
+            'total' => $total,
+            'repondues' => $repondues,
+            'en_attente' => $total - $repondues,
+            'par_rubrique' => $parRubrique,
+        ];
+    }
+
+    /**
+     * Dernières questions pour un député
+     */
+    protected function getDernieresQuestions(string $uid, int $limit = 5): array
+    {
+        return QuestionAN::where('acteur_ref', $uid)
+            ->orderByDesc('date_question')
+            ->limit($limit)
+            ->get()
+            ->map(fn($q) => [
+                'uid' => $q->uid,
+                'numero' => $q->numero,
+                'type' => $q->type,
+                'analyse' => $q->analyse,
+                'rubrique' => $q->rubrique,
+                'ministere_sigle' => $q->ministere_sigle,
+                'date_question' => $q->date_question?->format('d/m/Y'),
+                'date_reponse' => $q->date_reponse?->format('d/m/Y'),
+                'a_reponse' => !is_null($q->date_reponse),
+            ])
+            ->toArray();
     }
 
     /**
@@ -337,9 +488,9 @@ class RepresentantANController extends Controller
                 'scrutin' => [
                     'uid' => $vote->scrutin->uid,
                     'titre' => $vote->scrutin->titre,
-                    'pour' => $vote->scrutin->pour,
-                    'contre' => $vote->scrutin->contre,
-                    'abstention' => $vote->scrutin->abstentions,
+                    'pour' => $vote->scrutin->pour_calcule,
+                    'contre' => $vote->scrutin->contre_calcule,
+                    'abstention' => $vote->scrutin->abstentions_calcule,
                 ],
             ];
         });
@@ -639,20 +790,22 @@ class RepresentantANController extends Controller
         $senateurs = $query->paginate(30)->withQueryString();
 
         // Transformer les données
-        $senateursData = $senateurs->through(function($senateur) {
+        $groupeService = app(GroupeParlementaireService::class);
+        $senateursData = $senateurs->through(function($senateur) use ($groupeService) {
             return [
                 'matricule' => $senateur->matricule,
                 'nom_complet' => trim("{$senateur->prenom_usuel} {$senateur->nom_usuel}"),
                 'civilite' => $senateur->civilite,
                 'prenom' => $senateur->prenom_usuel,
                 'nom' => $senateur->nom_usuel,
-                'photo_url' => $senateur->wikipedia_photo ?? null,
+                'photo_url' => $senateur->photo_url,
                 'profession' => $senateur->description_profession,
                 'circonscription' => $senateur->circonscription,
-                'groupe' => [
+                'groupe' => $senateur->groupe_politique ? [
                     'nom' => $senateur->groupe_politique,
-                    'couleur' => '#6B7280',
-                ],
+                    'sigle' => $senateur->groupe_politique,
+                    'couleur' => $groupeService->getCouleurGroupe($senateur->groupe_politique),
+                ] : null,
                 'commission' => $senateur->commission_permanente,
                 'etat' => $senateur->etat,
             ];
@@ -665,12 +818,42 @@ class RepresentantANController extends Controller
             ->distinct()
             ->orderBy('groupe_politique')
             ->pluck('groupe_politique')
-            ->map(fn($g) => ['nom' => $g]);
+            ->map(fn($g) => [
+                'nom' => $g, 
+                'sigle' => $g,
+                'couleur' => $groupeService->getCouleurGroupe($g),
+            ]);
+
+        // Statistiques pour le header
+        $stats = Cache::remember('senateurs_index_stats', 3600, function () {
+            $totalSenateurs = Senateur::actifs()->count();
+            $senateursFemmes = Senateur::actifs()->where('civilite', 'Mme')->count();
+            $pourcentageFemmes = $totalSenateurs > 0 ? round(($senateursFemmes / $totalSenateurs) * 100, 1) : 0;
+
+            $ageMoyen = Senateur::actifs()
+                ->whereNotNull('date_naissance')
+                ->selectRaw('AVG(EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_naissance))) as average_age')
+                ->value('average_age');
+
+            $nbGroupes = Senateur::actifs()
+                ->whereNotNull('groupe_politique')
+                ->distinct('groupe_politique')
+                ->count('groupe_politique');
+
+            return [
+                'total' => $totalSenateurs,
+                'groupes' => $nbGroupes,
+                'femmes_pct' => $pourcentageFemmes,
+                'age_moyen' => round($ageMoyen ?? 60),
+                'serie' => 2, // Prochaine série à renouveler
+            ];
+        });
 
         return Inertia::render('Representants/Senateurs/Index', [
             'senateurs' => $senateursData,
             'groupes' => $groupes,
             'filters' => $request->only(['search', 'groupe', 'circonscription', 'sort', 'order']),
+            'stats' => $stats,
         ]);
     }
 

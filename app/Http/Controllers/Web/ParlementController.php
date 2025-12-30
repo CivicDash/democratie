@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
+use App\Models\ElusGlobalStats;
 use App\Models\Senateur;
 use App\Models\Maire;
 use App\Models\OrganeAN;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -18,13 +20,28 @@ class ParlementController extends Controller
      * Page de statistiques globales : Députés / Sénateurs / Maires
      * 
      * GET /parlement/comparaison
+     * 
+     * Utilise les statistiques pré-calculées (table elus_global_stats)
+     * mises à jour quotidiennement par calculate:elus-global-stats
      */
     public function comparaison(): Response
     {
-        // Cache les stats pendant 1 heure (calculs lourds)
-        $stats = Cache::remember('parlement_stats_globales', 3600, function () {
-            return $this->calculateStats();
-        });
+        // Vérifier si les stats pré-calculées existent
+        $statsExist = ElusGlobalStats::exists();
+        
+        if ($statsExist) {
+            // Utiliser les stats pré-calculées (performant)
+            $stats = ElusGlobalStats::getAllForComparison();
+        } else {
+            // Fallback : calculer à la volée (première visite avant le cron)
+            // et déclencher un calcul en arrière-plan
+            $stats = Cache::remember('parlement_stats_globales', 3600, function () {
+                return $this->calculateStats();
+            });
+            
+            // Déclencher le calcul en arrière-plan pour la prochaine fois
+            Artisan::queue('calculate:elus-global-stats');
+        }
 
         return Inertia::render('Parlement/Comparaison', $stats);
     }

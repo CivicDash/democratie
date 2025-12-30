@@ -33,6 +33,7 @@ class TopicService
                 'scope' => $data['scope'] ?? 'national',
                 'region_id' => $data['region_id'] ?? null,
                 'department_id' => $data['department_id'] ?? null,
+                'loi_cod' => $data['loi_cod'] ?? null,
             ]);
 
             return $topic;

@@ -116,6 +116,75 @@ class ScrutinAN extends Model
         return $this->resultat_code === 'adopté';
     }
 
+    /**
+     * Calcule les votes "pour" depuis ventilation_votes si la colonne est vide
+     */
+    public function getPourCalculeAttribute(): int
+    {
+        if ($this->pour > 0) {
+            return $this->pour;
+        }
+        return $this->calculerTotalVotes('pour');
+    }
+
+    /**
+     * Calcule les votes "contre" depuis ventilation_votes si la colonne est vide
+     */
+    public function getContreCalculeAttribute(): int
+    {
+        if ($this->contre > 0) {
+            return $this->contre;
+        }
+        return $this->calculerTotalVotes('contre');
+    }
+
+    /**
+     * Calcule les abstentions depuis ventilation_votes si la colonne est vide
+     */
+    public function getAbstentionsCalculeAttribute(): int
+    {
+        if ($this->abstentions > 0) {
+            return $this->abstentions;
+        }
+        return $this->calculerTotalVotes('abstentions');
+    }
+
+    /**
+     * Calcule le total d'un type de vote à partir de ventilation_votes
+     */
+    protected function calculerTotalVotes(string $type): int
+    {
+        $ventilation = $this->ventilation_votes;
+        if (!$ventilation || !isset($ventilation['organe']['groupes']['groupe'])) {
+            return 0;
+        }
+
+        $total = 0;
+        $groupes = $ventilation['organe']['groupes']['groupe'];
+        
+        foreach ($groupes as $groupe) {
+            if (isset($groupe['vote']['decompteVoix'][$type])) {
+                $total += (int) $groupe['vote']['decompteVoix'][$type];
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Récupère le résultat formaté
+     */
+    public function getResultatFormatAttribute(): string
+    {
+        if ($this->resultat_libelle) {
+            return $this->resultat_libelle;
+        }
+        if ($this->resultat_code) {
+            return ucfirst($this->resultat_code);
+        }
+        return $this->pour_calcule > $this->contre_calcule ? 'Adopté' : 'Rejeté';
+    }
+
     public function getTauxParticipationAttribute(): float
     {
         if ($this->nombre_votants === 0) {

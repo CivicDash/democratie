@@ -217,6 +217,24 @@ class HatvpXmlParser
                     'remunerations' => $this->parseRemunerations($item->remuneration),
                 ]);
 
+            case 'activite_pro':
+                return array_merge($base, [
+                    'description' => $this->getString($item->description),
+                    'employeur' => $this->getString($item->employeur),
+                    'date_debut' => $this->parseDate($this->getString($item->dateDebut)),
+                    'date_fin' => $this->parseDate($this->getString($item->dateFin)),
+                    'remunerations' => $this->parseRemunerations($item->remuneration),
+                ]);
+
+            case 'consultant':
+                return array_merge($base, [
+                    'description' => $this->getString($item->description),
+                    'employeur' => $this->getString($item->employeur),
+                    'date_debut' => $this->parseDate($this->getString($item->dateDebut)),
+                    'date_fin' => $this->parseDate($this->getString($item->dateFin)),
+                    'remunerations' => $this->parseRemunerations($item->remuneration),
+                ]);
+
             case 'dirigeant':
                 return array_merge($base, [
                     'nom_societe' => $this->getString($item->nomSociete),

@@ -189,6 +189,9 @@ Route::prefix('legislation')->group(function () {
     // Élus (députés & sénateurs)
     Route::get('/elus/search', [LegislationController::class, 'searchElus']);
     Route::get('/elus/{uid}', [LegislationController::class, 'getEluDetail']);
+    
+    // Votes citoyens (stats publiques)
+    Route::get('/lois/{loiCod}/votes', [\App\Http\Controllers\Api\CitizenVoteController::class, 'getLoiVotes']);
 });
 
 // ============================================================================
@@ -233,6 +236,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin|state')->group(function () {
         Route::get('/topics/{topic}/vote/export', [VoteController::class, 'export']);
     });
+    
+    // ========================================================================
+    // VOTES CITOYENS SUR LES LOIS
+    // ========================================================================
+    Route::prefix('lois/{loiCod}')->group(function () {
+        Route::post('/vote', [\App\Http\Controllers\Api\CitizenVoteController::class, 'voteLoi']);
+        Route::delete('/vote', [\App\Http\Controllers\Api\CitizenVoteController::class, 'removeVoteLoi']);
+    });
+    Route::get('/mes-votes', [\App\Http\Controllers\Api\CitizenVoteController::class, 'mesVotes']);
     
     // ========================================================================
     // BUDGET PARTICIPATIF

@@ -12,15 +12,19 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 const props = defineProps({
     regions: Array,
     departments: Array,
+    prefilledLoi: Object, // Si on crée un débat lié à une loi
 });
 
 const form = useForm({
-    title: '',
-    description: '',
+    title: props.prefilledLoi?.suggested_title || '',
+    description: props.prefilledLoi 
+        ? `Ce débat concerne la loi ${props.prefilledLoi.numero || ''} : ${props.prefilledLoi.titre}\n\nPartagez votre avis sur cette loi...`
+        : '',
     type: 'debate',
     scope: 'national',
     region_id: null,
     department_id: null,
+    loi_cod: props.prefilledLoi?.loicod || null,
 });
 
 const filteredDepartments = ref([]);
@@ -59,6 +63,28 @@ const submit = () => {
                         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                             Lancez un débat, proposez une idée ou posez une question à la communauté
                         </p>
+                    </div>
+
+                    <!-- Indication de loi liée -->
+                    <div 
+                        v-if="prefilledLoi" 
+                        class="mb-6 p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800"
+                    >
+                        <div class="flex items-start gap-3">
+                            <span class="text-2xl">⚖️</span>
+                            <div>
+                                <p class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                                    Débat lié à une loi
+                                </p>
+                                <p class="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
+                                    <span class="font-mono bg-indigo-100 dark:bg-indigo-800 px-1.5 py-0.5 rounded">{{ prefilledLoi.numero }}</span>
+                                    {{ prefilledLoi.titre }}
+                                </p>
+                                <p class="text-xs text-indigo-500 dark:text-indigo-400 mt-2">
+                                    Ce débat sera automatiquement associé à cette loi
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <form @submit.prevent="submit" class="space-y-6">

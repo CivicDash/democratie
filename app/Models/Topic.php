@@ -37,14 +37,34 @@ class Topic extends Model
 {
     use HasFactory, SoftDeletes, Searchable, Taggable;
 
+    // Types d'idées citoyennes
+    public const IDEA_TYPES = [
+        'proposal' => ['label' => 'Proposition', 'icon' => '💡', 'color' => 'emerald'],
+        'question' => ['label' => 'Question', 'icon' => '❓', 'color' => 'sky'],
+        'debate' => ['label' => 'Débat', 'icon' => '💬', 'color' => 'amber'],
+        'petition' => ['label' => 'Pétition', 'icon' => '📜', 'color' => 'violet'],
+        'interpellation' => ['label' => 'Interpellation', 'icon' => '📣', 'color' => 'rose'],
+    ];
+
+    // Scopes géographiques
+    public const SCOPES = [
+        'national' => ['label' => 'National', 'icon' => '🇫🇷'],
+        'regional' => ['label' => 'Régional', 'icon' => '🗺️'],
+        'departemental' => ['label' => 'Départemental', 'icon' => '📍'],
+        'communal' => ['label' => 'Communal', 'icon' => '🏘️'],
+    ];
+
     protected $fillable = [
         'title',
+        'slug',
         'description',
         'category_id',
         'scope',
         'region_id',
         'department_id',
         'type',
+        'idea_type',
+        'loi_cod',
         'status',
         'author_id',
         'has_ballot',
@@ -52,6 +72,13 @@ class Topic extends Model
         'voting_deadline_at',
         'ballot_type',
         'ballot_options',
+        'votes_pour',
+        'votes_contre',
+        'score',
+        'published_at',
+        'views_count',
+        'published_at',
+        'rejection_reason',
     ];
 
     protected $casts = [
@@ -59,7 +86,14 @@ class Topic extends Model
         'voting_opens_at' => 'datetime',
         'voting_deadline_at' => 'datetime',
         'ballot_options' => 'array',
+        'published_at' => 'datetime',
+        'votes_pour' => 'integer',
+        'votes_contre' => 'integer',
+        'score' => 'integer',
+        'views_count' => 'integer',
     ];
+
+    protected $appends = ['idea_type_info', 'scope_info', 'url'];
 
     /**
      * Catégorie du topic
@@ -75,6 +109,22 @@ class Topic extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
+    }
+
+    /**
+     * Loi associée (optionnel)
+     */
+    public function loi(): BelongsTo
+    {
+        return $this->belongsTo(Loi::class, 'loi_cod', 'loicod');
+    }
+
+    /**
+     * Scope pour les topics liés à une loi
+     */
+    public function scopeForLoi($query, string $loiCod)
+    {
+        return $query->where('loi_cod', $loiCod);
     }
 
     /**
@@ -123,6 +173,38 @@ class Topic extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'tag_topic');
+    }
+
+    /**
+     * Tags via table topic_tags
+     */
+    public function topicTags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'topic_tags');
+    }
+
+    /**
+     * Élus liés (interpellations, mentions)
+     */
+    public function elus(): HasMany
+    {
+        return $this->hasMany(TopicElu::class);
+    }
+
+    /**
+     * Interpellations uniquement
+     */
+    public function interpellations(): HasMany
+    {
+        return $this->hasMany(TopicElu::class)->where('is_interpellation', true);
+    }
+
+    /**
+     * Votes citoyens sur ce topic
+     */
+    public function topicVotes(): HasMany
+    {
+        return $this->hasMany(TopicVote::class);
     }
 
     /**
@@ -240,6 +322,168 @@ class Topic extends Model
         return $query->where('type', 'referendum');
     }
 
+    /**
+     * Scope: par type d'idée
+     */
+    public function scopeByIdeaType($query, string $ideaType)
+    {
+        return $query->where('idea_type', $ideaType);
+    }
+
+    /**
+     * Scope: propositions citoyennes
+     */
+    public function scopeProposals($query)
+    {
+        return $query->where('idea_type', 'proposal');
+    }
+
+    /**
+     * Scope: interpellations
+     */
+    public function scopeInterpellations($query)
+    {
+        return $query->where('idea_type', 'interpellation');
+    }
+
+    /**
+     * Scope: pétitions
+     */
+    public function scopePetitions($query)
+    {
+        return $query->where('idea_type', 'petition');
+    }
+
+    /**
+     * Scope: publiés
+     */
+    public function scopePublished($query)
+    {
+        return $query->where('status', 'published')
+            ->whereNotNull('published_at');
+    }
+
+    /**
+     * Scope: trending (basé sur le Wilson score)
+     */
+    public function scopeTrending($query)
+    {
+        return $query->published()
+            ->orderByDesc('score')
+            ->orderByDesc('votes_pour');
+    }
+
+    /**
+     * Scope: récents
+     */
+    public function scopeRecent($query)
+    {
+        return $query->published()
+            ->orderByDesc('published_at');
+    }
+
+    /**
+     * Scope: avec élus liés
+     */
+    public function scopeWithElus($query)
+    {
+        return $query->whereHas('elus');
+    }
+
+    // ========================================================================
+    // ACCESSORS
+    // ========================================================================
+
+    /**
+     * Infos sur le type d'idée
+     */
+    public function getIdeaTypeInfoAttribute(): array
+    {
+        return self::IDEA_TYPES[$this->idea_type] ?? self::IDEA_TYPES['debate'];
+    }
+
+    /**
+     * Infos sur le scope
+     */
+    public function getScopeInfoAttribute(): array
+    {
+        return self::SCOPES[$this->scope] ?? self::SCOPES['national'];
+    }
+
+    /**
+     * URL du topic
+     */
+    public function getUrlAttribute(): string
+    {
+        return route('topics.show', $this->slug ?: $this->id);
+    }
+
+    /**
+     * Total des votes
+     */
+    public function getTotalVotesAttribute(): int
+    {
+        return $this->votes_pour + $this->votes_contre;
+    }
+
+    /**
+     * Pourcentage pour
+     */
+    public function getPctPourAttribute(): float
+    {
+        $total = $this->total_votes;
+        return $total > 0 ? round(($this->votes_pour / $total) * 100, 1) : 0;
+    }
+
+    /**
+     * Pourcentage contre
+     */
+    public function getPctContreAttribute(): float
+    {
+        $total = $this->total_votes;
+        return $total > 0 ? round(($this->votes_contre / $total) * 100, 1) : 0;
+    }
+
+    /**
+     * Générer un slug à partir du titre
+     */
+    public static function generateSlug(string $title): string
+    {
+        $slug = \Illuminate\Support\Str::slug($title);
+        $originalSlug = $slug;
+        $count = 1;
+
+        while (static::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $count++;
+        }
+
+        return $slug;
+    }
+
+    // ========================================================================
+    // BOOT
+    // ========================================================================
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($topic) {
+            if (empty($topic->slug)) {
+                $topic->slug = static::generateSlug($topic->title);
+            }
+            if (empty($topic->idea_type)) {
+                $topic->idea_type = 'debate';
+            }
+        });
+
+        static::updating(function ($topic) {
+            if ($topic->isDirty('title') && $topic->getOriginal('slug') === \Illuminate\Support\Str::slug($topic->getOriginal('title'))) {
+                $topic->slug = static::generateSlug($topic->title);
+            }
+        });
+    }
+
     // ========================================================================
     // SCOUT / MEILISEARCH
     // ========================================================================
@@ -252,14 +496,20 @@ class Topic extends Model
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'slug' => $this->slug,
             'description' => $this->description,
             'type' => $this->type,
+            'idea_type' => $this->idea_type,
             'scope' => $this->scope,
             'status' => $this->status,
             'region_id' => $this->region_id,
             'department_id' => $this->department_id,
             'author_name' => $this->author?->name,
-            'created_at' => $this->created_at->timestamp,
+            'votes_pour' => $this->votes_pour,
+            'votes_contre' => $this->votes_contre,
+            'score' => $this->score,
+            'created_at' => $this->created_at?->timestamp,
+            'published_at' => $this->published_at?->timestamp,
         ];
     }
 

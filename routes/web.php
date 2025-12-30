@@ -43,7 +43,7 @@ Route::get('/', function () {
     $stats = [
         'deputes' => $globalStats['nb_deputes'] ?? 577,
         'senateurs' => $globalStats['nb_senateurs'] ?? 348,
-        'lois_en_cours' => $globalStats['nb_lois_en_cours'] ?? \App\Models\Loi::whereNull('promession')->count(),
+        'lois_en_cours' => $globalStats['nb_lois_en_cours'] ?? \App\Models\Loi::whereNull('loidatjo')->count(),
         'maires' => $globalStats['nb_maires'] ?? \App\Models\Maire::enExercice()->count(),
     ];
     
@@ -65,14 +65,14 @@ Route::get('/search', function (Request $request) {
     return Inertia::render('Search/Results', [
         'query' => $request->query('q', ''),
     ]);
-})->name('search');
+})->middleware('auth')->name('search');
 
 /*
 |--------------------------------------------------------------------------
 | Tags / Thèmes
 |--------------------------------------------------------------------------
 */
-Route::prefix('tags')->name('tags.')->group(function () {
+Route::prefix('tags')->name('tags.')->middleware('auth')->group(function () {
     Route::get('/', [TagController::class, 'index'])->name('index');
     Route::get('/{slug}', [TagController::class, 'show'])->name('show');
 });
@@ -88,10 +88,22 @@ Route::get('/cookies', [PolicyController::class, 'cookies'])->name('cookies');
 
 /*
 |--------------------------------------------------------------------------
-| Législation (Assemblée + Sénat)
+| Questions au Gouvernement (authentifié)
 |--------------------------------------------------------------------------
 */
-Route::prefix('legislation')->name('legislation.')->group(function () {
+Route::prefix('questions')->name('questions.')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Web\QuestionController::class, 'index'])->name('index');
+    Route::get('/stats', [\App\Http\Controllers\Web\QuestionController::class, 'stats'])->name('stats');
+    Route::get('/depute/{uid}', [\App\Http\Controllers\Web\QuestionController::class, 'byDepute'])->name('depute');
+    Route::get('/{uid}', [\App\Http\Controllers\Web\QuestionController::class, 'show'])->name('show');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Législation (Assemblée + Sénat) - Authentifié
+|--------------------------------------------------------------------------
+*/
+Route::prefix('legislation')->name('legislation.')->middleware('auth')->group(function () {
     // Hub unifié
     Route::get('/', [LegislationController::class, 'hub'])->name('hub');
     Route::get('/propositions', [LegislationController::class, 'index'])->name('index');
@@ -115,10 +127,14 @@ Route::prefix('legislation')->name('legislation.')->group(function () {
         return Inertia::render('Thematiques/Show', ['code' => $code]);
     })->name('thematiques.show');
     
-    // Scrutins (NOUVEAU)
+    // Scrutins AN (NOUVEAU)
     Route::get('/scrutins', [LegislationController::class, 'scrutinsIndex'])->name('scrutins.index');
     Route::get('/scrutins/{uid}', [LegislationController::class, 'showScrutin'])->name('scrutins.show');
     Route::get('/scrutins/{uid}/comparaison', [LegislationController::class, 'comparaisonVote'])->name('scrutins.comparaison');
+    
+    // Scrutins Sénat
+    Route::get('/scrutins-senat', [\App\Http\Controllers\Web\ScrutinSenatController::class, 'index'])->name('scrutins-senat.index');
+    Route::get('/scrutins-senat/{id}', [\App\Http\Controllers\Web\ScrutinSenatController::class, 'show'])->name('scrutins-senat.show');
     
     // Amendements (NOUVEAU)
     Route::get('/amendements/{uid}', [LegislationController::class, 'showAmendement'])->name('amendements.show');
@@ -140,10 +156,10 @@ Route::prefix('legislation')->name('legislation.')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Parlement - Calendrier Législatif
+| Parlement - Calendrier Législatif (Authentifié)
 |--------------------------------------------------------------------------
 */
-Route::prefix('parlement')->name('parlement.')->group(function () {
+Route::prefix('parlement')->name('parlement.')->middleware('auth')->group(function () {
     // Calendrier des réunions
     Route::get('/calendrier', [\App\Http\Controllers\Web\CalendrierController::class, 'index'])->name('calendrier.index');
     Route::get('/calendrier/semaine', [\App\Http\Controllers\Web\CalendrierController::class, 'semaine'])->name('calendrier.semaine');
@@ -155,9 +171,9 @@ Route::prefix('parlement')->name('parlement.')->group(function () {
 });
 
 // ==========================================
-// LOIS - Cycle de vie législatif
+// LOIS - Cycle de vie législatif (Authentifié)
 // ==========================================
-Route::prefix('lois')->name('lois.')->group(function () {
+Route::prefix('lois')->name('lois.')->middleware('auth')->group(function () {
     Route::get('/', [\App\Http\Controllers\Web\LoiController::class, 'index'])->name('index');
     Route::get('/statistiques', [\App\Http\Controllers\Web\LoiController::class, 'statistiques'])->name('statistiques');
     Route::get('/recherche', [\App\Http\Controllers\Web\LoiController::class, 'search'])->name('search');
@@ -170,7 +186,7 @@ Route::prefix('lois')->name('lois.')->group(function () {
 | Topics (Forum Citoyen)
 |--------------------------------------------------------------------------
 */
-Route::prefix('topics')->name('topics.')->group(function () {
+Route::prefix('topics')->name('topics.')->middleware('auth')->group(function () {
     // Public routes
     Route::get('/', [TopicController::class, 'index'])->name('index');
     Route::get('/trending', [TopicController::class, 'trending'])->name('trending');
@@ -203,7 +219,7 @@ Route::prefix('topics')->name('topics.')->group(function () {
 | Vote (Scrutins Anonymes)
 |--------------------------------------------------------------------------
 */
-Route::prefix('vote')->name('vote.')->group(function () {
+Route::prefix('vote')->name('vote.')->middleware('auth')->group(function () {
     // Public routes
     Route::get('/topics/{topic}', [VoteController::class, 'show'])->name('show');
     Route::get('/topics/{topic}/results', [VoteController::class, 'results'])->name('results');
@@ -220,7 +236,7 @@ Route::prefix('vote')->name('vote.')->group(function () {
 | Budget Participatif
 |--------------------------------------------------------------------------
 */
-Route::prefix('budget')->name('budget.')->group(function () {
+Route::prefix('budget')->name('budget.')->middleware('auth')->group(function () {
     // Public routes
     Route::get('/', [BudgetController::class, 'index'])->name('index');
     Route::get('/stats', [BudgetController::class, 'stats'])->name('stats');
@@ -275,7 +291,7 @@ Route::post('/reports', [ModerationController::class, 'store'])->middleware('aut
 | Documents Publics
 |--------------------------------------------------------------------------
 */
-Route::prefix('documents')->name('documents.')->group(function () {
+Route::prefix('documents')->name('documents.')->middleware('auth')->group(function () {
     // Public routes
     Route::get('/', [DocumentController::class, 'index'])->name('index');
     Route::get('/{document}', [DocumentController::class, 'show'])->name('show');
@@ -294,6 +310,22 @@ Route::prefix('documents')->name('documents.')->group(function () {
         Route::get('/pending', [DocumentController::class, 'pending'])->name('pending');
         Route::post('/{document}/verify', [DocumentController::class, 'verify'])->name('verify');
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Participation Citoyenne
+|--------------------------------------------------------------------------
+*/
+Route::prefix('participation')->name('participation.')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Web\ParticipationController::class, 'hub'])->name('hub');
+    
+    // Idées citoyennes
+    Route::get('/idees', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasIndex'])->name('ideas.index');
+    Route::get('/idees/nouvelle', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasCreate'])->name('ideas.create');
+    Route::post('/idees', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasStore'])->name('ideas.store');
+    Route::post('/idees/{topic}/vote', [\App\Http\Controllers\Web\ParticipationController::class, 'vote'])->name('ideas.vote');
+    Route::delete('/idees/{topic}/vote', [\App\Http\Controllers\Web\ParticipationController::class, 'unvote'])->name('ideas.unvote');
 });
 
 /*
@@ -319,7 +351,7 @@ Route::middleware('auth')->group(function () {
 | Statistiques France
 |--------------------------------------------------------------------------
 */
-Route::prefix('statistiques')->name('statistics.')->group(function () {
+Route::prefix('statistiques')->name('statistics.')->middleware('auth')->group(function () {
     Route::get('/france', [FranceStatisticsController::class, 'index'])->name('france');
     Route::get('/france/region/{regionCode}', [FranceStatisticsController::class, 'getRegionData'])->name('france.region');
     Route::get('/france/department/{departmentCode}', [FranceStatisticsController::class, 'getDepartmentData'])->name('france.department');
@@ -344,13 +376,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 |--------------------------------------------------------------------------
 */
 
-// Route publique - Mes représentants (accessible sans connexion)
-Route::prefix('representants')->name('representants.')->group(function () {
-    Route::get('/mes-representants', [RepresentantController::class, 'mesRepresentants'])->name('mes-representants');
-});
-
 Route::middleware('auth')->prefix('representants')->name('representants.')->group(function () {
-    // Note: La page /regions a été fusionnée dans /mes-representants avec la carte interactive
+    // Mes représentants - Accessible uniquement aux utilisateurs connectés
+    Route::get('/mes-representants', [RepresentantController::class, 'mesRepresentants'])->name('mes-representants');
     
     // Députés (nouveaux - ActeurAN + Wikipedia)
     Route::get('/deputes', [App\Http\Controllers\Web\RepresentantANController::class, 'deputes'])->name('deputes.index');
@@ -372,16 +400,10 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
 | Parlement (Comparaisons & Stats globales)
 |--------------------------------------------------------------------------
 */
-// Routes parlement publiques
-Route::prefix('parlement')->name('parlement.')->group(function () {
-    // Statistiques globales (Députés / Sénateurs / Maires) - Public
-    Route::get('/statistiques', [ParlementController::class, 'comparaison'])->name('statistiques');
-    // Garder l'ancienne route pour compatibilité
+// Routes parlement (authentifié)
+Route::middleware('auth')->prefix('parlement')->name('parlement.')->group(function () {
     Route::get('/comparaison', [ParlementController::class, 'comparaison'])->name('comparaison');
 });
-
-// Alias pour accès rapide depuis la racine
-Route::get('/statistiques-elus', [ParlementController::class, 'comparaison'])->name('statistiques.elus');
 
 /*
 |--------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import HatvpDeclarationCard from '@/Components/HatvpDeclarationCard.vue';
 
 const props = defineProps({
   senateur: Object,
@@ -500,237 +501,22 @@ const getSegmentHeight = (value, total) => {
           </div>
         </Card>
 
-        <!-- Déclarations HATVP (Transparence) - Placé après mandats et commissions -->
+        <!-- Déclarations HATVP - Composant standardisé -->
+        <HatvpDeclarationCard 
+          v-if="senateur.hatvp_summary" 
+          :summary="senateur.hatvp_summary"
+          parlementaire-type="senateur"
+        />
+
+        <!-- Historique des déclarations HATVP -->
         <Card v-if="senateur.declarations_hatvp && senateur.declarations_hatvp.length > 0">
           <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>📋</span>
-            <span>Déclarations d'intérêts et de patrimoine</span>
+            <span>📜</span>
+            <span>Historique des déclarations</span>
             <Badge class="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs">
-              HATVP
+              {{ senateur.declarations_hatvp.length }}
             </Badge>
           </h2>
-          
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Déclarations publiques auprès de la Haute Autorité pour la Transparence de la Vie Publique
-          </p>
-
-          <!-- Résumé HATVP consolidé -->
-          <div v-if="senateur.hatvp_summary" class="mb-6 p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 rounded-xl border border-amber-200 dark:border-amber-700">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div class="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                <div class="text-2xl font-bold text-amber-700 dark:text-amber-400">
-                  {{ senateur.hatvp_summary.nombre_mandats || 0 }}
-                </div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Mandats cumulés</div>
-              </div>
-              <div class="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                <div class="text-2xl font-bold text-blue-700 dark:text-blue-400">
-                  {{ senateur.hatvp_summary.nombre_emplois || 0 }}
-                </div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Fonctions/Emplois</div>
-              </div>
-              <div class="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                <div class="text-2xl font-bold text-purple-700 dark:text-purple-400">
-                  {{ senateur.hatvp_summary.nombre_collaborateurs || 0 }}
-                </div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Collaborateurs</div>
-              </div>
-              <div class="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ senateur.hatvp_summary.declaration_date }}
-                </div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Dernière déclaration</div>
-              </div>
-            </div>
-
-            <!-- Revenus par année avec graphique -->
-            <div v-if="senateur.hatvp_summary.revenus_par_annee && Object.keys(senateur.hatvp_summary.revenus_par_annee).length > 0" class="mt-4">
-              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                📊 Revenus déclarés par année
-              </h4>
-              
-              <!-- Graphique en barres -->
-              <div class="mb-6 p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
-                <div class="flex items-end justify-around gap-2 h-40">
-                  <div 
-                    v-for="(revenus, annee) in senateur.hatvp_summary.revenus_par_annee" 
-                    :key="annee"
-                    class="flex flex-col items-center flex-1 max-w-24"
-                  >
-                    <!-- Barre empilée -->
-                    <div class="w-full flex flex-col-reverse rounded-t-lg overflow-hidden" :style="{ height: getBarHeight(revenus.total) }">
-                      <div 
-                        v-if="revenus.mandats > 0"
-                        class="bg-amber-500 transition-all duration-500"
-                        :style="{ height: getSegmentHeight(revenus.mandats, revenus.total) }"
-                        :title="`Mandats: ${formatMontant(revenus.mandats)}`"
-                      ></div>
-                      <div 
-                        v-if="revenus.activites_pro > 0"
-                        class="bg-blue-500 transition-all duration-500"
-                        :style="{ height: getSegmentHeight(revenus.activites_pro, revenus.total) }"
-                        :title="`Activités pro: ${formatMontant(revenus.activites_pro)}`"
-                      ></div>
-                      <div 
-                        v-if="revenus.consultant > 0"
-                        class="bg-purple-500 transition-all duration-500"
-                        :style="{ height: getSegmentHeight(revenus.consultant, revenus.total) }"
-                        :title="`Consultant: ${formatMontant(revenus.consultant)}`"
-                      ></div>
-                      <div 
-                        v-if="revenus.dirigeant > 0"
-                        class="bg-green-500 transition-all duration-500"
-                        :style="{ height: getSegmentHeight(revenus.dirigeant, revenus.total) }"
-                        :title="`Dirigeant: ${formatMontant(revenus.dirigeant)}`"
-                      ></div>
-                    </div>
-                    <!-- Montant total -->
-                    <div class="text-xs font-bold text-amber-700 dark:text-amber-400 mt-1 text-center">
-                      {{ formatMontantCompact(revenus.total) }}
-                    </div>
-                    <!-- Année -->
-                    <div class="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                      {{ annee }}
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Légende -->
-                <div class="flex flex-wrap justify-center gap-4 mt-4 text-xs">
-                  <div class="flex items-center gap-1">
-                    <div class="w-3 h-3 rounded bg-amber-500"></div>
-                    <span class="text-gray-600 dark:text-gray-400">Mandats</span>
-                  </div>
-                  <div class="flex items-center gap-1">
-                    <div class="w-3 h-3 rounded bg-blue-500"></div>
-                    <span class="text-gray-600 dark:text-gray-400">Activités pro.</span>
-                  </div>
-                  <div class="flex items-center gap-1">
-                    <div class="w-3 h-3 rounded bg-purple-500"></div>
-                    <span class="text-gray-600 dark:text-gray-400">Consultant</span>
-                  </div>
-                  <div class="flex items-center gap-1">
-                    <div class="w-3 h-3 rounded bg-green-500"></div>
-                    <span class="text-gray-600 dark:text-gray-400">Dirigeant</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Tableau détaillé -->
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                  <thead>
-                    <tr class="text-left text-gray-600 dark:text-gray-400 border-b border-amber-200 dark:border-amber-700">
-                      <th class="py-2 px-2">Année</th>
-                      <th class="py-2 px-2 text-right">Mandats</th>
-                      <th class="py-2 px-2 text-right">Activités pro.</th>
-                      <th class="py-2 px-2 text-right">Consultant</th>
-                      <th class="py-2 px-2 text-right">Dirigeant</th>
-                      <th class="py-2 px-2 text-right font-bold">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr 
-                      v-for="(revenus, annee) in senateur.hatvp_summary.revenus_par_annee" 
-                      :key="annee"
-                      class="border-b border-amber-100 dark:border-amber-800"
-                    >
-                      <td class="py-2 px-2 font-medium">{{ annee }}</td>
-                      <td class="py-2 px-2 text-right">{{ formatMontant(revenus.mandats) }}</td>
-                      <td class="py-2 px-2 text-right">{{ formatMontant(revenus.activites_pro) }}</td>
-                      <td class="py-2 px-2 text-right">{{ formatMontant(revenus.consultant) }}</td>
-                      <td class="py-2 px-2 text-right">{{ formatMontant(revenus.dirigeant) }}</td>
-                      <td class="py-2 px-2 text-right font-bold text-amber-700 dark:text-amber-400">
-                        {{ formatMontant(revenus.total) }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Mandats électifs avec indemnités -->
-            <div v-if="senateur.hatvp_summary.mandats_electifs && senateur.hatvp_summary.mandats_electifs.length > 0" class="mt-4">
-              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
-                🏛️ Mandats électifs déclarés
-              </h4>
-              <div class="space-y-2">
-                <div 
-                  v-for="(mandat, index) in senateur.hatvp_summary.mandats_electifs" 
-                  :key="index"
-                  class="p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg"
-                >
-                  <div class="flex justify-between items-start">
-                    <div>
-                      <div class="font-medium text-gray-900 dark:text-gray-100">{{ mandat.description }}</div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
-                        {{ mandat.date_debut }} 
-                        <span v-if="mandat.date_fin">→ {{ mandat.date_fin }}</span>
-                        <span v-else class="text-green-600">→ En cours</span>
-                      </div>
-                    </div>
-                    <div v-if="mandat.total_remunerations > 0" class="text-right">
-                      <div class="text-sm font-bold text-amber-700 dark:text-amber-400">
-                        {{ formatMontant(mandat.total_remunerations) }}
-                      </div>
-                      <div class="text-xs text-gray-500">Total déclaré</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Activités professionnelles parallèles -->
-            <div v-if="senateur.hatvp_summary.activites_professionnelles && senateur.hatvp_summary.activites_professionnelles.length > 0" class="mt-4">
-              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
-                💼 Activités professionnelles parallèles
-              </h4>
-              <div class="space-y-2">
-                <div 
-                  v-for="(activite, index) in senateur.hatvp_summary.activites_professionnelles" 
-                  :key="index"
-                  class="p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg"
-                >
-                  <div class="flex justify-between items-start">
-                    <div>
-                      <div class="font-medium text-gray-900 dark:text-gray-100">{{ activite.employeur }}</div>
-                      <div v-if="activite.description" class="text-sm text-gray-600 dark:text-gray-400">
-                        {{ activite.description }}
-                      </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
-                        {{ activite.date_debut }} 
-                        <span v-if="activite.date_fin">→ {{ activite.date_fin }}</span>
-                        <span v-else-if="activite.actif" class="text-green-600">→ En cours</span>
-                      </div>
-                    </div>
-                    <div v-if="activite.total_remunerations > 0" class="text-right">
-                      <div class="text-sm font-bold text-blue-700 dark:text-blue-400">
-                        {{ formatMontant(activite.total_remunerations) }}
-                      </div>
-                      <div class="text-xs text-gray-500">Total déclaré</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Collaborateurs parlementaires -->
-            <div v-if="senateur.hatvp_summary.collaborateurs && senateur.hatvp_summary.collaborateurs.length > 0" class="mt-4">
-              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
-                👥 Collaborateurs parlementaires ({{ senateur.hatvp_summary.collaborateurs.length }})
-              </h4>
-              <div class="flex flex-wrap gap-2">
-                <Badge 
-                  v-for="(collab, index) in senateur.hatvp_summary.collaborateurs" 
-                  :key="index"
-                  class="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
-                  :title="collab.description"
-                >
-                  {{ collab.nom }}
-                </Badge>
-              </div>
-            </div>
-          </div>
 
           <!-- Liste des déclarations -->
           <div class="space-y-3">

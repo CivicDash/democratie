@@ -11,6 +11,10 @@ defineProps({
         type: String,
         default: "chevron", // 'chevron', 'slash', 'arrow'
     },
+    variant: {
+        type: String,
+        default: "default", // 'default', 'light' (for dark backgrounds)
+    },
 });
 
 const getSeparatorIcon = (type) => {
@@ -31,12 +35,17 @@ const getSeparatorIcon = (type) => {
             <li v-for="(item, index) in items" :key="index" class="flex items-center">
                 <!-- Separator (sauf pour le premier élément) -->
                 <template v-if="index > 0">
-                    <span v-if="separator !== 'chevron'" class="mx-2 text-gray-400 dark:text-gray-500 select-none">
+                    <span 
+                        v-if="separator !== 'chevron'" 
+                        class="mx-2 select-none"
+                        :class="variant === 'light' ? 'text-white/50' : 'text-gray-400 dark:text-gray-500'"
+                    >
                         {{ getSeparatorIcon(separator) }}
                     </span>
                     <svg
                         v-else
-                        class="mx-2 h-4 w-4 flex-shrink-0 text-gray-400 dark:text-gray-500"
+                        class="mx-2 h-4 w-4 flex-shrink-0"
+                        :class="variant === 'light' ? 'text-white/50' : 'text-gray-400 dark:text-gray-500'"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                     >
@@ -52,7 +61,10 @@ const getSeparatorIcon = (type) => {
                 <Link
                     v-if="item.href && index < items.length - 1"
                     :href="item.href"
-                    class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-150"
+                    class="inline-flex items-center gap-1.5 transition-colors duration-150"
+                    :class="variant === 'light' 
+                        ? 'text-white/70 hover:text-white' 
+                        : 'text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400'"
                 >
                     <span v-if="item.icon" class="text-base">{{ item.icon }}</span>
                     <span>{{ item.label }}</span>
@@ -61,8 +73,11 @@ const getSeparatorIcon = (type) => {
                 <!-- Dernier élément (page courante) -->
                 <span
                     v-else
-                    class="inline-flex items-center gap-1.5 font-medium text-gray-900 dark:text-gray-100"
-                    :class="{ 'max-w-[200px] sm:max-w-[300px] truncate': index === items.length - 1 }"
+                    class="inline-flex items-center gap-1.5 font-medium"
+                    :class="[
+                        variant === 'light' ? 'text-white' : 'text-gray-900 dark:text-gray-100',
+                        { 'max-w-[200px] sm:max-w-[300px] truncate': index === items.length - 1 }
+                    ]"
                     :title="item.label"
                 >
                     <span v-if="item.icon" class="text-base flex-shrink-0">{{ item.icon }}</span>
