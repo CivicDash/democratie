@@ -1,9 +1,18 @@
 <script setup>
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Card from '@/Components/Card.vue';
+
+// Simple debounce function
+function debounce(fn, delay) {
+    let timeoutId;
+    return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
 
 const props = defineProps({
     regions: { type: Array, default: () => [] },
@@ -171,6 +180,102 @@ function removeElu(type, id) {
         form.elus.splice(index, 1);
     }
 }
+
+// ============================================================================
+// ELUS SEARCH & SUGGESTIONS
+// ============================================================================
+const eluSearch = ref('');
+const eluSearchType = ref('all'); // 'all', 'depute', 'senateur', 'maire'
+const suggestedElus = ref({ deputes: [], senateurs: [], maires: [] });
+const isLoadingElus = ref(false);
+const showElusSuggestions = ref(false);
+
+const page = usePage();
+
+async function searchElus() {
+    if (eluSearch.value.length < 2 && form.scope === 'national') {
+        suggestedElus.value = { deputes: [], senateurs: [], maires: [] };
+        return;
+    }
+    
+    isLoadingElus.value = true;
+    
+    try {
+        const params = new URLSearchParams({
+            scope: form.scope,
+            search: eluSearch.value,
+            limit: '15',
+        });
+        
+        if (form.region_id) params.append('region_id', form.region_id);
+        if (form.department_id) params.append('department_id', form.department_id);
+        if (eluSearchType.value !== 'all') {
+            params.append('types[]', eluSearchType.value);
+        }
+        
+        const response = await fetch(`/api/legislation/elus/suggest?${params}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            suggestedElus.value = data.results;
+        }
+    } catch (error) {
+        console.error('Erreur recherche élus:', error);
+    } finally {
+        isLoadingElus.value = false;
+    }
+}
+
+const debouncedSearchElus = debounce(searchElus, 300);
+
+// Watch for search input changes
+watch(eluSearch, () => {
+    if (eluSearch.value.length >= 2 || form.scope !== 'national') {
+        debouncedSearchElus();
+    }
+});
+
+// Load suggestions when entering step 5
+watch(currentStep, (newStep) => {
+    if (newStep === 5) {
+        searchElus();
+    }
+});
+
+// When scope changes, reload suggestions
+watch([() => form.scope, () => form.region_id, () => form.department_id], () => {
+    if (currentStep.value === 5) {
+        searchElus();
+    }
+});
+
+function selectElu(elu) {
+    if (!form.elus.find(e => e.type === elu.type && e.id === elu.id)) {
+        form.elus.push({ 
+            type: elu.type, 
+            id: elu.id, 
+            nom_complet: elu.nom_complet,
+            photo_url: elu.photo_url,
+            groupe: elu.groupe,
+            groupe_couleur: elu.groupe_couleur,
+            circonscription: elu.circonscription || elu.commune,
+        });
+    }
+}
+
+const allSuggestedElus = computed(() => {
+    const all = [];
+    if (eluSearchType.value === 'all' || eluSearchType.value === 'depute') {
+        all.push(...suggestedElus.value.deputes.map(e => ({ ...e, typeLabel: 'Député' })));
+    }
+    if (eluSearchType.value === 'all' || eluSearchType.value === 'senateur') {
+        all.push(...suggestedElus.value.senateurs.map(e => ({ ...e, typeLabel: 'Sénateur' })));
+    }
+    if (eluSearchType.value === 'all' || eluSearchType.value === 'maire') {
+        all.push(...suggestedElus.value.maires.map(e => ({ ...e, typeLabel: 'Maire' })));
+    }
+    return all;
+});
 
 function submit() {
     form.post(route('participation.ideas.store'), {
@@ -493,12 +598,155 @@ const breadcrumbs = [
                             </div>
                         </label>
 
-                        <!-- Info message -->
-                        <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                            <p class="text-sm text-gray-600 dark:text-gray-400 italic">
-                                💡 La recherche d'élus sera disponible prochainement. 
-                                Pour l'instant, vous pouvez soumettre votre idée sans élu lié.
+                        <!-- Search and filter -->
+                        <div class="grid sm:grid-cols-3 gap-4">
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    🔍 Rechercher un élu
+                                </label>
+                                <input
+                                    v-model="eluSearch"
+                                    type="text"
+                                    placeholder="Nom, prénom, commune..."
+                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-emerald-500 focus:border-emerald-500"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    📋 Type
+                                </label>
+                                <select
+                                    v-model="eluSearchType"
+                                    @change="searchElus"
+                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                                >
+                                    <option value="all">Tous les élus</option>
+                                    <option value="depute">Députés</option>
+                                    <option value="senateur">Sénateurs</option>
+                                    <option value="maire">Maires</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Geo info -->
+                        <div v-if="form.scope !== 'national'" class="p-3 bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-700 rounded-xl">
+                            <p class="text-sm text-sky-700 dark:text-sky-400">
+                                📍 Suggestions basées sur votre portée géographique : 
+                                <strong>{{ scopes.find(s => s.value === form.scope)?.label }}</strong>
+                                <span v-if="form.region_id"> - {{ regions.find(r => r.id === form.region_id)?.name }}</span>
+                                <span v-if="form.department_id"> / {{ departments.find(d => d.id === form.department_id)?.name }}</span>
                             </p>
+                        </div>
+
+                        <!-- Selected elus -->
+                        <div v-if="form.elus.length > 0" class="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl">
+                            <p class="text-sm font-medium text-emerald-700 dark:text-emerald-400 mb-3">
+                                ✅ Élus sélectionnés ({{ form.elus.length }})
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <div 
+                                    v-for="elu in form.elus" 
+                                    :key="`${elu.type}-${elu.id}`"
+                                    class="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-emerald-200 dark:border-emerald-700"
+                                >
+                                    <div 
+                                        v-if="elu.photo_url"
+                                        class="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0"
+                                    >
+                                        <img :src="elu.photo_url" :alt="elu.nom_complet" class="w-full h-full object-cover" />
+                                    </div>
+                                    <div v-else class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                        👤
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="font-medium text-gray-900 dark:text-white">{{ elu.nom_complet }}</span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                            ({{ elu.type === 'depute' ? 'Député' : elu.type === 'senateur' ? 'Sénateur' : 'Maire' }})
+                                        </span>
+                                    </div>
+                                    <button 
+                                        @click="removeElu(elu.type, elu.id)"
+                                        class="ml-2 text-gray-400 hover:text-rose-500 transition"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Suggestions list -->
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                            <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        💡 Suggestions
+                                    </span>
+                                    <span v-if="isLoadingElus" class="text-xs text-gray-500">⏳ Chargement...</span>
+                                    <span v-else class="text-xs text-gray-500">{{ allSuggestedElus.length }} résultat(s)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                                <button
+                                    v-for="elu in allSuggestedElus"
+                                    :key="`${elu.type}-${elu.id}`"
+                                    @click="selectElu(elu)"
+                                    :disabled="form.elus.some(e => e.type === elu.type && e.id === elu.id)"
+                                    :class="[
+                                        'w-full flex items-center gap-3 px-4 py-3 text-left transition',
+                                        form.elus.some(e => e.type === elu.type && e.id === elu.id)
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 cursor-not-allowed'
+                                            : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                    ]"
+                                >
+                                    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0">
+                                        <img 
+                                            v-if="elu.photo_url" 
+                                            :src="elu.photo_url" 
+                                            :alt="elu.nom_complet"
+                                            class="w-full h-full object-cover"
+                                        />
+                                        <div v-else class="w-full h-full flex items-center justify-center text-lg">
+                                            👤
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-gray-900 dark:text-white truncate">{{ elu.nom_complet }}</span>
+                                            <span 
+                                                class="px-2 py-0.5 text-xs rounded-full"
+                                                :class="{
+                                                    'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400': elu.type === 'depute',
+                                                    'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400': elu.type === 'senateur',
+                                                    'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': elu.type === 'maire',
+                                                }"
+                                            >
+                                                {{ elu.typeLabel }}
+                                            </span>
+                                        </div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                            <span v-if="elu.groupe" class="mr-2">{{ elu.groupe }}</span>
+                                            <span v-if="elu.circonscription">· {{ elu.circonscription }}</span>
+                                            <span v-if="elu.commune">· {{ elu.commune }}</span>
+                                        </div>
+                                    </div>
+                                    <div v-if="form.elus.some(e => e.type === elu.type && e.id === elu.id)" class="text-emerald-500">
+                                        ✓
+                                    </div>
+                                </button>
+                                
+                                <div v-if="allSuggestedElus.length === 0 && !isLoadingElus" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="text-3xl mb-2">🔍</div>
+                                    <p class="text-sm">
+                                        <span v-if="form.scope === 'national' && eluSearch.length < 2">
+                                            Commencez à taper pour rechercher un élu
+                                        </span>
+                                        <span v-else>
+                                            Aucun élu trouvé. Essayez une autre recherche.
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

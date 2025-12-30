@@ -320,7 +320,7 @@ const breadcrumbs = [
                             <Link
                                 v-for="idea in ideas.data"
                                 :key="idea.id"
-                                :href="route('topics.show', idea.slug || idea.id)"
+                                :href="route('participation.ideas.show', idea.slug || idea.id)"
                                 class="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-600 transition-all group"
                             >
                                 <div class="flex gap-4">

@@ -323,9 +323,11 @@ Route::prefix('participation')->name('participation.')->middleware('auth')->grou
     // Idées citoyennes
     Route::get('/idees', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasIndex'])->name('ideas.index');
     Route::get('/idees/nouvelle', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasCreate'])->name('ideas.create');
+    Route::get('/idees/{topic:slug}', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasShow'])->name('ideas.show');
     Route::post('/idees', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasStore'])->name('ideas.store');
     Route::post('/idees/{topic}/vote', [\App\Http\Controllers\Web\ParticipationController::class, 'vote'])->name('ideas.vote');
     Route::delete('/idees/{topic}/vote', [\App\Http\Controllers\Web\ParticipationController::class, 'unvote'])->name('ideas.unvote');
+    Route::post('/idees/{topic}/comment', [\App\Http\Controllers\Web\ParticipationController::class, 'addComment'])->name('ideas.comment');
 });
 
 /*

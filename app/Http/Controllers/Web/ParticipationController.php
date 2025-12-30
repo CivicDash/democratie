@@ -269,4 +269,203 @@ class ParticipationController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Afficher une idée citoyenne
+     */
+    public function ideasShow(Topic $topic): Response
+    {
+        // Incrémenter le compteur de vues
+        $topic->increment('views_count');
+
+        // Charger les relations
+        $topic->load([
+            'author:id,name',
+            'region:id,name',
+            'department:id,name,code',
+            'elus',
+            'topicTags',
+            'loi:loicod,loitit,etaloicod',
+        ]);
+
+        // Commentaires avec pagination
+        $comments = $topic->posts()
+            ->with(['user:id,name', 'votes'])
+            ->withCount('votes')
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        // Vérifier si l'utilisateur a voté
+        $userVote = null;
+        if (auth()->check()) {
+            $vote = TopicVote::where('user_id', auth()->id())
+                ->where('topic_id', $topic->id)
+                ->first();
+            $userVote = $vote?->vote;
+        }
+
+        // Charger les infos des élus liés
+        $elusDetails = $this->loadElusDetails($topic->elus);
+
+        // Idées similaires (même thématique ou même scope)
+        $similar = Topic::published()
+            ->where('id', '!=', $topic->id)
+            ->where(function ($q) use ($topic) {
+                if ($topic->idea_type) {
+                    $q->where('idea_type', $topic->idea_type);
+                }
+                if ($topic->scope) {
+                    $q->orWhere('scope', $topic->scope);
+                }
+            })
+            ->orderByDesc('score')
+            ->limit(3)
+            ->get(['id', 'slug', 'title', 'idea_type', 'votes_pour', 'votes_contre']);
+
+        return Inertia::render('Participation/Ideas/Show', [
+            'idea' => [
+                'id' => $topic->id,
+                'slug' => $topic->slug,
+                'title' => $topic->title,
+                'description' => $topic->description,
+                'idea_type' => $topic->idea_type,
+                'idea_type_info' => $topic->idea_type_info,
+                'scope' => $topic->scope,
+                'scope_info' => $topic->scope_info,
+                'votes_pour' => $topic->votes_pour,
+                'votes_contre' => $topic->votes_contre,
+                'score' => $topic->votes_pour - $topic->votes_contre,
+                'pct_pour' => $topic->pct_pour,
+                'pct_contre' => $topic->pct_contre,
+                'total_votes' => $topic->total_votes,
+                'views_count' => $topic->views_count,
+                'posts_count' => $topic->posts()->count(),
+                'published_at' => $topic->published_at?->toIso8601String(),
+                'created_at' => $topic->created_at->toIso8601String(),
+                'author' => $topic->author ? [
+                    'id' => $topic->author->id,
+                    'name' => $topic->author->name,
+                ] : null,
+                'region' => $topic->region ? [
+                    'id' => $topic->region->id,
+                    'name' => $topic->region->name,
+                ] : null,
+                'department' => $topic->department ? [
+                    'id' => $topic->department->id,
+                    'name' => $topic->department->name,
+                    'code' => $topic->department->code,
+                ] : null,
+                'tags' => $topic->topicTags->map(fn($t) => [
+                    'id' => $t->id,
+                    'nom' => $t->nom,
+                    'icone' => $t->icone,
+                ]),
+                'loi' => $topic->loi ? [
+                    'code' => $topic->loi->loicod,
+                    'titre' => $topic->loi->loitit,
+                    'etat' => $topic->loi->etaloicod,
+                ] : null,
+                'elus' => $elusDetails,
+            ],
+            'comments' => $comments,
+            'userVote' => $userVote,
+            'similar' => $similar,
+        ]);
+    }
+
+    /**
+     * Ajouter un commentaire sur une idée
+     */
+    public function addComment(Request $request, Topic $topic)
+    {
+        $validated = $request->validate([
+            'content' => ['required', 'string', 'min:10', 'max:5000'],
+            'parent_id' => ['nullable', 'exists:posts,id'],
+        ]);
+
+        $post = $topic->posts()->create([
+            'user_id' => auth()->id(),
+            'content' => $validated['content'],
+            'parent_id' => $validated['parent_id'],
+        ]);
+
+        $post->load('user:id,name');
+
+        return response()->json([
+            'success' => true,
+            'comment' => [
+                'id' => $post->id,
+                'content' => $post->content,
+                'created_at' => $post->created_at->toIso8601String(),
+                'user' => [
+                    'id' => $post->user->id,
+                    'name' => $post->user->name,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Charger les détails des élus liés
+     */
+    private function loadElusDetails($elus): array
+    {
+        $details = [];
+
+        foreach ($elus as $elu) {
+            $info = [
+                'id' => $elu->id,
+                'elu_type' => $elu->elu_type,
+                'elu_id' => $elu->elu_id,
+                'is_interpellation' => $elu->is_interpellation,
+                'response_status' => $elu->response_status,
+                'response_date' => $elu->response_date?->toIso8601String(),
+                'response_content' => $elu->response_content,
+                'elu_data' => null,
+            ];
+
+            // Charger les données de l'élu selon le type
+            switch ($elu->elu_type) {
+                case 'depute':
+                    $acteur = \App\Models\ActeurAN::find($elu->elu_id);
+                    if ($acteur) {
+                        $info['elu_data'] = [
+                            'nom_complet' => $acteur->nom_complet,
+                            'photo_url' => $acteur->photo_url,
+                            'groupe' => $acteur->groupe_politique_actuel?->libelle_abrege,
+                            'url' => route('representants.deputes.show', $acteur->uid),
+                        ];
+                    }
+                    break;
+
+                case 'senateur':
+                    $senateur = \App\Models\Senateur::where('matricule', $elu->elu_id)->first();
+                    if ($senateur) {
+                        $info['elu_data'] = [
+                            'nom_complet' => $senateur->nom_complet,
+                            'photo_url' => $senateur->photo_url,
+                            'groupe' => $senateur->groupe_politique,
+                            'url' => route('representants.senateurs.show', $senateur->matricule),
+                        ];
+                    }
+                    break;
+
+                case 'maire':
+                    $maire = \App\Models\Maire::find($elu->elu_id);
+                    if ($maire) {
+                        $info['elu_data'] = [
+                            'nom_complet' => trim("{$maire->prenom} {$maire->nom}"),
+                            'photo_url' => null,
+                            'commune' => $maire->commune,
+                            'url' => null,
+                        ];
+                    }
+                    break;
+            }
+
+            $details[] = $info;
+        }
+
+        return $details;
+    }
 }

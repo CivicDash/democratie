@@ -188,6 +188,7 @@ Route::prefix('legislation')->group(function () {
     
     // Élus (députés & sénateurs)
     Route::get('/elus/search', [LegislationController::class, 'searchElus']);
+    Route::get('/elus/suggest', [\App\Http\Controllers\Api\ElusSuggestionController::class, 'suggest']);
     Route::get('/elus/{uid}', [LegislationController::class, 'getEluDetail']);
     
     // Votes citoyens (stats publiques)

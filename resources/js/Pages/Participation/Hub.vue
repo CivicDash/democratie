@@ -155,7 +155,7 @@ const breadcrumbs = [
                                 <Link
                                     v-for="(idea, index) in trending"
                                     :key="idea.id"
-                                    :href="route('topics.show', idea.slug || idea.id)"
+                                    :href="route('participation.ideas.show', idea.slug || idea.id)"
                                     class="block p-4 bg-gray-50 dark:bg-gray-800 rounded-xl hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-600 border border-transparent transition-all group"
                                 >
                                     <div class="flex gap-4">
@@ -269,7 +269,7 @@ const breadcrumbs = [
                                 <Link
                                     v-for="idea in recent"
                                     :key="idea.id"
-                                    :href="route('topics.show', idea.slug || idea.id)"
+                                    :href="route('participation.ideas.show', idea.slug || idea.id)"
                                     class="block p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                 >
                                     <div class="flex items-start gap-2">
@@ -293,7 +293,7 @@ const breadcrumbs = [
                                 <Link
                                     v-for="idea in interpellations"
                                     :key="idea.id"
-                                    :href="route('topics.show', idea.slug || idea.id)"
+                                    :href="route('participation.ideas.show', idea.slug || idea.id)"
                                     class="block p-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
                                 >
                                     <div class="flex items-start gap-2">
