@@ -147,19 +147,27 @@ const extractInstagramHandle = (url) => {
                 </Badge>
               </div>
 
-              <!-- Stats rapides -->
-              <div class="grid grid-cols-3 gap-4">
-                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-blue-600">{{ depute.statistiques.votes_total }}</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Votes</div>
+              <!-- Stats rapides - 5 indicateurs clés -->
+              <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
+                  <div class="text-2xl font-bold text-blue-600">{{ depute.statistiques.votes_total }}</div>
+                  <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Votes</div>
                 </div>
-                <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-green-600">{{ depute.statistiques.amendements_total }}</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Amendements</div>
+                <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 text-center">
+                  <div class="text-2xl font-bold text-emerald-600">{{ depute.statistiques.taux_presence }}%</div>
+                  <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Présence</div>
                 </div>
-                <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
-                  <div class="text-3xl font-bold text-purple-600">{{ depute.statistiques.taux_adoption_amendements }}%</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Taux adoption</div>
+                <div class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 text-center">
+                  <div class="text-2xl font-bold text-amber-600">{{ depute.statistiques.discipline_groupe }}%</div>
+                  <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Discipline groupe</div>
+                </div>
+                <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
+                  <div class="text-2xl font-bold text-green-600">{{ depute.statistiques.amendements_total }}</div>
+                  <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Amendements</div>
+                </div>
+                <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 text-center">
+                  <div class="text-2xl font-bold text-purple-600">{{ depute.statistiques.taux_adoption_amendements }}%</div>
+                  <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Taux adoption</div>
                 </div>
               </div>
 
@@ -281,6 +289,75 @@ const extractInstagramHandle = (url) => {
             </div>
           </Card>
         </div>
+
+        <!-- Derniers Votes - Widget principal -->
+        <Card v-if="depute.derniers_votes && depute.derniers_votes.length > 0">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <span>🗳️</span>
+              <span>Derniers votes</span>
+            </h2>
+            <Link
+              :href="route('representants.deputes.votes', depute.uid)"
+              class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            >
+              Voir tous les votes →
+            </Link>
+          </div>
+          
+          <div class="space-y-3">
+            <div
+              v-for="vote in depute.derniers_votes"
+              :key="vote.id"
+              class="flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 transition"
+            >
+              <!-- Position du vote -->
+              <div class="flex-shrink-0">
+                <span
+                  :class="[
+                    'inline-flex items-center justify-center w-12 h-12 rounded-full text-white font-bold text-sm',
+                    vote.position === 'pour' ? 'bg-green-500' :
+                    vote.position === 'contre' ? 'bg-red-500' :
+                    vote.position === 'abstention' ? 'bg-yellow-500' : 'bg-gray-400'
+                  ]"
+                >
+                  {{ vote.position === 'pour' ? '✓' : vote.position === 'contre' ? '✗' : '○' }}
+                </span>
+              </div>
+              
+              <!-- Infos scrutin -->
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
+                  {{ vote.scrutin.titre }}
+                </div>
+                <div class="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  <span>{{ vote.date }}</span>
+                  <span class="text-xs">•</span>
+                  <span :class="vote.scrutin.resultat?.includes('Adopté') ? 'text-green-600' : 'text-red-600'">
+                    {{ vote.scrutin.resultat }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Résultats du scrutin -->
+              <div class="hidden md:flex items-center gap-4 text-sm">
+                <span class="text-green-600">✓ {{ vote.scrutin.pour }}</span>
+                <span class="text-red-600">✗ {{ vote.scrutin.contre }}</span>
+              </div>
+              
+              <!-- Badge position -->
+              <Badge
+                :class="[
+                  vote.position === 'pour' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                  vote.position === 'contre' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                ]"
+              >
+                {{ vote.position.toUpperCase() }}
+              </Badge>
+            </div>
+          </div>
+        </Card>
 
         <!-- Déclarations HATVP (Transparence) -->
         <Card v-if="depute.declarations_hatvp && depute.declarations_hatvp.length > 0">

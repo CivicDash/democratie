@@ -418,27 +418,40 @@ Recherche "retraite"
 
 ---
 
-### 2.1.8 : 🏛️ Hub Législation Unifié
+### 2.1.8 : 🏛️ Hub Législation Unifié ✅ IMPLÉMENTÉ
 **Priorité** : 🟡 HAUTE  
-**Durée** : 1 semaine
+**Durée** : 1 semaine → **Terminé le 29/12/2025**
 
 **Objectif** : Unifier `/tags` et `/legislation/lois` en un seul point d'entrée cohérent.
 
-**Architecture proposée** :
+**Architecture** :
 ```
-/legislation
-├── 📊 Vue d'ensemble (stats, tendances, dernières lois)
-├── 🏷️ Explorer par thématique (30 catégories visuelles)
-├── 📜 Toutes les lois (grille + filtres combinés)
-└── 🔍 Recherche avancée
+/legislation (Hub)
+├── 📊 Vue d'ensemble (stats clés, dernières lois promulguées)
+├── 🏷️ Explorer par thématique (30 catégories avec icônes/couleurs)
+└── 📜 Accès rapide vers /lois (liste complète avec filtres)
+
+/lois
+├── 📋 Liste paginée avec filtres (état, type, année, thématique)
+├── 🔍 Recherche textuelle
+└── 🏷️ Barre de filtres thématiques cliquables
+
+/lois/{loicod}
+├── 📜 Détail de la loi (titre, numéro, état, dates)
+├── 🔄 Timeline du parcours législatif AN ↔ Sénat
+├── 📝 Amendements par étape (nombre + adoptés)
+├── 🗳️ Scrutins AN liés (matching textuel automatique)
+└── 📚 Lois similaires par thématique
 ```
 
 **Tâches** :
-- [ ] Page hub `/legislation` avec 3 modes d'exploration
-- [ ] Fusionner `/tags` → redirection vers `/legislation?thematique=X`
-- [ ] Visualisation par thématique (cards avec icônes, couleurs, stats)
-- [ ] Filtres combinables (État + Année + Thématique)
-- [ ] Barre de recherche contextuelle
+- [x] Page hub `/legislation` avec stats et thématiques visuelles
+- [x] Redirection `/legislation/lois` → `/lois`
+- [x] Visualisation par thématique (cards avec icônes, couleurs, stats)
+- [x] Filtres combinables (État + Année + Thématique) sur `/lois`
+- [x] Liaison scrutins AN ↔ lois par matching textuel
+- [x] Affichage scrutins dans sidebar page détail
+- [ ] Barre de recherche globale (Phase 2.1.7)
 
 ---
 
@@ -450,6 +463,197 @@ Recherche "retraite"
 - Partenariat avec un éditeur accrédité
 - Demande d'accès institutionnel
 - Scraping Légifrance.gouv.fr (CGU à vérifier)
+
+---
+
+## 🧭 VISION UX : DEUX PARCOURS UTILISATEUR FONDAMENTAUX
+
+**Principe** : L'utilisateur citoyen a deux besoins fondamentaux que CivicDash doit servir parfaitement.
+
+### Parcours 1️⃣ : "Mes Représentants" (Bottom-up)
+> *"Qui me représente et que fait-il/elle ?"*
+
+```
+🏠 Ma Localisation (code postal / ville)
+    ↓
+👤 Mon Député / Mes Sénateurs
+    ├── 📊 Statistiques d'activité
+    │   ├── Présence aux scrutins
+    │   ├── Interventions en séance
+    │   └── Questions au gouvernement
+    │
+    ├── 🗳️ Votes sur les lois majeures
+    │   └── Position : Pour / Contre / Abstention
+    │       (sans détail amendements - trop technique)
+    │
+    ├── 👥 Groupe parlementaire
+    │   └── Cohésion du groupe sur les votes
+    │
+    ├── 📋 Déclarations HATVP
+    │   ├── Patrimoine
+    │   └── Intérêts
+    │
+    ├── 📞 Coordonnées
+    │   ├── Email, téléphone
+    │   └── Réseaux sociaux
+    │
+    └── 📖 Biographie (Wikipedia)
+```
+
+**Valeur** : Transparence sur *qui* me représente et *comment* cette personne vote.
+
+### Parcours 2️⃣ : "Suivre une Loi" (Top-down)
+> *"Que devient cette loi qui m'intéresse ?"*
+
+```
+🔍 Recherche / Thématique
+    ↓
+📜 Une Loi
+    ├── 📍 Parcours législatif (timeline visuelle)
+    │   ├── Dépôt → Commission → Séance → Navette → Promulgation
+    │   └── Durée totale du processus
+    │
+    ├── 📝 Amendements
+    │   ├── Combien déposés / adoptés
+    │   ├── Par qui (personne/groupe)
+    │   └── Qui s'oppose (groupes contre)
+    │
+    ├── 🗳️ Scrutins publics
+    │   ├── Résultat final
+    │   └── Répartition par groupe politique
+    │
+    ├── 📰 Publication JO
+    │   └── Lien Légifrance si promulguée
+    │
+    └── 🔔 Suivre cette loi (notifications)
+```
+
+**Valeur** : Comprendre le *processus* et *qui* influence le texte final.
+
+### Architecture UX Cible
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     🏛️ CivicDash                            │
+├─────────────────────────────────────────────────────────────┤
+│  🏠 Accueil                                                  │
+│  ├── 🔍 Recherche globale (députés, sénateurs, lois)        │
+│  ├── 📍 "Mes Représentants" (géolocalisation ou CP)         │
+│  └── 📰 Actualité parlementaire                             │
+├─────────────────────────────────────────────────────────────┤
+│  👥 PARLEMENTAIRES                                           │
+│  ├── /deputes          → Liste + recherche                  │
+│  ├── /deputes/{slug}   → Fiche complète                     │
+│  ├── /senateurs        → Liste + recherche                  │
+│  └── /senateurs/{slug} → Fiche complète                     │
+├─────────────────────────────────────────────────────────────┤
+│  📜 LÉGISLATION                                              │
+│  ├── /legislation      → Hub (recherche + thématiques)      │
+│  ├── /lois             → Liste avec filtres                 │
+│  └── /lois/{id}        → Parcours complet de la loi         │
+├─────────────────────────────────────────────────────────────┤
+│  📅 CALENDRIER                                               │
+│  └── /calendrier       → Séances, commissions, événements   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 2.1.10 : 👤 Refonte Fiches Parlementaires
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 2 semaines  
+**Statut** : 🔄 EN COURS (Décembre 2025)
+
+**User Stories** :
+- [ ] En tant que citoyen, je veux voir comment mon député vote sur les lois importantes
+- [ ] En tant que citoyen, je veux accéder facilement aux déclarations HATVP
+- [ ] En tant que citoyen, je veux contacter mon élu
+- [ ] En tant que citoyen, je veux voir la cohésion de son groupe politique
+
+**Fiche Député Complète** :
+```
+/deputes/{slug}
+├── 📸 Photo + Identité
+│   ├── Nom, prénom, âge
+│   ├── Circonscription
+│   └── Groupe politique (couleur)
+│
+├── 📊 Statistiques clés (cards)
+│   ├── Taux de présence aux scrutins (%)
+│   ├── Nombre d'interventions en séance
+│   ├── Questions au gouvernement
+│   └── Amendements déposés/adoptés
+│
+├── 🗳️ Votes récents (widget principal)
+│   ├── 10 derniers scrutins importants
+│   ├── Position : Pour/Contre/Abstention (badge couleur)
+│   ├── Lien vers la loi concernée
+│   └── Alignement avec le groupe (%)
+│
+├── 📋 Déclarations HATVP (accordéon)
+│   ├── Patrimoine résumé
+│   ├── Intérêts déclarés
+│   └── Rémunérations par année
+│
+├── 👥 Groupe Parlementaire (sidebar)
+│   ├── Nom + logo
+│   ├── Cohésion du groupe sur les votes (%)
+│   └── Autres membres du groupe
+│
+├── 📞 Coordonnées (footer ou sidebar)
+│   ├── Email officiel
+│   ├── Téléphone
+│   ├── Adresse permanence
+│   └── Réseaux sociaux
+│
+└── 📖 Biographie Wikipedia (optionnel)
+```
+
+**Fiche Sénateur Complète** :
+- [ ] Même structure que député
+- [ ] Adaptation spécifique Sénat (département vs circonscription)
+
+**Tâches Techniques** :
+- [ ] Refonte `ActeurController@show` avec données complètes
+- [ ] Nouveau composant `VotesRecentsWidget.vue`
+- [ ] Intégration HATVP dans la fiche (déjà importé)
+- [ ] Calcul taux de présence aux scrutins
+- [ ] Calcul cohésion groupe politique
+- [ ] Liens vers lois depuis les votes
+- [ ] Design responsive mobile-friendly
+
+---
+
+### 2.1.11 : 📍 Géolocalisation "Mes Représentants"
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 semaine
+
+**User Stories** :
+- [ ] En tant que citoyen, je saisis mon code postal et je vois mes représentants
+- [ ] En tant que citoyen, je peux utiliser la géolocalisation du navigateur
+
+**Fonctionnalités** :
+```
+🏠 Entrez votre code postal : [75001] [🔍]
+    ↓
+📍 Vous êtes dans :
+├── 🗳️ 1ère circonscription de Paris
+│   └── 👤 Député : Sylvain Maillard (Renaissance)
+│       → Voir sa fiche
+│
+├── 🏛️ Sénateurs de Paris (12)
+│   ├── 👤 Jean-Pierre Sueur (PS)
+│   ├── 👤 Catherine Dumas (LR)
+│   └── ... voir tous
+│
+└── 🗺️ Voir sur la carte
+```
+
+**Tâches** :
+- [ ] API géolocalisation code postal → circonscription
+- [ ] Utiliser table `codes_postaux` existante
+- [ ] Page `/mes-representants`
+- [ ] Widget sur page d'accueil
+- [ ] Géolocalisation navigateur (optionnelle)
 
 ---
 
@@ -744,16 +948,24 @@ Recherche "retraite"
 
 ## 🎯 PRIORITÉS IMMÉDIATES (Décembre 2025)
 
-### Cette semaine
+### ✅ Accompli cette semaine (23-29 décembre)
 1. ✅ Corriger migrations commissions/groupes
-2. [ ] Pousser et déployer corrections
-3. [ ] Vérifier imports HATVP sur serveur
-4. [ ] Documenter état actuel
+2. ✅ Refonte menu & navigation avec mega-menu
+3. ✅ Breadcrumbs + raccourcis clavier (Cmd+K, G+H, G+D, G+S, G+L)
+4. ✅ Refonte page d'accueil + dashboard utilisateur
+5. ✅ Calendrier législatif (AN + Sénat + Élysée)
+6. ✅ Dashboard admin avec gestion imports
+7. ✅ Cycle de vie des lois avec timeline visuelle
+8. ✅ Import Journal Officiel (DILA/data.gouv.fr)
+9. ✅ Système de tags thématiques (30 catégories Sénat)
+10. ✅ Hub législation unifié `/legislation`
+11. ✅ Liaison scrutins AN ↔ lois
 
-### Semaine prochaine
-1. [ ] Import Questions au Gouvernement
-2. [ ] Tests de non-régression
-3. [ ] Début refonte menu
+### Prochaines étapes
+1. [ ] Questions Écrites Sénat (import base SQL)
+2. [ ] Recherche globale Meilisearch multi-modèles
+3. [ ] Tests de non-régression
+4. [ ] Migration PHP 8.5 + FrankenPHP
 
 ---
 

@@ -107,6 +107,7 @@ class RepresentantANController extends Controller
     public function showDepute(string $uid): Response
     {
         $groupeService = app(GroupeParlementaireService::class);
+        $disciplineService = app(DisciplineGroupeService::class);
         
         $acteur = ActeurAN::with([
             'mandats' => function($query) {
@@ -117,11 +118,19 @@ class RepresentantANController extends Controller
         $groupeActuel = $acteur->groupe_politique_actuel;
         $commissionsActuelles = $acteur->commissions_actuelles->filter();
 
+        // Nombre total de scrutins dans la législature 17
+        $totalScrutinsL17 = \App\Models\ScrutinAN::where('legislature', 17)->count();
+        
         // Statistiques d'activité (L17)
+        $votesTotal = $acteur->votesIndividuels()
+            ->whereHas('scrutin', fn($q) => $q->where('legislature', 17))
+            ->count();
+            
         $stats = [
-            'votes_total' => $acteur->votesIndividuels()
-                ->whereHas('scrutin', fn($q) => $q->where('legislature', 17))
-                ->count(),
+            'votes_total' => $votesTotal,
+            'taux_presence' => $totalScrutinsL17 > 0 
+                ? round(($votesTotal / $totalScrutinsL17) * 100, 1) 
+                : 0,
             'amendements_total' => $acteur->amendementsAuteur()
                 ->where('legislature', 17)
                 ->count(),
@@ -129,6 +138,7 @@ class RepresentantANController extends Controller
                 ->where('legislature', 17)
                 ->adoptes()
                 ->count(),
+            'discipline_groupe' => $disciplineService->calculateDiscipline($acteur, 17),
         ];
 
         $stats['taux_adoption_amendements'] = $stats['amendements_total'] > 0
@@ -170,6 +180,33 @@ class RepresentantANController extends Controller
         } catch (\Exception $e) {
             // Table peut ne pas exister encore
         }
+
+        // Récupérer les 10 derniers votes avec les scrutins
+        $derniersVotes = VoteIndividuelAN::where('acteur_ref', $uid)
+            ->whereHas('scrutin', fn($q) => $q->where('legislature', 17))
+            ->with(['scrutin'])
+            ->orderByDesc(
+                \App\Models\ScrutinAN::select('date_scrutin')
+                    ->whereColumn('scrutins_an.uid', 'votes_individuels_an.scrutin_ref')
+                    ->limit(1)
+            )
+            ->limit(10)
+            ->get()
+            ->map(function($vote) {
+                $scrutin = $vote->scrutin;
+                return [
+                    'id' => $vote->id,
+                    'position' => $vote->position,
+                    'date' => $scrutin->date_scrutin?->format('d/m/Y'),
+                    'scrutin' => [
+                        'uid' => $scrutin->uid,
+                        'titre' => $scrutin->titre,
+                        'resultat' => $scrutin->resultat_libelle ?? ($scrutin->resultat_code ?? 'Non déterminé'),
+                        'pour' => $scrutin->pour,
+                        'contre' => $scrutin->contre,
+                    ],
+                ];
+            });
 
         return Inertia::render('Representants/Deputes/Show', [
             'depute' => [
@@ -223,6 +260,7 @@ class RepresentantANController extends Controller
                     'instagram' => $acteur->instagram_url,
                 ],
                 'adresses' => $acteur->adresses,
+                'derniers_votes' => $derniersVotes,
             ],
         ]);
     }
@@ -641,6 +679,9 @@ class RepresentantANController extends Controller
             'etudes',
         ])->findOrFail($matricule);
 
+        // Nombre total de scrutins au Sénat (approximatif pour taux de présence)
+        $totalScrutinsSenat = ScrutinSenat::count();
+        
         // Statistiques d'activité (comme pour les députés)
         $votesTotal = VoteSenat::where('senateur_matricule', $matricule)->count();
         $amendementsTotal = AmendementSenat::where('senateur_matricule', $matricule)->count();
@@ -648,6 +689,9 @@ class RepresentantANController extends Controller
 
         $stats = [
             'votes_total' => $votesTotal,
+            'taux_presence' => $totalScrutinsSenat > 0 
+                ? round(($votesTotal / $totalScrutinsSenat) * 100, 1) 
+                : 0,
             'amendements_total' => $amendementsTotal,
             'amendements_adoptes' => $amendementsAdoptes,
             'taux_adoption_amendements' => $amendementsTotal > 0
@@ -788,6 +832,27 @@ class RepresentantANController extends Controller
             // Table peut ne pas exister encore
         }
 
+        // Récupérer les 10 derniers votes du sénateur
+        $derniersVotes = VoteSenat::where('senateur_matricule', $matricule)
+            ->with('scrutin')
+            ->orderByDesc('date_vote')
+            ->limit(10)
+            ->get()
+            ->map(function($vote) {
+                return [
+                    'id' => $vote->id,
+                    'position' => $vote->position,
+                    'date' => $vote->date_vote?->format('d/m/Y'),
+                    'intitule' => $vote->intitule,
+                    'scrutin' => $vote->scrutin ? [
+                        'id' => $vote->scrutin->id,
+                        'resultat' => $vote->scrutin->resultat ?? 'Non déterminé',
+                        'pour' => $vote->scrutin->pour ?? 0,
+                        'contre' => $vote->scrutin->contre ?? 0,
+                    ] : null,
+                ];
+            });
+
         return Inertia::render('Representants/Senateurs/Show', [
             'senateur' => [
                 'matricule' => $senateur->matricule,
@@ -854,6 +919,7 @@ class RepresentantANController extends Controller
                 'statistiques' => $stats,
                 'declarations_hatvp' => $declarationsHatvp,
                 'hatvp_summary' => $hatvpSummary,
+                'derniers_votes' => $derniersVotes,
             ],
         ]);
     }
