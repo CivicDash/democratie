@@ -4,314 +4,353 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
+use App\Models\Loi;
+use App\Models\Maire;
 use App\Models\Senateur;
-use App\Models\ScrutinAN;
-use App\Models\DossierLegislatifAN;
-use App\Models\AmendementAN;
 use App\Models\Topic;
-use App\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
+/**
+ * Recherche globale intelligente avec suggestions contextuelles
+ */
 class GlobalSearchController extends Controller
 {
     /**
-     * Recherche globale unifiée
-     * 
-     * GET /api/search?q=climat&types[]=deputes&types[]=scrutins&tags[]=environnement
+     * Recherche rapide pour suggestions (autocomplete)
      */
-    public function search(Request $request): JsonResponse
+    public function suggestions(Request $request): JsonResponse
     {
-        $query = $request->input('q', '');
-        $types = $request->input('types', []); // Filtrer par types
-        $tags = $request->input('tags', []); // Filtrer par tags
-        $limit = min($request->input('limit', 5), 20); // Max 20 par type
-
-        if (strlen($query) < 2 && empty($tags)) {
-            return response()->json([
-                'query' => $query,
-                'results' => [],
-                'total' => 0,
-            ]);
+        $query = $request->input('q');
+        
+        if (!$query || strlen($query) < 2) {
+            return response()->json(['results' => []]);
         }
 
+        $query = trim($query);
         $results = [];
-        $total = 0;
+        $limit = 3; // Limite par catégorie
 
-        // 1. DÉPUTÉS
-        if (empty($types) || in_array('deputes', $types)) {
-            $deputes = ActeurAN::query()
-                ->where(function ($q) use ($query) {
-                    if (strlen($query) >= 2) {
-                        $q->where('nom', 'ILIKE', "%{$query}%")
-                            ->orWhere('prenom', 'ILIKE', "%{$query}%")
-                            ->orWhere('profession', 'ILIKE', "%{$query}%")
-                            ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
-                    }
-                })
-                // mandatActif est un accessor, pas une relation - on charge les mandats avec organe
-                ->with(['mandats' => function($q) {
-                    $q->where('type_organe', 'ASSEMBLEE')
-                      ->whereNull('date_fin')
-                      ->with('organe');
-                }])
-                ->limit($limit)
-                ->get()
-                ->map(function ($depute) {
-                    $mandatActif = $depute->mandats->first();
-                    return [
-                        'type' => 'depute',
-                        'id' => $depute->uid,
-                        'title' => $depute->prenom . ' ' . $depute->nom,
-                        'subtitle' => $mandatActif?->organe?->libelle ?? 'Député',
-                        'description' => $depute->profession,
-                        'url' => route('representants.deputes.show', $depute->uid),
-                        'image' => $depute->photo_wikipedia_url,
-                        'badge' => $depute->groupe_politique_actuel?->libelle_abrege,
-                    ];
-                });
+        // Recherche parallèle dans toutes les catégories
+        $results = array_merge(
+            $this->searchDeputes($query, $limit),
+            $this->searchSenateurs($query, $limit),
+            $this->searchLois($query, $limit),
+            $this->searchIdees($query, $limit),
+            $this->searchMaires($query, $limit),
+        );
 
-            $results['deputes'] = $deputes;
-            $total += $deputes->count();
-        }
+        // Trier par pertinence (score de matching)
+        usort($results, fn($a, $b) => $b['score'] <=> $a['score']);
 
-        // 2. SÉNATEURS
-        if (empty($types) || in_array('senateurs', $types)) {
-            $senateurs = Senateur::query()
-                ->where(function ($q) use ($query) {
-                    if (strlen($query) >= 2) {
-                        $q->where('nom_usuel', 'ILIKE', "%{$query}%")
-                            ->orWhere('prenom_usuel', 'ILIKE', "%{$query}%")
-                            ->orWhere('description_profession', 'ILIKE', "%{$query}%")
-                            ->orWhereRaw("CONCAT(prenom_usuel, ' ', nom_usuel) ILIKE ?", ["%{$query}%"]);
-                    }
-                })
-                ->actifs()
-                ->limit($limit)
-                ->get()
-                ->map(function ($senateur) {
-                    return [
-                        'type' => 'senateur',
-                        'id' => $senateur->matricule,
-                        'title' => $senateur->prenom_usuel . ' ' . $senateur->nom_usuel,
-                        'subtitle' => 'Sénateur · ' . ($senateur->circonscription ?? ''),
-                        'description' => $senateur->description_profession,
-                        'url' => route('representants.senateurs.show', $senateur->matricule),
-                        'badge' => $senateur->groupe_politique,
-                    ];
-                });
-
-            $results['senateurs'] = $senateurs;
-            $total += $senateurs->count();
-        }
-
-        // 3. SCRUTINS
-        if (empty($types) || in_array('scrutins', $types)) {
-            $scrutinsQuery = ScrutinAN::query()
-                ->where(function ($q) use ($query) {
-                    if (strlen($query) >= 2) {
-                        // Note: La colonne 'objet' n'existe pas dans scrutins_an, seulement 'titre'
-                        $q->where('titre', 'ILIKE', "%{$query}%");
-                    }
-                });
-
-            // Filtrer par tags
-            if (!empty($tags)) {
-                $scrutinsQuery->whereHas('tags', function ($q) use ($tags) {
-                    $q->whereIn('slug', $tags);
-                });
-            }
-
-            $scrutins = $scrutinsQuery
-                ->orderBy('date_scrutin', 'desc')
-                ->limit($limit)
-                ->get()
-                ->map(function ($scrutin) {
-                    return [
-                        'type' => 'scrutin',
-                        'id' => $scrutin->uid,
-                        'title' => 'Scrutin n°' . $scrutin->numero,
-                        'subtitle' => $scrutin->date_scrutin?->format('d/m/Y'),
-                        'description' => $scrutin->titre,
-                        'url' => route('legislation.scrutins.show', $scrutin->uid),
-                        'badge' => $scrutin->resultat_libelle,
-                        'tags' => $scrutin->tags->pluck('slug')->toArray(),
-                    ];
-                });
-
-            $results['scrutins'] = $scrutins;
-            $total += $scrutins->count();
-        }
-
-        // 4. DOSSIERS LÉGISLATIFS
-        if (empty($types) || in_array('dossiers', $types)) {
-            $dossiersQuery = DossierLegislatifAN::query()
-                ->where(function ($q) use ($query) {
-                    if (strlen($query) >= 2) {
-                        $q->where('titre', 'ILIKE', "%{$query}%")
-                            ->orWhere('titre_court', 'ILIKE', "%{$query}%");
-                    }
-                });
-
-            // Filtrer par tags
-            if (!empty($tags)) {
-                $dossiersQuery->whereHas('tags', function ($q) use ($tags) {
-                    $q->whereIn('slug', $tags);
-                });
-            }
-
-            $dossiers = $dossiersQuery
-                ->orderBy('created_at', 'desc')
-                ->limit($limit)
-                ->get()
-                ->map(function ($dossier) {
-                    return [
-                        'type' => 'dossier',
-                        'id' => $dossier->uid,
-                        'title' => $dossier->titre_court ?: $dossier->titre,
-                        'subtitle' => 'Législature ' . $dossier->legislature,
-                        'description' => $dossier->titre,
-                        'url' => route('legislation.dossiers.show', $dossier->uid),
-                        'tags' => $dossier->tags->pluck('slug')->toArray(),
-                    ];
-                });
-
-            $results['dossiers'] = $dossiers;
-            $total += $dossiers->count();
-        }
-
-        // 5. AMENDEMENTS
-        if (empty($types) || in_array('amendements', $types)) {
-            $amendements = AmendementAN::query()
-                ->where(function ($q) use ($query) {
-                    if (strlen($query) >= 2) {
-                        $q->where('numero_long', 'ILIKE', "%{$query}%")
-                            ->orWhere('dispositif', 'ILIKE', "%{$query}%")
-                            ->orWhere('expose', 'ILIKE', "%{$query}%");
-                    }
-                })
-                ->with(['auteur'])
-                ->orderBy('date_depot', 'desc')
-                ->limit($limit)
-                ->get()
-                ->map(function ($amendement) {
-                    return [
-                        'type' => 'amendement',
-                        'id' => $amendement->uid,
-                        'title' => 'Amendement ' . $amendement->numero_long,
-                        'subtitle' => $amendement->auteur ? ($amendement->auteur->prenom . ' ' . $amendement->auteur->nom) : 'Auteur inconnu',
-                        'description' => $amendement->dispositif ? (substr($amendement->dispositif, 0, 150) . '...') : '',
-                        'url' => route('legislation.amendements.show', $amendement->uid),
-                        'badge' => $amendement->etat_libelle,
-                    ];
-                });
-
-            $results['amendements'] = $amendements;
-            $total += $amendements->count();
-        }
-
-        // 6. TOPICS (DÉBATS CITOYENS)
-        if (empty($types) || in_array('topics', $types)) {
-            $topicsQuery = Topic::query()
-                ->where(function ($q) use ($query) {
-                    if (strlen($query) >= 2) {
-                        $q->where('title', 'ILIKE', "%{$query}%")
-                            ->orWhere('description', 'ILIKE', "%{$query}%");
-                    }
-                });
-
-            // Filtrer par tags
-            if (!empty($tags)) {
-                $topicsQuery->whereHas('tags', function ($q) use ($tags) {
-                    $q->whereIn('slug', $tags);
-                });
-            }
-
-            $topics = $topicsQuery
-                ->with('user')
-                ->orderBy('created_at', 'desc')
-                ->limit($limit)
-                ->get()
-                ->map(function ($topic) {
-                    return [
-                        'type' => 'topic',
-                        'id' => $topic->id,
-                        'title' => $topic->title,
-                        'subtitle' => 'Par ' . ($topic->user->name ?? 'Anonyme'),
-                        'description' => substr($topic->description, 0, 150) . '...',
-                        'url' => route('topics.show', $topic->id),
-                        'badge' => $topic->comments_count . ' commentaires',
-                        'tags' => $topic->tags->pluck('slug')->toArray(),
-                    ];
-                });
-
-            $results['topics'] = $topics;
-            $total += $topics->count();
-        }
+        // Limiter à 10 résultats max
+        $results = array_slice($results, 0, 10);
 
         return response()->json([
             'query' => $query,
-            'tags' => $tags,
             'results' => $results,
-            'total' => $total,
+            'categories' => $this->getCategoryCounts($query),
         ]);
     }
 
     /**
-     * Suggestions de recherche (autocomplete)
-     * 
-     * GET /api/search/suggestions?q=cli
+     * Recherche complète avec pagination
      */
-    public function suggestions(Request $request): JsonResponse
+    public function search(Request $request): JsonResponse
     {
-        $query = $request->input('q', '');
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:200'],
+            'category' => ['nullable', 'in:all,deputes,senateurs,lois,idees,maires'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
 
-        if (strlen($query) < 2) {
-            return response()->json(['suggestions' => []]);
+        $query = trim($validated['q']);
+        $category = $validated['category'] ?? 'all';
+        $limit = $validated['limit'] ?? 20;
+        $page = $validated['page'] ?? 1;
+
+        $results = [];
+
+        if ($category === 'all' || $category === 'deputes') {
+            $results['deputes'] = $this->searchDeputes($query, $category === 'all' ? 5 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'senateurs') {
+            $results['senateurs'] = $this->searchSenateurs($query, $category === 'all' ? 5 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'lois') {
+            $results['lois'] = $this->searchLois($query, $category === 'all' ? 5 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'idees') {
+            $results['idees'] = $this->searchIdees($query, $category === 'all' ? 5 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'maires') {
+            $results['maires'] = $this->searchMaires($query, $category === 'all' ? 5 : $limit, true);
         }
 
-        $suggestions = [];
+        return response()->json([
+            'success' => true,
+            'query' => $query,
+            'category' => $category,
+            'results' => $results,
+            'total' => array_sum(array_map(fn($r) => count($r), $results)),
+        ]);
+    }
 
-        // Députés populaires
-        $deputes = ActeurAN::where('nom', 'ILIKE', "%{$query}%")
-            ->orWhere('prenom', 'ILIKE', "%{$query}%")
-            ->limit(3)
-            ->get(['uid', 'nom', 'prenom'])
-            ->map(fn($d) => [
-                'text' => $d->prenom . ' ' . $d->nom,
+    // ========================================================================
+    // SEARCH METHODS
+    // ========================================================================
+
+    private function searchDeputes(string $query, int $limit, bool $detailed = false): array
+    {
+        $deputes = ActeurAN::deputes()
+            ->where(function ($q) use ($query) {
+                $q->where('nom', 'ilike', "%{$query}%")
+                  ->orWhere('prenom', 'ilike', "%{$query}%")
+                  ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
+            })
+            ->limit($limit)
+            ->get();
+
+        return $deputes->map(function ($d) use ($query, $detailed) {
+            $nomComplet = trim("{$d->prenom} {$d->nom}");
+            $score = $this->calculateScore($nomComplet, $query);
+            
+            $result = [
+                'id' => $d->uid,
                 'type' => 'depute',
+                'category' => 'Député',
+                'icon' => '🏛️',
+                'title' => $nomComplet,
+                'subtitle' => $d->groupe_politique_actuel?->libelle_abrege ?? 'Assemblée nationale',
                 'url' => route('representants.deputes.show', $d->uid),
-            ]);
+                'photo_url' => $d->photo_url,
+                'score' => $score,
+            ];
 
-        // Scrutins récents
-        $scrutins = ScrutinAN::where('titre', 'ILIKE', "%{$query}%")
-            ->orderBy('date_scrutin', 'desc')
-            ->limit(3)
-            ->get(['uid', 'numero', 'titre'])
-            ->map(fn($s) => [
-                'text' => 'Scrutin n°' . $s->numero . ' : ' . substr($s->titre, 0, 50),
-                'type' => 'scrutin',
-                'url' => route('legislation.scrutins.show', $s->uid),
-            ]);
+            if ($detailed) {
+                $result['groupe'] = $d->groupe_politique_actuel?->libelle ?? null;
+                $result['circonscription'] = $d->circonscriptions->first()?->libelle ?? null;
+            }
 
-        // Tags correspondants
-        $tags = Tag::where('name', 'ILIKE', "%{$query}%")
-            ->limit(3)
-            ->get(['slug', 'name'])
-            ->map(fn($t) => [
-                'text' => $t->name,
-                'type' => 'tag',
-                'slug' => $t->slug,
-            ]);
+            return $result;
+        })->toArray();
+    }
 
-        $suggestions = array_merge(
-            $deputes->toArray(),
-            $scrutins->toArray(),
-            $tags->toArray()
-        );
+    private function searchSenateurs(string $query, int $limit, bool $detailed = false): array
+    {
+        $senateurs = Senateur::actifs()
+            ->where(function ($q) use ($query) {
+                $q->where('nom_usuel', 'ilike', "%{$query}%")
+                  ->orWhere('prenom_usuel', 'ilike', "%{$query}%")
+                  ->orWhereRaw("CONCAT(prenom_usuel, ' ', nom_usuel) ILIKE ?", ["%{$query}%"])
+                  ->orWhere('circonscription', 'ilike', "%{$query}%");
+            })
+            ->limit($limit)
+            ->get();
 
-        return response()->json(['suggestions' => $suggestions]);
+        return $senateurs->map(function ($s) use ($query, $detailed) {
+            $nomComplet = trim("{$s->prenom_usuel} {$s->nom_usuel}");
+            $score = $this->calculateScore($nomComplet, $query);
+            
+            $result = [
+                'id' => $s->matricule,
+                'type' => 'senateur',
+                'category' => 'Sénateur',
+                'icon' => '🏰',
+                'title' => $nomComplet,
+                'subtitle' => $s->groupe_politique ?? $s->circonscription ?? 'Sénat',
+                'url' => route('representants.senateurs.show', $s->matricule),
+                'photo_url' => $s->photo_url,
+                'score' => $score,
+            ];
+
+            if ($detailed) {
+                $result['groupe'] = $s->groupe_politique;
+                $result['circonscription'] = $s->circonscription;
+            }
+
+            return $result;
+        })->toArray();
+    }
+
+    private function searchLois(string $query, int $limit, bool $detailed = false): array
+    {
+        $lois = Loi::with('etat')
+            ->where(function ($q) use ($query) {
+                $q->where('loitit', 'ilike', "%{$query}%")
+                  ->orWhere('loiint', 'ilike', "%{$query}%")
+                  ->orWhere('loinumjo', 'ilike', "%{$query}%");
+            })
+            ->orderByDesc('loidatjo')
+            ->limit($limit)
+            ->get();
+
+        return $lois->map(function ($l) use ($query, $detailed) {
+            $titre = $l->loitit ?: $l->loiint;
+            $score = $this->calculateScore($titre ?? '', $query);
+            
+            $etat = $l->etat?->etaloilib ?? 'En cours';
+            $etatIcon = match (trim($l->etaloicod ?? '')) {
+                '04' => '✅',
+                '03' => '❌',
+                '01' => '🔄',
+                '05' => '⏰',
+                default => '📜',
+            };
+            
+            $result = [
+                'id' => trim($l->loicod),
+                'type' => 'loi',
+                'category' => 'Loi',
+                'icon' => $etatIcon,
+                'title' => strlen($titre) > 80 ? substr($titre, 0, 80) . '...' : $titre,
+                'subtitle' => trim($etat),
+                'url' => route('lois.show', trim($l->loicod)),
+                'photo_url' => null,
+                'score' => $score,
+            ];
+
+            if ($detailed) {
+                $result['date'] = $l->loidatjo?->format('d/m/Y');
+                $result['numero'] = $l->loinumjo;
+            }
+
+            return $result;
+        })->toArray();
+    }
+
+    private function searchIdees(string $query, int $limit, bool $detailed = false): array
+    {
+        $topics = Topic::published()
+            ->where(function ($q) use ($query) {
+                $q->where('title', 'ilike', "%{$query}%")
+                  ->orWhere('description', 'ilike', "%{$query}%");
+            })
+            ->with('author:id,name')
+            ->orderByDesc('published_at')
+            ->limit($limit)
+            ->get();
+
+        $ideaIcons = [
+            'proposal' => '💡',
+            'question' => '❓',
+            'debate' => '💬',
+            'petition' => '📜',
+            'interpellation' => '📣',
+        ];
+
+        return $topics->map(function ($t) use ($query, $ideaIcons, $detailed) {
+            $score = $this->calculateScore($t->title, $query);
+            
+            $result = [
+                'id' => $t->id,
+                'type' => 'idee',
+                'category' => 'Idée citoyenne',
+                'icon' => $ideaIcons[$t->idea_type] ?? '💡',
+                'title' => strlen($t->title) > 60 ? substr($t->title, 0, 60) . '...' : $t->title,
+                'subtitle' => $t->author?->name ?? 'Citoyen',
+                'url' => route('participation.ideas.show', $t->slug ?: $t->id),
+                'photo_url' => null,
+                'score' => $score,
+            ];
+
+            if ($detailed) {
+                $result['votes'] = $t->votes_pour - $t->votes_contre;
+                $result['idea_type'] = $t->idea_type;
+            }
+
+            return $result;
+        })->toArray();
+    }
+
+    private function searchMaires(string $query, int $limit, bool $detailed = false): array
+    {
+        // Rechercher uniquement si le terme ressemble à un nom ou une commune
+        $maires = Maire::where(function ($q) use ($query) {
+                $q->where('nom', 'ilike', "%{$query}%")
+                  ->orWhere('prenom', 'ilike', "%{$query}%")
+                  ->orWhere('nom_commune', 'ilike', "%{$query}%")
+                  ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
+            })
+            ->limit($limit)
+            ->get();
+
+        return $maires->map(function ($m) use ($query, $detailed) {
+            $nomComplet = $m->nom_complet ?? trim("{$m->prenom} {$m->nom}");
+            $score = $this->calculateScore($nomComplet, $query);
+            // Boost si la commune match
+            if (stripos($m->nom_commune, $query) !== false) {
+                $score += 20;
+            }
+            
+            $result = [
+                'id' => $m->id,
+                'type' => 'maire',
+                'category' => 'Maire',
+                'icon' => '🏘️',
+                'title' => $nomComplet,
+                'subtitle' => $m->nom_commune ?? 'Maire',
+                'url' => "#", // Pas de page dédiée pour les maires
+                'photo_url' => $m->photo_url,
+                'score' => $score,
+            ];
+
+            if ($detailed) {
+                $result['commune'] = $m->nom_commune;
+                $result['departement'] = $m->nom_departement;
+            }
+
+            return $result;
+        })->toArray();
+    }
+
+    // ========================================================================
+    // HELPERS
+    // ========================================================================
+
+    private function calculateScore(string $text, string $query): int
+    {
+        $text = strtolower(trim($text));
+        $query = strtolower(trim($query));
+        
+        // Match exact au début = score max
+        if (str_starts_with($text, $query)) {
+            return 100;
+        }
+        
+        // Match exact quelque part
+        if (str_contains($text, $query)) {
+            return 80;
+        }
+        
+        // Match partiel (mots)
+        $words = explode(' ', $query);
+        $matchedWords = 0;
+        foreach ($words as $word) {
+            if (strlen($word) >= 2 && str_contains($text, $word)) {
+                $matchedWords++;
+            }
+        }
+        
+        if ($matchedWords > 0) {
+            return 50 + ($matchedWords * 10);
+        }
+        
+        return 30;
+    }
+
+    private function getCategoryCounts(string $query): array
+    {
+        // Retourne un comptage approximatif par catégorie
+        // En production, on pourrait utiliser des requêtes COUNT optimisées
+        return [
+            ['key' => 'deputes', 'label' => 'Députés', 'icon' => '🏛️'],
+            ['key' => 'senateurs', 'label' => 'Sénateurs', 'icon' => '🏰'],
+            ['key' => 'lois', 'label' => 'Lois', 'icon' => '📜'],
+            ['key' => 'idees', 'label' => 'Idées', 'icon' => '💡'],
+            ['key' => 'maires', 'label' => 'Maires', 'icon' => '🏘️'],
+        ];
     }
 }
-

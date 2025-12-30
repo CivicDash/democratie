@@ -13,6 +13,7 @@ import AppFooter from "@/Components/AppFooter.vue";
 import MegaMenuLink from "@/Components/MegaMenuLink.vue";
 import CommandPalette from "@/Components/CommandPalette.vue";
 import KeyboardShortcutsHelp from "@/Components/KeyboardShortcutsHelp.vue";
+import GlobalSearch from "@/Components/GlobalSearch.vue";
 import { Link, router } from "@inertiajs/vue3";
 
 const showingNavigationDropdown = ref(false);
@@ -389,30 +390,8 @@ onUnmounted(() => {
 
                         <!-- Right side: Search + Actions -->
                         <div class="hidden lg:flex lg:items-center lg:space-x-4">
-                            <!-- Search Bar Desktop -->
-                            <div class="relative">
-                                <form @submit.prevent="handleSearch" class="flex items-center">
-                                    <div class="relative">
-                                        <input
-                                            v-model="searchQuery"
-                                            type="text"
-                                            placeholder="Rechercher..."
-                                            class="w-48 xl:w-64 pl-10 pr-16 py-2 text-sm bg-gray-100 dark:bg-gray-700 border-0 rounded-full focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-all"
-                                        />
-                                        <div class="absolute inset-y-0 left-0 flex items-center pl-3">
-                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                            </svg>
-                                        </div>
-                                        <!-- Raccourci clavier -->
-                                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                            <kbd class="hidden xl:inline-flex items-center px-1.5 py-0.5 text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-200 dark:bg-gray-600 rounded border border-gray-300 dark:border-gray-500">
-                                                ⌘K
-                                            </kbd>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
+                            <!-- Search Bar Desktop avec suggestions -->
+                            <GlobalSearch placeholder="Rechercher élus, lois, idées..." />
                             
                             <!-- Dark Mode Toggle -->
                             <button
@@ -512,21 +491,10 @@ onUnmounted(() => {
                 
                 <!-- Mobile Search Bar (expandable) -->
                 <div v-if="showMobileSearch" class="lg:hidden border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
-                    <form @submit.prevent="handleSearch" class="flex gap-2">
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="Rechercher un député, scrutin, dossier..."
-                            class="flex-1 pl-4 pr-4 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100"
-                            autofocus
-                        />
-                        <button
-                            type="submit"
-                            class="px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium hover:bg-indigo-700"
-                        >
-                            🔍
-                        </button>
-                    </form>
+                    <GlobalSearch 
+                        placeholder="Rechercher élus, lois, idées..." 
+                        @close="showMobileSearch = false"
+                    />
                 </div>
 
                 <!-- Responsive Navigation Menu (Accordion Style) -->
