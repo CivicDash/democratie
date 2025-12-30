@@ -190,16 +190,28 @@ const searchRepresentants = () => {
                     Autres ressources
                 </h2>
                 
-                <div class="grid md:grid-cols-3 gap-6">
+                <div class="grid md:grid-cols-4 gap-6">
+                    <!-- Statistiques élus -->
+                    <Link 
+                        :href="route('parlement.statistiques')"
+                        class="group p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800 hover:shadow-lg transition-all"
+                    >
+                        <div class="text-3xl mb-3">📊</div>
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Statistiques des élus</h3>
+                        <p class="text-slate-600 dark:text-slate-400 text-sm">
+                            Parité, âge, professions des députés, sénateurs et maires.
+                        </p>
+                    </Link>
+                    
                     <!-- Calendrier -->
                     <Link 
                         :href="route('parlement.calendrier.index')"
                         class="group p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all"
                     >
                         <div class="text-3xl mb-3">📅</div>
-                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Calendrier parlementaire</h3>
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Calendrier</h3>
                         <p class="text-slate-600 dark:text-slate-400 text-sm">
-                            Séances, commissions et réunions des assemblées.
+                            Séances et commissions.
                         </p>
                     </Link>
                     
@@ -211,7 +223,7 @@ const searchRepresentants = () => {
                         <div class="text-3xl mb-3">🏛️</div>
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Groupes politiques</h3>
                         <p class="text-slate-600 dark:text-slate-400 text-sm">
-                            Composition et tendances des groupes parlementaires.
+                            Répartition politique.
                         </p>
                     </Link>
                     
@@ -221,9 +233,9 @@ const searchRepresentants = () => {
                         class="group p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all"
                     >
                         <div class="text-3xl mb-3">🏷️</div>
-                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Par thématique</h3>
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Thématiques</h3>
                         <p class="text-slate-600 dark:text-slate-400 text-sm">
-                            Environnement, santé, économie, sécurité...
+                            Santé, économie, environnement...
                         </p>
                     </Link>
                 </div>

@@ -376,11 +376,12 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
 Route::prefix('parlement')->name('parlement.')->group(function () {
     // Statistiques globales (Députés / Sénateurs / Maires) - Public
     Route::get('/statistiques', [ParlementController::class, 'comparaison'])->name('statistiques');
-    Route::redirect('/comparaison', '/parlement/statistiques'); // Redirection ancienne URL
+    // Garder l'ancienne route pour compatibilité
+    Route::get('/comparaison', [ParlementController::class, 'comparaison'])->name('comparaison');
 });
 
-// Alias pour accès rapide
-Route::get('/statistiques', [ParlementController::class, 'comparaison'])->name('statistiques.elus');
+// Alias pour accès rapide depuis la racine
+Route::get('/statistiques-elus', [ParlementController::class, 'comparaison'])->name('statistiques.elus');
 
 /*
 |--------------------------------------------------------------------------
