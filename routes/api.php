@@ -123,6 +123,9 @@ Route::prefix('v1')->name('v1.')->group(function () {
     });
 });
 
+// Recherche de lois - route publique
+Route::get('/lois/search', [\App\Http\Controllers\Api\LoiSearchController::class, 'search']);
+
 // Documents - routes publiques
 Route::get('/documents', [DocumentController::class, 'index']);
 Route::get('/documents/{document}', [DocumentController::class, 'show']);

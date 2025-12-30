@@ -27,14 +27,15 @@ const props = defineProps({
 // WIZARD STEPS
 // ============================================================================
 const currentStep = ref(1);
-const totalSteps = 5;
+const totalSteps = 6;
 
 const steps = [
     { id: 1, title: 'Type', icon: '💡', description: 'Quel type de contribution ?' },
     { id: 2, title: 'Contenu', icon: '✍️', description: 'Rédigez votre idée' },
     { id: 3, title: 'Échelle', icon: '🗺️', description: 'Portée géographique' },
     { id: 4, title: 'Thèmes', icon: '🏷️', description: 'Catégorisez votre idée' },
-    { id: 5, title: 'Élus', icon: '👤', description: 'Liez des élus (optionnel)' },
+    { id: 5, title: 'Loi liée', icon: '📜', description: 'Rattacher à une loi (optionnel)' },
+    { id: 6, title: 'Élus', icon: '👤', description: 'Liez des élus (optionnel)' },
 ];
 
 // ============================================================================
@@ -52,6 +53,56 @@ const form = useForm({
     elus: [],
     is_interpellation: false,
 });
+
+// ============================================================================
+// LOI SEARCH (STEP 5)
+// ============================================================================
+const loiSearch = ref('');
+const loiSearchResults = ref([]);
+const isSearchingLois = ref(false);
+const selectedLoi = ref(props.loiCod ? { code: props.loiCod, titre: props.loiTitre } : null);
+
+async function searchLois() {
+    if (loiSearch.value.length < 3) {
+        loiSearchResults.value = [];
+        return;
+    }
+    
+    isSearchingLois.value = true;
+    
+    try {
+        const response = await fetch(`/api/lois/search?q=${encodeURIComponent(loiSearch.value)}&limit=10`);
+        const data = await response.json();
+        
+        if (data.success) {
+            loiSearchResults.value = data.results;
+        }
+    } catch (error) {
+        console.error('Erreur recherche lois:', error);
+    } finally {
+        isSearchingLois.value = false;
+    }
+}
+
+const debouncedSearchLois = debounce(searchLois, 300);
+
+watch(loiSearch, () => {
+    if (loiSearch.value.length >= 3) {
+        debouncedSearchLois();
+    }
+});
+
+function selectLoi(loi) {
+    selectedLoi.value = loi;
+    form.loi_cod = loi.code;
+    loiSearch.value = '';
+    loiSearchResults.value = [];
+}
+
+function removeLoi() {
+    selectedLoi.value = null;
+    form.loi_cod = null;
+}
 
 // ============================================================================
 // IDEA TYPES
@@ -130,8 +181,9 @@ const canProceed = computed(() => {
         case 1: return !!form.idea_type;
         case 2: return form.title.length >= 10 && form.description.length >= 50;
         case 3: return !!form.scope;
-        case 4: return true;
-        case 5: return true;
+        case 4: return true; // Tags optionnels
+        case 5: return true; // Loi optionnelle
+        case 6: return true; // Élus optionnels
         default: return true;
     }
 });
@@ -235,16 +287,16 @@ watch(eluSearch, () => {
     }
 });
 
-// Load suggestions when entering step 5
+// Load suggestions when entering step 6 (élus)
 watch(currentStep, (newStep) => {
-    if (newStep === 5) {
+    if (newStep === 6) {
         searchElus();
     }
 });
 
 // When scope changes, reload suggestions
 watch([() => form.scope, () => form.region_id, () => form.department_id], () => {
-    if (currentStep.value === 5) {
+    if (currentStep.value === 6) {
         searchElus();
     }
 });
@@ -571,8 +623,113 @@ const breadcrumbs = [
                         </div>
                     </div>
 
-                    <!-- STEP 5: Élus -->
+                    <!-- STEP 5: Loi liée -->
                     <div v-if="currentStep === 5" class="space-y-6">
+                        <div class="text-center mb-8">
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                                📜 Rattacher à une loi (optionnel)
+                            </h2>
+                            <p class="text-gray-600 dark:text-gray-400">
+                                Liez votre idée à un projet ou une proposition de loi existante
+                            </p>
+                        </div>
+
+                        <!-- Loi sélectionnée -->
+                        <div v-if="selectedLoi" class="p-4 bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-700 rounded-xl">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-sky-700 dark:text-sky-400 mb-1">📜 Loi liée</p>
+                                    <h3 class="font-semibold text-gray-900 dark:text-white">{{ selectedLoi.titre }}</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                        Code : {{ selectedLoi.code }}
+                                        <span v-if="selectedLoi.etat" class="ml-2">· {{ selectedLoi.etat }}</span>
+                                    </p>
+                                </div>
+                                <button 
+                                    @click="removeLoi"
+                                    class="px-3 py-1 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition text-sm"
+                                >
+                                    ✕ Retirer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recherche de loi -->
+                        <div v-else>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                🔍 Rechercher une loi
+                            </label>
+                            <input
+                                v-model="loiSearch"
+                                type="text"
+                                placeholder="Tapez le nom ou le sujet d'une loi (min. 3 caractères)..."
+                                class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-emerald-500 focus:border-emerald-500"
+                            />
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Ex: "retraites", "immigration", "logement"...
+                            </p>
+
+                            <!-- Résultats de recherche -->
+                            <div v-if="loiSearchResults.length > 0" class="mt-4 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                                <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            📋 Résultats
+                                        </span>
+                                        <span class="text-xs text-gray-500">{{ loiSearchResults.length }} loi(s) trouvée(s)</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                                    <button
+                                        v-for="loi in loiSearchResults"
+                                        :key="loi.code"
+                                        @click="selectLoi(loi)"
+                                        class="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                                    >
+                                        <span class="text-2xl flex-shrink-0">📜</span>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-medium text-gray-900 dark:text-white line-clamp-2">
+                                                {{ loi.titre }}
+                                            </h4>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                                <span>{{ loi.code }}</span>
+                                                <span v-if="loi.etat" :class="{
+                                                    'text-emerald-600': loi.etat === 'promulgué',
+                                                    'text-amber-600': loi.etat === 'en cours',
+                                                    'text-gray-500': true
+                                                }">· {{ loi.etat }}</span>
+                                                <span v-if="loi.annee">· {{ loi.annee }}</span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Loading -->
+                            <div v-else-if="isSearchingLois" class="mt-4 text-center py-8 text-gray-500 dark:text-gray-400">
+                                <div class="text-3xl mb-2">⏳</div>
+                                <p>Recherche en cours...</p>
+                            </div>
+
+                            <!-- Empty state -->
+                            <div v-else-if="loiSearch.length >= 3" class="mt-4 text-center py-8 text-gray-500 dark:text-gray-400">
+                                <div class="text-3xl mb-2">🔍</div>
+                                <p>Aucune loi trouvée pour "{{ loiSearch }}"</p>
+                            </div>
+
+                            <!-- Instructions -->
+                            <div v-else class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    💡 <strong>Cette étape est optionnelle.</strong> Lier votre idée à une loi permet de contextualiser votre contribution 
+                                    et de la relier aux débats parlementaires en cours.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 6: Élus -->
+                    <div v-if="currentStep === 6" class="space-y-6">
                         <div class="text-center mb-8">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                 👤 Liez des élus (optionnel)
