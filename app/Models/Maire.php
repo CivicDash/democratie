@@ -66,6 +66,10 @@ class Maire extends Model
         'site_web',
         'adresse_mairie',
         'population_commune',
+        'nuance_politique',
+        'mandature',
+        'latitude',
+        'longitude',
     ];
 
     protected $casts = [
@@ -75,6 +79,8 @@ class Maire extends Model
         'fin_mandat' => 'date',
         'en_exercice' => 'boolean',
         'population_commune' => 'integer',
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     // ========================================================================
@@ -168,6 +174,45 @@ class Maire extends Model
         return $this->debut_mandat->diffInYears($fin);
     }
 
+    public function getNuanceLibelleAttribute(): ?string
+    {
+        if (!$this->nuance_politique) {
+            return null;
+        }
+
+        return match($this->nuance_politique) {
+            'LDVG' => 'Divers gauche',
+            'LDVD' => 'Divers droite',
+            'LDVC' => 'Divers centre',
+            'LSOC' => 'Socialiste',
+            'LLR' => 'Les Républicains',
+            'LREM' => 'Renaissance',
+            'LREC' => 'Reconquête',
+            'LRN' => 'Rassemblement National',
+            'LECO' => 'Écologiste',
+            'LCOM' => 'Communiste',
+            'LUDI' => 'UDI',
+            'LDIV' => 'Divers',
+            'LEXG' => 'Extrême gauche',
+            'LEXT' => 'Extrême droite',
+            'LMDM' => 'Modem',
+            'LFI' => 'La France Insoumise',
+            default => $this->nuance_politique,
+        };
+    }
+
+    public function getNuanceCouleurAttribute(): string
+    {
+        return match($this->nuance_politique) {
+            'LDVG', 'LSOC', 'LCOM', 'LFI', 'LEXG' => '#E11D48', // Rouge/Rose
+            'LDVD', 'LLR', 'LUDI' => '#3B82F6', // Bleu
+            'LDVC', 'LMDM', 'LREM' => '#F59E0B', // Orange/Jaune
+            'LECO' => '#22C55E', // Vert
+            'LRN', 'LREC', 'LEXT' => '#1E3A5F', // Bleu marine
+            default => '#6B7280', // Gris
+        };
+    }
+
     public function toApiArray(): array
     {
         return [
@@ -181,6 +226,8 @@ class Maire extends Model
                 'code' => $this->code_commune,
                 'nom' => $this->nom_commune,
                 'population' => $this->population_commune,
+                'latitude' => $this->latitude,
+                'longitude' => $this->longitude,
             ],
             'departement' => [
                 'code' => $this->code_departement,
@@ -196,6 +243,12 @@ class Maire extends Model
             'duree_mandat_annees' => $this->duree_mandat,
             'debut_mandat' => $this->debut_mandat?->format('Y-m-d'),
             'debut_fonction' => $this->debut_fonction?->format('Y-m-d'),
+            'mandature' => $this->mandature,
+            'nuance' => $this->nuance_politique ? [
+                'code' => $this->nuance_politique,
+                'libelle' => $this->nuance_libelle,
+                'couleur' => $this->nuance_couleur,
+            ] : null,
             'contact' => [
                 'email' => $this->email,
                 'telephone' => $this->telephone,

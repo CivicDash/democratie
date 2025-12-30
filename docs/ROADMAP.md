@@ -112,6 +112,12 @@
   - Place dans l'hémicycle
   - Suppléant
   - Commande : `import:circonscriptions-an`
+- [x] **Maires enrichis** - Données data.gouv.fr avec :
+  - Nuance politique (LDVD, LLR, LSOC, etc.)
+  - Téléphone et site web de la mairie
+  - Coordonnées GPS
+  - Mandature (2020-2026)
+  - Commande : `import:maires-datagouv`
 - [ ] **Questions Écrites** (Sénat) - Import base SQL externe
 - [ ] **Textes Akoma Ntoso** (Sénat) - Documents législatifs
 - [ ] Proportion hommes/femmes (statistiques)

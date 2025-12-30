@@ -130,7 +130,8 @@ class AdminController extends Controller
             
             // === AUTRES ===
             ['name' => 'import:deputes', 'label' => 'Députés (CSV)', 'description' => 'Import depuis CSV local', 'icon' => '👤', 'category' => 'autres', 'dangerous' => false],
-            ['name' => 'import:maires', 'label' => 'Maires', 'description' => 'Import depuis CSV local', 'icon' => '🏘️', 'category' => 'autres', 'dangerous' => false],
+            ['name' => 'import:maires', 'label' => 'Maires (CSV)', 'description' => 'Import depuis CSV local', 'icon' => '🏘️', 'category' => 'autres', 'dangerous' => false],
+            ['name' => 'import:maires-datagouv', 'label' => 'Maires (data.gouv)', 'description' => 'Enrichir avec nuance, contact, GPS', 'icon' => '🏛️', 'category' => 'autres', 'dangerous' => false],
             ['name' => 'import:organes-parlementaires', 'label' => 'Organes parlementaires', 'description' => 'Groupes, commissions, membres', 'icon' => '🏛️', 'category' => 'autres', 'dangerous' => false],
             ['name' => 'import:akoma-ntoso', 'label' => 'Textes Akoma Ntoso', 'description' => 'Format législatif Sénat', 'icon' => '📜', 'category' => 'autres', 'dangerous' => false],
             
@@ -183,7 +184,7 @@ class AdminController extends Controller
             'enrich:deputes', 'enrich:deputes-votes', 'enrich:senateurs', 'enrich:senateurs-votes',
             'enrich:amendements', 'import:deputes-wikipedia', 'enrich:senateurs-wikipedia',
             // Autres
-            'import:deputes', 'import:maires', 'import:organes-parlementaires', 'import:akoma-ntoso',
+            'import:deputes', 'import:maires', 'import:maires-datagouv', 'import:organes-parlementaires', 'import:akoma-ntoso',
             // Système
             'dashboard:calculate-stats', 'calculate:parlementaires-stats', 'calculate:lois-stats', 'cache:clear', 'optimize:clear',
         ];
