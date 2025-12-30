@@ -51,6 +51,20 @@
 - [x] **Tableaux accordéon** : Mandats, commissions
 - [x] **Comparateur** : AN vs Sénat
 
+### 🎨 Design System (Décembre 2025)
+- [x] **Hero banners unifiés** : Gradient coloré + stats + breadcrumb light
+  - Députés : gradient blue/indigo
+  - Sénateurs : gradient rose/pink  
+  - Lois : gradient slate/indigo
+  - Idées citoyennes : gradient emerald/teal
+- [x] **Breadcrumb component** : Prop `variant="light"` pour fonds sombres
+- [x] **Filtres mobile** : Dropdown accordéon avec compteur
+- [x] **Recherche globale** : Suggestions temps réel multi-sources
+  - Composant `GlobalSearch.vue`
+  - API `/api/search/suggestions`
+  - Photos élus, icônes catégories
+  - Navigation clavier + raccourci ⌘K
+
 ### 🔧 Infrastructure
 - [x] **Docker** : Environnement containerisé
 - [x] **PostgreSQL** : Base de données avec vues SQL
@@ -418,13 +432,14 @@ services:
 
 ### 2.1.7 : 🔍 Recherche Globale Intelligente
 **Priorité** : 🔴 CRITIQUE  
-**Durée** : 1-2 semaines
+**Durée** : 1-2 semaines  
+**Statut** : 🔄 EN COURS (Décembre 2025)
 
 **Objectif** : Un seul champ de recherche qui trouve tout, avec résultats groupés par type.
 
 **User Stories** :
-- [ ] En tant que citoyen, je tape "retraite" et je vois lois, députés, scrutins, discussions
-- [ ] En tant que citoyen, je veux des suggestions pendant la frappe
+- [x] En tant que citoyen, je tape "retraite" et je vois lois, députés, scrutins, discussions
+- [x] En tant que citoyen, je veux des suggestions pendant la frappe
 - [ ] En tant que citoyen, je veux filtrer par type après la recherche
 
 **Fonctionnalités** :
@@ -437,13 +452,28 @@ Recherche "retraite"
 └── 💬 Discussions (15)
 ```
 
-**Technique** : Meilisearch (déjà installé)
-- [ ] Index multi-modèles (Loi, ActeurAN, Senateur, ScrutinAN, Topic, TexteJO)
-- [ ] Recherche < 50ms
+**Phase 1 - Suggestions temps réel (✅ Terminé 30/12/2025)** :
+- [x] Composant `GlobalSearch.vue` avec dropdown suggestions
+- [x] API `/api/search/suggestions` multi-sources
+- [x] Recherche Députés (nom, prénom, groupe)
+- [x] Recherche Sénateurs (nom, prénom, circonscription)
+- [x] Recherche Lois (titre, numéro)
+- [x] Recherche Idées citoyennes (titre, description)
+- [x] Recherche Maires (nom, commune)
+- [x] Photos des élus dans les suggestions
+- [x] Navigation clavier (↑↓ Enter Escape)
+- [x] Raccourci global ⌘K / Ctrl+K
+- [x] Scoring de pertinence pour tri
+- [x] Résultats groupés par catégorie avec icônes
+- [x] Intégration header desktop + mobile
+
+**Phase 2 - Meilisearch (À faire)** :
+- [ ] Driver Meilisearch activé (actuellement collection/DB)
+- [ ] Index multi-modèles (Loi, ActeurAN, Senateur, ScrutinAN, Topic)
 - [ ] Typo-tolerant ("retrait" → "retraite")
 - [ ] Highlighting des résultats
 - [ ] Facettes par type de contenu
-- [ ] Suggestions autocomplete
+- [ ] Recherche < 50ms sur gros volumes
 
 ---
 
@@ -480,7 +510,8 @@ Recherche "retraite"
 - [x] Filtres combinables (État + Année + Thématique) sur `/lois`
 - [x] Liaison scrutins AN ↔ lois par matching textuel
 - [x] Affichage scrutins dans sidebar page détail
-- [ ] Barre de recherche globale (Phase 2.1.7)
+- [x] Hero banner page `/lois` (gradient slate/indigo, stats, filtres sidebar)
+- [x] Barre de recherche globale avec suggestions (Phase 2.1.7)
 
 ---
 
@@ -873,16 +904,28 @@ ALTER TABLE topics ADD COLUMN score INT DEFAULT 0;
 - [x] Controller `ParticipationController` (hub, index, create, store, vote)
 - [x] Page `/participation` - Hub participation citoyenne
 - [x] Page `/participation/idees` - Liste avec filtres avancés
-- [x] Page `/participation/idees/nouvelle` - Wizard 5 étapes
+- [x] Page `/participation/idees/nouvelle` - Wizard 6 étapes
 - [x] Routes web participation
-- [x] Composant `CreateIdea.vue` (wizard 5 étapes)
+- [x] Composant `CreateIdea.vue` (wizard 6 étapes avec loi liée)
 - [x] Composant `Ideas/Index.vue` (liste + filtres + tri)
 - [x] Composant `Hub.vue` (page d'accueil participation)
 
-**Tâches Phase 2 (À faire)** :
-- [ ] Page `/participation/idees/{id}` (détail + débat + élus)
+**Tâches Phase 2 (🔄 En cours - Décembre 2025)** :
+- [x] Page `/participation/idees/{id}` (détail + débat + élus)
+- [x] Composant `Ideas/Show.vue` avec :
+  - Hero banner dynamique selon type d'idée
+  - Widget de vote Pour/Contre avec barres visuelles
+  - Affichage élus concernés avec statut interpellation
+  - Loi liée avec lien direct
+  - Commentaires (posts) paginés
+  - Idées similaires en sidebar
+- [x] Wizard étape 6 : Rattacher à une loi existante (recherche API)
+- [x] API `/api/lois/search` pour recherche lois
+- [x] Géo-suggestion élus selon scope (API `/api/legislation/elus/suggest`)
+- [x] Recherche élus par département/région basée sur la portée géographique
+- [x] Mise à jour contraintes CHECK PostgreSQL (scope, status, type)
+- [x] Design full-width + filtres mobile redesignés
 - [ ] Suggestions IA pour tags (basé sur titre/description)
-- [ ] Géo-suggestion élus selon scope (recherche live)
 - [ ] Interpellation : notification à l'élu (email)
 - [ ] Réponses d'élus (interface dédiée)
 - [ ] Modération admin améliorée
