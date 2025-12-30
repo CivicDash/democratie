@@ -63,29 +63,32 @@ class RepresentantController extends Controller
                     'is_simulated' => true,
                 ];
 
-                // Député de la circonscription - TODO: implémenter avec ActeurAN
-                // Note: La table deputes_senateurs n'existe plus en production
-                $data['depute'] = null;
+                // Député de la circonscription
+                // Format: 75-01 => département 75, circonscription 01
+                $data['depute'] = $this->findDeputeByCirconscription($postalData->circonscription, $groupeService);
 
                 // Sénateurs du département (via modèle Senateur)
                 $senateurs = Senateur::actifs()
-                    ->where('departement_code', $deptCode)
+                    ->where(function($q) use ($deptCode, $postalData) {
+                        $q->where('departement_code', $deptCode)
+                          ->orWhere('circonscription', 'ILIKE', '%' . $postalData->department_name . '%');
+                    })
                     ->get();
 
                 $data['senateurs'] = $senateurs->map(function($senateur) use ($groupeService) {
                     return [
                         'id' => $senateur->matricule,
-                        'nom_complet' => $senateur->prenom . ' ' . $senateur->nom,
+                        'nom_complet' => trim($senateur->prenom_usuel . ' ' . $senateur->nom_usuel),
                         'photo_url' => $senateur->photo_url,
-                        'profession' => $senateur->profession,
+                        'profession' => $senateur->description_profession,
+                        'circonscription' => $senateur->circonscription,
                         'groupe' => $senateur->groupe_politique ? [
                             'sigle' => $senateur->groupe_politique,
                             'nom' => $senateur->groupe_politique,
                             'couleur' => $groupeService->getCouleurGroupe($senateur->groupe_politique),
                         ] : null,
-                        'nb_propositions' => 0,
-                        'nb_amendements' => 0,
-                        'taux_presence' => 0,
+                        'nb_amendements' => \App\Models\AmendementSenat::where('senateur_matricule', $senateur->matricule)->count(),
+                        'nb_votes' => \App\Models\VoteSenat::where('senateur_matricule', $senateur->matricule)->count(),
                         'url_profil' => route('representants.senateurs.show', $senateur->matricule),
                     ];
                 })->toArray();
@@ -101,29 +104,31 @@ class RepresentantController extends Controller
                 'department' => $profile->department?->name,
             ];
 
-            // Député de la circonscription - TODO: implémenter avec ActeurAN
-            // Note: La table deputes_senateurs n'existe plus en production
-            $data['depute'] = null;
+            // Député de la circonscription
+            $data['depute'] = $this->findDeputeByCirconscription($profile->circonscription, $groupeService);
 
             // Sénateurs du département (via modèle Senateur)
             $senateurs = Senateur::actifs()
-                ->where('departement_code', $deptCode)
+                ->where(function($q) use ($deptCode, $profile) {
+                    $q->where('departement_code', $deptCode)
+                      ->orWhere('circonscription', 'ILIKE', '%' . ($profile->department?->name ?? '') . '%');
+                })
                 ->get();
 
             $data['senateurs'] = $senateurs->map(function($senateur) use ($groupeService) {
                 return [
                     'id' => $senateur->matricule,
-                    'nom_complet' => $senateur->prenom . ' ' . $senateur->nom,
+                    'nom_complet' => trim($senateur->prenom_usuel . ' ' . $senateur->nom_usuel),
                     'photo_url' => $senateur->photo_url,
-                    'profession' => $senateur->profession,
+                    'profession' => $senateur->description_profession,
+                    'circonscription' => $senateur->circonscription,
                     'groupe' => $senateur->groupe_politique ? [
                         'sigle' => $senateur->groupe_politique,
                         'nom' => $senateur->groupe_politique,
                         'couleur' => $groupeService->getCouleurGroupe($senateur->groupe_politique),
                     ] : null,
-                    'nb_propositions' => 0,
-                    'nb_amendements' => 0,
-                    'taux_presence' => 0,
+                    'nb_amendements' => \App\Models\AmendementSenat::where('senateur_matricule', $senateur->matricule)->count(),
+                    'nb_votes' => \App\Models\VoteSenat::where('senateur_matricule', $senateur->matricule)->count(),
                     'url_profil' => route('representants.senateurs.show', $senateur->matricule),
                 ];
             })->toArray();
@@ -269,6 +274,90 @@ class RepresentantController extends Controller
                 'url_profil' => $depute->url_profil,
             ],
         ]);
+    }
+
+    /**
+     * Trouver le député d'une circonscription
+     * Format circonscription: "75-01" (département-numéro)
+     */
+    private function findDeputeByCirconscription(?string $circonscription, GroupeParlementaireService $groupeService): ?array
+    {
+        if (!$circonscription) {
+            return null;
+        }
+
+        // Parser la circonscription: "75-01" => département 75, numéro 01
+        $parts = explode('-', $circonscription);
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        $deptCode = $parts[0];
+        $numCirco = intval($parts[1]);
+
+        // Récupérer le nom du département
+        $postalCode = \App\Models\FrenchPostalCode::where('postal_code', 'LIKE', $deptCode . '%')->first();
+        $deptName = $postalCode->department_name ?? '';
+
+        // Construire le pattern de recherche pour le libellé de circonscription
+        // Ex: "1ère circonscription de Paris" ou "2ème circonscription de Paris"
+        if ($numCirco === 1) {
+            $ordinal = '1%re';
+        } else {
+            $ordinal = $numCirco . '%me';
+        }
+
+        // Chercher l'organe CIRCONSCRIPTION correspondant
+        $circoOrgane = \App\Models\OrganeAN::where('code_type', 'CIRCONSCRIPTION')
+            ->where('libelle', 'ILIKE', '%' . $deptName . '%')
+            ->where('libelle', 'LIKE', $ordinal . '%circonscription%')
+            ->first();
+
+        if (!$circoOrgane) {
+            // Fallback: message informatif
+            return [
+                'not_found' => true,
+                'message' => "Député de la {$numCirco}" . ($numCirco === 1 ? 'ère' : 'ème') . " circonscription de {$deptName}",
+                'circonscription' => $circonscription,
+            ];
+        }
+
+        // Chercher le mandat actif pour cette circonscription
+        $mandat = \App\Models\MandatAN::where('organe_ref', $circoOrgane->uid)
+            ->whereNull('date_fin')
+            ->first();
+
+        if (!$mandat) {
+            return [
+                'not_found' => true,
+                'message' => "Député de la {$numCirco}" . ($numCirco === 1 ? 'ère' : 'ème') . " circonscription de {$deptName}",
+                'circonscription' => $circonscription,
+            ];
+        }
+
+        // Récupérer l'acteur
+        $acteur = \App\Models\ActeurAN::find($mandat->acteur_ref);
+        if (!$acteur) {
+            return null;
+        }
+
+        $groupeActuel = $acteur->groupe_politique_actuel;
+
+        return [
+            'id' => $acteur->uid,
+            'nom_complet' => $acteur->nom_complet,
+            'photo_url' => $acteur->photo_url,
+            'profession' => $acteur->profession,
+            'circonscription' => $circoOrgane->libelle,
+            'groupe' => $groupeActuel ? [
+                'sigle' => $groupeActuel->libelle_abrege,
+                'nom' => $groupeActuel->libelle,
+                'couleur' => $groupeService->getCouleurGroupe($groupeActuel->libelle_abrege),
+            ] : null,
+            'nb_amendements' => $acteur->amendementsAuteur()->where('legislature', 17)->count(),
+            'nb_votes' => $acteur->votesIndividuels()->whereHas('scrutin', fn($q) => $q->where('legislature', 17))->count(),
+            'url_profil' => route('representants.deputes.show', $acteur->uid),
+        ];
     }
 
     /* ========================================

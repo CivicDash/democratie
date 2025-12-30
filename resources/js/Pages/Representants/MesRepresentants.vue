@@ -252,12 +252,12 @@ const selectLocation = (location) => {
           </Card>
 
           <!-- Mon Député -->
-          <Card v-if="depute">
+          <Card v-if="depute && !depute.not_found">
             <div class="border-l-4 border-blue-600 pl-4 mb-6">
               <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 🗳️ Mon Député
               </h2>
-              <p class="text-gray-600 dark:text-gray-400">Assemblée Nationale</p>
+              <p class="text-gray-600 dark:text-gray-400">{{ depute.circonscription || 'Assemblée Nationale' }}</p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-6">
@@ -279,12 +279,13 @@ const selectLocation = (location) => {
                     {{ depute.nom_complet }}
                   </h3>
                   <Badge
+                    v-if="depute.groupe"
                     :style="{ backgroundColor: depute.groupe.couleur, color: '#fff' }"
                     class="mb-2"
                   >
                     {{ depute.groupe.sigle }}
                   </Badge>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">
+                  <p v-if="depute.groupe" class="text-sm text-gray-600 dark:text-gray-400">
                     {{ depute.groupe.nom }}
                   </p>
                 </div>
@@ -294,59 +295,59 @@ const selectLocation = (location) => {
               <div class="md:col-span-2">
                 <div class="grid grid-cols-2 gap-4 mb-6">
                   <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                    <div class="text-3xl font-bold text-blue-600">{{ depute.nb_propositions }}</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">Propositions de loi</div>
+                    <div class="text-3xl font-bold text-blue-600">{{ depute.nb_votes || 0 }}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Votes (L17)</div>
                   </div>
                   <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                    <div class="text-3xl font-bold text-green-600">{{ depute.nb_amendements }}</div>
+                    <div class="text-3xl font-bold text-green-600">{{ depute.nb_amendements || 0 }}</div>
                     <div class="text-sm text-gray-600 dark:text-gray-400">Amendements</div>
-                  </div>
-                  <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                    <div class="text-3xl font-bold text-purple-600">{{ depute.taux_presence }}%</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">Taux de présence</div>
-                  </div>
-                  <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                    <div class="text-2xl font-bold text-orange-600">{{ depute.circonscription }}</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">Circonscription</div>
                   </div>
                 </div>
 
-                <div class="space-y-3">
-                  <div v-if="depute.profession" class="flex items-center text-gray-700 dark:text-gray-300">
-                    <span class="text-xl mr-2">💼</span>
-                    <span>{{ depute.profession }}</span>
-                  </div>
-                  
-                  <div class="flex gap-3">
-                    <Link
-                      :href="route('representants.deputes.show', depute.id)"
-                      class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                      📊 Voir la fiche complète
-                    </Link>
-                    <a
-                      v-if="depute.url_profil"
-                      :href="depute.url_profil"
-                      target="_blank"
-                      class="flex-1 text-center px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-                    >
-                      🔗 Site officiel
-                    </a>
-                  </div>
-                </div>
+                <Link
+                  :href="depute.url_profil"
+                  class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
+                >
+                  👤 Voir la fiche complète
+                </Link>
               </div>
             </div>
           </Card>
 
-          <!-- Pas de député trouvé -->
+          <!-- Député non trouvé mais circonscription connue -->
+          <Card v-else-if="depute && depute.not_found">
+            <div class="border-l-4 border-amber-500 pl-4 mb-4">
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                🗳️ Mon Député
+              </h2>
+              <p class="text-gray-600 dark:text-gray-400">{{ depute.message }}</p>
+            </div>
+            <div class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
+              <p class="text-amber-800 dark:text-amber-200">
+                ⚠️ Les données de liaison député-circonscription sont en cours de mise à jour.
+                <br/>
+                <Link :href="route('representants.deputes.index')" class="underline hover:no-underline">
+                  Voir tous les députés →
+                </Link>
+              </p>
+            </div>
+          </Card>
+
+          <!-- Pas de député trouvé du tout -->
           <Card v-else>
-            <div class="text-center py-8">
-              <div class="text-4xl mb-3">🔍</div>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Aucun député trouvé
-              </h3>
+            <div class="border-l-4 border-gray-300 pl-4 mb-4">
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                🗳️ Mon Député
+              </h2>
+              <p class="text-gray-600 dark:text-gray-400">Assemblée Nationale</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
               <p class="text-gray-600 dark:text-gray-400">
-                Nous n'avons pas trouvé de député pour votre circonscription.
+                Données de circonscription non disponibles pour cette localisation.
+                <br/>
+                <Link :href="route('representants.deputes.index')" class="text-blue-600 hover:underline">
+                  Voir tous les députés →
+                </Link>
               </p>
             </div>
           </Card>
@@ -393,23 +394,19 @@ const selectLocation = (location) => {
                       {{ senateur.profession }}
                     </p>
                     
-                    <div class="grid grid-cols-3 gap-2 text-xs mb-3">
+                    <div class="grid grid-cols-2 gap-2 text-xs mb-3">
                       <div class="text-center">
-                        <div class="font-bold text-blue-600">{{ senateur.nb_propositions }}</div>
-                        <div class="text-gray-500">Prop.</div>
+                        <div class="font-bold text-blue-600">{{ senateur.nb_votes || 0 }}</div>
+                        <div class="text-gray-500">Votes</div>
                       </div>
                       <div class="text-center">
-                        <div class="font-bold text-green-600">{{ senateur.nb_amendements }}</div>
+                        <div class="font-bold text-green-600">{{ senateur.nb_amendements || 0 }}</div>
                         <div class="text-gray-500">Amend.</div>
-                      </div>
-                      <div class="text-center">
-                        <div class="font-bold text-purple-600">{{ senateur.taux_presence }}%</div>
-                        <div class="text-gray-500">Présence</div>
                       </div>
                     </div>
 
                     <Link
-                      :href="route('representants.senateurs.show', senateur.id)"
+                      :href="senateur.url_profil"
                       class="block text-center px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
                     >
                       Voir la fiche
