@@ -5,17 +5,19 @@ namespace App\Console\Commands;
 use App\Models\Maire;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class ImportMairesFromDataGouv extends Command
 {
     protected $signature = 'import:maires-datagouv 
                             {--fresh : Vider la table des maires avant l\'import}
-                            {--update-only : Mettre à jour uniquement les maires existants}
                             {--limit= : Limiter le nombre d\'imports (pour test)}';
 
-    protected $description = 'Importe/enrichit les maires depuis l\'API data.gouv.fr (données actualisées avec nuance, contact, etc.)';
+    protected $description = 'Importe les maires depuis data.gouv.fr (Répertoire National des Élus)';
 
-    private const API_URL = 'https://www.data.gouv.fr/api/1/datasets/r/24a4233d-75a4-44f9-9c15-da09731bb509';
+    // Fichier officiel RNE - Maires
+    private const API_URL = 'https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503';
 
     private int $created = 0;
     private int $updated = 0;
@@ -24,7 +26,7 @@ class ImportMairesFromDataGouv extends Command
 
     public function handle(): int
     {
-        $this->info('🏛️ Import des maires depuis data.gouv.fr...');
+        $this->info('🏛️ Import des maires depuis data.gouv.fr (RNE)...');
         $this->info('📡 URL: ' . self::API_URL);
         $this->newLine();
 
@@ -33,30 +35,27 @@ class ImportMairesFromDataGouv extends Command
             Maire::truncate();
         }
 
-        $updateOnly = $this->option('update-only');
-        if ($updateOnly) {
-            $this->info('📊 Mode --update-only : enrichissement des maires existants uniquement');
-        }
-
         // Télécharger les données
-        $this->info('📥 Téléchargement des données...');
+        $this->info('📥 Téléchargement du fichier CSV (peut prendre quelques secondes)...');
         
         try {
-            $response = Http::timeout(120)->get(self::API_URL);
+            $response = Http::timeout(300)->get(self::API_URL);
             
             if (!$response->successful()) {
                 $this->error("❌ Erreur HTTP: {$response->status()}");
                 return self::FAILURE;
             }
 
-            $data = $response->json();
+            $csvContent = $response->body();
+            $lines = explode("\n", $csvContent);
             
-            if (!is_array($data)) {
-                $this->error('❌ Format de données invalide (attendu: tableau JSON)');
-                return self::FAILURE;
-            }
-
-            $this->info("✅ " . count($data) . " maires reçus");
+            // Retirer l'en-tête
+            $header = str_getcsv(array_shift($lines), ';');
+            
+            // Filtrer les lignes vides
+            $lines = array_filter($lines, fn($line) => trim($line) !== '');
+            
+            $this->info("✅ " . count($lines) . " maires trouvés dans le fichier");
 
         } catch (\Exception $e) {
             $this->error("❌ Erreur de téléchargement: {$e->getMessage()}");
@@ -64,21 +63,42 @@ class ImportMairesFromDataGouv extends Command
         }
 
         $limit = $this->option('limit');
-        $total = $limit ? min((int) $limit, count($data)) : count($data);
+        $total = $limit ? min((int) $limit, count($lines)) : count($lines);
         
         if ($limit) {
             $this->warn("⚠️  Mode TEST : limité à {$limit} maires");
-            $data = array_slice($data, 0, (int) $limit);
+            $lines = array_slice($lines, 0, (int) $limit);
         }
 
         $this->newLine();
         $this->info("📊 Traitement de {$total} maires...");
         $bar = $this->output->createProgressBar($total);
+        $bar->setFormat('verbose');
         $bar->start();
 
-        foreach ($data as $item) {
+        $batch = [];
+        $batchSize = 500;
+
+        foreach ($lines as $line) {
             try {
-                $this->processItem($item, $updateOnly);
+                $data = str_getcsv($line, ';');
+                
+                if (count($data) < 14) {
+                    $this->skipped++;
+                    $bar->advance();
+                    continue;
+                }
+
+                $maireData = $this->processLine($data);
+                
+                if ($maireData) {
+                    $batch[] = $maireData;
+                    
+                    if (count($batch) >= $batchSize) {
+                        $this->upsertBatch($batch);
+                        $batch = [];
+                    }
+                }
             } catch (\Exception $e) {
                 $this->errors++;
                 if ($this->output->isVerbose()) {
@@ -86,6 +106,11 @@ class ImportMairesFromDataGouv extends Command
                 }
             }
             $bar->advance();
+        }
+
+        // Traiter le dernier batch
+        if (!empty($batch)) {
+            $this->upsertBatch($batch);
         }
 
         $bar->finish();
@@ -96,130 +121,114 @@ class ImportMairesFromDataGouv extends Command
         return self::SUCCESS;
     }
 
-    private function processItem(array $item, bool $updateOnly): void
+    private function processLine(array $data): ?array
     {
-        // Format des données JSON:
-        // code_insee, nom_comm, comm_min, civilite, prenom_elu, nom_elu, 
-        // nuance, adresse, code_postal, telephone, site_web, mandature, ept, statut
-        // geo_point_2d (lon, lat), geo_shape
+        // Format CSV :
+        // 0: Code du département
+        // 1: Libellé du département
+        // 2: Code de la collectivité à statut particulier
+        // 3: Libellé de la collectivité à statut particulier
+        // 4: Code de la commune
+        // 5: Libellé de la commune
+        // 6: Nom de l'élu
+        // 7: Prénom de l'élu
+        // 8: Code sexe (M/F)
+        // 9: Date de naissance (dd/mm/yyyy)
+        // 10: Code de la catégorie socio-professionnelle
+        // 11: Libellé de la catégorie socio-professionnelle
+        // 12: Date de début du mandat (dd/mm/yyyy)
+        // 13: Date de début de la fonction (dd/mm/yyyy)
 
-        $codeInsee = $item['code_insee'] ?? null;
-        $nom = $item['nom_elu'] ?? null;
-        $prenom = $item['prenom_elu'] ?? null;
+        $deptCode = trim($data[0] ?? '');
+        $deptName = trim($data[1] ?? '');
+        $cspCode = trim($data[2] ?? '');
+        $cspName = trim($data[3] ?? '');
+        $codeCommune = trim($data[4] ?? '');
+        $nomCommune = trim($data[5] ?? '');
+        $nom = trim($data[6] ?? '');
+        $prenom = trim($data[7] ?? '');
+        $sexeCode = trim($data[8] ?? '');
+        $dateNaissance = trim($data[9] ?? '');
+        $professionCode = trim($data[10] ?? '');
+        $profession = trim($data[11] ?? '');
+        $dateDebutMandat = trim($data[12] ?? '');
+        $dateDebutFonction = trim($data[13] ?? '');
 
-        if (!$codeInsee || !$nom || !$prenom) {
+        // Validation minimale
+        if (empty($nom) || empty($prenom) || empty($codeCommune)) {
             $this->skipped++;
-            return;
+            return null;
         }
 
-        // Département = 2 premiers caractères du code INSEE (sauf Corse et DOM)
-        $deptCode = substr($codeInsee, 0, 2);
-        if ($deptCode === '97' || $deptCode === '98') {
-            $deptCode = substr($codeInsee, 0, 3); // DOM-TOM
+        // Utiliser le code CSP si pas de département (DOM-TOM)
+        if (empty($deptCode) && !empty($cspCode)) {
+            $deptCode = $cspCode;
+            $deptName = $cspName;
         }
 
-        // Chercher un maire existant
-        $existingMaire = Maire::where('code_commune', $codeInsee)->first();
+        // Civilité selon le code sexe
+        $civilite = $sexeCode === 'F' ? 'Mme' : 'M.';
 
-        if ($updateOnly && !$existingMaire) {
-            $this->skipped++;
-            return;
-        }
+        // Générer un UID unique
+        $uid = 'MAIRE-' . $codeCommune;
 
-        // Données à insérer/mettre à jour
-        $maireData = [
-            'uid' => 'MAIRE-' . $codeInsee,
+        return [
+            'uid' => $uid,
             'nom' => mb_convert_case($nom, MB_CASE_TITLE, 'UTF-8'),
             'prenom' => mb_convert_case($prenom, MB_CASE_TITLE, 'UTF-8'),
-            'civilite' => $this->normalizeCivilite($item['civilite'] ?? ''),
-            'code_commune' => $codeInsee,
-            'nom_commune' => $item['comm_min'] ?? $item['nom_comm'] ?? '',
+            'nom_complet' => $civilite . ' ' . mb_convert_case($prenom, MB_CASE_TITLE, 'UTF-8') . ' ' . mb_convert_case($nom, MB_CASE_TITLE, 'UTF-8'),
+            'civilite' => $civilite,
+            'date_naissance' => $this->parseDate($dateNaissance),
+            'code_commune' => $codeCommune,
+            'nom_commune' => $nomCommune,
             'code_departement' => $deptCode,
+            'nom_departement' => $deptName,
+            'profession' => $profession,
+            'categorie_socio_pro' => $professionCode,
+            'debut_mandat' => $this->parseDate($dateDebutMandat),
+            'debut_fonction' => $this->parseDate($dateDebutFonction),
             'en_exercice' => true,
-            // Données enrichies depuis data.gouv.fr
-            'telephone' => $this->cleanPhone($item['telephone'] ?? null),
-            'site_web' => $this->cleanUrl($item['site_web'] ?? null),
-            'adresse_mairie' => $this->buildAdresse($item),
-            'nuance_politique' => $item['nuance'] ?? null,
-            'mandature' => $item['mandature'] ?? '2020-2026',
+            'mandature' => '2020-2026',
+            'updated_at' => now(),
         ];
+    }
 
-        // Ajouter coordonnées si disponibles
-        if (isset($item['geo_point_2d']['lon']) && isset($item['geo_point_2d']['lat'])) {
-            $maireData['longitude'] = $item['geo_point_2d']['lon'];
-            $maireData['latitude'] = $item['geo_point_2d']['lat'];
+    private function parseDate(?string $dateStr): ?string
+    {
+        if (!$dateStr || $dateStr === '') {
+            return null;
         }
 
-        if ($existingMaire) {
-            // Mise à jour (enrichissement)
-            $existingMaire->update($maireData);
-            $this->updated++;
-        } else {
-            // Création
-            Maire::create($maireData);
-            $this->created++;
+        try {
+            // Format dd/mm/yyyy
+            if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateStr, $matches)) {
+                return "{$matches[3]}-{$matches[2]}-{$matches[1]}";
+            }
+            return Carbon::parse($dateStr)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
         }
     }
 
-    private function normalizeCivilite(?string $civilite): ?string
+    private function upsertBatch(array $batch): void
     {
-        if (!$civilite) return null;
-        
-        $civilite = trim($civilite);
-        
-        if (in_array(strtolower($civilite), ['m.', 'm', 'mr', 'monsieur'])) {
-            return 'M.';
-        }
-        if (in_array(strtolower($civilite), ['mme', 'mme.', 'madame'])) {
-            return 'Mme';
-        }
-        
-        return $civilite;
-    }
+        foreach ($batch as $maireData) {
+            $existing = Maire::where('code_commune', $maireData['code_commune'])->first();
 
-    private function cleanPhone(?string $phone): ?string
-    {
-        if (!$phone) return null;
-        
-        // Nettoyer et formater le téléphone
-        $phone = preg_replace('/[^0-9+]/', '', $phone);
-        
-        if (strlen($phone) === 10 && $phone[0] === '0') {
-            // Format français: 01 23 45 67 89
-            return preg_replace('/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/', '$1 $2 $3 $4 $5', $phone);
+            if ($existing) {
+                // Conserver les données enrichies existantes (nuance, tel, etc.)
+                $dataToUpdate = array_filter($maireData, fn($v, $k) => 
+                    $v !== null && !in_array($k, ['nuance_politique', 'telephone', 'site_web', 'adresse_mairie', 'latitude', 'longitude']),
+                    ARRAY_FILTER_USE_BOTH
+                );
+                $existing->update($dataToUpdate);
+                $this->updated++;
+            } else {
+                $maireData['created_at'] = now();
+                Maire::create($maireData);
+                $this->created++;
+            }
         }
-        
-        return $phone;
-    }
-
-    private function cleanUrl(?string $url): ?string
-    {
-        if (!$url) return null;
-        
-        $url = trim($url);
-        
-        // Ajouter http:// si nécessaire
-        if ($url && !preg_match('/^https?:\/\//', $url)) {
-            $url = 'http://' . $url;
-        }
-        
-        return $url;
-    }
-
-    private function buildAdresse(array $item): ?string
-    {
-        $parts = [];
-        
-        if (!empty($item['adresse'])) {
-            $parts[] = $item['adresse'];
-        }
-        
-        if (!empty($item['code_postal'])) {
-            $commune = $item['comm_min'] ?? $item['nom_comm'] ?? '';
-            $parts[] = $item['code_postal'] . ' ' . $commune;
-        }
-        
-        return !empty($parts) ? implode(', ', $parts) : null;
     }
 
     private function displaySummary(): void
@@ -244,42 +253,38 @@ class ImportMairesFromDataGouv extends Command
         $this->info("📊 Total maires en base : {$total}");
         $this->info("📊 Maires en exercice : {$enExercice}");
 
-        // Top nuances politiques
-        $topNuances = Maire::whereNotNull('nuance_politique')
-            ->selectRaw('nuance_politique, COUNT(*) as total')
-            ->groupBy('nuance_politique')
+        // Top départements
+        $topDepts = Maire::selectRaw('code_departement, nom_departement, COUNT(*) as total')
+            ->whereNotNull('code_departement')
+            ->where('code_departement', '!=', '')
+            ->groupBy('code_departement', 'nom_departement')
             ->orderByDesc('total')
             ->limit(10)
             ->get();
 
-        if ($topNuances->isNotEmpty()) {
+        if ($topDepts->isNotEmpty()) {
             $this->newLine();
-            $this->info('📊 Top 10 nuances politiques :');
-            foreach ($topNuances as $n) {
-                $libelle = $this->getNuanceLibelle($n->nuance_politique);
-                $this->line("   - {$n->nuance_politique} ({$libelle}) : {$n->total}");
+            $this->info('📊 Top 10 départements :');
+            foreach ($topDepts as $d) {
+                $this->line("   - {$d->code_departement} ({$d->nom_departement}) : {$d->total} maires");
             }
         }
-    }
 
-    private function getNuanceLibelle(string $code): string
-    {
-        return match($code) {
-            'LDVG' => 'Divers gauche',
-            'LDVD' => 'Divers droite',
-            'LDVC' => 'Divers centre',
-            'LSOC' => 'Socialiste',
-            'LLR' => 'Les Républicains',
-            'LREM' => 'Renaissance',
-            'LREC' => 'Rassemblement National',
-            'LECO' => 'Écologiste',
-            'LCOM' => 'Communiste',
-            'LUDI' => 'UDI',
-            'LDIV' => 'Divers',
-            'LEXG' => 'Extrême gauche',
-            'LEXT' => 'Extrême droite',
-            'LMDM' => 'Modem',
-            default => $code,
-        };
+        // Stats catégories socio-pro
+        $topProfessions = Maire::selectRaw('profession, COUNT(*) as total')
+            ->whereNotNull('profession')
+            ->where('profession', '!=', '')
+            ->groupBy('profession')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        if ($topProfessions->isNotEmpty()) {
+            $this->newLine();
+            $this->info('📊 Top 5 catégories socio-professionnelles :');
+            foreach ($topProfessions as $p) {
+                $this->line("   - " . Str::limit($p->profession, 50) . " : {$p->total}");
+            }
+        }
     }
 }
