@@ -29,62 +29,43 @@ use Inertia\Inertia;
 |
 */
 
-// Page d'accueil - Mode Démo
+// Page d'accueil principale - Deux parcours utilisateurs
 Route::get('/', function () {
-    // Si connecté, rediriger vers le dashboard
-    if (auth()->check()) {
-        return redirect()->route('dashboard');
-    }
-    
     // Statistiques pré-calculées (table dashboard_stats)
-    // Mises à jour quotidiennement via: php artisan dashboard:calculate-stats
     $globalStats = \App\Models\DashboardStat::get('global_stats', [
         'nb_deputes' => 577,
         'nb_senateurs' => 348,
         'nb_scrutins' => 0,
-        'nb_amendements_an' => 0,
+        'nb_lois_en_cours' => 0,
+        'nb_maires' => 0,
     ]);
     
     $stats = [
         'deputes' => $globalStats['nb_deputes'] ?? 577,
         'senateurs' => $globalStats['nb_senateurs'] ?? 348,
-        'scrutins' => $globalStats['nb_scrutins'] ?? 0,
-        'amendements' => $globalStats['nb_amendements_an'] ?? 0,
+        'lois_en_cours' => $globalStats['nb_lois_en_cours'] ?? \App\Models\Loi::whereNull('promession')->count(),
+        'maires' => $globalStats['nb_maires'] ?? \App\Models\Maire::enExercice()->count(),
     ];
     
-    // Derniers scrutins pré-calculés
-    $derniersScrutins = collect(\App\Models\DashboardStat::get('derniers_scrutins', []))->take(5);
-    
-    // Derniers amendements (fallback cache si pas encore en stats)
-    $derniersAmendements = \Illuminate\Support\Facades\Cache::remember('homepage_amendements', 600, function () {
-        return \App\Models\AmendementAN::where('sort_libelle', 'Adopté')
-            ->orderByDesc('date_depot')
-            ->limit(5)
-            ->get()
-            ->map(fn($a) => [
-                'uid' => $a->uid,
-                'numero' => $a->numero,
-                'auteur' => $a->auteur_libelle,
-                'objet' => \Illuminate\Support\Str::limit($a->expose ?? $a->dispositif ?? 'Amendement', 100),
-                'date' => $a->date_depot?->format('d/m/Y'),
-            ]);
-    });
-    
-    return Inertia::render('Demo/Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
+    return Inertia::render('Home', [
         'stats' => $stats,
-        'derniersScrutins' => $derniersScrutins,
-        'derniersAmendements' => $derniersAmendements,
     ]);
 })->name('home');
 
-// Recherche
+// Ancienne page démo (pour référence/développement)
+Route::get('/demo', function () {
+    return Inertia::render('Demo/Welcome', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+    ]);
+})->name('demo');
+
+// Recherche globale
 Route::get('/search', function (Request $request) {
     return Inertia::render('Search/Results', [
         'query' => $request->query('q', ''),
     ]);
-})->name('search.results');
+})->name('search');
 
 /*
 |--------------------------------------------------------------------------

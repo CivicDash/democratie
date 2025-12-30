@@ -41,7 +41,7 @@ const toggleDarkMode = () => {
 // Recherche rapide
 const handleSearch = () => {
     if (searchQuery.value.trim()) {
-        router.visit(route("search.results", { q: searchQuery.value }));
+        router.visit(route("search", { q: searchQuery.value }));
         searchQuery.value = "";
         showMobileSearch.value = false;
     }
