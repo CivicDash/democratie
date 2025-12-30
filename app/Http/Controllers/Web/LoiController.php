@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Loi;
+use App\Models\LoiStats;
 use App\Models\EtatLoi;
 use App\Models\TypeLoi;
 use App\Models\ThematiqueLoi;
@@ -148,6 +149,19 @@ class LoiController extends Controller
         // Construire le parcours législatif
         $parcours = $loi->getParcours();
 
+        // Statistiques pré-calculées (ou fallback)
+        $loiStats = LoiStats::forLoi(trim($loi->loicod));
+        $stats = $loiStats ? $loiStats->toViewArray() : [
+            'etapes_total' => count($parcours),
+            'amendements_total' => 0,
+            'amendements_adoptes' => 0,
+            'taux_adoption_amendements' => 0,
+            'scrutins_total' => 0,
+            'duree_jours' => null,
+            'score_engagement' => 0,
+            'calculated_at' => null,
+        ];
+
         // Lois similaires (même thématique ou type)
         $loisSimilaires = collect();
         if ($loi->thematiques->isNotEmpty()) {
@@ -224,6 +238,7 @@ class LoiController extends Controller
                 'progression' => $loi->progression,
                 'est_promulguee' => $loi->est_promulguee,
             ],
+            'stats' => $stats,
             'parcours' => $parcours,
             'loisSimilaires' => $loisSimilaires->map(fn ($l) => [
                 'loicod' => trim($l->loicod),

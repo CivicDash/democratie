@@ -21,6 +21,16 @@ Schedule::command('dashboard:calculate-stats --force')
     ->dailyAt('04:00')
     ->description('Recalcul quotidien des statistiques dashboard');
 
+// Recalcul des statistiques parlementaires (taux présence, amendements, etc.)
+Schedule::command('calculate:parlementaires-stats --force')
+    ->dailyAt('04:30')
+    ->description('Recalcul quotidien des statistiques parlementaires pré-calculées');
+
+// Recalcul des statistiques des lois (amendements, scrutins, durée, etc.)
+Schedule::command('calculate:lois-stats --force')
+    ->dailyAt('04:45')
+    ->description('Recalcul quotidien des statistiques lois pré-calculées');
+
 // Synchronisation des données parlementaires (si activée)
 // Schedule::command('sync:all --quick')
 //     ->dailyAt('05:00')

@@ -57,6 +57,23 @@
 - [x] **Synchronisation automatique** : Commandes Artisan
 - [x] **Photos officielles** : AN et Sénat prioritaires
 
+### ⚡ Optimisation Performances (Décembre 2025)
+- [x] **Stats pré-calculées parlementaires** : Table `parlementaires_stats`
+  - Taux de présence, votes pour/contre/abstention
+  - Amendements déposés/adoptés/rejetés
+  - Discipline de groupe (députés)
+  - Calcul quotidien via scheduler (`04:30`)
+- [x] **Stats pré-calculées lois** : Table `lois_stats`
+  - Nombre d'étapes par chambre
+  - Amendements et taux d'adoption
+  - Scrutins liés
+  - Score d'engagement
+  - Calcul quotidien via scheduler (`04:45`)
+- [x] **Commandes Artisan dédiées** :
+  - `calculate:parlementaires-stats` : Recalcul stats députés/sénateurs
+  - `calculate:lois-stats` : Recalcul stats lois
+- [x] **Fallback intelligent** : Calcul à la volée si stats absentes ou obsolètes (>24h)
+
 ---
 
 ## 📅 TIMELINE 2025-2026

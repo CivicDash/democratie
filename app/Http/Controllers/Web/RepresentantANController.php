@@ -11,6 +11,7 @@ use App\Models\AmendementAN;
 use App\Models\VoteSenat;
 use App\Models\ScrutinSenat;
 use App\Models\AmendementSenat;
+use App\Models\ParlementaireStats;
 use App\Services\GroupeParlementaireService;
 use App\Services\DisciplineGroupeService;
 use Illuminate\Http\Request;
@@ -103,6 +104,7 @@ class RepresentantANController extends Controller
 
     /**
      * Fiche détaillée d'un député (nouvelle version)
+     * Utilise les stats pré-calculées pour de meilleures performances
      */
     public function showDepute(string $uid): Response
     {
@@ -118,32 +120,42 @@ class RepresentantANController extends Controller
         $groupeActuel = $acteur->groupe_politique_actuel;
         $commissionsActuelles = $acteur->commissions_actuelles->filter();
 
-        // Nombre total de scrutins dans la législature 17
-        $totalScrutinsL17 = \App\Models\ScrutinAN::where('legislature', 17)->count();
+        // Utiliser les stats pré-calculées (ou fallback sur calcul à la volée)
+        $cachedStats = ParlementaireStats::forDepute($uid, 17);
         
-        // Statistiques d'activité (L17)
-        $votesTotal = $acteur->votesIndividuels()
-            ->whereHas('scrutin', fn($q) => $q->where('legislature', 17))
-            ->count();
+        if ($cachedStats && !$cachedStats->isStale()) {
+            // Utiliser les stats pré-calculées
+            $stats = $cachedStats->toViewArray();
+        } else {
+            // Fallback: calcul à la volée (pour les premiers chargements)
+            $totalScrutinsL17 = \App\Models\ScrutinAN::where('legislature', 17)->count();
             
-        $stats = [
-            'votes_total' => $votesTotal,
-            'taux_presence' => $totalScrutinsL17 > 0 
-                ? round(($votesTotal / $totalScrutinsL17) * 100, 1) 
-                : 0,
-            'amendements_total' => $acteur->amendementsAuteur()
+            $votesTotal = $acteur->votesIndividuels()
+                ->whereHas('scrutin', fn($q) => $q->where('legislature', 17))
+                ->count();
+            
+            $amendementsTotal = $acteur->amendementsAuteur()
                 ->where('legislature', 17)
-                ->count(),
-            'amendements_adoptes' => $acteur->amendementsAuteur()
+                ->count();
+            $amendementsAdoptes = $acteur->amendementsAuteur()
                 ->where('legislature', 17)
                 ->adoptes()
-                ->count(),
-            'discipline_groupe' => $disciplineService->calculateDiscipline($acteur, 17),
-        ];
-
-        $stats['taux_adoption_amendements'] = $stats['amendements_total'] > 0
-            ? round(($stats['amendements_adoptes'] / $stats['amendements_total']) * 100, 1)
-            : 0;
+                ->count();
+                
+            $stats = [
+                'votes_total' => $votesTotal,
+                'taux_presence' => $totalScrutinsL17 > 0 
+                    ? round(($votesTotal / $totalScrutinsL17) * 100, 1) 
+                    : 0,
+                'amendements_total' => $amendementsTotal,
+                'amendements_adoptes' => $amendementsAdoptes,
+                'taux_adoption_amendements' => $amendementsTotal > 0
+                    ? round(($amendementsAdoptes / $amendementsTotal) * 100, 1)
+                    : 0,
+                'discipline_groupe' => $disciplineService->calculateDiscipline($acteur, 17),
+                'calculated_at' => null, // Indique que c'est un calcul à la volée
+            ];
+        }
 
         // Déclarations HATVP
         $declarationsHatvp = [];
@@ -662,6 +674,7 @@ class RepresentantANController extends Controller
 
     /**
      * Fiche détaillée d'un sénateur (nouvelle version)
+     * Utilise les stats pré-calculées pour de meilleures performances
      */
     public function showSenateur(string $matricule): Response
     {
@@ -679,25 +692,33 @@ class RepresentantANController extends Controller
             'etudes',
         ])->findOrFail($matricule);
 
-        // Nombre total de scrutins au Sénat (approximatif pour taux de présence)
-        $totalScrutinsSenat = ScrutinSenat::count();
+        // Utiliser les stats pré-calculées (ou fallback sur calcul à la volée)
+        $cachedStats = ParlementaireStats::forSenateur($matricule);
         
-        // Statistiques d'activité (comme pour les députés)
-        $votesTotal = VoteSenat::where('senateur_matricule', $matricule)->count();
-        $amendementsTotal = AmendementSenat::where('senateur_matricule', $matricule)->count();
-        $amendementsAdoptes = AmendementSenat::where('senateur_matricule', $matricule)->adoptes()->count();
+        if ($cachedStats && !$cachedStats->isStale()) {
+            // Utiliser les stats pré-calculées
+            $stats = $cachedStats->toViewArray();
+        } else {
+            // Fallback: calcul à la volée (pour les premiers chargements)
+            $totalScrutinsSenat = ScrutinSenat::count();
+            
+            $votesTotal = VoteSenat::where('senateur_matricule', $matricule)->count();
+            $amendementsTotal = AmendementSenat::where('senateur_matricule', $matricule)->count();
+            $amendementsAdoptes = AmendementSenat::where('senateur_matricule', $matricule)->adoptes()->count();
 
-        $stats = [
-            'votes_total' => $votesTotal,
-            'taux_presence' => $totalScrutinsSenat > 0 
-                ? round(($votesTotal / $totalScrutinsSenat) * 100, 1) 
-                : 0,
-            'amendements_total' => $amendementsTotal,
-            'amendements_adoptes' => $amendementsAdoptes,
-            'taux_adoption_amendements' => $amendementsTotal > 0
-                ? round(($amendementsAdoptes / $amendementsTotal) * 100, 1)
-                : 0,
-        ];
+            $stats = [
+                'votes_total' => $votesTotal,
+                'taux_presence' => $totalScrutinsSenat > 0 
+                    ? round(($votesTotal / $totalScrutinsSenat) * 100, 1) 
+                    : 0,
+                'amendements_total' => $amendementsTotal,
+                'amendements_adoptes' => $amendementsAdoptes,
+                'taux_adoption_amendements' => $amendementsTotal > 0
+                    ? round(($amendementsAdoptes / $amendementsTotal) * 100, 1)
+                    : 0,
+                'calculated_at' => null, // Indique que c'est un calcul à la volée
+            ];
+        }
 
         // Déclarations HATVP avec données enrichies
         $declarationsHatvp = [];
