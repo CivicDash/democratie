@@ -25,6 +25,15 @@ class User extends Authenticatable
         'email',
         'password',
         'franceconnect_sub',
+        'elu_type',
+        'elu_ref',
+        'is_public_profile',
+        'is_verified_elu',
+        'verified_at',
+        'elu_bio',
+        'twitter_handle',
+        'facebook_url',
+        'website_url',
     ];
 
     /**
@@ -47,7 +56,72 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_public_profile' => 'boolean',
+            'is_verified_elu' => 'boolean',
+            'verified_at' => 'datetime',
         ];
+    }
+
+    // ==================== Élu Relations ====================
+
+    /**
+     * Données de l'élu selon le type
+     */
+    public function getEluDataAttribute()
+    {
+        if (!$this->elu_type || !$this->elu_ref) {
+            return null;
+        }
+
+        return match ($this->elu_type) {
+            'depute' => ActeurAN::find($this->elu_ref),
+            'senateur' => Senateur::where('matricule', $this->elu_ref)->first(),
+            'maire' => Maire::find($this->elu_ref),
+            default => null,
+        };
+    }
+
+    /**
+     * Interpellations reçues par cet élu
+     */
+    public function interpellationsReceived(): HasMany
+    {
+        return $this->hasMany(TopicElu::class, 'elu_id', 'elu_ref')
+            ->where('elu_type', $this->elu_type)
+            ->where('is_interpellation', true);
+    }
+
+    /**
+     * Vérifie si l'utilisateur est un élu vérifié
+     */
+    public function isVerifiedElu(): bool
+    {
+        return $this->is_verified_elu && $this->elu_type !== null;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut répondre aux interpellations
+     */
+    public function canRespondToInterpellations(): bool
+    {
+        return $this->isVerifiedElu();
+    }
+
+    /**
+     * Scope: élus vérifiés uniquement
+     */
+    public function scopeVerifiedElus($query)
+    {
+        return $query->where('is_verified_elu', true)
+            ->whereNotNull('elu_type');
+    }
+
+    /**
+     * Scope: élus avec profil public
+     */
+    public function scopePublicElus($query)
+    {
+        return $query->verifiedElus()->where('is_public_profile', true);
     }
 
     // ==================== Relations ====================

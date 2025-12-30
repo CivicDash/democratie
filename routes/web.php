@@ -332,6 +332,25 @@ Route::prefix('participation')->name('participation.')->middleware('auth')->grou
 
 /*
 |--------------------------------------------------------------------------
+| Espace Élu (réservé aux élus vérifiés)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('elu')->name('elu.')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Web\EluDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/interpellations', [\App\Http\Controllers\Web\EluDashboardController::class, 'interpellations'])->name('interpellations');
+    Route::get('/interpellations/{interpellation}', [\App\Http\Controllers\Web\EluDashboardController::class, 'showInterpellation'])->name('interpellations.show');
+    Route::post('/interpellations/{interpellation}/respond', [\App\Http\Controllers\Web\EluDashboardController::class, 'respond'])->name('interpellations.respond');
+    Route::post('/interpellations/{interpellation}/decline', [\App\Http\Controllers\Web\EluDashboardController::class, 'decline'])->name('interpellations.decline');
+});
+
+// Profil public des élus (accessible à tous les utilisateurs connectés)
+Route::get('/elus/{type}/{ref}', [\App\Http\Controllers\Web\EluDashboardController::class, 'publicProfile'])
+    ->middleware('auth')
+    ->name('elus.public-profile')
+    ->where('type', 'depute|senateur|maire');
+
+/*
+|--------------------------------------------------------------------------
 | Dashboard & Profile
 |--------------------------------------------------------------------------
 */

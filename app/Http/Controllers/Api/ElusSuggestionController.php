@@ -58,13 +58,11 @@ class ElusSuggestionController extends Controller
         // ========================================================================
         if (in_array('depute', $types)) {
             $deputesQuery = ActeurAN::deputes()
-                ->actuel()
-                ->select('uid', 'prenom', 'nom', 'slug', 'groupe_politique_actuel_id')
-                ->with(['groupePolitiqueActuel:id,libelle,libelle_abrege,couleur_hex', 'circonscription:id,acteur_id,departement,numero_circonscription']);
+                ->with(['mandats.organe', 'circonscriptions']);
 
             // Filtre géographique
             if ($scope === 'departemental' && $department) {
-                $deputesQuery->whereHas('circonscription', function ($q) use ($department) {
+                $deputesQuery->whereHas('circonscriptions', function ($q) use ($department) {
                     $q->where('departement', $department->code)
                       ->orWhere('departement', 'like', "%{$department->name}%");
                 });
@@ -74,7 +72,7 @@ class ElusSuggestionController extends Controller
                     ->pluck('code')
                     ->toArray();
                 
-                $deputesQuery->whereHas('circonscription', function ($q) use ($deptCodes) {
+                $deputesQuery->whereHas('circonscriptions', function ($q) use ($deptCodes) {
                     $q->whereIn('departement', $deptCodes);
                 });
             }
@@ -90,15 +88,18 @@ class ElusSuggestionController extends Controller
             $deputes = $deputesQuery->limit($limit)->get();
 
             $results['deputes'] = $deputes->map(function ($d) {
+                $circo = $d->circonscriptions->first();
+                $groupe = $d->groupe_politique_actuel;
+                
                 return [
                     'id' => $d->uid,
                     'type' => 'depute',
-                    'nom_complet' => trim("{$d->prenom} {$d->nom}"),
+                    'nom_complet' => $d->nom_complet ?? trim("{$d->prenom} {$d->nom}"),
                     'photo_url' => $d->photo_url ?? null,
-                    'groupe' => $d->groupePolitiqueActuel?->libelle_abrege,
-                    'groupe_couleur' => $d->groupePolitiqueActuel?->couleur_hex,
-                    'circonscription' => $d->circonscription 
-                        ? "Circonscription {$d->circonscription->numero_circonscription} - {$d->circonscription->departement}"
+                    'groupe' => $groupe?->libelle_abrege ?? $groupe?->libelle ?? null,
+                    'groupe_couleur' => $groupe?->couleur_hex ?? null,
+                    'circonscription' => $circo 
+                        ? "Circonscription {$circo->numero_circonscription} - {$circo->departement}"
                         : null,
                 ];
             })->toArray();
@@ -160,12 +161,12 @@ class ElusSuggestionController extends Controller
         // ========================================================================
         if (in_array('maire', $types) && ($scope === 'communal' || $scope === 'departemental' || $search)) {
             $mairesQuery = Maire::query()
-                ->select('id', 'prenom', 'nom', 'commune', 'code_insee', 'code_postal', 'departement', 'nuance_politique');
+                ->select('id', 'prenom', 'nom', 'nom_complet', 'nom_commune', 'code_commune', 'code_departement', 'nom_departement', 'nuance_politique', 'photo_url');
 
             // Filtre géographique
             if ($scope === 'communal' || $scope === 'departemental') {
                 if ($department) {
-                    $mairesQuery->where('departement', $department->code);
+                    $mairesQuery->where('code_departement', $department->code);
                 }
             }
 
@@ -174,7 +175,7 @@ class ElusSuggestionController extends Controller
                 $mairesQuery->where(function ($q) use ($search) {
                     $q->where('nom', 'ilike', "%{$search}%")
                       ->orWhere('prenom', 'ilike', "%{$search}%")
-                      ->orWhere('commune', 'ilike', "%{$search}%");
+                      ->orWhere('nom_commune', 'ilike', "%{$search}%");
                 });
             }
 
@@ -184,10 +185,10 @@ class ElusSuggestionController extends Controller
                 return [
                     'id' => (string) $m->id,
                     'type' => 'maire',
-                    'nom_complet' => trim("{$m->prenom} {$m->nom}"),
-                    'photo_url' => null,
-                    'commune' => $m->commune,
-                    'code_postal' => $m->code_postal,
+                    'nom_complet' => $m->nom_complet ?? trim("{$m->prenom} {$m->nom}"),
+                    'photo_url' => $m->photo_url,
+                    'commune' => $m->nom_commune,
+                    'departement' => $m->nom_departement ?? $m->code_departement,
                     'nuance' => $m->nuance_politique,
                 ];
             })->toArray();
