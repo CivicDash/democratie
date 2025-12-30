@@ -372,9 +372,15 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
 | Parlement (Comparaisons & Stats globales)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->prefix('parlement')->name('parlement.')->group(function () {
-    Route::get('/comparaison', [ParlementController::class, 'comparaison'])->name('comparaison');
+// Routes parlement publiques
+Route::prefix('parlement')->name('parlement.')->group(function () {
+    // Statistiques globales (Députés / Sénateurs / Maires) - Public
+    Route::get('/statistiques', [ParlementController::class, 'comparaison'])->name('statistiques');
+    Route::redirect('/comparaison', '/parlement/statistiques'); // Redirection ancienne URL
 });
+
+// Alias pour accès rapide
+Route::get('/statistiques', [ParlementController::class, 'comparaison'])->name('statistiques.elus');
 
 /*
 |--------------------------------------------------------------------------
