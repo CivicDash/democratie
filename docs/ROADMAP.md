@@ -106,6 +106,12 @@
 **Priorité** : 🟡 HAUTE
 
 - [x] **Questions au Gouvernement** (AN) - Import XML
+- [x] **Circonscriptions députés** - Liaison député-circonscription avec :
+  - Département et numéro de circonscription
+  - Région et type (métropolitain/outre-mer)
+  - Place dans l'hémicycle
+  - Suppléant
+  - Commande : `import:circonscriptions-an`
 - [ ] **Questions Écrites** (Sénat) - Import base SQL externe
 - [ ] **Textes Akoma Ntoso** (Sénat) - Documents législatifs
 - [ ] Proportion hommes/femmes (statistiques)

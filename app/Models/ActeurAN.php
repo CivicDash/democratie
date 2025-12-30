@@ -68,6 +68,11 @@ class ActeurAN extends Model
         return $this->hasMany(DeportAN::class, 'acteur_ref', 'uid');
     }
 
+    public function circonscriptions(): HasMany
+    {
+        return $this->hasMany(DeputeCirconscription::class, 'acteur_uid', 'uid');
+    }
+
     /**
      * Scopes
      */
@@ -163,6 +168,41 @@ class ActeurAN extends Model
             ->with('organe')
             ->get()
             ->pluck('organe');
+    }
+
+    /**
+     * Récupère la circonscription actuelle (législature 17)
+     */
+    public function getCirconscriptionActuelleAttribute(): ?DeputeCirconscription
+    {
+        return $this->circonscriptions()
+            ->legislature(17)
+            ->actif()
+            ->first();
+    }
+
+    /**
+     * Récupère les infos de circonscription formatées
+     */
+    public function getCirconscriptionInfoAttribute(): ?array
+    {
+        $circo = $this->circonscription_actuelle;
+        
+        if (!$circo) {
+            return null;
+        }
+
+        return [
+            'departement' => $circo->departement,
+            'num_departement' => $circo->num_departement,
+            'num_circo' => $circo->num_circo,
+            'region' => $circo->region,
+            'libelle' => $circo->libelle_circonscription,
+            'libelle_court' => $circo->libelle_court,
+            'place_hemicycle' => $circo->place_hemicycle,
+            'premiere_election' => $circo->premiere_election,
+            'cause_mandat' => $circo->cause_mandat,
+        ];
     }
 }
 

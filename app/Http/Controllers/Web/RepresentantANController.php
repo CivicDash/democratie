@@ -72,6 +72,7 @@ class RepresentantANController extends Controller
                 'trigramme' => $acteur->trigramme,
                 'photo_url' => $acteur->photo_url, // Priorité photo officielle AN
                 'profession' => $acteur->profession,
+                'circonscription' => $acteur->circonscription_info,
                 'groupe' => $groupeActuel ? [
                     'uid' => $groupeActuel->uid,
                     'nom' => $groupeActuel->libelle,
@@ -234,6 +235,7 @@ class RepresentantANController extends Controller
                 'lieu_naissance' => trim("{$acteur->ville_naissance} {$acteur->departement_naissance}"),
                 'profession' => $acteur->profession,
                 'categorie_socio_pro' => $acteur->categorie_socio_pro,
+                'circonscription' => $acteur->circonscription_info,
                 'groupe' => $groupeActuel ? [
                     'uid' => $groupeActuel->uid,
                     'nom' => $groupeActuel->libelle,

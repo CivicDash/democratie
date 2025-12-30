@@ -103,6 +103,7 @@ class AdminController extends Controller
             ['name' => 'import:acteurs-an', 'label' => 'Acteurs AN', 'description' => 'Députés depuis JSON AN', 'icon' => '👤', 'category' => 'an', 'dangerous' => false],
             ['name' => 'import:organes-an', 'label' => 'Organes AN', 'description' => 'Groupes, commissions, délégations', 'icon' => '🏛️', 'category' => 'an', 'dangerous' => false],
             ['name' => 'import:mandats-an', 'label' => 'Mandats AN', 'description' => 'Mandats des acteurs', 'icon' => '📋', 'category' => 'an', 'dangerous' => false],
+            ['name' => 'import:circonscriptions-an', 'label' => 'Circonscriptions', 'description' => 'Liaison député-circonscription', 'icon' => '🗺️', 'category' => 'an', 'dangerous' => false],
             ['name' => 'import:scrutins-an', 'label' => 'Scrutins AN', 'description' => 'Votes publics AN', 'icon' => '🗳️', 'category' => 'an', 'dangerous' => false],
             ['name' => 'import:amendements-an', 'label' => 'Amendements AN', 'description' => 'Tous les amendements AN', 'icon' => '📝', 'category' => 'an', 'dangerous' => false],
             ['name' => 'import:dossiers-textes-an', 'label' => 'Dossiers/Textes AN', 'description' => 'Dossiers législatifs AN', 'icon' => '📁', 'category' => 'an', 'dangerous' => false],
@@ -172,7 +173,7 @@ class AdminController extends Controller
             // Calendrier
             'import:reunions-an', 'import:agenda-senat', 'import:agenda-elysee', 'sync:evenements-an',
             // AN
-            'import:acteurs-an', 'import:organes-an', 'import:mandats-an', 'import:scrutins-an',
+            'import:acteurs-an', 'import:organes-an', 'import:mandats-an', 'import:circonscriptions-an', 'import:scrutins-an',
             'import:amendements-an', 'import:dossiers-textes-an', 'import:questions-an',
             // Sénat
             'import:senateurs', 'import:senateurs-complet', 'import:dossiers-senat',
