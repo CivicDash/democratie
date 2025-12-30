@@ -1,12 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import MainLayout from '@/Layouts/MainLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import HemicycleView from '@/Components/Parliament/HemicycleView.vue';
 import FranceMapInteractive from '@/Components/Statistics/FranceMapInteractive.vue';
 import TextInput from '@/Components/TextInput.vue';
+
+// Vérifier si l'utilisateur est connecté
+const page = usePage();
+const isAuthenticated = computed(() => !!page.props.auth?.user);
 
 const props = defineProps({
   hasLocation: Boolean,
@@ -57,10 +61,16 @@ const searchLocation = async () => {
     const response = await fetch(`/api/representants/search?q=${encodeURIComponent(searchQuery.value)}`);
     const data = await response.json();
     
-    if (data.results) {
-      searchResults.value = data.results;
+    // Gérer les différents formats de réponse
+    if (data.multiple_communes || data.multiple_results) {
+      // Plusieurs communes trouvées
+      searchResults.value = data.communes || [];
     } else if (data.commune) {
+      // Une seule commune avec ses représentants
       searchResults.value = [data.commune];
+    } else if (data.results) {
+      // Format alternatif
+      searchResults.value = data.results;
     } else {
       searchResults.value = [];
     }
@@ -84,9 +94,7 @@ const selectLocation = (location) => {
 </script>
 
 <template>
-  <Head title="Mes Représentants" />
-
-  <AuthenticatedLayout>
+  <MainLayout title="Mes Représentants">
     <div class="py-8">
       <div class="mx-auto sm:px-6 lg:px-8 space-y-6" style="max-width: 100%;">
         
@@ -462,6 +470,6 @@ const selectLocation = (location) => {
 
       </div>
     </div>
-  </AuthenticatedLayout>
+  </MainLayout>
 </template>
 

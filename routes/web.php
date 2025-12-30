@@ -362,10 +362,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 | Représentants (Députés & Sénateurs)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->prefix('representants')->name('representants.')->group(function () {
-    // Mes représentants (ancien système)
+
+// Route publique - Mes représentants (accessible sans connexion)
+Route::prefix('representants')->name('representants.')->group(function () {
     Route::get('/mes-representants', [RepresentantController::class, 'mesRepresentants'])->name('mes-representants');
-    
+});
+
+Route::middleware('auth')->prefix('representants')->name('representants.')->group(function () {
     // Note: La page /regions a été fusionnée dans /mes-representants avec la carte interactive
     
     // Députés (nouveaux - ActeurAN + Wikipedia)

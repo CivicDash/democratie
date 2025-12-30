@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
+use App\Models\DeputeCirconscription;
 use App\Models\DeputeSenateur;
 use App\Models\GroupeParlementaire;
 use App\Models\Profile;
@@ -30,11 +31,12 @@ class RepresentantController extends Controller
 
     /**
      * Page "Mes Représentants"
+     * Accessible avec ou sans connexion (mode simulation via ?simulate_postal_code=)
      */
     public function mesRepresentants(Request $request): Response
     {
         $user = auth()->user();
-        $profile = $user->profile;
+        $profile = $user?->profile;
 
         $data = [
             'hasLocation' => false,
@@ -279,6 +281,7 @@ class RepresentantController extends Controller
     /**
      * Trouver le député d'une circonscription
      * Format circonscription: "75-01" (département-numéro)
+     * Utilise la nouvelle table deputes_circonscriptions pour une recherche rapide
      */
     private function findDeputeByCirconscription(?string $circonscription, GroupeParlementaireService $groupeService): ?array
     {
@@ -299,64 +302,41 @@ class RepresentantController extends Controller
         $postalCode = \App\Models\FrenchPostalCode::where('postal_code', 'LIKE', $deptCode . '%')->first();
         $deptName = $postalCode->department_name ?? '';
 
-        // Construire le pattern de recherche pour le libellé de circonscription
-        // Ex: "1ère circonscription de Paris" ou "2ème circonscription de Paris"
-        if ($numCirco === 1) {
-            $ordinal = '1%re';
-        } else {
-            $ordinal = $numCirco . '%me';
-        }
-
-        // Chercher l'organe CIRCONSCRIPTION correspondant
-        $circoOrgane = \App\Models\OrganeAN::where('code_type', 'CIRCONSCRIPTION')
-            ->where('libelle', 'ILIKE', '%' . $deptName . '%')
-            ->where('libelle', 'LIKE', $ordinal . '%circonscription%')
+        // Chercher dans la nouvelle table deputes_circonscriptions (beaucoup plus rapide)
+        $deputeCirco = DeputeCirconscription::where('num_departement', $deptCode)
+            ->where('num_circo', $numCirco)
+            ->legislature(17)
+            ->actif()
+            ->with('depute')
             ->first();
 
-        if (!$circoOrgane) {
-            // Fallback: message informatif
+        if ($deputeCirco && $deputeCirco->depute) {
+            $acteur = $deputeCirco->depute;
+            $groupeActuel = $acteur->groupe_politique_actuel;
+
             return [
-                'not_found' => true,
-                'message' => "Député de la {$numCirco}" . ($numCirco === 1 ? 'ère' : 'ème') . " circonscription de {$deptName}",
-                'circonscription' => $circonscription,
+                'id' => $acteur->uid,
+                'nom_complet' => $acteur->nom_complet,
+                'photo_url' => $acteur->photo_url,
+                'profession' => $acteur->profession,
+                'circonscription' => $deputeCirco->libelle_circonscription,
+                'place_hemicycle' => $deputeCirco->place_hemicycle,
+                'groupe' => $groupeActuel ? [
+                    'sigle' => $groupeActuel->libelle_abrege,
+                    'nom' => $groupeActuel->libelle,
+                    'couleur' => $groupeService->getCouleurGroupe($groupeActuel->libelle_abrege),
+                ] : null,
+                'nb_amendements' => $acteur->amendementsAuteur()->where('legislature', 17)->count(),
+                'nb_votes' => $acteur->votesIndividuels()->whereHas('scrutin', fn($q) => $q->where('legislature', 17))->count(),
+                'url_profil' => route('representants.deputes.show', $acteur->uid),
             ];
         }
 
-        // Chercher le mandat actif pour cette circonscription
-        $mandat = \App\Models\MandatAN::where('organe_ref', $circoOrgane->uid)
-            ->whereNull('date_fin')
-            ->first();
-
-        if (!$mandat) {
-            return [
-                'not_found' => true,
-                'message' => "Député de la {$numCirco}" . ($numCirco === 1 ? 'ère' : 'ème') . " circonscription de {$deptName}",
-                'circonscription' => $circonscription,
-            ];
-        }
-
-        // Récupérer l'acteur
-        $acteur = \App\Models\ActeurAN::find($mandat->acteur_ref);
-        if (!$acteur) {
-            return null;
-        }
-
-        $groupeActuel = $acteur->groupe_politique_actuel;
-
+        // Fallback si pas trouvé dans la nouvelle table
         return [
-            'id' => $acteur->uid,
-            'nom_complet' => $acteur->nom_complet,
-            'photo_url' => $acteur->photo_url,
-            'profession' => $acteur->profession,
-            'circonscription' => $circoOrgane->libelle,
-            'groupe' => $groupeActuel ? [
-                'sigle' => $groupeActuel->libelle_abrege,
-                'nom' => $groupeActuel->libelle,
-                'couleur' => $groupeService->getCouleurGroupe($groupeActuel->libelle_abrege),
-            ] : null,
-            'nb_amendements' => $acteur->amendementsAuteur()->where('legislature', 17)->count(),
-            'nb_votes' => $acteur->votesIndividuels()->whereHas('scrutin', fn($q) => $q->where('legislature', 17))->count(),
-            'url_profil' => route('representants.deputes.show', $acteur->uid),
+            'not_found' => true,
+            'message' => "Député de la {$numCirco}" . ($numCirco === 1 ? 'ère' : 'ème') . " circonscription " . ($deptName ? "de {$deptName}" : ''),
+            'circonscription' => $circonscription,
         ];
     }
 
