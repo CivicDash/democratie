@@ -21,8 +21,8 @@ class ScrutinSenatController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('titre', 'ilike', "%{$search}%")
-                  ->orWhere('objet', 'ilike', "%{$search}%");
+                $q->where('intitule', 'ilike', "%{$search}%")
+                  ->orWhere('intitule_complet', 'ilike', "%{$search}%");
             });
         }
 

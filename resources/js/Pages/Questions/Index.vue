@@ -92,54 +92,68 @@ const breadcrumbs = [
 
     <AuthenticatedLayout>
         <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 dark:from-indigo-800 dark:to-indigo-900">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <Breadcrumb :items="breadcrumbs" class="mb-4 text-indigo-100" />
+            
+            <!-- Hero Section Full Width -->
+            <section class="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900">
+                <!-- Background Pattern -->
+                <div class="absolute inset-0 opacity-10">
+                    <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+                </div>
+                
+                <div class="relative w-full px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+                    <!-- Breadcrumb -->
+                    <div class="max-w-full mx-auto">
+                        <Breadcrumb :items="breadcrumbs" variant="light" class="mb-6" />
+                    </div>
                     
-                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                        <div class="flex items-center gap-4">
-                            <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                                <span class="text-3xl">❓</span>
+                    <div class="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <!-- Titre -->
+                        <div>
+                            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight flex items-center gap-4">
+                                <span class="text-4xl">❓</span>
+                                Questions au Gouvernement
+                            </h1>
+                            <p class="text-indigo-200 text-lg">
+                                Interpellations des députés aux membres du gouvernement
+                            </p>
+                        </div>
+                        
+                        <!-- Stats rapides -->
+                        <div class="flex flex-wrap gap-4">
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                                <div class="text-2xl md:text-3xl font-bold text-white">{{ stats.total?.toLocaleString() || 0 }}</div>
+                                <div class="text-indigo-200 text-xs uppercase tracking-wide">Questions</div>
                             </div>
-                            <div>
-                                <h1 class="text-3xl font-bold text-white">Questions au Gouvernement</h1>
-                                <p class="text-indigo-100 mt-1">Interpellations des députés aux membres du gouvernement</p>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                                <div class="text-2xl md:text-3xl font-bold text-emerald-400">{{ stats.repondues?.toLocaleString() || 0 }}</div>
+                                <div class="text-indigo-200 text-xs uppercase tracking-wide">Répondues</div>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                                <div class="text-2xl md:text-3xl font-bold text-amber-400">{{ stats.ce_mois || 0 }}</div>
+                                <div class="text-indigo-200 text-xs uppercase tracking-wide">Ce mois</div>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                                <div class="text-2xl md:text-3xl font-bold text-violet-400">{{ stats.deputés_actifs || 0 }}</div>
+                                <div class="text-indigo-200 text-xs uppercase tracking-wide">Députés actifs</div>
                             </div>
                         </div>
-
-                        <Link
+                    </div>
+                    
+                    <!-- Lien statistiques -->
+                    <div class="max-w-full mx-auto mt-6">
+                        <Link 
                             :href="route('questions.stats')"
-                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white font-medium rounded-xl transition-all shrink-0 backdrop-blur-sm"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition border border-white/20 text-sm"
                         >
-                            📊 Statistiques
+                            <span>📊</span>
+                            Voir les statistiques détaillées →
                         </Link>
                     </div>
-
-                    <!-- Stats Cards -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                            <div class="text-2xl font-bold text-white">{{ stats.total?.toLocaleString() || 0 }}</div>
-                            <div class="text-sm text-indigo-200">Questions totales</div>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                            <div class="text-2xl font-bold text-emerald-300">{{ stats.repondues?.toLocaleString() || 0 }}</div>
-                            <div class="text-sm text-indigo-200">Répondues</div>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                            <div class="text-2xl font-bold text-amber-300">{{ stats.ce_mois || 0 }}</div>
-                            <div class="text-sm text-indigo-200">Ce mois</div>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                            <div class="text-2xl font-bold text-violet-300">{{ stats.deputés_actifs || 0 }}</div>
-                            <div class="text-sm text-indigo-200">Députés actifs</div>
-                        </div>
-                    </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Content -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Content - Full Width -->
+            <div class="w-full px-4 sm:px-6 lg:px-8 py-8">
                 <div class="flex flex-col lg:flex-row gap-8">
                     
                     <!-- Filters Sidebar -->
