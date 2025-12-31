@@ -28,9 +28,9 @@
         </Link>
 
         <Link 
-            :href="route('search.results')" 
+            :href="route('search')" 
             class="nav-item"
-            :class="{ 'active': route().current('search.*') }"
+            :class="{ 'active': route().current('search') }"
         >
             <div class="nav-icon">🔍</div>
             <span class="nav-label">Recherche</span>
