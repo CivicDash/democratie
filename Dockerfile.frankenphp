@@ -1,0 +1,119 @@
+# =============================================================================
+# CivicDash - FrankenPHP + PHP 8.4 + Laravel Octane
+# =============================================================================
+FROM dunglas/frankenphp:1.4-php8.4-bookworm
+
+# Labels
+LABEL maintainer="CivicDash Team"
+LABEL description="CivicDash - Plateforme de démocratie participative"
+LABEL php.version="8.4"
+
+# Arguments
+ARG user=civicdash
+ARG uid=1000
+
+# Variables d'environnement
+ENV SERVER_NAME=:80
+ENV FRANKENPHP_CONFIG="worker ./public/index.php"
+ENV APP_ENV=production
+ENV LOG_CHANNEL=stderr
+
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libpq-dev \
+    libzip-dev \
+    libicu-dev \
+    zip \
+    unzip \
+    wget \
+    postgresql-client \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installation des extensions PHP
+RUN install-php-extensions \
+    pdo_pgsql \
+    pgsql \
+    redis \
+    opcache \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    intl \
+    exif \
+    mbstring
+
+# Installation de Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Installation Node.js (pour build assets)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
+
+# Configuration OPcache optimisée pour Octane
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.interned_strings_buffer=64" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=30000" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.fast_shutdown=1" >> /usr/local/etc/php/conf.d/opcache.ini
+
+# Configuration PHP pour Octane
+RUN echo "memory_limit=512M" >> /usr/local/etc/php/conf.d/civicdash.ini \
+    && echo "max_execution_time=0" >> /usr/local/etc/php/conf.d/civicdash.ini \
+    && echo "upload_max_filesize=50M" >> /usr/local/etc/php/conf.d/civicdash.ini \
+    && echo "post_max_size=50M" >> /usr/local/etc/php/conf.d/civicdash.ini \
+    && echo "realpath_cache_size=4096K" >> /usr/local/etc/php/conf.d/civicdash.ini \
+    && echo "realpath_cache_ttl=600" >> /usr/local/etc/php/conf.d/civicdash.ini
+
+# Création de l'utilisateur
+RUN useradd -G www-data,root -u $uid -d /home/$user $user 2>/dev/null || true \
+    && mkdir -p /home/$user/.composer \
+    && chown -R $user:$user /home/$user 2>/dev/null || true
+
+# Répertoire de travail
+WORKDIR /app
+
+# Copie des fichiers de dépendances en premier (cache Docker)
+COPY composer.json composer.lock ./
+COPY package.json package-lock.json ./
+
+# Installation des dépendances PHP
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+
+# Copie du reste de l'application
+COPY --chown=www-data:www-data . .
+
+# Finalisation Composer
+RUN composer dump-autoload --optimize --classmap-authoritative
+
+# Build des assets frontend
+RUN npm ci && npm run build && rm -rf node_modules
+
+# Permissions
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
+
+# Cache Laravel
+RUN php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
+    && php artisan event:cache
+
+# Exposition des ports
+EXPOSE 80 443
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/up || exit 1
+
+# Commande de démarrage - Octane avec FrankenPHP
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=80", "--admin-port=2019", "--workers=auto", "--max-requests=1000"]

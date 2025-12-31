@@ -108,3 +108,7 @@ storage/framework/views/*
 # Site vitrine séparé du projet Laravel
 /objectif2027/
 public/images/logo.png
+
+**/caddy
+frankenphp
+frankenphp-worker.php
