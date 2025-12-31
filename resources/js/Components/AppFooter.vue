@@ -156,7 +156,7 @@
                         </li>
                         <li>
                             <a 
-                                href="https://github.com/Civis-Consilium/CivicDash/issues" 
+                                href="https://github.com/CivicDash/democratie/issues" 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 class="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition flex items-center gap-2"
