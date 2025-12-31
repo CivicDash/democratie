@@ -39,19 +39,8 @@ export default defineConfig({
                         return 'ui-components';
                     }
                     
-                    // Pages groupées par feature
-                    if (id.includes('/Pages/Topics/')) {
-                        return 'topics';
-                    }
-                    if (id.includes('/Pages/Vote/')) {
-                        return 'vote';
-                    }
-                    if (id.includes('/Pages/Budget/')) {
-                        return 'budget';
-                    }
-                    if (id.includes('/Pages/Moderation/')) {
-                        return 'moderation';
-                    }
+                    // Pages groupées par feature - Désactivé pour compatibilité Inertia
+                    // Les pages sont chargées dynamiquement via resolvePageComponent
                 },
             },
         },
