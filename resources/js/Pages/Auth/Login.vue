@@ -31,8 +31,8 @@ const submit = () => {
 
 // Remplir avec le compte démo citoyen
 const fillDemoAccount = () => {
-    form.email = 'citoyen@example.com';
-    form.password = 'password';
+    form.email = 'citoyen1@civicdash.fr';
+    form.password = 'demo2025';
     form.remember = true;
 };
 </script>
