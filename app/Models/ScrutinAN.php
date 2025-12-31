@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class ScrutinAN extends Model
 {
-    use HasFactory;
+    use HasFactory, Searchable;
 
     protected $table = 'scrutins_an';
     protected $primaryKey = 'uid';
@@ -215,6 +216,33 @@ class ScrutinAN extends Model
             return 0.0;
         }
         return round(($this->abstentions / $this->nombre_votants) * 100, 2);
+    }
+
+    /**
+     * Meilisearch: Données indexées pour la recherche
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'uid' => $this->uid,
+            'libelle' => $this->titre,
+            'titre' => $this->titre,
+            'numero' => $this->numero,
+            'sort' => $this->resultat_code,
+            'resultat_libelle' => $this->resultat_libelle,
+            'legislature' => $this->legislature,
+            'annee' => $this->date_scrutin?->year,
+            'date_scrutin' => $this->date_scrutin?->timestamp,
+            'mode_scrutin' => $this->type_vote_code,
+        ];
+    }
+
+    /**
+     * Meilisearch: Nom de l'index
+     */
+    public function searchableAs(): string
+    {
+        return 'scrutins_an';
     }
 }
 

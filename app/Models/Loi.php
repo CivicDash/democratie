@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
+use Laravel\Scout\Searchable;
 
 class Loi extends Model
 {
+    use Searchable;
     protected $table = 'senat_dosleg_loi';
     protected $primaryKey = 'loicod';
     public $incrementing = false;
@@ -287,6 +289,43 @@ class Loi extends Model
             '9' => 90,   // Référendum
             default => 20,
         };
+    }
+
+    /**
+     * Meilisearch: Clé de recherche (sans espaces)
+     */
+    public function getScoutKey(): mixed
+    {
+        return trim($this->loicod);
+    }
+
+    /**
+     * Meilisearch: Données indexées pour la recherche
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'loicod' => trim($this->loicod),
+            'loitit' => trim($this->loitit ?? ''),
+            'loiint' => trim($this->loiint ?? ''),
+            'numero' => trim($this->numero ?? ''),
+            'motclef' => trim($this->motclef ?? ''),
+            'etaloicod' => $this->etaloicod,
+            'etat_libelle' => $this->etat_libelle,
+            'typloicod' => trim($this->typloicod ?? ''),
+            'chambre_origine' => $this->chambre_origine,
+            'annee' => $this->date_loi?->year ?? $this->loidatjo?->year,
+            'date_loi' => $this->date_loi?->timestamp,
+            'loidatjo' => $this->loidatjo?->timestamp,
+        ];
+    }
+
+    /**
+     * Meilisearch: Nom de l'index
+     */
+    public function searchableAs(): string
+    {
+        return 'lois';
     }
 }
 

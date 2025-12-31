@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class ActeurAN extends Model
 {
-    use HasFactory;
+    use HasFactory, Searchable;
 
     protected $table = 'acteurs_an';
     protected $primaryKey = 'uid';
@@ -203,6 +204,39 @@ class ActeurAN extends Model
             'premiere_election' => $circo->premiere_election,
             'cause_mandat' => $circo->cause_mandat,
         ];
+    }
+
+    /**
+     * Meilisearch: Données indexées pour la recherche
+     */
+    public function toSearchableArray(): array
+    {
+        $groupe = $this->groupe_politique_actuel;
+        $circo = $this->circonscription_actuelle;
+
+        return [
+            'uid' => $this->uid,
+            'nom_complet' => $this->nom_complet,
+            'prenom' => $this->prenom,
+            'nom' => $this->nom,
+            'profession' => $this->profession,
+            'groupe_politique' => $groupe?->libelle ?? null,
+            'groupe_politique_sigle' => $groupe?->libelle_abrege ?? null,
+            'circonscription' => $circo?->libelle_circonscription ?? null,
+            'departement' => $circo?->departement ?? null,
+            'region' => $circo?->region ?? null,
+            'legislature' => 17,
+            'est_depute_actif' => $this->mandat_actif !== null,
+            'photo_url' => $this->photo_url,
+        ];
+    }
+
+    /**
+     * Meilisearch: Nom de l'index
+     */
+    public function searchableAs(): string
+    {
+        return 'acteurs_an';
     }
 }
 

@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class Senateur extends Model
 {
-    use HasFactory;
+    use HasFactory, Searchable;
 
     protected $table = 'senateurs';
     // La vue SQL map senmat à la fois vers 'id' (PK Laravel) et 'matricule' (identifiant Sénat)
@@ -231,6 +232,33 @@ class Senateur extends Model
             return null;
         }
         return "https://www.senat.fr/senateur/{$this->matricule}.html";
+    }
+
+    /**
+     * Meilisearch: Données indexées pour la recherche
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'matricule' => $this->matricule,
+            'nom_complet' => $this->nom_complet,
+            'prenom_usuel' => $this->prenom_usuel,
+            'nom_usuel' => $this->nom_usuel,
+            'groupe_politique' => $this->groupe_politique,
+            'circonscription' => $this->circonscription,
+            'commission_permanente' => $this->commission_permanente,
+            'description_profession' => $this->description_profession,
+            'etat' => $this->etat,
+            'photo_url' => $this->photo_url,
+        ];
+    }
+
+    /**
+     * Meilisearch: Nom de l'index
+     */
+    public function searchableAs(): string
+    {
+        return 'senateurs';
     }
 }
 

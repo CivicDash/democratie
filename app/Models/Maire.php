@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Laravel\Scout\Searchable;
 
 /**
  * Modèle pour les maires
@@ -39,7 +40,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Maire extends Model
 {
-    use HasFactory;
+    use HasFactory, Searchable;
 
     protected $fillable = [
         'uid',
@@ -256,6 +257,33 @@ class Maire extends Model
                 'adresse_mairie' => $this->adresse_mairie,
             ],
         ];
+    }
+
+    /**
+     * Meilisearch: Données indexées pour la recherche
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'nom_complet' => $this->nom_complet,
+            'prenom' => $this->prenom,
+            'nom' => $this->nom,
+            'commune_nom' => $this->nom_commune,
+            'departement_nom' => $this->nom_departement,
+            'departement_code' => $this->code_departement,
+            'region_code' => $this->code_region,
+            'mandat_actif' => $this->en_exercice,
+            'photo_url' => $this->photo_url,
+        ];
+    }
+
+    /**
+     * Meilisearch: Nom de l'index
+     */
+    public function searchableAs(): string
+    {
+        return 'maires';
     }
 }
 
