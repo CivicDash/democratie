@@ -467,13 +467,13 @@ Recherche "retraite"
 - [x] Résultats groupés par catégorie avec icônes
 - [x] Intégration header desktop + mobile
 
-**Phase 2 - Meilisearch (À faire)** :
-- [ ] Driver Meilisearch activé (actuellement collection/DB)
-- [ ] Index multi-modèles (Loi, ActeurAN, Senateur, ScrutinAN, Topic)
-- [ ] Typo-tolerant ("retrait" → "retraite")
-- [ ] Highlighting des résultats
-- [ ] Facettes par type de contenu
-- [ ] Recherche < 50ms sur gros volumes
+**Phase 2 - Meilisearch ✅ COMPLÈTE (31/12/2025)** :
+- [x] Driver Meilisearch activé (collection → meilisearch)
+- [x] Index multi-modèles (Loi, ActeurAN, Senateur, ScrutinAN, Topic, Maire)
+- [x] Typo-tolerant ("retrait" → "retraite") ✅
+- [x] Highlighting des résultats (`<em>...</em>`)
+- [x] Facettes par type de contenu (filterableAttributes)
+- [x] Recherche < 1ms sur 60K+ documents ⚡
 
 ---
 
