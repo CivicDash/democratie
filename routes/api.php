@@ -271,6 +271,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Signalements - tous les utilisateurs authentifiés
     Route::post('/moderation/reports', [ModerationController::class, 'storeReport']);
+    Route::post('/reports', [ModerationController::class, 'storeReport']); // Alias simplifié
     
     // Modération - routes modérateurs/admins
     Route::middleware('role:moderator|admin')->prefix('moderation')->group(function () {

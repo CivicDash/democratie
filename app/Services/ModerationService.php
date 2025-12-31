@@ -22,18 +22,30 @@ class ModerationService
      * 
      * @param User $reporter L'utilisateur qui signale
      * @param Model $reportable Le contenu signalé (Post, Topic, etc.)
-     * @param string $reason La raison du signalement
+     * @param string $reason La raison du signalement (catégorie)
+     * @param string|null $description Description optionnelle
      */
-    public function createReport(User $reporter, Model $reportable, string $reason): Report
+    public function createReport(User $reporter, Model $reportable, string $reason, ?string $description = null): Report
     {
         // Vérifier que le user peut créer un rapport
         if (!$reporter->can('create', Report::class)) {
-            throw new RuntimeException('User cannot create reports.');
+            throw new RuntimeException('Vous ne pouvez pas créer de signalement.');
         }
 
         // Vérifier que le user ne signale pas son propre contenu
         if ($this->isOwnContent($reporter, $reportable)) {
-            throw new RuntimeException('Cannot report own content.');
+            throw new RuntimeException('Vous ne pouvez pas signaler votre propre contenu.');
+        }
+
+        // Vérifier si un signalement similaire existe déjà par cet utilisateur
+        $existingReport = Report::where('reporter_id', $reporter->id)
+            ->where('reportable_type', get_class($reportable))
+            ->where('reportable_id', $reportable->id)
+            ->whereIn('status', ['pending', 'reviewing'])
+            ->first();
+
+        if ($existingReport) {
+            throw new RuntimeException('Vous avez déjà signalé ce contenu. Il est en cours de traitement.');
         }
 
         return Report::create([
@@ -41,6 +53,7 @@ class ModerationService
             'reportable_id' => $reportable->id,
             'reporter_id' => $reporter->id,
             'reason' => $reason,
+            'description' => $description,
             'status' => 'pending',
         ]);
     }

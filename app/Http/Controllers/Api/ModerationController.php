@@ -67,15 +67,22 @@ class ModerationController extends Controller
             $report = $this->moderationService->createReport(
                 $request->user(),
                 $reportable,
-                $request->reason
+                $request->reason,
+                $request->description
             );
 
             return response()->json([
+                'success' => true,
                 'message' => 'Signalement créé avec succès.',
-                'report' => $report->load('reporter'),
+                'report' => [
+                    'id' => $report->id,
+                    'reason' => $report->reason,
+                    'status' => $report->status,
+                ],
             ], 201);
         } catch (\RuntimeException $e) {
             return response()->json([
+                'success' => false,
                 'message' => $e->getMessage(),
             ], 400);
         }

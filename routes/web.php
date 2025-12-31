@@ -183,30 +183,40 @@ Route::prefix('lois')->name('lois.')->middleware('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Topics (Forum Citoyen)
+| Topics (Forum Citoyen) - FUSIONNÉ AVEC IDÉES
+| Redirige vers /participation/idees
 |--------------------------------------------------------------------------
 */
-Route::prefix('topics')->name('topics.')->middleware('auth')->group(function () {
-    // Public routes
-    Route::get('/', [TopicController::class, 'index'])->name('index');
-    Route::get('/trending', [TopicController::class, 'trending'])->name('trending');
+Route::prefix('topics')->name('topics.')->group(function () {
+    // Redirection de l'index vers les idées citoyennes
+    Route::get('/', function () {
+        return redirect()->route('participation.ideas.index');
+    })->name('index');
     
-    // Authenticated routes (AVANT {topic} pour éviter les conflits)
+    Route::get('/trending', function () {
+        return redirect()->route('participation.ideas.index', ['sort' => 'trending']);
+    })->name('trending');
+    
+    // Redirection de création vers nouvelle idée
+    Route::get('/create', function () {
+        return redirect()->route('participation.ideas.create');
+    })->name('create');
+    
+    // Redirection show vers idées - SUPPORTE SLUG ET ID
+    Route::get('/{topic}', function ($topic) {
+        // Si c'est un ID numérique, chercher le topic pour obtenir le slug
+        if (is_numeric($topic)) {
+            $topicModel = \App\Models\Topic::find($topic);
+            if ($topicModel) {
+                return redirect()->route('participation.ideas.show', $topicModel->slug ?: $topicModel->id);
+            }
+        }
+        // Sinon rediriger directement avec le slug
+        return redirect()->route('participation.ideas.show', $topic);
+    })->name('show');
+    
+    // Authenticated routes - Posts sur les topics
     Route::middleware('auth')->group(function () {
-        Route::get('/create', [TopicController::class, 'create'])->name('create');
-        Route::post('/', [TopicController::class, 'store'])->name('store');
-    });
-    
-    // Show route (APRÈS create pour éviter que "create" soit interprété comme un ID)
-    Route::get('/{topic}', [TopicController::class, 'show'])->name('show');
-    
-    // Other authenticated routes
-    Route::middleware('auth')->group(function () {
-        Route::get('/{topic}/edit', [TopicController::class, 'edit'])->name('edit');
-        Route::put('/{topic}', [TopicController::class, 'update'])->name('update');
-        Route::delete('/{topic}', [TopicController::class, 'destroy'])->name('destroy');
-        
-        // Posts
         Route::post('/{topic}/posts', [PostController::class, 'store'])->name('posts.store');
         Route::put('/posts/{post}', [PostController::class, 'update'])->name('posts.update');
         Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');

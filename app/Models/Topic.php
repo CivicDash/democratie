@@ -37,6 +37,29 @@ class Topic extends Model
 {
     use HasFactory, SoftDeletes, Searchable, Taggable;
 
+    /**
+     * Get the route key for the model (utilise le slug au lieu de l'id).
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    /**
+     * Retrieve the model for a bound value.
+     * Supporte à la fois le slug ET l'id numérique.
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        // Si c'est un ID numérique, chercher par ID
+        if (is_numeric($value)) {
+            return $this->where('id', $value)->first();
+        }
+        
+        // Sinon chercher par slug
+        return $this->where('slug', $value)->first();
+    }
+
     // Types d'idées citoyennes
     public const IDEA_TYPES = [
         'discussion' => ['label' => 'Discussion', 'icon' => '💬', 'color' => 'slate', 'restricted' => true],

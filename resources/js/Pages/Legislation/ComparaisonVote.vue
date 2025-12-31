@@ -400,7 +400,7 @@ const getEcartIcon = (value) => {
           </Link>
           <Link
             v-if="ballot"
-            :href="route('topics.show', ballot.topic_id)"
+            :href="route('participation.ideas.show', ballot.topic_slug || ballot.topic_id)"
             class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
           >
             💬 Voir le débat citoyen

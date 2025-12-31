@@ -5,6 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
+import ReportButton from '@/Components/ReportButton.vue';
 
 const props = defineProps({
     idea: { type: Object, required: true },
@@ -432,20 +433,30 @@ const breadcrumbs = computed(() => [
                                 <div 
                                     v-for="comment in localComments" 
                                     :key="comment.id"
-                                    class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
+                                    class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl group"
                                 >
                                     <div class="flex items-start gap-3">
                                         <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-lg flex-shrink-0">
                                             👤
                                         </div>
                                         <div class="flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="font-medium text-gray-900 dark:text-white">
-                                                    {{ comment.user?.name || 'Anonyme' }}
-                                                </span>
-                                                <span class="text-xs text-gray-500 dark:text-gray-400">
-                                                    {{ formatRelativeDate(comment.created_at) }}
-                                                </span>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-medium text-gray-900 dark:text-white">
+                                                        {{ comment.user?.name || 'Anonyme' }}
+                                                    </span>
+                                                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                        {{ formatRelativeDate(comment.created_at) }}
+                                                    </span>
+                                                </div>
+                                                <!-- Bouton signaler commentaire (visible au hover) -->
+                                                <ReportButton 
+                                                    :reportable-type="'post'" 
+                                                    :reportable-id="comment.id" 
+                                                    variant="icon"
+                                                    size="sm"
+                                                    class="opacity-0 group-hover:opacity-100 transition-opacity"
+                                                />
                                             </div>
                                             <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ comment.content }}</p>
                                         </div>
@@ -495,10 +506,13 @@ const breadcrumbs = computed(() => [
                                     <span>🔔</span>
                                     <span>Suivre</span>
                                 </button>
-                                <button class="w-full flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-left transition text-rose-600 dark:text-rose-400">
-                                    <span>🚩</span>
-                                    <span>Signaler</span>
-                                </button>
+                                <ReportButton 
+                                    :reportable-type="'topic'" 
+                                    :reportable-id="idea.id" 
+                                    variant="full"
+                                    size="md"
+                                    class="w-full flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-left transition text-rose-600 dark:text-rose-400"
+                                />
                             </div>
                         </Card>
 

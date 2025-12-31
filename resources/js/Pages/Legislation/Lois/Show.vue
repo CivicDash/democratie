@@ -640,7 +640,7 @@ const getChambreConfig = (code) => chambreConfig[code] || { icon: '📋', name: 
                                 <Link 
                                     v-for="debat in debatsLies" 
                                     :key="debat.id"
-                                    :href="route('topics.show', debat.id)"
+                                    :href="route('participation.ideas.show', debat.slug || debat.id)"
                                     class="block p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-indigo-100 dark:border-indigo-800/50 hover:border-indigo-300 dark:hover:border-indigo-600 transition group"
                                 >
                                     <p class="text-sm font-medium text-slate-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-2">

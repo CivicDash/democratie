@@ -199,7 +199,12 @@ const canProceed = computed(() => {
         case 1: return !!form.idea_type;
         case 2: return form.title.length >= 10 && form.description.length >= 50;
         case 3: return !!form.scope;
-        case 4: return true; // Tags optionnels
+        case 4: 
+            // Tags obligatoires pour les discussions (au moins 1)
+            if (form.idea_type === 'discussion') {
+                return form.tag_ids.length >= 1;
+            }
+            return true; // Tags optionnels pour les autres types
         case 5: return true; // Loi optionnelle
         case 6: return true; // Élus optionnels
         default: return true;
@@ -621,7 +626,13 @@ const breadcrumbs = [
                                 🏷️ Choisissez des thématiques
                             </h2>
                             <p class="text-gray-600 dark:text-gray-400">
-                                Sélectionnez jusqu'à 3 thèmes pour catégoriser votre idée
+                                <template v-if="form.idea_type === 'discussion'">
+                                    Sélectionnez au moins 1 thème pour catégoriser votre discussion
+                                    <span class="text-rose-500">(obligatoire)</span>
+                                </template>
+                                <template v-else>
+                                    Sélectionnez jusqu'à 3 thèmes pour catégoriser votre idée
+                                </template>
                             </p>
                         </div>
 

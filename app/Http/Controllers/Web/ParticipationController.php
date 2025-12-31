@@ -183,7 +183,7 @@ class ParticipationController extends Controller
         // Pour les discussions : vérifier et nettoyer le contenu (pas de liens externes, pas d'images)
         $description = $validated['description'];
         if ($validated['idea_type'] === 'discussion') {
-            // Vérification des restrictions
+            // Vérification des restrictions de contenu
             if (Topic::containsExternalLinks($description)) {
                 return back()->withErrors([
                     'description' => 'Les discussions ne peuvent pas contenir de liens externes. Seuls les liens vers objectif2027.fr et civis-consilium.eu sont autorisés.',
@@ -192,6 +192,13 @@ class ParticipationController extends Controller
             if (Topic::containsMedia($description)) {
                 return back()->withErrors([
                     'description' => 'Les discussions ne peuvent pas contenir d\'images ou de médias. Utilisez uniquement du texte.',
+                ])->withInput();
+            }
+            
+            // Les discussions doivent avoir au moins une thématique
+            if (empty($validated['tag_ids'])) {
+                return back()->withErrors([
+                    'tag_ids' => 'Les discussions doivent être classées dans au moins une thématique.',
                 ])->withInput();
             }
         }
