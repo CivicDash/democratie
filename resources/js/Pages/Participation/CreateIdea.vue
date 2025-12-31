@@ -109,41 +109,59 @@ function removeLoi() {
 // ============================================================================
 const ideaTypes = [
     { 
+        value: 'discussion', 
+        label: 'Discussion', 
+        icon: '💬', 
+        color: 'slate',
+        description: 'Échangez librement sur un sujet (texte uniquement, pas de liens externes ni images)',
+        restricted: true,
+    },
+    { 
         value: 'proposal', 
         label: 'Proposition', 
         icon: '💡', 
         color: 'emerald',
-        description: 'Proposez une idée, une amélioration ou un projet'
+        description: 'Proposez une idée, une amélioration ou un projet',
+        restricted: false,
     },
     { 
         value: 'question', 
         label: 'Question', 
         icon: '❓', 
         color: 'sky',
-        description: 'Posez une question sur un sujet politique'
+        description: 'Posez une question sur un sujet politique',
+        restricted: false,
     },
     { 
         value: 'debate', 
         label: 'Débat', 
-        icon: '💬', 
+        icon: '🎯', 
         color: 'amber',
-        description: 'Lancez un débat sur un sujet de société'
+        description: 'Lancez un débat structuré sur un sujet de société',
+        restricted: false,
     },
     { 
         value: 'petition', 
         label: 'Pétition', 
         icon: '📜', 
         color: 'violet',
-        description: 'Créez une pétition pour rassembler des signatures'
+        description: 'Créez une pétition pour rassembler des signatures',
+        restricted: false,
     },
     { 
         value: 'interpellation', 
         label: 'Interpellation', 
         icon: '📣', 
         color: 'rose',
-        description: 'Interpellez directement un élu sur un sujet'
+        description: 'Interpellez directement un élu sur un sujet',
+        restricted: false,
     },
 ];
+
+// Check if current type has restrictions
+const isRestrictedType = computed(() => {
+    return form.idea_type === 'discussion';
+});
 
 // ============================================================================
 // SCOPES
@@ -514,6 +532,23 @@ const breadcrumbs = [
                             <p class="text-sm text-sky-700 dark:text-sky-300">
                                 🔗 Cette contribution sera liée à la loi : <strong>{{ loiTitre }}</strong>
                             </p>
+                        </div>
+
+                        <!-- Avertissement discussions -->
+                        <div v-if="isRestrictedType" class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+                            <div class="flex items-start gap-3">
+                                <span class="text-xl">⚠️</span>
+                                <div>
+                                    <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                        Règles pour les discussions
+                                    </p>
+                                    <ul class="mt-1 text-sm text-amber-700 dark:text-amber-300 list-disc list-inside space-y-1">
+                                        <li>Pas de liens externes (seuls les liens internes au site sont autorisés)</li>
+                                        <li>Pas d'images ou de médias</li>
+                                        <li>Texte uniquement pour favoriser un échange constructif</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -955,6 +990,7 @@ const breadcrumbs = [
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="px-2 py-1 text-xs font-medium rounded-full"
                                     :class="{
+                                        'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400': form.idea_type === 'discussion',
                                         'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400': form.idea_type === 'proposal',
                                         'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400': form.idea_type === 'question',
                                         'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': form.idea_type === 'debate',

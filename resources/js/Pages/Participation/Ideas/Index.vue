@@ -33,9 +33,10 @@ const showMobileFilters = ref(false);
 // ============================================================================
 const ideaTypes = [
     { value: '', label: 'Tous types', icon: '📋' },
+    { value: 'discussion', label: 'Discussions', icon: '💬', color: 'slate' },
     { value: 'proposal', label: 'Propositions', icon: '💡', color: 'emerald' },
     { value: 'question', label: 'Questions', icon: '❓', color: 'sky' },
-    { value: 'debate', label: 'Débats', icon: '💬', color: 'amber' },
+    { value: 'debate', label: 'Débats', icon: '🎯', color: 'amber' },
     { value: 'petition', label: 'Pétitions', icon: '📜', color: 'violet' },
     { value: 'interpellation', label: 'Interpellations', icon: '📣', color: 'rose' },
 ];
@@ -427,6 +428,7 @@ const breadcrumbs = [
                                             <span 
                                                 class="px-2 py-0.5 text-xs font-medium rounded-full"
                                                 :class="{
+                                                    'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400': idea.idea_type === 'discussion',
                                                     'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400': idea.idea_type === 'proposal',
                                                     'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400': idea.idea_type === 'question',
                                                     'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': idea.idea_type === 'debate',

@@ -165,7 +165,7 @@ class ParticipationController extends Controller
     public function ideasStore(Request $request)
     {
         $validated = $request->validate([
-            'idea_type' => ['required', 'in:proposal,question,debate,petition,interpellation'],
+            'idea_type' => ['required', 'in:discussion,proposal,question,debate,petition,interpellation'],
             'title' => ['required', 'string', 'min:10', 'max:255'],
             'description' => ['required', 'string', 'min:50'],
             'scope' => ['required', 'in:national,regional,departemental,communal'],
@@ -180,10 +180,26 @@ class ParticipationController extends Controller
             'is_interpellation' => ['boolean'],
         ]);
 
+        // Pour les discussions : vérifier et nettoyer le contenu (pas de liens externes, pas d'images)
+        $description = $validated['description'];
+        if ($validated['idea_type'] === 'discussion') {
+            // Vérification des restrictions
+            if (Topic::containsExternalLinks($description)) {
+                return back()->withErrors([
+                    'description' => 'Les discussions ne peuvent pas contenir de liens externes. Seuls les liens vers objectif2027.fr et civis-consilium.eu sont autorisés.',
+                ])->withInput();
+            }
+            if (Topic::containsMedia($description)) {
+                return back()->withErrors([
+                    'description' => 'Les discussions ne peuvent pas contenir d\'images ou de médias. Utilisez uniquement du texte.',
+                ])->withInput();
+            }
+        }
+
         // Créer le topic
         $topic = Topic::create([
             'title' => $validated['title'],
-            'description' => $validated['description'],
+            'description' => $description,
             'idea_type' => $validated['idea_type'],
             'type' => 'debate', // Type legacy
             'scope' => $validated['scope'],

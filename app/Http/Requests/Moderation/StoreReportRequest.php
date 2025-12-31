@@ -16,14 +16,58 @@ class StoreReportRequest extends FormRequest
     }
 
     /**
+     * Raisons de signalement valides
+     */
+    public const VALID_REASONS = [
+        'spam',
+        'harassment', 
+        'hate_speech',
+        'violence',
+        'misinformation',
+        'inappropriate',
+        'off_topic',
+        'impersonation',
+        'copyright',
+        'personal_data',
+        'other',
+    ];
+
+    /**
+     * Mapping des types courts vers les classes complètes
+     */
+    public const TYPE_MAPPING = [
+        'topic' => 'App\Models\Topic',
+        'post' => 'App\Models\Post',
+        'comment' => 'App\Models\Post',
+        'user' => 'App\Models\User',
+    ];
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // Convertir les types courts en classes complètes
+        $type = $this->reportable_type;
+        if (isset(self::TYPE_MAPPING[$type])) {
+            $this->merge([
+                'reportable_type' => self::TYPE_MAPPING[$type],
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
     {
+        $validReasons = implode(',', self::VALID_REASONS);
+        
         return [
             'reportable_type' => ['required', 'string', 'in:App\Models\Post,App\Models\Topic,App\Models\User'],
-            'reportable_id' => ['required', 'integer'],
-            'reason' => ['required', 'string', 'min:20', 'max:1000'],
+            'reportable_id' => ['required'],
+            'reason' => ['required', 'string', 'in:' . $validReasons],
+            'description' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -37,8 +81,8 @@ class StoreReportRequest extends FormRequest
             'reportable_type.in' => 'Le type de contenu est invalide.',
             'reportable_id.required' => 'L\'identifiant du contenu est obligatoire.',
             'reason.required' => 'La raison du signalement est obligatoire.',
-            'reason.min' => 'La raison doit contenir au moins :min caractères.',
-            'reason.max' => 'La raison ne peut pas dépasser :max caractères.',
+            'reason.in' => 'La raison du signalement est invalide.',
+            'description.max' => 'La description ne peut pas dépasser :max caractères.',
         ];
     }
 

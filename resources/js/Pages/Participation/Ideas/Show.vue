@@ -171,6 +171,7 @@ const breadcrumbs = computed(() => [
                             <span 
                                 class="px-3 py-1 text-sm font-medium rounded-full"
                                 :class="{
+                                    'bg-slate-500/20 text-slate-300': idea.idea_type === 'discussion',
                                     'bg-emerald-500/20 text-emerald-300': idea.idea_type === 'proposal',
                                     'bg-sky-500/20 text-sky-300': idea.idea_type === 'question',
                                     'bg-amber-500/20 text-amber-300': idea.idea_type === 'debate',

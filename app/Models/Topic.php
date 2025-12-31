@@ -39,12 +39,24 @@ class Topic extends Model
 
     // Types d'idées citoyennes
     public const IDEA_TYPES = [
-        'proposal' => ['label' => 'Proposition', 'icon' => '💡', 'color' => 'emerald'],
-        'question' => ['label' => 'Question', 'icon' => '❓', 'color' => 'sky'],
-        'debate' => ['label' => 'Débat', 'icon' => '💬', 'color' => 'amber'],
-        'petition' => ['label' => 'Pétition', 'icon' => '📜', 'color' => 'violet'],
-        'interpellation' => ['label' => 'Interpellation', 'icon' => '📣', 'color' => 'rose'],
+        'discussion' => ['label' => 'Discussion', 'icon' => '💬', 'color' => 'slate', 'restricted' => true],
+        'proposal' => ['label' => 'Proposition', 'icon' => '💡', 'color' => 'emerald', 'restricted' => false],
+        'question' => ['label' => 'Question', 'icon' => '❓', 'color' => 'sky', 'restricted' => false],
+        'debate' => ['label' => 'Débat', 'icon' => '🎯', 'color' => 'amber', 'restricted' => false],
+        'petition' => ['label' => 'Pétition', 'icon' => '📜', 'color' => 'violet', 'restricted' => false],
+        'interpellation' => ['label' => 'Interpellation', 'icon' => '📣', 'color' => 'rose', 'restricted' => false],
     ];
+
+    // Types avec restrictions (pas de liens externes, pas d'images)
+    public const RESTRICTED_TYPES = ['discussion'];
+
+    /**
+     * Vérifie si ce topic a des restrictions de contenu
+     */
+    public function hasContentRestrictions(): bool
+    {
+        return in_array($this->idea_type, self::RESTRICTED_TYPES);
+    }
 
     // Scopes géographiques
     public const SCOPES = [
@@ -458,6 +470,114 @@ class Topic extends Model
         }
 
         return $slug;
+    }
+
+    // ========================================================================
+    // CONTENT RESTRICTIONS (Discussions)
+    // ========================================================================
+
+    /**
+     * Domaines autorisés dans le contenu
+     */
+    protected static array $allowedDomains = [
+        'objectif2027.fr',
+        'demo.objectif2027.fr',
+        'civis-consilium.eu',
+        'localhost',
+    ];
+
+    /**
+     * Vérifie si un texte contient des liens externes
+     */
+    public static function containsExternalLinks(string $content): bool
+    {
+        // Trouver toutes les URLs
+        if (preg_match_all('/https?:\/\/([^\s<>\[\]\/\)\"\']+)/i', $content, $matches)) {
+            foreach ($matches[1] as $domain) {
+                $domain = strtolower(preg_replace('/:\d+$/', '', $domain)); // Enlever le port
+                $isAllowed = false;
+                foreach (static::$allowedDomains as $allowed) {
+                    if ($domain === $allowed || str_ends_with($domain, '.' . $allowed)) {
+                        $isAllowed = true;
+                        break;
+                    }
+                }
+                if (!$isAllowed) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Vérifie si un texte contient des médias (images, vidéos, iframes)
+     */
+    public static function containsMedia(string $content): bool
+    {
+        $mediaPatterns = [
+            // Images markdown
+            '/!\[.*?\]\(.*?\)/i',
+            // Images HTML
+            '/<img[^>]*>/i',
+            // iframes
+            '/<iframe[^>]*>/i',
+            // Embeds
+            '/<embed[^>]*>/i',
+            '/<object[^>]*>/i',
+            '/<video[^>]*>/i',
+            '/<audio[^>]*>/i',
+            // Base64 images
+            '/data:image\/[^;]+;base64,/i',
+        ];
+
+        foreach ($mediaPatterns as $pattern) {
+            if (preg_match($pattern, $content)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Nettoie un contenu en supprimant les liens externes et médias
+     * (garde uniquement le texte)
+     */
+    public static function sanitizeRestrictedContent(string $content): string
+    {
+        // Supprimer les images markdown
+        $content = preg_replace('/!\[.*?\]\(.*?\)/i', '[image supprimée]', $content);
+        
+        // Supprimer les balises HTML non autorisées
+        $content = strip_tags($content, '<p><br><strong><em><ul><ol><li><blockquote><h1><h2><h3><h4><h5><h6><a>');
+        
+        // Supprimer les liens externes dans les balises <a>
+        $content = preg_replace_callback(
+            '/<a[^>]*href\s*=\s*["\']([^"\']*)["\'][^>]*>(.*?)<\/a>/i',
+            function ($matches) {
+                $url = $matches[1];
+                $text = $matches[2];
+                
+                // Vérifier si c'est un lien interne
+                if (preg_match('/^(\/|#|mailto:|tel:)/i', $url)) {
+                    return $matches[0]; // Garder les liens internes relatifs
+                }
+                
+                if (preg_match('/https?:\/\/([^\s<>\[\]\/]+)/i', $url, $urlMatch)) {
+                    $domain = strtolower(preg_replace('/:\d+$/', '', $urlMatch[1]));
+                    foreach (static::$allowedDomains as $allowed) {
+                        if ($domain === $allowed || str_ends_with($domain, '.' . $allowed)) {
+                            return $matches[0]; // Garder le lien
+                        }
+                    }
+                }
+                
+                return $text . ' [lien externe supprimé]';
+            },
+            $content
+        );
+
+        return $content;
     }
 
     // ========================================================================
