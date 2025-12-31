@@ -235,7 +235,7 @@ const breadcrumbs = [
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 <tr
-                  v-for="depute in deputes.data"
+                  v-for="depute in deputes.data.filter(d => d.uid)"
                   :key="depute.id"
                   class="hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                 >
@@ -302,7 +302,7 @@ const breadcrumbs = [
           <!-- Vue Mobile : Cards -->
           <div class="lg:hidden space-y-4">
             <Link
-              v-for="depute in deputes.data"
+              v-for="depute in deputes.data.filter(d => d.uid)"
               :key="depute.id"
               :href="route('representants.deputes.show', depute.uid)"
               class="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition active:bg-gray-50 dark:active:bg-gray-700"
