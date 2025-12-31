@@ -987,8 +987,6 @@ Modération:
 🗳️ "Voix citoyenne"     → 100 votes donnés
 ⭐ "Influenceur"        → Idée avec 1000+ votes pour
 💬 "Débatteur"          → 50 commentaires constructifs
-🔔 "Lanceur d'alerte"   → Idée reprise médiatiquement
-✅ "Vérifié"            → Compte FranceConnect
 ```
 
 **Tableau de bord utilisateur** :

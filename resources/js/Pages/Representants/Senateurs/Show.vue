@@ -255,7 +255,7 @@ const getSegmentHeight = (value, total) => {
               </div>
 
               <!-- Navigation vers pages détaillées -->
-              <div class="grid grid-cols-3 gap-3">
+              <div v-if="senateur?.matricule" class="grid grid-cols-3 gap-3">
                 <Link
                   :href="route('representants.senateurs.votes', senateur.matricule)"
                   class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -433,7 +433,7 @@ const getSegmentHeight = (value, total) => {
         </div>
 
         <!-- Derniers Votes - Widget principal -->
-        <Card v-if="senateur.derniers_votes && senateur.derniers_votes.length > 0">
+        <Card v-if="senateur?.matricule && senateur.derniers_votes && senateur.derniers_votes.length > 0">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <span>🗳️</span>
