@@ -217,7 +217,7 @@ const searchRepresentants = () => {
                     
                     <!-- Groupes -->
                     <Link 
-                        :href="route('groupes.index')"
+                        :href="route('legislation.groupes.index')"
                         class="group p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all"
                     >
                         <div class="text-3xl mb-3">🏛️</div>
@@ -229,7 +229,7 @@ const searchRepresentants = () => {
                     
                     <!-- Thématiques -->
                     <Link 
-                        :href="route('thematiques.index')"
+                        :href="route('legislation.thematiques.index')"
                         class="group p-6 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all"
                     >
                         <div class="text-3xl mb-3">🏷️</div>
