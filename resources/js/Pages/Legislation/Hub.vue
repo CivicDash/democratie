@@ -151,7 +151,7 @@ const topThematiques = computed(() => {
                                 🗳️ Scrutins
                             </Link>
                             <Link
-                                :href="route('parlement.calendrier')"
+                                :href="route('parlement.calendrier.index')"
                                 class="px-3 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400"
                             >
                                 📅 Calendrier

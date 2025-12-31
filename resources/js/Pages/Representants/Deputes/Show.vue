@@ -192,7 +192,7 @@ const formatMontant = (montant) => {
               </div>
 
               <!-- Navigation vers pages détaillées -->
-              <div class="grid grid-cols-3 gap-3 mt-6">
+              <div v-if="depute?.uid" class="grid grid-cols-3 gap-3 mt-6">
                 <Link
                   :href="route('representants.deputes.votes', depute.uid)"
                   class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -311,7 +311,7 @@ const formatMontant = (montant) => {
         </div>
 
         <!-- Derniers Votes - Widget principal -->
-        <Card v-if="depute.derniers_votes && depute.derniers_votes.length > 0">
+        <Card v-if="depute?.uid && depute.derniers_votes && depute.derniers_votes.length > 0">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <span>🗳️</span>
@@ -380,7 +380,7 @@ const formatMontant = (montant) => {
         </Card>
 
         <!-- Questions au Gouvernement -->
-        <Card v-if="depute.dernieres_questions && depute.dernieres_questions.length > 0">
+        <Card v-if="depute?.uid && depute.dernieres_questions && depute.dernieres_questions.length > 0">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <span>❓</span>
