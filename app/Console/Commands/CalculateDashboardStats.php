@@ -100,21 +100,31 @@ class CalculateDashboardStats extends Command
         DashboardStat::set('groupes_actifs', $groupesActifs);
         $this->info('  ✓ ' . count($groupesActifs) . ' groupes');
 
-        // 📊 DERNIERS SCRUTINS
+        // 📊 DERNIERS SCRUTINS (avec calcul correct des votes)
         $this->info('📊 Calcul derniers scrutins...');
         $derniersScrutins = ScrutinAN::orderByDesc('date_scrutin')
             ->limit(10)
-            ->get(['uid', 'numero', 'titre', 'date_scrutin', 'pour', 'contre', 'abstentions'])
-            ->map(fn($s) => [
-                'uid' => $s->uid,
-                'numero' => $s->numero,
-                'titre' => \Illuminate\Support\Str::limit($s->titre ?? 'Scrutin n°' . $s->numero, 80),
-                'date' => $s->date_scrutin?->format('d/m/Y'),
-                'pour' => $s->pour ?? 0,
-                'contre' => $s->contre ?? 0,
-                'abstention' => $s->abstentions ?? 0,
-                'adopte' => ($s->pour ?? 0) > ($s->contre ?? 0),
-            ])->toArray();
+            ->get()
+            ->map(function ($s) {
+                // Utiliser les accesseurs qui calculent depuis ventilation_votes si les colonnes sont vides
+                $pour = $s->pour_calcule;
+                $contre = $s->contre_calcule;
+                $abstention = $s->abstentions_calcule;
+                
+                // Déterminer si adopté basé sur le résultat_code ou le calcul
+                $adopte = $s->resultat_code === 'adopté' || ($pour > $contre);
+                
+                return [
+                    'uid' => $s->uid,
+                    'numero' => $s->numero,
+                    'titre' => \Illuminate\Support\Str::limit($s->titre ?? 'Scrutin n°' . $s->numero, 80),
+                    'date' => $s->date_scrutin?->format('d/m/Y'),
+                    'pour' => $pour,
+                    'contre' => $contre,
+                    'abstention' => $abstention,
+                    'adopte' => $adopte,
+                ];
+            })->toArray();
         DashboardStat::set('derniers_scrutins', $derniersScrutins);
         $this->info('  ✓ ' . count($derniersScrutins) . ' scrutins');
 

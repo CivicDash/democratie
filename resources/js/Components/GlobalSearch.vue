@@ -120,22 +120,15 @@ function handleClickOutside(event) {
     }
 }
 
-// Global keyboard shortcut (⌘K / Ctrl+K)
-function handleGlobalKeydown(event) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-        event.preventDefault();
-        inputRef.value?.focus();
-    }
-}
+// Note: Ctrl+K is handled by CommandPalette component
+// This search bar is for inline searching in the header
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
-    document.addEventListener('keydown', handleGlobalKeydown);
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
-    document.removeEventListener('keydown', handleGlobalKeydown);
     clearTimeout(searchTimeout);
 });
 

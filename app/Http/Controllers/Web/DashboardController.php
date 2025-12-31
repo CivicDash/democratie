@@ -43,9 +43,10 @@ class DashboardController extends Controller
                 ->map(function ($topic) {
                     return [
                         'id' => $topic->id,
+                        'slug' => $topic->slug,
                         'titre' => $topic->title,
                         'auteur' => $topic->author->name ?? 'Anonyme',
-                        'type' => $topic->type,
+                        'type' => $topic->idea_type ?? $topic->type,
                         'scope' => $topic->scope,
                         'territoire' => $topic->territory?->name ?? 'National',
                         'nb_posts' => $topic->posts_count,
@@ -64,6 +65,7 @@ class DashboardController extends Controller
                     $stats = VotePropositionLoi::getPropositionStats($prop->id);
                     return [
                         'id' => $prop->id,
+                        'loicod' => $prop->loicod,
                         'numero' => $prop->numero,
                         'titre' => $prop->titre,
                         'source' => $prop->source,
@@ -97,6 +99,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $topic->id,
                     'topic_id' => $topic->id,
+                    'topic_slug' => $topic->slug,
                     'topic_titre' => $topic->title,
                     'question' => $topic->title,
                     'type' => $topic->ballot_type ?? 'yes_no',
@@ -151,9 +154,10 @@ class DashboardController extends Controller
             'derniers_topics' => Topic::where('author_id', $user->id)
                 ->orderByDesc('created_at')
                 ->limit(3)
-                ->get(['id', 'title', 'created_at'])
+                ->get(['id', 'slug', 'title', 'created_at'])
                 ->map(fn($t) => [
                     'id' => $t->id,
+                    'slug' => $t->slug,
                     'titre' => $t->title,
                     'date' => $t->created_at->diffForHumans(),
                 ]),

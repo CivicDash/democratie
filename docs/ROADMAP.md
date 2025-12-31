@@ -1015,6 +1015,234 @@ Modération:
 
 ---
 
+## 🏛️ PHASE 2.7 : MENU ÉTAT & DONNÉES GOUVERNEMENTALES (T1-T2 2026)
+**Objectif** : Vue d'ensemble complète de l'État français
+
+### 2.7.1 : 🏛️ Restructuration Menu "État" - Vue d'ensemble de la République
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 1 semaine  
+**Statut** : 📋 Planifié
+
+**Objectif** : Créer un menu unifié "État" regroupant toutes les institutions françaises pour offrir une vue d'ensemble complète du fonctionnement de la République.
+
+**Architecture proposée** :
+```
+📊 État
+├── 🏛️ Parlement (existant, à déplacer)
+│   ├── Assemblée Nationale (577 députés)
+│   ├── Sénat (348 sénateurs)
+│   ├── Commissions parlementaires
+│   ├── Groupes politiques
+│   └── Scrutins & Votes
+│
+├── 🏰 Gouvernement (NOUVEAU)
+│   ├── Premier Ministre
+│   ├── Ministères (avec budget/actions)
+│   ├── Secrétaires d'État
+│   └── Décrets & Nominations récentes
+│
+├── 🏛️ Élysée (NOUVEAU)
+│   ├── Président de la République
+│   ├── Agenda présidentiel (déjà implémenté!)
+│   └── Discours & Communications
+│
+├── ⚖️ Institutions (NOUVEAU)
+│   ├── Conseil Constitutionnel
+│   ├── Conseil d'État
+│   └── Cour des Comptes
+│
+├── 🗺️ Collectivités (existant, maires)
+│   ├── Régions (18)
+│   ├── Départements (101)
+│   └── Communes & Maires
+│
+└── 📈 Statistiques & Budget
+    ├── Statistiques France (existant)
+    ├── Budget de l'État
+    └── Finances publiques
+```
+
+**📡 Sources de Données Identifiées** :
+
+| Source | Données | URL/API | Statut |
+|--------|---------|---------|--------|
+| Annuaire Service-Public | Ministères, services | `lannuaire.service-public.fr/api/explore/v2.1/` | ✅ Disponible |
+| data.gouv.fr - Budget | PLF, dépenses, recettes | Datasets budget État | ✅ Disponible |
+| JORF | Décrets nomination ministres | Via commande existante | ✅ Implémenté |
+| Élysée Agenda | Agenda présidentiel | `ImportAgendaElysee.php` | ✅ Implémenté |
+| Légifrance API | Composition gouvernement | Via décrets | 🟡 À explorer |
+| Vie-Publique | Fiches ministères | Scraping possible | 🟡 À explorer |
+| info.gouv.fr/ministere | Composition gouvernement actuel | À scraper | 🔍 À valider |
+| economie.gouv.fr | Budget, finances publiques | API à identifier | 🔍 À valider |
+| conseil-constitutionnel.fr | Décisions, membres | À identifier | 🔍 À valider |
+| ccomptes.fr | Rapports, recommandations | À identifier | 🔍 À valider |
+
+**🛠️ Plan d'implémentation** :
+
+**Phase 1 : Structure du menu** (immédiat)
+- [ ] Réorganiser le menu navigation pour inclure "État" comme menu principal
+- [ ] Logos officiels SVG (AN, Sénat) ✅ Fait
+- [ ] Pages hub pour chaque section
+- [ ] Breadcrumbs contextuels
+
+**Phase 2 : Gouvernement** (1-2 jours)
+- [ ] Créer modèles `Ministre`, `Ministere`, `Gouvernement`
+- [ ] Import depuis JORF (décrets de nomination)
+- [ ] Scraper `info.gouv.fr/ministere`
+- [ ] Page `/gouvernement` avec organigramme
+
+**Phase 3 : Budget de l'État** (2-3 jours)
+- [ ] Import PLF (Projet de Loi de Finances)
+- [ ] Visualisations budget par ministère (Treemap, barres)
+- [ ] Évolution dépenses/recettes (n-5 ans)
+- [ ] Page `/budget` avec filtres
+
+**Phase 4 : Institutions** (optionnel)
+- [ ] Conseil Constitutionnel (membres, décisions QPC)
+- [ ] Cour des Comptes (rapports annuels)
+- [ ] Conseil d'État (avis)
+
+---
+
+### 2.7.2 : 💰 Import Budget de l'État
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 1-2 semaines  
+**Statut** : 📋 Planifié
+
+**Source** : data.gouv.fr - Budget de l'État par programme
+- URL : `https://www.data.gouv.fr/fr/datasets/budget-de-letat-par-programme-loi-de-finances/`
+- Format : CSV
+- Mise à jour : Annuelle (PLF)
+
+**Données à importer** :
+- Missions budgétaires (35+)
+- Programmes (150+)
+- Crédits autorisés / consommés
+- Évolution pluriannuelle (n-5 ans)
+
+**Tables à créer** :
+```sql
+CREATE TABLE budget_missions (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(10),
+    libelle VARCHAR(255),
+    annee INT
+);
+
+CREATE TABLE budget_programmes (
+    id SERIAL PRIMARY KEY,
+    mission_id INT REFERENCES budget_missions(id),
+    code VARCHAR(10),
+    libelle VARCHAR(255),
+    credits_ae DECIMAL(15,2),  -- Autorisations d'engagement
+    credits_cp DECIMAL(15,2),  -- Crédits de paiement
+    annee INT
+);
+
+CREATE TABLE budget_ministeres (
+    id SERIAL PRIMARY KEY,
+    nom VARCHAR(255),
+    budget_total DECIMAL(15,2),
+    effectifs INT,
+    annee INT
+);
+```
+
+**Tâches** :
+- [ ] Modèles Laravel (BudgetMission, BudgetProgramme, BudgetMinistere)
+- [ ] Commande `import:budget-etat`
+- [ ] Page `/budget` avec visualisations (Treemap, barres)
+- [ ] Filtres par ministère, mission, année
+- [ ] Export comparatif année N vs N-1
+
+---
+
+### 2.7.3 : 📊 Import INSEE Complet
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 2 semaines  
+**Statut** : 📋 Planifié
+
+**Sources** :
+- API INSEE : `https://portail-api.insee.fr/`
+- Data.gouv.fr : Datasets démographiques
+
+**Données à importer** :
+- Population par commune/département/région
+- Revenus médians
+- Taux de chômage
+- Pyramide des âges
+- Densité de population
+- Évolution démographique
+
+**Enrichissements** :
+- Fiches département enrichies
+- Comparaison régionale
+- Corrélation avec votes
+
+**Tâches** :
+- [ ] Inscription API INSEE (clé API)
+- [ ] Modèles (DonneesDemographiques, DonneesEconomiques)
+- [ ] Commande `import:insee`
+- [ ] Enrichissement page Statistiques France
+- [ ] Visualisations cartographiques
+
+---
+
+### 2.7.4 : 🏛️ Import Composition Gouvernement
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 semaine  
+**Statut** : 📋 Planifié
+
+**Sources** :
+- info.gouv.fr/ministere (scraping)
+- JORF (décrets de nomination)
+- data.gouv.fr (RNE - élus)
+
+**Données à importer** :
+- Ministres en fonction
+- Ministères et attributions
+- Secrétaires d'État
+- Historique des gouvernements
+
+**Tables à créer** :
+```sql
+CREATE TABLE gouvernements (
+    id SERIAL PRIMARY KEY,
+    premier_ministre VARCHAR(255),
+    date_debut DATE,
+    date_fin DATE,
+    president VARCHAR(255)
+);
+
+CREATE TABLE ministeres (
+    id SERIAL PRIMARY KEY,
+    nom VARCHAR(255),
+    sigle VARCHAR(50),
+    type VARCHAR(50),  -- ministere, secretariat_etat
+    gouvernement_id INT
+);
+
+CREATE TABLE ministres (
+    id SERIAL PRIMARY KEY,
+    nom VARCHAR(255),
+    prenom VARCHAR(255),
+    ministere_id INT,
+    fonction VARCHAR(255),
+    date_debut DATE,
+    date_fin DATE,
+    photo_url VARCHAR(500)
+);
+```
+
+**Tâches** :
+- [ ] Modèles Laravel (Gouvernement, Ministere, Ministre)
+- [ ] Commande `import:gouvernement`
+- [ ] Page `/gouvernement` avec organigramme
+- [ ] Liaison avec déclarations HATVP
+- [ ] Historique des gouvernements
+
+---
+
 ## 🌐 PHASE 3 : OPEN DATA & INTÉGRATIONS (T3 2026)
 **Objectif** : Enrichir avec des sources externes
 
@@ -1203,21 +1431,25 @@ Modération:
 | DILA/JORF | XML (data.gouv.fr) | ✅ Lois, décrets, ordonnances |
 | Élysée | HTML (scraping) | ✅ Agenda présidentiel |
 
-### À intégrer 🔄
-| Source | URL | Priorité |
-|--------|-----|----------|
-| Légifrance (PISTE) | piste.gouv.fr | 🔴 Critique |
-| data.economie.gouv.fr | API v2.1 | 🟡 Haute |
-| data.drees.solidarites-sante.gouv.fr | API | 🟡 Haute |
-| Conseil Constitutionnel | À identifier | 🟢 Moyenne |
-| Cour des Comptes | À identifier | 🟢 Moyenne |
+### À intégrer 🔄 - PRIORITÉ T1 2026
+| Source | URL | Priorité | Données |
+|--------|-----|----------|---------|
+| **Budget de l'État** | data.gouv.fr/budget | 🔴 CRITIQUE | PLF, dépenses/recettes par ministère |
+| **INSEE Démographie** | api.insee.fr | 🔴 CRITIQUE | Population, revenus, emploi par commune |
+| **Gouvernement** | info.gouv.fr/ministere | 🔴 CRITIQUE | Ministres, ministères, organigramme |
+| Légifrance (PISTE) | piste.gouv.fr | 🟡 Haute | Textes consolidés (accès restreint) |
+| data.economie.gouv.fr | API v2.1 | 🟡 Haute | Marchés publics, finances |
+| Résultats électoraux | data.gouv.fr/elections | 🟡 Haute | Historique votes par bureau |
+| Conseil Constitutionnel | conseil-constitutionnel.fr | 🟢 Moyenne | Décisions QPC |
+| Cour des Comptes | ccomptes.fr | 🟢 Moyenne | Rapports annuels |
 
 ### À explorer 🔍
-| Source | Contact |
-|--------|---------|
-| Open Data France | opendatafrance.fr |
-| data.gouv.fr | Catalogue général |
-| HAL / OpenEdition | Recherche académique |
+| Source | Contact | Potentiel |
+|--------|---------|-----------|
+| Open Data France | opendatafrance.fr | Partenariat |
+| data.gouv.fr | Catalogue général | Nouveaux datasets |
+| HAL / OpenEdition | Recherche académique | Études politiques |
+| HATVP complet | hatvp.fr/open-data | Déclarations exhaustives |
 
 ---
 
@@ -1245,17 +1477,32 @@ Modération:
 17. ✅ Stats pré-calculées élus (Députés/Sénateurs/Maires)
 18. ✅ Correction durée des lois (valeurs négatives)
 
+### ✅ Accompli semaine 3 (31 décembre)
+19. ✅ Fix menu Données (dropdown non cliquable)
+20. ✅ Recherche globale améliorée (CommandPalette + API)
+21. ✅ Logos officiels SVG (AN, Sénat) dans le menu
+22. ✅ Dashboard widgets cliquables + calcul scrutins
+23. ✅ Hero banner dashboard uniformisé
+
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
 2. 🔄 Interpellation des élus
+3. 🔄 Menu "État" restructuré
 
-### Prochaines étapes (Janvier 2026)
+### 🔴 Priorité T1 2026 - Données Gouvernementales
+1. [ ] **Import Budget de l'État** (data.gouv.fr PLF)
+2. [ ] **Import INSEE complet** (démographie, économie)
+3. [ ] **Import Gouvernement** (ministres, ministères)
+4. [ ] Menu "État" unifié (Parlement, Gouvernement, Élysée)
+5. [ ] Pages hub par institution
+
+### Prochaines étapes (Janvier-Février 2026)
 1. [ ] Wizard création idée (5 étapes)
 2. [ ] Liaison idées ↔ élus (interpellation)
 3. [ ] Suggestions IA pour catégories/tags
 4. [ ] Questions Écrites Sénat (import base SQL)
 5. [ ] Recherche globale Meilisearch multi-modèles
-6. [ ] Migration PHP 8.5 + FrankenPHP
+6. [ ] Résultats électoraux historiques
 
 ---
 
@@ -1317,7 +1564,7 @@ CivicDash vise à devenir **la référence citoyenne** pour comprendre et partic
 
 ---
 
-**Maintenu par** : CivicDash Core Team  
-**Version** : 2.2  
-**Dernière mise à jour** : 30 décembre 2025  
+**Maintenu par** : CivicDash Core Team / Civis Consilium  
+**Version** : 2.3  
+**Dernière mise à jour** : 31 décembre 2025  
 **Licence** : AGPL-3.0 Open Source

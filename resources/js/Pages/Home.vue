@@ -256,7 +256,7 @@ const searchRepresentants = () => {
                 
                 <div class="grid md:grid-cols-3 gap-6">
                     <Link 
-                        :href="route('topics.index')"
+                        :href="route('participation.ideas.index')"
                         class="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 hover:shadow-lg transition-all"
                     >
                         <div class="text-3xl mb-3">💬</div>

@@ -87,30 +87,59 @@ const getScoreClass = (score) => {
 
     <AuthenticatedLayout>
         <div class="min-h-screen bg-slate-50 dark:bg-slate-900">
-            <!-- Header avec bienvenue -->
-            <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-800 dark:via-teal-800 dark:to-cyan-800">
-                <div class="px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <!-- Hero Banner unifié -->
+            <div class="relative bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-800 dark:via-teal-800 dark:to-cyan-800 overflow-hidden">
+                <!-- Motif de fond -->
+                <div class="absolute inset-0 opacity-10">
+                    <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="dashboard-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="1" class="text-white"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#dashboard-grid)" />
+                    </svg>
+                </div>
+                <!-- Cercles décoratifs -->
+                <div class="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+                <div class="absolute -bottom-32 -left-32 w-80 h-80 bg-cyan-400/20 rounded-full blur-3xl"></div>
+                
+                <div class="relative px-4 sm:px-6 lg:px-8 xl:px-12 py-8 lg:py-12">
+                    <!-- Breadcrumb -->
+                    <nav class="flex items-center gap-2 text-sm text-emerald-100 mb-6">
+                        <Link :href="route('dashboard')" class="hover:text-white transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                        </Link>
+                        <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-white font-medium">Tableau de bord</span>
+                    </nav>
+                    
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                         <div>
-                            <h1 class="text-2xl sm:text-3xl font-bold text-white">
-                                {{ greeting }}, {{ user?.name?.split(' ')[0] || 'Citoyen' }} 👋
+                            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white flex items-center gap-3">
+                                <span class="text-3xl lg:text-4xl">👋</span>
+                                {{ greeting }}, {{ user?.name?.split(' ')[0] || 'Citoyen' }}
                             </h1>
-                            <p class="text-emerald-100 mt-1">
+                            <p class="text-emerald-100 mt-2 text-lg">
                                 Bienvenue sur votre tableau de bord CivicDash
                             </p>
                         </div>
                         
                         <!-- Quick Stats -->
-                        <div class="flex flex-wrap gap-4">
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px]">
+                        <div class="flex flex-wrap gap-3 lg:gap-4">
+                            <div class="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px] border border-white/10">
                                 <div class="text-2xl font-bold text-white">{{ globalStats?.total_topics || 0 }}</div>
                                 <div class="text-xs text-emerald-100">Discussions</div>
                             </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px]">
+                            <div class="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px] border border-white/10">
                                 <div class="text-2xl font-bold text-white">{{ globalStats?.total_votes || 0 }}</div>
                                 <div class="text-xs text-emerald-100">Votes citoyens</div>
                             </div>
-                            <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px]">
+                            <div class="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px] border border-white/10">
                                 <div class="text-2xl font-bold text-white">{{ globalStats?.total_propositions || 0 }}</div>
                                 <div class="text-xs text-emerald-100">Propositions</div>
                             </div>
@@ -163,15 +192,15 @@ const getScoreClass = (score) => {
                     </Link>
                     
                     <Link
-                        href="/topics"
+                        :href="route('participation.ideas.index')"
                         class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-purple-500 hover:shadow-lg transition-all flex items-center gap-3"
                     >
                         <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="text-lg">💬</span>
+                            <span class="text-lg">💡</span>
                         </div>
                         <div>
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm">Forum</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Discussions</p>
+                            <p class="font-semibold text-slate-900 dark:text-white text-sm">Idées</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Citoyennes</p>
                         </div>
                     </Link>
                     
@@ -219,7 +248,7 @@ const getScoreClass = (score) => {
                                         <p class="text-xs text-slate-500 dark:text-slate-400">Les discussions les plus populaires</p>
                                     </div>
                                 </div>
-                                <Link href="/topics" class="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
+                                <Link :href="route('participation.ideas.index')" class="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
                                     Voir tout →
                                 </Link>
                             </div>
@@ -228,8 +257,8 @@ const getScoreClass = (score) => {
                                 <div v-if="!trendingTopics || trendingTopics.length === 0" class="text-center py-12 text-slate-500 dark:text-slate-400">
                                     <span class="text-4xl mb-3 block">💬</span>
                                     <p>Aucune discussion pour le moment</p>
-                                    <Link href="/topics/create" class="text-sm text-emerald-600 hover:underline mt-2 inline-block">
-                                        Créer le premier sujet →
+                                    <Link :href="route('participation.ideas.create')" class="text-sm text-emerald-600 hover:underline mt-2 inline-block">
+                                        Créer une idée →
                                     </Link>
                                 </div>
                                 
@@ -237,7 +266,7 @@ const getScoreClass = (score) => {
                                     <Link
                                         v-for="topic in trendingTopics"
                                         :key="topic.id"
-                                        :href="`/topics/${topic.id}`"
+                                        :href="route('participation.ideas.show', topic.slug || topic.id)"
                                         class="block p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-transparent hover:border-emerald-500/30 transition-all"
                                     >
                                         <div class="flex items-start gap-3">
@@ -264,7 +293,7 @@ const getScoreClass = (score) => {
                             </div>
                         </div>
 
-                        <!-- Propositions de Loi -->
+                        <!-- Propositions de Loi (cliquables) -->
                         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                                 <div class="flex items-center gap-3">
@@ -273,9 +302,12 @@ const getScoreClass = (score) => {
                                     </div>
                                     <div>
                                         <h3 class="font-bold text-slate-900 dark:text-white">Propositions de Loi</h3>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400">Votez pour exprimer votre avis</p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">Cliquez pour voter et voir le détail</p>
                                     </div>
                                 </div>
+                                <Link :href="route('lois.index')" class="text-sm font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400">
+                                    Voir tout →
+                                </Link>
                             </div>
                             
                             <div class="p-4">
@@ -285,10 +317,11 @@ const getScoreClass = (score) => {
                                 </div>
                                 
                                 <div v-else class="space-y-3">
-                                    <div
+                                    <Link
                                         v-for="prop in propositionsLegislatives"
                                         :key="prop.id"
-                                        class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600"
+                                        :href="prop.loicod ? route('lois.show', prop.loicod) : '#'"
+                                        class="block p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-slate-200 dark:border-slate-600 hover:border-purple-500/30 transition-all cursor-pointer"
                                     >
                                         <div class="flex items-start gap-3 mb-3">
                                             <span class="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
@@ -300,6 +333,9 @@ const getScoreClass = (score) => {
                                                     {{ prop.titre }}
                                                 </h4>
                                             </div>
+                                            <svg class="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
                                         </div>
                                         
                                         <!-- Vote stats -->
@@ -322,7 +358,7 @@ const getScoreClass = (score) => {
                                                 {{ prop.votes_stats?.score > 0 ? '+' : '' }}{{ prop.votes_stats?.score || 0 }}
                                             </span>
                                         </div>
-                                    </div>
+                                    </Link>
                                 </div>
                             </div>
                         </div>
@@ -511,7 +547,7 @@ const getScoreClass = (score) => {
                                     <Link
                                         v-for="vote in votesEnCours"
                                         :key="vote.id"
-                                        :href="`/topics/${vote.topic_id}`"
+                                        :href="route('participation.ideas.show', vote.topic_slug || vote.topic_id)"
                                         class="block p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-transparent hover:border-emerald-500/30 transition-all"
                                     >
                                         <div class="flex items-start gap-3">
@@ -553,7 +589,7 @@ const getScoreClass = (score) => {
                                         <Link
                                             v-for="topic in userActivity.derniers_topics"
                                             :key="topic.id"
-                                            :href="`/topics/${topic.id}`"
+                                            :href="route('participation.ideas.show', topic.slug || topic.id)"
                                             class="block p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                                         >
                                             <p class="font-medium text-slate-900 dark:text-white text-sm truncate">{{ topic.titre }}</p>
@@ -583,8 +619,8 @@ const getScoreClass = (score) => {
                                 <div v-if="(!userActivity?.derniers_topics || userActivity.derniers_topics.length === 0) && (!userActivity?.derniers_votes_loi || userActivity.derniers_votes_loi.length === 0)" class="text-center py-8 text-slate-500 dark:text-slate-400">
                                     <span class="text-3xl mb-2 block">📝</span>
                                     <p class="text-sm">Aucune activité récente</p>
-                                    <Link href="/topics/create" class="text-sm text-emerald-600 hover:underline mt-2 inline-block">
-                                        Créer votre premier sujet →
+                                    <Link :href="route('participation.ideas.create')" class="text-sm text-emerald-600 hover:underline mt-2 inline-block">
+                                        Créer votre première idée →
                                     </Link>
                                 </div>
                             </div>

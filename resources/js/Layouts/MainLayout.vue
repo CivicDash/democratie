@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import CommandPalette from '@/Components/CommandPalette.vue';
 
 defineProps({
     title: String,
@@ -11,6 +12,7 @@ defineProps({
 const showingNavigationDropdown = ref(false);
 const showRepresentantsMenu = ref(false);
 const showLegislationMenu = ref(false);
+const showCommandPalette = ref(false);
 
 const logout = () => {
     router.post(route('logout'));
@@ -26,12 +28,28 @@ const closeMenus = () => {
     showLegislationMenu.value = false;
 };
 
+// Gestion des raccourcis clavier
+const handleKeydown = (e) => {
+    // Ctrl+K ou Cmd+K : Ouvrir la CommandPalette
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        showCommandPalette.value = true;
+    }
+    // / : Ouvrir la CommandPalette (si pas dans un input)
+    if (e.key === "/" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
+        e.preventDefault();
+        showCommandPalette.value = true;
+    }
+};
+
 onMounted(() => {
     document.addEventListener('click', closeMenus);
+    document.addEventListener('keydown', handleKeydown);
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', closeMenus);
+    document.removeEventListener('keydown', handleKeydown);
 });
 
 // Vérifier si une route est active
@@ -273,16 +291,16 @@ const isActive = (pattern) => {
                                     Calendrier
                                 </Link>
 
-                                <!-- Forum -->
+                                <!-- Participation -->
                                 <Link 
-                                    :href="route('topics.index')" 
+                                    :href="route('participation.ideas.index')" 
                                     class="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-                                    :class="isActive('/topics') 
+                                    :class="isActive('/participation') 
                                         ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300' 
                                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'"
                                 >
-                                    <span class="text-lg">💬</span>
-                                    Forum
+                                    <span class="text-lg">💡</span>
+                                    Idées citoyennes
                                 </Link>
                             </div>
                         </div>
@@ -379,7 +397,10 @@ const isActive = (pattern) => {
                         </Link>
                         
                         <!-- Assemblée Nationale -->
-                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-2">🏛️ Assemblée Nationale</div>
+                        <div class="flex items-center gap-2 mt-4 mb-2">
+                            <img src="/images/Logo_de_l'Assemblée_nationale_française.svg" alt="AN" class="w-4 h-4 object-contain" />
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assemblée Nationale</span>
+                        </div>
                         <Link :href="route('representants.deputes.index')" class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
                             <span class="flex items-center gap-2"><span>👥</span> Députés</span>
                             <span class="text-xs text-slate-400">577</span>
@@ -392,7 +413,10 @@ const isActive = (pattern) => {
                         </Link>
                         
                         <!-- Sénat -->
-                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-2">🏰 Sénat</div>
+                        <div class="flex items-center gap-2 mt-4 mb-2">
+                            <img src="/images/Logo_du_Sénat_Republique_française.svg" alt="Sénat" class="w-4 h-4 object-contain" />
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sénat</span>
+                        </div>
                         <Link :href="route('representants.senateurs.index')" class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
                             <span class="flex items-center gap-2"><span>👥</span> Sénateurs</span>
                             <span class="text-xs text-slate-400">348</span>
@@ -424,8 +448,8 @@ const isActive = (pattern) => {
                         <Link :href="route('parlement.calendrier.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
                             <span>📅</span> Calendrier
                         </Link>
-                        <Link :href="route('topics.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
-                            <span>💬</span> Forum
+                        <Link :href="route('participation.ideas.index')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <span>💡</span> Idées citoyennes
                         </Link>
                     </div>
 
@@ -515,4 +539,7 @@ const isActive = (pattern) => {
             </footer>
         </div>
     </div>
+
+    <!-- Command Palette (Ctrl+K) -->
+    <CommandPalette v-model="showCommandPalette" />
 </template>

@@ -19,7 +19,7 @@
         </Link>
 
         <Link 
-            :href="route('topics.index')" 
+            :href="route('participation.ideas.index')" 
             class="nav-item"
             :class="{ 'active': route().current('topics.*') }"
         >
