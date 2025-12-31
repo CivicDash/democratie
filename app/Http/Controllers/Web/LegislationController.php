@@ -264,10 +264,10 @@ class LegislationController extends Controller
             } elseif ($scrutin->resultat_code === 'rejeté') {
                 $rejetes++;
             } 
-            // Sinon, calculer depuis les votes
-            elseif ($scrutin->pour > $scrutin->contre) {
+            // Sinon, calculer depuis les votes (utiliser les accesseurs calculés)
+            elseif ($scrutin->pour_calcule > $scrutin->contre_calcule) {
                 $adoptes++;
-            } elseif ($scrutin->contre > $scrutin->pour) {
+            } elseif ($scrutin->contre_calcule > $scrutin->pour_calcule) {
                 $rejetes++;
             }
         }
@@ -279,14 +279,19 @@ class LegislationController extends Controller
             'taux_adoption' => $total > 0 ? round(($adoptes / $total) * 100, 1) : 0,
         ];
 
-        // Transformer les données
+        // Transformer les données - utiliser les accesseurs calculés
         $scrutinsData = $scrutins->through(function($s) {
+            // Utiliser les valeurs calculées depuis ventilation_votes si colonnes vides
+            $pour = $s->pour_calcule;
+            $contre = $s->contre_calcule;
+            $abstentions = $s->abstentions_calcule;
+            
             // Déterminer le résultat si non défini
             $resultat = $s->resultat_libelle;
             if (!$resultat) {
-                if ($s->pour > $s->contre) {
+                if ($pour > $contre) {
                     $resultat = 'Adopté';
-                } elseif ($s->contre > $s->pour) {
+                } elseif ($contre > $pour) {
                     $resultat = 'Rejeté';
                 } else {
                     $resultat = 'Égalité';
@@ -297,11 +302,10 @@ class LegislationController extends Controller
                 'uid' => $s->uid,
                 'numero' => $s->numero,
                 'titre' => $s->titre,
-                // Note: 'objet' n'existe pas dans scrutins_an
                 'date' => $s->date_scrutin?->format('d/m/Y'),
-                'pour' => $s->pour,
-                'contre' => $s->contre,
-                'abstentions' => $s->abstentions,
+                'pour' => $pour,
+                'contre' => $contre,
+                'abstentions' => $abstentions,
                 'resultat_code' => $s->resultat_code,
                 'resultat_libelle' => $resultat,
             ];

@@ -129,7 +129,7 @@ const formatNumber = (num) => {
                 <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
             </div>
             
-            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+            <div class="relative w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
                 <!-- Breadcrumb -->
                 <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-4 hidden sm:block" />
                 
@@ -179,7 +179,7 @@ const formatNumber = (num) => {
         <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
             <!-- Quick Sort Tabs - Sticky -->
             <div class="sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="w-full px-4 sm:px-6 lg:px-8">
                     <div class="flex items-center justify-between py-3">
                         <!-- Sort Tabs -->
                         <div class="flex gap-1 sm:gap-2">
@@ -267,7 +267,7 @@ const formatNumber = (num) => {
                 </div>
             </div>
 
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="w-full px-4 sm:px-6 lg:px-8 py-6">
                 <div class="flex gap-8">
                     <!-- Desktop Sidebar Filters -->
                     <aside class="hidden lg:block w-64 shrink-0 space-y-4">
