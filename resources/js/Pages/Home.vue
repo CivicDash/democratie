@@ -193,11 +193,11 @@ const searchRepresentants = () => {
                 <div class="grid md:grid-cols-4 gap-6">
                     <!-- Statistiques élus -->
                     <Link 
-                        :href="route('parlement.statistiques')"
+                        :href="route('statistics.france')"
                         class="group p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800 hover:shadow-lg transition-all"
                     >
                         <div class="text-3xl mb-3">📊</div>
-                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Statistiques des élus</h3>
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2">Statistiques France</h3>
                         <p class="text-slate-600 dark:text-slate-400 text-sm">
                             Parité, âge, professions des députés, sénateurs et maires.
                         </p>
