@@ -19,6 +19,10 @@ createInertiaApp({
         ),
     
     setup({ el, App, props, plugin }) {
+        console.log('🚀 CivicDash: Vue app starting...');
+        console.log('📍 Mount element:', el);
+        console.log('📊 Props:', props);
+        
         const app = createApp({ render: () => h(App, props) });
         
         // ✅ GLOBAL ERROR HANDLER pour voir les erreurs Vue (MODE DEBUG)
@@ -28,18 +32,15 @@ createInertiaApp({
             console.error('ℹ️ Info:', info);
             console.error('📊 Stack:', err.stack);
             
-            // NOTE: Affichage sur page désactivé pour production
-            // Décommentez pour debug visuel si nécessaire
-            /*
+            // MODE DEBUG ACTIVÉ - Affichage erreurs sur page
             document.body.insertAdjacentHTML('beforeend', `
-                <div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:20px;z-index:9999;font-family:monospace;white-space:pre-wrap;">
+                <div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:20px;z-index:9999;font-family:monospace;white-space:pre-wrap;max-height:50vh;overflow:auto;">
                     <strong>🔴 VUE ERROR:</strong><br>
                     ${err.message}<br><br>
                     <strong>Stack:</strong><br>
                     ${err.stack || 'No stack trace'}
                 </div>
             `);
-            */
         };
         
         // ✅ Activer les devtools en production
