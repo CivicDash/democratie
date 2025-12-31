@@ -28,6 +28,13 @@ const submit = () => {
         onFinish: () => form.reset('password'),
     });
 };
+
+// Remplir avec le compte démo citoyen
+const fillDemoAccount = () => {
+    form.email = 'citoyen@example.com';
+    form.password = 'password';
+    form.remember = true;
+};
 </script>
 
 <template>
@@ -63,6 +70,21 @@ const submit = () => {
                     Ou connexion classique
                 </span>
             </div>
+        </div>
+
+        <!-- Bouton compte démo -->
+        <div class="mb-6">
+            <button
+                type="button"
+                @click="fillDemoAccount"
+                class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            >
+                <span class="text-xl">🎭</span>
+                <span>Utiliser le compte démo</span>
+            </button>
+            <p class="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+                Accédez à une version de démonstration avec un compte citoyen fictif
+            </p>
         </div>
 
         <!-- Formulaire classique -->
