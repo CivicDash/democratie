@@ -407,9 +407,9 @@ const formatNumber = (num) => {
                         <!-- Lois Grid -->
                         <div v-if="lois.data?.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <Link
-                                v-for="loi in lois.data"
+                                v-for="loi in lois.data.filter(l => l.loicod)"
                                 :key="loi.loicod"
-                                :href="route('lois.show', loi.loicod)"
+                                :href="route('lois.show', loi.loicod.trim())"
                                 class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 
                                        hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-lg
                                        transition-all duration-200 overflow-hidden"
