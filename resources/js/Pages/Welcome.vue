@@ -91,6 +91,7 @@ const steps = [
                     <div class="hidden md:flex items-center gap-6">
                         <a href="#fonctionnalites" class="text-slate-400 hover:text-white transition">Fonctionnalités</a>
                         <a href="#comment-ca-marche" class="text-slate-400 hover:text-white transition">Comment ça marche</a>
+                        <a href="#franceconnect" class="text-slate-400 hover:text-white transition">FranceConnect+</a>
                         <a href="https://civis-consilium.eu" target="_blank" class="text-slate-400 hover:text-white transition">Association</a>
                     </div>
                     
@@ -271,6 +272,158 @@ const steps = [
                         </div>
                         <h3 class="text-xl font-bold text-white mb-3">{{ step.title }}</h3>
                         <p class="text-slate-400">{{ step.desc }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FranceConnect+ Section -->
+        <section id="franceconnect" class="py-20 lg:py-32 bg-slate-900/50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <!-- Texte explicatif -->
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium mb-6 border border-blue-500/30">
+                            <span>🔐</span>
+                            <span>Identité numérique officielle</span>
+                        </div>
+                        
+                        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">
+                            Pourquoi <span class="text-blue-400">FranceConnect+</span> ?
+                        </h2>
+                        
+                        <p class="text-lg text-slate-300 mb-6">
+                            Pour que chaque vote citoyen soit <strong class="text-white">légitime et unique</strong>, 
+                            CivicDash utilise FranceConnect+, le service d'identité numérique de l'État français.
+                        </p>
+                        
+                        <div class="space-y-4 mb-8">
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl flex-shrink-0">
+                                    ✅
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-white mb-1">Un citoyen = un vote</h4>
+                                    <p class="text-slate-400 text-sm">
+                                        Grâce à la vérification d'identité, impossible de voter plusieurs fois. 
+                                        Chaque participation est authentique et représente vraiment l'avis d'un citoyen français.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-xl flex-shrink-0">
+                                    🔒
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-white mb-1">Anonymat total préservé</h4>
+                                    <p class="text-slate-400 text-sm">
+                                        CivicDash ne stocke <strong class="text-white">aucune donnée personnelle</strong>. 
+                                        Nous recevons uniquement un « jeton » anonyme qui confirme que vous êtes bien un citoyen vérifié.
+                                        Votre identité et vos votes restent confidentiels.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-xl flex-shrink-0">
+                                    🏛️
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-white mb-1">Ouvert aux associations</h4>
+                                    <p class="text-slate-400 text-sm">
+                                        FranceConnect+ s'ouvre désormais aux associations comme Civis-Consilium, 
+                                        permettant de créer des outils de participation citoyenne fiables et légitimes.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center text-xl flex-shrink-0">
+                                    🇫🇷
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-white mb-1">Technologie d'État</h4>
+                                    <p class="text-slate-400 text-sm">
+                                        La même technologie utilisée par les services publics français (impôts, CPAM, CAF...) 
+                                        pour garantir la sécurité de vos données et la fiabilité du système.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p class="text-sm text-slate-500 italic">
+                            💡 L'utilisation de FranceConnect+ est optionnelle. Vous pouvez toujours 
+                            participer aux débats avec un compte classique, mais seuls les comptes vérifiés 
+                            peuvent participer aux votes officiels.
+                        </p>
+                    </div>
+                    
+                    <!-- Illustration visuelle -->
+                    <div class="relative">
+                        <div class="bg-gradient-to-br from-blue-900/50 to-indigo-900/50 rounded-3xl p-8 border border-blue-500/20">
+                            <!-- Schéma simplifié du processus -->
+                            <div class="space-y-6">
+                                <h3 class="text-center text-white font-semibold mb-8">Comment ça fonctionne ?</h3>
+                                
+                                <!-- Étape 1 -->
+                                <div class="flex items-center gap-4 bg-white/5 rounded-xl p-4">
+                                    <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">1</div>
+                                    <div>
+                                        <p class="text-white font-medium">Vous cliquez sur « Connexion FranceConnect+ »</p>
+                                        <p class="text-slate-400 text-sm">Redirection sécurisée vers le site officiel</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Flèche -->
+                                <div class="flex justify-center">
+                                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                    </svg>
+                                </div>
+                                
+                                <!-- Étape 2 -->
+                                <div class="flex items-center gap-4 bg-white/5 rounded-xl p-4">
+                                    <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">2</div>
+                                    <div>
+                                        <p class="text-white font-medium">L'État vérifie votre identité</p>
+                                        <p class="text-slate-400 text-sm">Via vos identifiants habituels (impots.gouv, Ameli...)</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Flèche -->
+                                <div class="flex justify-center">
+                                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                    </svg>
+                                </div>
+                                
+                                <!-- Étape 3 -->
+                                <div class="flex items-center gap-4 bg-white/5 rounded-xl p-4">
+                                    <div class="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold">3</div>
+                                    <div>
+                                        <p class="text-white font-medium">CivicDash reçoit un jeton anonyme</p>
+                                        <p class="text-slate-400 text-sm">✨ Aucune donnée personnelle, juste la confirmation</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Résultat -->
+                                <div class="mt-6 p-4 bg-emerald-500/20 rounded-xl border border-emerald-500/30 text-center">
+                                    <p class="text-emerald-400 font-semibold">🎉 Votre compte est vérifié !</p>
+                                    <p class="text-slate-400 text-sm mt-1">Vous pouvez maintenant voter en toute légitimité</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Badge FranceConnect -->
+                        <div class="absolute -bottom-4 -right-4 bg-white rounded-xl p-3 shadow-xl">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 bg-[#034EA2] rounded flex items-center justify-center">
+                                    <span class="text-white text-xs font-bold">FC+</span>
+                                </div>
+                                <span class="text-xs font-medium text-gray-600">Partenaire officiel</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
