@@ -183,7 +183,7 @@ const activeTab = ref('scrutins');
         <!-- Contenu Topics -->
         <div v-show="activeTab === 'topics'" class="space-y-4">
           <Card v-for="topic in topics.data" :key="topic.id">
-            <Link :href="route('topics.show', topic.id)" class="block group">
+            <Link :href="route('participation.ideas.show', topic.slug || topic.id)" class="block group">
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">

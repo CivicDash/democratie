@@ -241,7 +241,7 @@ class ParticipationController extends Controller
                 ->with('success', 'Votre contribution a été publiée !');
         }
 
-        return redirect()->route('topics.show', $topic->slug ?: $topic->id)
+        return redirect()->route('participation.ideas.show', $topic->slug ?: $topic->id)
             ->with('success', 'Votre contribution a été publiée !');
     }
 

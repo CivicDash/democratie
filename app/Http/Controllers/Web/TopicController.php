@@ -220,7 +220,7 @@ class TopicController extends Controller
             $request->validated()
         );
 
-        return redirect()->route('topics.show', $topic)
+        return redirect()->route('participation.ideas.show', $topic->slug ?: $topic->id)
             ->with('success', 'Sujet créé avec succès !');
     }
 
@@ -245,7 +245,7 @@ class TopicController extends Controller
     {
         $this->topicService->updateTopic($topic, $request->validated());
 
-        return redirect()->route('topics.show', $topic)
+        return redirect()->route('participation.ideas.show', $topic->slug ?: $topic->id)
             ->with('success', 'Sujet mis à jour avec succès !');
     }
 
