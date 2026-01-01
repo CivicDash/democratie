@@ -1,0 +1,180 @@
+{
+    "metadata": {
+        "source": "https://www.info.gouv.fr/composition-du-gouvernement",
+        "last_update": "2026-01-01",
+        "notes": "Gouvernement Lecornu - Nommé le 5 octobre 2025"
+    },
+    "gouvernement": {
+        "nom": "Gouvernement Lecornu",
+        "premier_ministre": "Sébastien Lecornu",
+        "president": "Emmanuel Macron",
+        "date_debut": "2025-10-05",
+        "legislature": "17"
+    },
+    "ministeres": [
+        {
+            "nom": "Premier ministre",
+            "sigle": "PM",
+            "site_web": "https://www.gouvernement.fr",
+            "adresse": "Hôtel de Matignon, 57 rue de Varenne, 75007 Paris",
+            "telephone": "01 42 75 80 00",
+            "ordre": 1
+        },
+        {
+            "nom": "Ministère de l'Intérieur",
+            "sigle": "MINT",
+            "site_web": "https://www.interieur.gouv.fr/",
+            "adresse": "Place Beauvau, 75008 Paris",
+            "telephone": null,
+            "ordre": 2
+        },
+        {
+            "nom": "Ministère des Armées et des Anciens combattants",
+            "sigle": "MINARM",
+            "site_web": "https://www.defense.gouv.fr/",
+            "adresse": "Hôtel de Brienne, 14 rue Saint-Dominique, 75007 Paris",
+            "telephone": null,
+            "ordre": 3
+        },
+        {
+            "nom": "Ministère du Travail et des Solidarités",
+            "sigle": "MTRAV",
+            "site_web": "https://travail-emploi.gouv.fr/",
+            "adresse": "14 avenue Duquesne, 75007 Paris",
+            "telephone": "01 40 56 60 00",
+            "ordre": 4
+        },
+        {
+            "nom": "Ministère de la Justice",
+            "sigle": "MJ",
+            "site_web": "https://www.justice.gouv.fr/",
+            "adresse": "13 place Vendôme, 75001 Paris",
+            "telephone": "01 44 77 60 60",
+            "ordre": 5
+        },
+        {
+            "nom": "Ministère de l'Économie, des Finances et de la Souveraineté industrielle, énergétique et numérique",
+            "sigle": "MEFSIN",
+            "site_web": "https://www.economie.gouv.fr/",
+            "adresse": "139 rue de Bercy, 75012 Paris",
+            "telephone": "01 40 04 04 04",
+            "ordre": 6
+        },
+        {
+            "nom": "Ministère des Petites et moyennes entreprises, du Commerce, de l'Artisanat, du Tourisme et du Pouvoir d'achat",
+            "sigle": "MPME",
+            "site_web": null,
+            "adresse": null,
+            "telephone": null,
+            "ordre": 7
+        },
+        {
+            "nom": "Ministère de l'Agriculture, de l'Agro-alimentaire et de la Souveraineté alimentaire",
+            "sigle": "MAA",
+            "site_web": "https://agriculture.gouv.fr/",
+            "adresse": "Hôtel de Villeroy, 78 rue de Varenne, 75007 Paris",
+            "telephone": "01 49 55 49 55",
+            "ordre": 8
+        },
+        {
+            "nom": "Ministère de l'Éducation nationale",
+            "sigle": "MEN",
+            "site_web": "https://www.education.gouv.fr/",
+            "adresse": "Hôtel de Rochechouart, 110 rue de Grenelle, 75007 Paris",
+            "telephone": "01 55 55 10 10",
+            "ordre": 9
+        }
+    ],
+    "membres": [
+        {
+            "prenom": "Sébastien",
+            "nom": "Lecornu",
+            "fonction": "Premier ministre",
+            "type": "premier_ministre",
+            "ministere": "Premier ministre",
+            "parti": "Renaissance",
+            "sexe": "M",
+            "photo_url": null
+        },
+        {
+            "prenom": "Laurent",
+            "nom": "Nunez",
+            "fonction": "Ministre de l'Intérieur",
+            "type": "ministre",
+            "ministere": "Ministère de l'Intérieur",
+            "parti": null,
+            "sexe": "M",
+            "photo_url": null
+        },
+        {
+            "prenom": "Catherine",
+            "nom": "Vautrin",
+            "fonction": "Ministre des Armées et des Anciens combattants",
+            "type": "ministre",
+            "ministere": "Ministère des Armées et des Anciens combattants",
+            "parti": "LR",
+            "sexe": "F",
+            "photo_url": null
+        },
+        {
+            "prenom": "Jean-Pierre",
+            "nom": "Farandou",
+            "fonction": "Ministre du Travail et des Solidarités",
+            "type": "ministre",
+            "ministere": "Ministère du Travail et des Solidarités",
+            "parti": null,
+            "sexe": "M",
+            "photo_url": null
+        },
+        {
+            "prenom": "Gérald",
+            "nom": "Darmanin",
+            "fonction": "Garde des Sceaux, ministre de la Justice",
+            "type": "ministre",
+            "ministere": "Ministère de la Justice",
+            "parti": "Renaissance",
+            "sexe": "M",
+            "photo_url": null
+        },
+        {
+            "prenom": "Roland",
+            "nom": "Lescure",
+            "fonction": "Ministre de l'Économie, des Finances et de la Souveraineté industrielle, énergétique et numérique",
+            "type": "ministre",
+            "ministere": "Ministère de l'Économie, des Finances et de la Souveraineté industrielle, énergétique et numérique",
+            "parti": "Renaissance",
+            "sexe": "M",
+            "photo_url": null
+        },
+        {
+            "prenom": "Serge",
+            "nom": "Papin",
+            "fonction": "Ministre des Petites et moyennes entreprises, du Commerce, de l'Artisanat, du Tourisme et du Pouvoir d'achat",
+            "type": "ministre",
+            "ministere": "Ministère des Petites et moyennes entreprises, du Commerce, de l'Artisanat, du Tourisme et du Pouvoir d'achat",
+            "parti": null,
+            "sexe": "M",
+            "photo_url": null
+        },
+        {
+            "prenom": "Annie",
+            "nom": "Genevard",
+            "fonction": "Ministre de l'Agriculture, de l'Agro-alimentaire et de la Souveraineté alimentaire",
+            "type": "ministre",
+            "ministere": "Ministère de l'Agriculture, de l'Agro-alimentaire et de la Souveraineté alimentaire",
+            "parti": "LR",
+            "sexe": "F",
+            "photo_url": null
+        },
+        {
+            "prenom": "Édouard",
+            "nom": "Geffray",
+            "fonction": "Ministre de l'Éducation nationale",
+            "type": "ministre",
+            "ministere": "Ministère de l'Éducation nationale",
+            "parti": null,
+            "sexe": "M",
+            "photo_url": null
+        }
+    ]
+}

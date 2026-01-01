@@ -2,9 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ActeurAN;
 use App\Models\Gouvernement;
 use App\Models\Ministere;
 use App\Models\Ministre;
+use App\Models\Senateur;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
@@ -13,7 +15,8 @@ class ImportGouvernementJson extends Command
     protected $signature = 'import:gouvernement-json 
                             {--file= : Chemin vers le fichier JSON}
                             {--force : Forcer le réimport et supprimer les anciens}
-                            {--dry-run : Mode simulation}';
+                            {--dry-run : Mode simulation}
+                            {--detect-links : Détecter les liens avec députés/sénateurs}';
 
     protected $description = 'Import de la composition du Gouvernement depuis un fichier JSON';
 
@@ -21,7 +24,14 @@ class ImportGouvernementJson extends Command
     {
         $dryRun = $this->option('dry-run');
         $force = $this->option('force');
-        $file = $this->option('file') ?: database_path('data/gouvernement.json');
+        $detectLinks = $this->option('detect-links');
+        
+        // Chercher le fichier le plus récent si non spécifié
+        $file = $this->option('file');
+        if (!$file) {
+            $files = glob(database_path('data/gouvernement*.json'));
+            $file = !empty($files) ? end($files) : database_path('data/gouvernement.json');
+        }
 
         $this->info('🏛️ Import du Gouvernement depuis JSON');
         $this->info('📄 Fichier : ' . $file);
@@ -49,14 +59,33 @@ class ImportGouvernementJson extends Command
 
         $gouv = $data['gouvernement'];
         $membres = $data['membres'];
+        $ministeresData = $data['ministeres'] ?? [];
 
         $this->info('📊 Gouvernement : ' . ($gouv['nom'] ?? 'Non défini'));
         $this->info('👔 Premier Ministre : ' . ($gouv['premier_ministre'] ?? 'Non défini'));
         $this->info('📅 Depuis : ' . ($gouv['date_debut'] ?? 'Non défini'));
+        $this->info('🏢 Ministères : ' . count($ministeresData));
         $this->info('👥 Membres : ' . count($membres));
         $this->newLine();
 
-        // 3. Afficher les membres
+        // 3. Afficher les ministères
+        if (!empty($ministeresData)) {
+            $this->info('📋 Ministères :');
+            $this->table(
+                ['#', 'Nom', 'Sigle', 'Site web', 'Téléphone'],
+                collect($ministeresData)->map(fn($m, $i) => [
+                    $m['ordre'] ?? ($i + 1),
+                    Str::limit($m['nom'] ?? '', 50),
+                    $m['sigle'] ?? '-',
+                    $m['site_web'] ? '✓' : '-',
+                    $m['telephone'] ?? '-',
+                ])->toArray()
+            );
+            $this->newLine();
+        }
+
+        // 4. Afficher les membres
+        $this->info('👔 Membres :');
         $this->table(
             ['#', 'Fonction', 'Nom', 'Type', 'Parti'],
             collect($membres)->map(fn($m, $i) => [
@@ -71,10 +100,16 @@ class ImportGouvernementJson extends Command
         if ($dryRun) {
             $this->newLine();
             $this->info('🔄 Mode simulation - Aucune modification effectuée');
+            
+            // Montrer les liens potentiels avec les députés/sénateurs
+            if ($detectLinks) {
+                $this->detectExistingLinks($membres);
+            }
+            
             return Command::SUCCESS;
         }
 
-        // 4. Sauvegarder
+        // 5. Sauvegarder
         $this->info('💾 Enregistrement en base de données...');
 
         // Créer/mettre à jour le gouvernement
@@ -93,15 +128,41 @@ class ImportGouvernementJson extends Command
         Gouvernement::where('id', '!=', $gouvernement->id)->update(['actif' => false]);
 
         if ($force) {
-            // Supprimer les anciens ministres de ce gouvernement
+            // Supprimer les anciens ministres et ministères de ce gouvernement
             Ministre::where('gouvernement_id', $gouvernement->id)->delete();
+            Ministere::where('gouvernement_id', $gouvernement->id)->delete();
+            $this->warn('   ⚠️ Anciennes données supprimées (--force)');
         } else {
             // Désactiver les anciens ministres
             Ministre::where('gouvernement_id', $gouvernement->id)->update(['actif' => false]);
         }
 
-        $ordre = 1;
-        $stats = ['created' => 0, 'updated' => 0];
+        // 6. Créer les ministères
+        $ministeresMap = [];
+        foreach ($ministeresData as $minData) {
+            $ministere = Ministere::updateOrCreate(
+                [
+                    'nom' => $minData['nom'],
+                ],
+                [
+                    'gouvernement_id' => $gouvernement->id,
+                    'slug' => Str::slug($minData['nom']),
+                    'sigle' => $minData['sigle'] ?? null,
+                    'site_web' => $minData['site_web'] ?? null,
+                    'adresse' => $minData['adresse'] ?? null,
+                    'telephone' => $minData['telephone'] ?? null,
+                    'ordre' => $minData['ordre'] ?? 99,
+                    'couleur' => Ministere::getCouleurDefaut($minData['nom']),
+                    'type' => 'ministere',
+                    'actif' => true,
+                ]
+            );
+            $ministeresMap[$minData['nom']] = $ministere->id;
+        }
+        $this->info('   → Ministères : ' . count($ministeresMap));
+
+        // 7. Créer les ministres
+        $stats = ['created' => 0, 'updated' => 0, 'linked_an' => 0, 'linked_senat' => 0];
 
         foreach ($membres as $membre) {
             $prenom = $membre['prenom'] ?? '';
@@ -109,18 +170,50 @@ class ImportGouvernementJson extends Command
             $fonction = $membre['fonction'] ?? 'Membre du gouvernement';
             $type = $membre['type'] ?? $this->detectType($fonction);
 
-            // Créer/trouver le ministère si spécifié
+            // Trouver le ministère
             $ministereId = null;
             if (!empty($membre['ministere'])) {
-                $ministere = Ministere::firstOrCreate(
-                    ['nom' => $membre['ministere']],
-                    [
-                        'slug' => Str::slug($membre['ministere']),
-                        'type' => $type === 'premier_ministre' ? 'ministere' : $type,
-                        'actif' => true,
-                    ]
-                );
-                $ministereId = $ministere->id;
+                $ministereId = $ministeresMap[$membre['ministere']] ?? null;
+                
+                // Créer le ministère s'il n'existe pas
+                if (!$ministereId) {
+                    $ministere = Ministere::firstOrCreate(
+                        ['nom' => $membre['ministere']],
+                        [
+                            'gouvernement_id' => $gouvernement->id,
+                            'slug' => Str::slug($membre['ministere']),
+                            'type' => 'ministere',
+                            'couleur' => Ministere::getCouleurDefaut($membre['ministere']),
+                            'actif' => true,
+                        ]
+                    );
+                    $ministereId = $ministere->id;
+                    $ministeresMap[$membre['ministere']] = $ministereId;
+                }
+            }
+
+            // Chercher liens avec députés/sénateurs existants
+            $uidAn = null;
+            $uidSenat = null;
+            
+            if ($detectLinks) {
+                // Chercher un député avec le même nom
+                $depute = ActeurAN::where('nom', 'ilike', $nom)
+                    ->where('prenom', 'ilike', $prenom)
+                    ->first();
+                if ($depute) {
+                    $uidAn = $depute->uid;
+                    $stats['linked_an']++;
+                }
+
+                // Chercher un sénateur avec le même nom
+                $senateur = Senateur::where('nom', 'ilike', $nom)
+                    ->where('prenom', 'ilike', $prenom)
+                    ->first();
+                if ($senateur) {
+                    $uidSenat = $senateur->matricule;
+                    $stats['linked_senat']++;
+                }
             }
 
             // Créer/mettre à jour le ministre
@@ -137,7 +230,10 @@ class ImportGouvernementJson extends Command
                     'ministere_id' => $ministereId,
                     'parti_politique' => $membre['parti'] ?? null,
                     'photo_url' => $membre['photo_url'] ?? null,
+                    'sexe' => $membre['sexe'] ?? null,
                     'date_debut' => $gouvernement->date_debut,
+                    'uid_an' => $uidAn,
+                    'uid_senat' => $uidSenat,
                     'actif' => true,
                 ]
             );
@@ -147,17 +243,58 @@ class ImportGouvernementJson extends Command
             } else {
                 $stats['updated']++;
             }
-
-            $ordre++;
         }
 
         $this->newLine();
         $this->info('✅ Import terminé !');
-        $this->info('   → Créés : ' . $stats['created']);
-        $this->info('   → Mis à jour : ' . $stats['updated']);
+        $this->info('   → Ministres créés : ' . $stats['created']);
+        $this->info('   → Ministres mis à jour : ' . $stats['updated']);
+        if ($detectLinks) {
+            $this->info('   → Liens députés trouvés : ' . $stats['linked_an']);
+            $this->info('   → Liens sénateurs trouvés : ' . $stats['linked_senat']);
+        }
         $this->info('   → Gouvernement ID : ' . $gouvernement->id);
 
         return Command::SUCCESS;
+    }
+
+    private function detectExistingLinks(array $membres): void
+    {
+        $this->newLine();
+        $this->info('🔗 Recherche de liens avec les élus existants...');
+        
+        $links = [];
+        foreach ($membres as $membre) {
+            $prenom = $membre['prenom'] ?? '';
+            $nom = $membre['nom'] ?? '';
+
+            // Chercher un député
+            $depute = ActeurAN::where('nom', 'ilike', $nom)
+                ->where('prenom', 'ilike', $prenom)
+                ->first();
+            
+            // Chercher un sénateur
+            $senateur = Senateur::where('nom', 'ilike', $nom)
+                ->where('prenom', 'ilike', $prenom)
+                ->first();
+
+            if ($depute || $senateur) {
+                $links[] = [
+                    'ministre' => "$prenom $nom",
+                    'depute' => $depute ? "✓ ({$depute->uid})" : '-',
+                    'senateur' => $senateur ? "✓ ({$senateur->matricule})" : '-',
+                ];
+            }
+        }
+
+        if (!empty($links)) {
+            $this->table(
+                ['Ministre', 'Député', 'Sénateur'],
+                $links
+            );
+        } else {
+            $this->info('   Aucun lien trouvé');
+        }
     }
 
     private function detectType(string $fonction): string

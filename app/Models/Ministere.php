@@ -11,8 +11,9 @@ class Ministere extends Model
     protected $table = 'ministeres';
 
     protected $fillable = [
-        'gouvernement_id', 'nom', 'sigle', 'type',
+        'gouvernement_id', 'nom', 'slug', 'sigle', 'type',
         'rattachement', 'ordre', 'couleur', 'icone', 'actif',
+        'site_web', 'adresse', 'telephone', 'description',
     ];
 
     protected $casts = [
