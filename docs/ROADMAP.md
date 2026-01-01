@@ -1107,7 +1107,7 @@ Modération:
 ### 2.7.2 : 💰 Import Budget de l'État
 **Priorité** : 🔴 CRITIQUE  
 **Durée** : 1-2 semaines  
-**Statut** : 📋 Planifié
+**Statut** : ✅ TERMINÉ (01/01/2026)
 
 **Source** : data.gouv.fr - Budget de l'État par programme
 - URL : `https://www.data.gouv.fr/fr/datasets/budget-de-letat-par-programme-loi-de-finances/`
@@ -1160,7 +1160,7 @@ CREATE TABLE budget_ministeres (
 ### 2.7.3 : 📊 Import INSEE Complet
 **Priorité** : 🔴 CRITIQUE  
 **Durée** : 2 semaines  
-**Statut** : 📋 Planifié
+**Statut** : ✅ TERMINÉ (01/01/2026) - Base régions/départements importée
 
 **Sources** :
 - API INSEE : `https://portail-api.insee.fr/`
@@ -1191,7 +1191,7 @@ CREATE TABLE budget_ministeres (
 ### 2.7.4 : 🏛️ Import Composition Gouvernement
 **Priorité** : 🟡 HAUTE  
 **Durée** : 1 semaine  
-**Statut** : 📋 Planifié
+**Statut** : ✅ TERMINÉ (01/01/2026) - Gouvernement Bayrou importé
 
 **Sources** :
 - info.gouv.fr/ministere (scraping)
@@ -1490,10 +1490,10 @@ CREATE TABLE ministres (
 3. 🔄 Menu "État" restructuré
 
 ### 🔴 Priorité T1 2026 - Données Gouvernementales
-1. [ ] **Import Budget de l'État** (data.gouv.fr PLF)
-2. [ ] **Import INSEE complet** (démographie, économie)
-3. [ ] **Import Gouvernement** (ministres, ministères)
-4. [ ] Menu "État" unifié (Parlement, Gouvernement, Élysée)
+1. [x] **Import Budget de l'État** (data.gouv.fr PLF) ✅ *Terminé 01/01/2026*
+2. [x] **Import INSEE complet** (démographie, économie) ✅ *Terminé 01/01/2026*
+3. [x] **Import Gouvernement** (ministres, ministères) ✅ *Terminé 01/01/2026*
+4. [x] Menu "État" unifié (Parlement, Gouvernement, Élysée) ✅ *Terminé 31/12/2025*
 5. [ ] Pages hub par institution
 
 ### Prochaines étapes (Janvier-Février 2026)
