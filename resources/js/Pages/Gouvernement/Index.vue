@@ -108,6 +108,28 @@ const getPartiCouleur = (parti) => {
         <div v-if="gouvernement" class="bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 
+                <!-- Avertissement données à mettre à jour -->
+                <div v-if="!ministres || ministres.length === 0 || gouvernement.nom === 'Gouvernement actuel'" 
+                     class="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">⚠️</span>
+                        <div>
+                            <h3 class="font-semibold text-amber-800 dark:text-amber-200">Données à mettre à jour</h3>
+                            <p class="text-amber-700 dark:text-amber-300 text-sm mt-1">
+                                La composition du gouvernement doit être mise à jour depuis 
+                                <a href="https://www.info.gouv.fr/composition-du-gouvernement" 
+                                   target="_blank" 
+                                   class="underline font-medium hover:text-amber-900 dark:hover:text-amber-100">
+                                    info.gouv.fr
+                                </a>.
+                            </p>
+                            <p class="text-amber-600 dark:text-amber-400 text-xs mt-2 font-mono">
+                                Commande : <code class="bg-amber-100 dark:bg-amber-900 px-2 py-0.5 rounded">php artisan import:gouvernement-json</code>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tabs de vue -->
                 <div class="flex gap-2 mb-6 flex-wrap">
                     <button 
@@ -305,10 +327,13 @@ const getPartiCouleur = (parti) => {
                 <!-- Source des données -->
                 <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
                     <p>
-                        🏛️ Données issues de 
-                        <a href="https://www.gouvernement.fr/composition-du-gouvernement" target="_blank" class="text-blue-600 hover:underline">
-                            gouvernement.fr
+                        🏛️ Source officielle : 
+                        <a href="https://www.info.gouv.fr/composition-du-gouvernement" target="_blank" class="text-blue-600 hover:underline">
+                            info.gouv.fr/composition-du-gouvernement
                         </a>
+                    </p>
+                    <p class="text-xs mt-1">
+                        Dernière synchronisation : {{ gouvernement.updated_at || 'Non disponible' }}
                     </p>
                 </div>
             </div>

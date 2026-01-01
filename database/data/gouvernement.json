@@ -1,0 +1,39 @@
+{
+    "metadata": {
+        "source": "https://www.info.gouv.fr/composition-du-gouvernement",
+        "last_update": "2026-01-01",
+        "notes": "Mettre à jour manuellement depuis info.gouv.fr ou via scraping"
+    },
+    "gouvernement": {
+        "nom": "Gouvernement actuel",
+        "premier_ministre": "À mettre à jour",
+        "president": "Emmanuel Macron",
+        "date_debut": "2025-10-05",
+        "legislature": "17"
+    },
+    "membres": [
+        {
+            "fonction": "Premier ministre",
+            "prenom": "À",
+            "nom": "Mettre à jour",
+            "type": "premier_ministre",
+            "ministere": null,
+            "parti": null,
+            "photo_url": null
+        }
+    ],
+    "_instructions": {
+        "comment_mettre_a_jour": [
+            "1. Aller sur https://www.info.gouv.fr/composition-du-gouvernement",
+            "2. Copier les informations de chaque ministre",
+            "3. Mettre à jour ce fichier JSON",
+            "4. Exécuter: php artisan import:gouvernement-json"
+        ],
+        "types_valides": [
+            "premier_ministre",
+            "ministre",
+            "ministre_delegue", 
+            "secretaire_etat"
+        ]
+    }
+}
