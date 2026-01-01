@@ -4,6 +4,8 @@ use App\Http\Controllers\Web\TopicController;
 use App\Http\Controllers\Web\PostController;
 use App\Http\Controllers\Web\VoteController;
 use App\Http\Controllers\Web\BudgetController;
+use App\Http\Controllers\Web\BudgetEtatController;
+use App\Http\Controllers\Web\GouvernementController;
 use App\Http\Controllers\Web\ModerationController;
 use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\DashboardController;
@@ -259,6 +261,28 @@ Route::prefix('budget')->name('budget.')->middleware('auth')->group(function () 
         Route::post('/bulk-allocate', [BudgetController::class, 'bulkAllocate'])->name('bulk-allocate');
         Route::delete('/reset', [BudgetController::class, 'reset'])->name('reset');
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Budget de l'État (PLF/LFI)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('budget-etat')->name('budget-etat.')->group(function () {
+    Route::get('/', [BudgetEtatController::class, 'index'])->name('index');
+    Route::get('/mission/{code}', [BudgetEtatController::class, 'showMission'])->name('mission');
+    Route::get('/api/data', [BudgetEtatController::class, 'apiData'])->name('api.data');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Gouvernement
+|--------------------------------------------------------------------------
+*/
+Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
+    Route::get('/', [GouvernementController::class, 'index'])->name('index');
+    Route::get('/ministre/{id}', [GouvernementController::class, 'showMinistre'])->name('ministre');
+    Route::get('/historique', [GouvernementController::class, 'historique'])->name('historique');
 });
 
 /*

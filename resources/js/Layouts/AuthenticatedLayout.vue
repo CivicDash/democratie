@@ -309,18 +309,16 @@ onUnmounted(() => {
                                     <template #content>
                                         <div class="p-3 space-y-1">
                                             <MegaMenuLink
+                                                :href="route('gouvernement.index')"
+                                                icon="👔"
+                                                title="Composition"
+                                                description="Ministres et ministères"
+                                            />
+                                            <MegaMenuLink
                                                 :href="route('parlement.calendrier.index')"
                                                 icon="🏰"
                                                 title="Agenda Élysée"
                                                 description="Président de la République"
-                                            />
-                                            <MegaMenuLink
-                                                href="#"
-                                                icon="👔"
-                                                title="Ministères"
-                                                description="Composition du gouvernement"
-                                                badge="Bientôt"
-                                                badge-color="gray"
                                             />
                                         </div>
                                     </template>
@@ -401,12 +399,10 @@ onUnmounted(() => {
                                             />
                                             <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
                                             <MegaMenuLink
-                                                href="#"
+                                                :href="route('budget-etat.index')"
                                                 icon="💰"
                                                 title="Budget de l'État"
-                                                description="Dépenses & recettes"
-                                                badge="Bientôt"
-                                                badge-color="gray"
+                                                description="PLF & dépenses par mission"
                                             />
                                         </div>
                                     </template>
@@ -629,10 +625,8 @@ onUnmounted(() => {
                                 </svg>
                             </button>
                             <div v-show="expandedSection === 'gouvernement'" class="pl-4 space-y-1 mt-1">
+                                <ResponsiveNavLink :href="route('gouvernement.index')">👔 Composition du gouvernement</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('parlement.calendrier.index')">🏰 Agenda Élysée</ResponsiveNavLink>
-                                <div class="px-3 py-2 text-sm text-gray-400">
-                                    👔 Ministères <span class="text-xs bg-gray-200 dark:bg-gray-600 px-1 rounded">Bientôt</span>
-                                </div>
                             </div>
                         </div>
                         
@@ -675,9 +669,7 @@ onUnmounted(() => {
                                 <ResponsiveNavLink :href="route('parlement.comparaison')">📈 Stats Élus</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('statistics.france')">🗺️ Statistiques France</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('documents.index')">📄 Documents Publics</ResponsiveNavLink>
-                                <div class="px-3 py-2 text-sm text-gray-400">
-                                    💰 Budget de l'État <span class="text-xs bg-gray-200 dark:bg-gray-600 px-1 rounded">Bientôt</span>
-                                </div>
+                                <ResponsiveNavLink :href="route('budget-etat.index')">💰 Budget de l'État</ResponsiveNavLink>
                             </div>
                         </div>
                         
