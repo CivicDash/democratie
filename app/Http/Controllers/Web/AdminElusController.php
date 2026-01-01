@@ -20,15 +20,17 @@ class AdminElusController extends Controller
         $stats = [
             'deputes' => [
                 'total' => ActeurAN::count(),
-                'actifs' => ActeurAN::where('en_mandat', true)->count(),
-                'avec_photo' => ActeurAN::whereNotNull('photo_url')->count(),
-                'sans_photo' => ActeurAN::whereNull('photo_url')->count(),
+                // Utilise le scope deputes() qui vérifie les mandats actifs
+                'actifs' => ActeurAN::deputes()->count(),
+                'avec_photo' => ActeurAN::whereNotNull('photo_wikipedia_url')->count(),
+                'sans_photo' => ActeurAN::whereNull('photo_wikipedia_url')->count(),
             ],
             'senateurs' => [
                 'total' => Senateur::count(),
-                'actifs' => Senateur::where('en_mandat', true)->count(),
-                'avec_photo' => Senateur::whereNotNull('photo_url')->count(),
-                'sans_photo' => Senateur::whereNull('photo_url')->count(),
+                // Sénateurs en exercice (etat = 'En exercice')
+                'actifs' => Senateur::where('etat', 'En exercice')->count(),
+                'avec_photo' => Senateur::whereNotNull('photo_wikipedia_url')->count(),
+                'sans_photo' => Senateur::whereNull('photo_wikipedia_url')->count(),
             ],
             'maires' => [
                 'total' => Maire::count(),
@@ -59,76 +61,59 @@ class AdminElusController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ilike', "%{$search}%")
-                  ->orWhere('prenom', 'ilike', "%{$search}%")
-                  ->orWhere('circonscription', 'ilike', "%{$search}%");
+                  ->orWhere('prenom', 'ilike', "%{$search}%");
             });
         }
 
-        if ($request->filled('groupe')) {
-            $query->where('groupe_sigle', $request->groupe);
-        }
-
-        if ($request->filled('en_mandat')) {
-            $query->where('en_mandat', $request->en_mandat === 'true');
+        // Filtre par députés actifs uniquement
+        if ($request->filled('actifs_only') && $request->actifs_only === 'true') {
+            $query->deputes(); // Scope qui filtre les mandats actifs
         }
 
         if ($request->filled('sans_photo')) {
-            $query->whereNull('photo_url');
+            $query->whereNull('photo_wikipedia_url');
         }
 
         $deputes = $query->paginate(50);
 
-        // Groupes pour le filtre
-        $groupes = ActeurAN::select('groupe_sigle')
-            ->whereNotNull('groupe_sigle')
-            ->distinct()
-            ->orderBy('groupe_sigle')
-            ->pluck('groupe_sigle');
-
         return Inertia::render('Admin/Elus/Deputes', [
             'deputes' => $deputes,
-            'groupes' => $groupes,
-            'filters' => $request->only(['search', 'groupe', 'en_mandat', 'sans_photo']),
+            'filters' => $request->only(['search', 'actifs_only', 'sans_photo']),
         ]);
     }
 
     /**
      * Éditer un député
      */
-    public function editDepute(ActeurAN $depute)
+    public function editDepute(ActeurAN $acteurAn)
     {
         return Inertia::render('Admin/Elus/EditDepute', [
-            'depute' => $depute,
+            'depute' => $acteurAn,
         ]);
     }
 
     /**
      * Mettre à jour un député
      */
-    public function updateDepute(Request $request, ActeurAN $depute)
+    public function updateDepute(Request $request, ActeurAN $acteurAn)
     {
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
-            'sexe' => 'nullable|in:M,F',
+            'civilite' => 'nullable|in:M.,Mme',
             'date_naissance' => 'nullable|date',
-            'lieu_naissance' => 'nullable|string|max:255',
+            'ville_naissance' => 'nullable|string|max:255',
             'profession' => 'nullable|string|max:500',
-            'photo_url' => 'nullable|url|max:500',
-            'twitter' => 'nullable|string|max:100',
-            'facebook' => 'nullable|string|max:100',
-            'email' => 'nullable|email|max:255',
-            'site_web' => 'nullable|url|max:500',
+            'twitter_url' => 'nullable|url|max:500',
+            'facebook_url' => 'nullable|url|max:500',
+            'linkedin_url' => 'nullable|url|max:500',
+            'instagram_url' => 'nullable|url|max:500',
             'wikipedia_url' => 'nullable|url|max:500',
-            'wikipedia_resume' => 'nullable|string|max:5000',
-            'circonscription' => 'nullable|string|max:255',
-            'groupe_sigle' => 'nullable|string|max:50',
-            'en_mandat' => 'boolean',
         ]);
 
-        $depute->update($validated);
+        $acteurAn->update($validated);
 
-        return back()->with('success', 'Député mis à jour : ' . $depute->nom_complet);
+        return back()->with('success', 'Député mis à jour : ' . $acteurAn->nom_complet);
     }
 
     /**
@@ -149,25 +134,25 @@ class AdminElusController extends Controller
         }
 
         if ($request->filled('groupe')) {
-            $query->where('groupe_sigle', $request->groupe);
+            $query->where('groupe_politique_code', $request->groupe);
         }
 
-        if ($request->filled('en_mandat')) {
-            $query->where('en_mandat', $request->en_mandat === 'true');
+        if ($request->filled('actifs_only') && $request->actifs_only === 'true') {
+            $query->where('etat', 'En exercice');
         }
 
         $senateurs = $query->paginate(50);
 
-        $groupes = Senateur::select('groupe_sigle')
-            ->whereNotNull('groupe_sigle')
+        $groupes = Senateur::select('groupe_politique_code')
+            ->whereNotNull('groupe_politique_code')
             ->distinct()
-            ->orderBy('groupe_sigle')
-            ->pluck('groupe_sigle');
+            ->orderBy('groupe_politique_code')
+            ->pluck('groupe_politique_code');
 
         return Inertia::render('Admin/Elus/Senateurs', [
             'senateurs' => $senateurs,
             'groupes' => $groupes,
-            'filters' => $request->only(['search', 'groupe', 'en_mandat']),
+            'filters' => $request->only(['search', 'groupe', 'actifs_only']),
         ]);
     }
 
@@ -189,19 +174,13 @@ class AdminElusController extends Controller
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
-            'sexe' => 'nullable|in:M,F',
+            'civilite' => 'nullable|in:M.,Mme',
             'date_naissance' => 'nullable|date',
-            'lieu_naissance' => 'nullable|string|max:255',
             'profession' => 'nullable|string|max:500',
-            'photo_url' => 'nullable|url|max:500',
-            'twitter' => 'nullable|string|max:100',
             'email' => 'nullable|email|max:255',
-            'site_web' => 'nullable|url|max:500',
             'wikipedia_url' => 'nullable|url|max:500',
-            'wikipedia_resume' => 'nullable|string|max:5000',
             'circonscription' => 'nullable|string|max:255',
-            'groupe_sigle' => 'nullable|string|max:50',
-            'en_mandat' => 'boolean',
+            'groupe_politique_code' => 'nullable|string|max:50',
         ]);
 
         $senateur->update($validated);
@@ -215,29 +194,30 @@ class AdminElusController extends Controller
     public function maires(Request $request)
     {
         $query = Maire::query()
-            ->orderBy('commune');
+            ->orderBy('nom_commune');
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ilike', "%{$search}%")
                   ->orWhere('prenom', 'ilike', "%{$search}%")
-                  ->orWhere('commune', 'ilike', "%{$search}%")
-                  ->orWhere('code_postal', 'like', "{$search}%");
+                  ->orWhere('nom_commune', 'ilike', "%{$search}%")
+                  ->orWhere('code_commune', 'like', "{$search}%");
             });
         }
 
         if ($request->filled('departement')) {
-            $query->where('departement', $request->departement);
+            $query->where('code_departement', $request->departement);
         }
 
         $maires = $query->paginate(50);
 
-        $departements = Maire::select('departement')
-            ->whereNotNull('departement')
+        $departements = Maire::select('code_departement', 'nom_departement')
+            ->whereNotNull('code_departement')
             ->distinct()
-            ->orderBy('departement')
-            ->pluck('departement');
+            ->orderBy('code_departement')
+            ->get()
+            ->mapWithKeys(fn($d) => [$d->code_departement => $d->nom_departement ?? $d->code_departement]);
 
         return Inertia::render('Admin/Elus/Maires', [
             'maires' => $maires,
@@ -264,15 +244,15 @@ class AdminElusController extends Controller
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
-            'sexe' => 'nullable|in:M,F',
+            'civilite' => 'nullable|in:M.,Mme',
             'date_naissance' => 'nullable|date',
             'profession' => 'nullable|string|max:500',
             'email' => 'nullable|email|max:255',
             'telephone' => 'nullable|string|max:50',
             'site_web' => 'nullable|url|max:500',
-            'commune' => 'required|string|max:255',
-            'code_postal' => 'nullable|string|max:10',
-            'departement' => 'nullable|string|max:100',
+            'nom_commune' => 'required|string|max:255',
+            'code_commune' => 'nullable|string|max:10',
+            'code_departement' => 'nullable|string|max:10',
         ]);
 
         $maire->update($validated);
