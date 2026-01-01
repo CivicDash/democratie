@@ -426,18 +426,37 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     // Gestion du Gouvernement
     Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
+        // Gouvernements
         Route::get('/', [App\Http\Controllers\Web\AdminGouvernementController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Web\AdminGouvernementController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Web\AdminGouvernementController::class, 'store'])->name('store');
+        Route::get('/ministeres', [App\Http\Controllers\Web\AdminGouvernementController::class, 'ministeres'])->name('ministeres');
+        Route::get('/personnes', [App\Http\Controllers\Web\AdminGouvernementController::class, 'personnes'])->name('personnes');
         Route::get('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'show'])->name('show');
         Route::put('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'update'])->name('update');
         Route::delete('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'destroy'])->name('destroy');
         Route::get('/{gouvernement}/export', [App\Http\Controllers\Web\AdminGouvernementController::class, 'exportJson'])->name('export');
-        Route::post('/{gouvernement}/ministres', [App\Http\Controllers\Web\AdminGouvernementController::class, 'addMinistre'])->name('add-ministre');
-        Route::post('/ministeres', [App\Http\Controllers\Web\AdminGouvernementController::class, 'createMinistere'])->name('create-ministere');
+        
+        // Postes ministériels (affectations)
+        Route::post('/{gouvernement}/postes', [App\Http\Controllers\Web\AdminGouvernementController::class, 'addPoste'])->name('add-poste');
+        
+        // Ministères
+        Route::post('/ministeres', [App\Http\Controllers\Web\AdminGouvernementController::class, 'storeMinistere'])->name('store-ministere');
+        
+        // Personnes politiques
+        Route::post('/personnes', [App\Http\Controllers\Web\AdminGouvernementController::class, 'storePersonne'])->name('store-personne');
     });
-    Route::put('/ministres/{ministre}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'updateMinistre'])->name('gouvernement.update-ministre');
-    Route::delete('/ministres/{ministre}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'deleteMinistre'])->name('gouvernement.delete-ministre');
+    
+    // Actions sur les postes (hors groupe pour le binding)
+    Route::put('/postes/{poste}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'updatePoste'])->name('gouvernement.update-poste');
+    Route::delete('/postes/{poste}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'deletePoste'])->name('gouvernement.delete-poste');
+    Route::post('/postes/{poste}/end', [App\Http\Controllers\Web\AdminGouvernementController::class, 'endPoste'])->name('gouvernement.end-poste');
+    
+    // Actions sur les personnes
+    Route::put('/personnes/{personne}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'updatePersonne'])->name('gouvernement.update-personne');
+    
+    // Actions sur les ministères
+    Route::put('/ministeres/{ministere}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'updateMinistere'])->name('gouvernement.update-ministere');
 
     // Gestion des Élus
     Route::prefix('elus')->name('elus.')->group(function () {

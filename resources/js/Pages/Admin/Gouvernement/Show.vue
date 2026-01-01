@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
@@ -7,8 +7,9 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
     gouvernement: Object,
-    ministresParType: Object,
+    postesParType: Object,
     ministeres: Array,
+    personnes: Array,
 });
 
 const breadcrumbs = [
@@ -17,69 +18,103 @@ const breadcrumbs = [
     { label: props.gouvernement.nom, current: true },
 ];
 
-// Modal d'ajout de ministre
+// Modal d'ajout de poste
 const showAddModal = ref(false);
-const ministereForm = useForm({
-    prenom: '',
-    nom: '',
+const createNewPerson = ref(false);
+
+const posteForm = useForm({
+    personne_id: null,
+    nouvelle_personne: {
+        prenom: '',
+        nom: '',
+        civilite: null,
+        parti_politique: '',
+        photo_url: '',
+    },
     fonction: '',
     type_fonction: 'ministre',
     ministere_id: null,
-    parti_politique: '',
-    photo_url: '',
-    sexe: null,
+    ordre: 0,
+    date_debut: null,
+    date_fin: null,
 });
 
-const addMinistre = () => {
-    ministereForm.post(route('admin.gouvernement.add-ministre', props.gouvernement.id), {
+const addPoste = () => {
+    posteForm.post(route('admin.gouvernement.add-poste', props.gouvernement.id), {
         onSuccess: () => {
             showAddModal.value = false;
+            posteForm.reset();
+            createNewPerson.value = false;
+        },
+    });
+};
+
+// Édition inline d'un poste
+const editingPoste = ref(null);
+const editForm = useForm({});
+
+const startEditPoste = (poste) => {
+    editingPoste.value = poste.id;
+    editForm.fonction = poste.fonction;
+    editForm.type_fonction = poste.type_fonction;
+    editForm.ministere_id = poste.ministere_id;
+    editForm.ordre = poste.ordre;
+    editForm.date_debut = poste.date_debut?.split('T')[0];
+    editForm.date_fin = poste.date_fin?.split('T')[0];
+    editForm.actif = poste.actif;
+};
+
+const savePoste = (poste) => {
+    editForm.put(route('admin.gouvernement.update-poste', poste.id), {
+        onSuccess: () => {
+            editingPoste.value = null;
+        },
+    });
+};
+
+const deletePoste = (poste) => {
+    const nom = poste.personne?.nom_complet || 'ce poste';
+    if (confirm(`Supprimer ${nom} de ce gouvernement ?`)) {
+        router.delete(route('admin.gouvernement.delete-poste', poste.id));
+    }
+};
+
+const endPoste = (poste) => {
+    if (confirm(`Terminer le poste de ${poste.personne?.nom_complet} ?`)) {
+        router.post(route('admin.gouvernement.end-poste', poste.id));
+    }
+};
+
+// Modal ministère
+const showMinistereModal = ref(false);
+const ministereForm = useForm({
+    nom: '',
+    sigle: '',
+    site_web: '',
+    couleur: '#3B82F6',
+});
+
+const addMinistere = () => {
+    ministereForm.post(route('admin.gouvernement.store-ministere'), {
+        onSuccess: () => {
+            showMinistereModal.value = false;
             ministereForm.reset();
         },
     });
 };
 
-// Édition inline d'un ministre
-const editingMinistre = ref(null);
-const editForm = useForm({});
-
-const startEdit = (ministre) => {
-    editingMinistre.value = ministre.id;
-    editForm.prenom = ministre.prenom;
-    editForm.nom = ministre.nom;
-    editForm.fonction = ministre.fonction;
-    editForm.type_fonction = ministre.type_fonction;
-    editForm.ministere_id = ministre.ministere_id;
-    editForm.parti_politique = ministre.parti_politique;
-    editForm.photo_url = ministre.photo_url;
-    editForm.sexe = ministre.sexe;
-    editForm.actif = ministre.actif;
-};
-
-const saveEdit = (ministre) => {
-    editForm.put(route('admin.gouvernement.update-ministre', ministre.id), {
-        onSuccess: () => {
-            editingMinistre.value = null;
-        },
-    });
-};
-
-const deleteMinistre = (ministre) => {
-    if (confirm(`Supprimer ${ministre.prenom} ${ministre.nom} ?`)) {
-        router.delete(route('admin.gouvernement.delete-ministre', ministre.id));
-    }
-};
-
 // Couleurs par type
 const typeColors = {
     premier_ministre: 'bg-blue-600',
-    ministre: 'bg-indigo-600',
+    ministre_etat: 'bg-indigo-600',
+    ministre: 'bg-violet-600',
     ministre_delegue: 'bg-purple-600',
     secretaire_etat: 'bg-pink-600',
 };
 
 const typeLabels = {
     premier_ministre: 'Premier ministre',
+    ministre_etat: 'Ministres d\'État',
     ministre: 'Ministres',
     ministre_delegue: 'Ministres délégués',
     secretaire_etat: 'Secrétaires d\'État',
@@ -87,8 +122,29 @@ const typeLabels = {
 
 // Partis politiques courants
 const partis = [
-    'Renaissance', 'LR', 'PS', 'MoDem', 'Horizons', 'EELV', 'PCF', 'RN', 'LFI', 'UDI', 'Sans étiquette'
+    'Renaissance', 'LR', 'PS', 'MoDem', 'Horizons', 'EELV', 'PCF', 'RN', 'LFI', 'UDI', 'DVD', 'DVG', 'Sans étiquette'
 ];
+
+// Filtrer les personnes pour l'autocomplete
+const searchPersonne = ref('');
+const filteredPersonnes = computed(() => {
+    if (!searchPersonne.value) return props.personnes.slice(0, 20);
+    const search = searchPersonne.value.toLowerCase();
+    return props.personnes.filter(p => 
+        p.nom.toLowerCase().includes(search) || 
+        p.prenom.toLowerCase().includes(search)
+    ).slice(0, 10);
+});
+
+const selectPersonne = (personne) => {
+    posteForm.personne_id = personne.id;
+    searchPersonne.value = `${personne.prenom} ${personne.nom}`;
+};
+
+// Stats
+const totalPostes = computed(() => {
+    return Object.values(props.postesParType).reduce((sum, arr) => sum + arr.length, 0);
+});
 </script>
 
 <template>
@@ -103,7 +159,7 @@ const partis = [
                     <div>
                         <div class="flex items-center gap-3">
                             <h1 class="text-3xl font-bold text-white">
-                                🏛️ {{ gouvernement.nom }}
+                                🏛️ {{ gouvernement.numero ? gouvernement.numero + 'ème - ' : '' }}{{ gouvernement.nom }}{{ gouvernement.suffixe ? ' ' + gouvernement.suffixe : '' }}
                             </h1>
                             <span 
                                 v-if="gouvernement.actif"
@@ -114,10 +170,17 @@ const partis = [
                         </div>
                         <p class="text-blue-200 mt-2">
                             Premier ministre : <strong class="text-white">{{ gouvernement.premier_ministre }}</strong>
-                            • Depuis le {{ gouvernement.date_debut }}
+                            • Depuis le {{ new Date(gouvernement.date_debut).toLocaleDateString('fr-FR') }}
+                            • <strong class="text-white">{{ totalPostes }}</strong> membres
                         </p>
                     </div>
                     <div class="flex gap-3">
+                        <button
+                            @click="showMinistereModal = true"
+                            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                        >
+                            🏢 Nouveau ministère
+                        </button>
                         <a
                             :href="route('admin.gouvernement.export', gouvernement.id)"
                             class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
@@ -129,7 +192,7 @@ const partis = [
                             @click="showAddModal = true"
                             class="px-6 py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
                         >
-                            ➕ Ajouter un ministre
+                            ➕ Ajouter un membre
                         </button>
                     </div>
                 </div>
@@ -140,91 +203,96 @@ const partis = [
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
                 
                 <!-- Par type de fonction -->
-                <div v-for="(ministres, type) in ministresParType" :key="type" class="space-y-4">
+                <div v-for="(postes, type) in postesParType" :key="type" class="space-y-4">
                     <h2 
-                        v-if="ministres.length > 0"
+                        v-if="postes.length > 0"
                         class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3"
                     >
                         <span :class="[typeColors[type], 'w-4 h-4 rounded-full']"></span>
                         {{ typeLabels[type] }}
-                        <span class="text-sm font-normal text-gray-500">({{ ministres.length }})</span>
+                        <span class="text-sm font-normal text-gray-500">({{ postes.length }})</span>
                     </h2>
 
                     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <Card 
-                            v-for="ministre in ministres" 
-                            :key="ministre.id"
+                            v-for="poste in postes" 
+                            :key="poste.id"
                             :class="[
                                 'transition',
-                                !ministre.actif ? 'opacity-50' : ''
+                                !poste.actif ? 'opacity-50' : ''
                             ]"
                         >
                             <!-- Mode affichage -->
-                            <div v-if="editingMinistre !== ministre.id">
+                            <div v-if="editingPoste !== poste.id">
                                 <div class="flex items-start gap-4">
                                     <img 
-                                        v-if="ministre.photo_url"
-                                        :src="ministre.photo_url" 
-                                        :alt="ministre.prenom + ' ' + ministre.nom"
+                                        v-if="poste.personne?.photo_url || poste.personne?.photo"
+                                        :src="poste.personne?.photo_url || poste.personne?.photo" 
+                                        :alt="poste.personne?.nom_complet"
                                         class="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                                     />
                                     <div v-else class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-2xl">
-                                        {{ ministre.sexe === 'F' ? '👩' : '👨' }}
+                                        {{ poste.personne?.civilite === 'Mme' ? '👩' : '👨' }}
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <h3 class="font-bold text-gray-900 dark:text-gray-100">
-                                            {{ ministre.prenom }} {{ ministre.nom }}
+                                            {{ poste.personne?.nom_complet || 'Non défini' }}
                                         </h3>
                                         <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                                            {{ ministre.fonction }}
+                                            {{ poste.fonction }}
                                         </p>
-                                        <div class="flex items-center gap-2 mt-2">
+                                        <div class="flex flex-wrap items-center gap-2 mt-2">
                                             <span 
-                                                v-if="ministre.parti_politique"
+                                                v-if="poste.ministere"
+                                                class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 text-xs rounded"
+                                            >
+                                                🏢 {{ poste.ministere.sigle || poste.ministere.nom }}
+                                            </span>
+                                            <span 
+                                                v-if="poste.personne?.parti_politique"
                                                 class="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs rounded"
                                             >
-                                                {{ ministre.parti_politique }}
+                                                {{ poste.personne.parti_politique }}
                                             </span>
                                             <span 
-                                                v-if="!ministre.actif"
+                                                v-if="!poste.actif"
                                                 class="px-2 py-0.5 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 text-xs rounded"
                                             >
-                                                Inactif
+                                                Terminé
                                             </span>
                                         </div>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            📅 {{ poste.duree_fonction }}
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                                     <button
-                                        @click="startEdit(ministre)"
+                                        @click="startEditPoste(poste)"
                                         class="px-3 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-sm"
                                     >
                                         ✏️ Modifier
                                     </button>
                                     <button
-                                        @click="deleteMinistre(ministre)"
+                                        v-if="poste.actif"
+                                        @click="endPoste(poste)"
+                                        class="px-3 py-1 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded text-sm"
+                                    >
+                                        ⏹️ Terminer
+                                    </button>
+                                    <button
+                                        @click="deletePoste(poste)"
                                         class="px-3 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-sm"
                                     >
-                                        🗑️ Supprimer
+                                        🗑️
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Mode édition -->
                             <div v-else class="space-y-3">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <input
-                                        v-model="editForm.prenom"
-                                        type="text"
-                                        placeholder="Prénom"
-                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
-                                    />
-                                    <input
-                                        v-model="editForm.nom"
-                                        type="text"
-                                        placeholder="Nom"
-                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
-                                    />
+                                <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    ✏️ Modification du poste de {{ poste.personne?.nom_complet }}
                                 </div>
                                 <input
                                     v-model="editForm.fonction"
@@ -237,23 +305,31 @@ const partis = [
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
                                 >
                                     <option value="premier_ministre">Premier ministre</option>
+                                    <option value="ministre_etat">Ministre d'État</option>
                                     <option value="ministre">Ministre</option>
                                     <option value="ministre_delegue">Ministre délégué(e)</option>
                                     <option value="secretaire_etat">Secrétaire d'État</option>
                                 </select>
                                 <select
-                                    v-model="editForm.parti_politique"
+                                    v-model="editForm.ministere_id"
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
                                 >
-                                    <option value="">Sans parti</option>
-                                    <option v-for="parti in partis" :key="parti" :value="parti">{{ parti }}</option>
+                                    <option :value="null">-- Aucun ministère --</option>
+                                    <option v-for="m in ministeres" :key="m.id" :value="m.id">{{ m.nom }}</option>
                                 </select>
-                                <input
-                                    v-model="editForm.photo_url"
-                                    type="url"
-                                    placeholder="URL de la photo"
-                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
-                                />
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input
+                                        v-model="editForm.date_debut"
+                                        type="date"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+                                    />
+                                    <input
+                                        v-model="editForm.date_fin"
+                                        type="date"
+                                        placeholder="Fin (vide si en cours)"
+                                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+                                    />
+                                </div>
                                 <div class="flex items-center gap-2">
                                     <input
                                         v-model="editForm.actif"
@@ -261,17 +337,17 @@ const partis = [
                                         id="edit-actif"
                                         class="rounded"
                                     />
-                                    <label for="edit-actif" class="text-sm">Actif</label>
+                                    <label for="edit-actif" class="text-sm">En fonction</label>
                                 </div>
                                 <div class="flex justify-end gap-2 pt-2">
                                     <button
-                                        @click="editingMinistre = null"
+                                        @click="editingPoste = null"
                                         class="px-3 py-1 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-sm"
                                     >
                                         Annuler
                                     </button>
                                     <button
-                                        @click="saveEdit(ministre)"
+                                        @click="savePoste(poste)"
                                         :disabled="editForm.processing"
                                         class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                                     >
@@ -283,11 +359,11 @@ const partis = [
                     </div>
                 </div>
 
-                <!-- Message si aucun ministre -->
-                <Card v-if="Object.values(ministresParType).every(m => m.length === 0)" class="text-center py-12">
+                <!-- Message si aucun membre -->
+                <Card v-if="totalPostes === 0" class="text-center py-12">
                     <div class="text-6xl mb-4">👔</div>
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                        Aucun ministre
+                        Aucun membre
                     </h3>
                     <p class="text-gray-600 dark:text-gray-400 mb-6">
                         Ajoutez les membres du gouvernement
@@ -296,13 +372,13 @@ const partis = [
                         @click="showAddModal = true"
                         class="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
                     >
-                        ➕ Ajouter un ministre
+                        ➕ Ajouter un membre
                     </button>
                 </Card>
             </div>
         </div>
 
-        <!-- Modal d'ajout -->
+        <!-- Modal d'ajout de poste -->
         <div 
             v-if="showAddModal"
             class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -311,88 +387,158 @@ const partis = [
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                        ➕ Ajouter un ministre
+                        ➕ Ajouter un membre au gouvernement
                     </h2>
                 </div>
-                <form @submit.prevent="addMinistre" class="p-6 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prénom *</label>
-                            <input
-                                v-model="ministereForm.prenom"
-                                type="text"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                required
-                            />
+                <form @submit.prevent="addPoste" class="p-6 space-y-4">
+                    
+                    <!-- Choix personne existante ou nouvelle -->
+                    <div class="flex gap-4 mb-4">
+                        <button
+                            type="button"
+                            @click="createNewPerson = false"
+                            :class="[
+                                'flex-1 py-2 px-4 rounded-lg border-2 transition',
+                                !createNewPerson ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'
+                            ]"
+                        >
+                            👤 Personne existante
+                        </button>
+                        <button
+                            type="button"
+                            @click="createNewPerson = true"
+                            :class="[
+                                'flex-1 py-2 px-4 rounded-lg border-2 transition',
+                                createNewPerson ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'
+                            ]"
+                        >
+                            ✨ Nouvelle personne
+                        </button>
+                    </div>
+
+                    <!-- Sélection personne existante -->
+                    <div v-if="!createNewPerson" class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rechercher une personne</label>
+                        <input
+                            v-model="searchPersonne"
+                            type="text"
+                            placeholder="Tapez un nom..."
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                            @focus="posteForm.personne_id = null"
+                        />
+                        <div v-if="filteredPersonnes.length && !posteForm.personne_id" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            <button
+                                v-for="p in filteredPersonnes"
+                                :key="p.id"
+                                type="button"
+                                @click="selectPersonne(p)"
+                                class="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3"
+                            >
+                                <img v-if="p.photo_url" :src="p.photo_url" class="w-8 h-8 rounded-full object-cover" />
+                                <div v-else class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">👤</div>
+                                <div>
+                                    <div class="font-medium">{{ p.prenom }} {{ p.nom }}</div>
+                                    <div class="text-xs text-gray-500">{{ p.parti_politique || 'Sans parti' }}</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Création nouvelle personne -->
+                    <div v-else class="space-y-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Prénom *</label>
+                                <input
+                                    v-model="posteForm.nouvelle_personne.prenom"
+                                    type="text"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Nom *</label>
+                                <input
+                                    v-model="posteForm.nouvelle_personne.nom"
+                                    type="text"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Civilité</label>
+                                <select
+                                    v-model="posteForm.nouvelle_personne.civilite"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+                                >
+                                    <option :value="null">--</option>
+                                    <option value="M.">M.</option>
+                                    <option value="Mme">Mme</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">Parti politique</label>
+                                <select
+                                    v-model="posteForm.nouvelle_personne.parti_politique"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
+                                >
+                                    <option value="">Sans parti</option>
+                                    <option v-for="parti in partis" :key="parti" :value="parti">{{ parti }}</option>
+                                </select>
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom *</label>
+                            <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">URL photo</label>
                             <input
-                                v-model="ministereForm.nom"
-                                type="text"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                required
+                                v-model="posteForm.nouvelle_personne.photo_url"
+                                type="url"
+                                placeholder="https://..."
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm"
                             />
                         </div>
                     </div>
 
+                    <hr class="my-4 border-gray-200 dark:border-gray-700" />
+
+                    <!-- Infos du poste -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fonction *</label>
                         <input
-                            v-model="ministereForm.fonction"
+                            v-model="posteForm.fonction"
                             type="text"
                             placeholder="Ex: Ministre de l'Économie"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
                             required
                         />
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de fonction *</label>
-                        <select
-                            v-model="ministereForm.type_fonction"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                            required
-                        >
-                            <option value="premier_ministre">Premier ministre</option>
-                            <option value="ministre">Ministre</option>
-                            <option value="ministre_delegue">Ministre délégué(e)</option>
-                            <option value="secretaire_etat">Secrétaire d'État</option>
-                        </select>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parti politique</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type *</label>
                             <select
-                                v-model="ministereForm.parti_politique"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                v-model="posteForm.type_fonction"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                                required
                             >
-                                <option value="">Sans parti</option>
-                                <option v-for="parti in partis" :key="parti" :value="parti">{{ parti }}</option>
+                                <option value="premier_ministre">Premier ministre</option>
+                                <option value="ministre_etat">Ministre d'État</option>
+                                <option value="ministre">Ministre</option>
+                                <option value="ministre_delegue">Ministre délégué(e)</option>
+                                <option value="secretaire_etat">Secrétaire d'État</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sexe</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ministère</label>
                             <select
-                                v-model="ministereForm.sexe"
-                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                v-model="posteForm.ministere_id"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
                             >
-                                <option :value="null">Non précisé</option>
-                                <option value="M">Homme</option>
-                                <option value="F">Femme</option>
+                                <option :value="null">-- Aucun --</option>
+                                <option v-for="m in ministeres" :key="m.id" :value="m.id">{{ m.nom }}</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL de la photo</label>
-                        <input
-                            v-model="ministereForm.photo_url"
-                            type="url"
-                            placeholder="https://..."
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        />
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -405,10 +551,81 @@ const partis = [
                         </button>
                         <button
                             type="submit"
-                            :disabled="ministereForm.processing"
+                            :disabled="posteForm.processing"
                             class="px-6 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50"
                         >
                             Ajouter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal création ministère -->
+        <div 
+            v-if="showMinistereModal"
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            @click.self="showMinistereModal = false"
+        >
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        🏢 Créer un ministère
+                    </h2>
+                </div>
+                <form @submit.prevent="addMinistere" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom *</label>
+                        <input
+                            v-model="ministereForm.nom"
+                            type="text"
+                            placeholder="Ministère de..."
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                            required
+                        />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sigle</label>
+                            <input
+                                v-model="ministereForm.sigle"
+                                type="text"
+                                placeholder="Ex: MINEFI"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Couleur</label>
+                            <input
+                                v-model="ministereForm.couleur"
+                                type="color"
+                                class="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Site web</label>
+                        <input
+                            v-model="ministereForm.site_web"
+                            type="url"
+                            placeholder="https://..."
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                        />
+                    </div>
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                            type="button"
+                            @click="showMinistereModal = false"
+                            class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="ministereForm.processing"
+                            class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                        >
+                            Créer
                         </button>
                     </div>
                 </form>

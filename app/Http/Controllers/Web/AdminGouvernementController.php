@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Gouvernement;
 use App\Models\Ministere;
-use App\Models\Ministre;
+use App\Models\PersonnePolitique;
+use App\Models\PosteMinisteriel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -17,19 +18,21 @@ class AdminGouvernementController extends Controller
      */
     public function index()
     {
-        $gouvernements = Gouvernement::withCount('ministres')
+        $gouvernements = Gouvernement::withCount('postes')
             ->orderByDesc('date_debut')
             ->get()
             ->map(fn($g) => [
                 ...$g->toArray(),
-                'ministres_count' => $g->ministres_count,
+                'postes_count' => $g->postes_count,
                 'duree' => $this->calculateDuree($g->date_debut, $g->date_fin),
             ]);
 
         $stats = [
             'total' => Gouvernement::count(),
             'actif' => Gouvernement::where('actif', true)->count(),
-            'total_ministres' => Ministre::where('actif', true)->count(),
+            'total_ministres' => PosteMinisteriel::where('actif', true)->count(),
+            'personnes' => PersonnePolitique::count(),
+            'ministeres' => Ministere::where('actif', true)->count(),
         ];
 
         return Inertia::render('Admin/Gouvernement/Index', [
@@ -53,6 +56,8 @@ class AdminGouvernementController extends Controller
     {
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
+            'numero' => 'nullable|integer',
+            'suffixe' => 'nullable|string|max:10',
             'premier_ministre' => 'required|string|max:255',
             'president' => 'required|string|max:255',
             'date_debut' => 'required|date',
@@ -67,7 +72,7 @@ class AdminGouvernementController extends Controller
 
         $gouvernement = Gouvernement::create([
             ...$validated,
-            'slug' => Str::slug($validated['nom']),
+            'slug' => Str::slug($validated['nom'] . ($validated['suffixe'] ?? '')),
         ]);
 
         return redirect()
@@ -76,28 +81,40 @@ class AdminGouvernementController extends Controller
     }
 
     /**
-     * Afficher un gouvernement et ses ministres
+     * Afficher un gouvernement et ses postes
      */
     public function show(Gouvernement $gouvernement)
     {
-        $gouvernement->load(['ministres' => function ($q) {
-            $q->orderBy('type_fonction')
-              ->orderBy('created_at');
-        }, 'ministres.ministere']);
+        // Charger les postes avec les personnes et ministères
+        $gouvernement->load(['postes' => function ($q) {
+            $q->with(['personne', 'ministere'])
+              ->orderBy('ordre')
+              ->orderBy('type_fonction')
+              ->orderBy('date_debut');
+        }]);
 
-        $ministresParType = [
-            'premier_ministre' => $gouvernement->ministres->where('type_fonction', 'premier_ministre')->values(),
-            'ministre' => $gouvernement->ministres->where('type_fonction', 'ministre')->values(),
-            'ministre_delegue' => $gouvernement->ministres->where('type_fonction', 'ministre_delegue')->values(),
-            'secretaire_etat' => $gouvernement->ministres->where('type_fonction', 'secretaire_etat')->values(),
+        // Grouper par type de fonction
+        $postesParType = [
+            'premier_ministre' => $gouvernement->postes->where('type_fonction', 'premier_ministre')->values(),
+            'ministre_etat' => $gouvernement->postes->where('type_fonction', 'ministre_etat')->values(),
+            'ministre' => $gouvernement->postes->where('type_fonction', 'ministre')->values(),
+            'ministre_delegue' => $gouvernement->postes->where('type_fonction', 'ministre_delegue')->values(),
+            'secretaire_etat' => $gouvernement->postes->where('type_fonction', 'secretaire_etat')->values(),
         ];
 
+        // Liste des ministères pour le formulaire
         $ministeres = Ministere::orderBy('nom')->get();
+
+        // Liste des personnes politiques pour l'autocomplétion
+        $personnes = PersonnePolitique::orderBy('nom')
+            ->orderBy('prenom')
+            ->get(['id', 'prenom', 'nom', 'photo_url', 'parti_politique']);
 
         return Inertia::render('Admin/Gouvernement/Show', [
             'gouvernement' => $gouvernement,
-            'ministresParType' => $ministresParType,
+            'postesParType' => $postesParType,
             'ministeres' => $ministeres,
+            'personnes' => $personnes,
         ]);
     }
 
@@ -108,6 +125,8 @@ class AdminGouvernementController extends Controller
     {
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
+            'numero' => 'nullable|integer',
+            'suffixe' => 'nullable|string|max:10',
             'premier_ministre' => 'required|string|max:255',
             'president' => 'required|string|max:255',
             'date_debut' => 'required|date',
@@ -122,7 +141,7 @@ class AdminGouvernementController extends Controller
 
         $gouvernement->update([
             ...$validated,
-            'slug' => Str::slug($validated['nom']),
+            'slug' => Str::slug($validated['nom'] . ($validated['suffixe'] ?? '')),
         ]);
 
         return back()->with('success', 'Gouvernement mis à jour');
@@ -140,78 +159,186 @@ class AdminGouvernementController extends Controller
             ->with('success', 'Gouvernement supprimé');
     }
 
+    // =====================================================
+    // PERSONNES POLITIQUES
+    // =====================================================
+
     /**
-     * Ajouter un ministre au gouvernement
+     * Créer une nouvelle personne politique
      */
-    public function addMinistre(Request $request, Gouvernement $gouvernement)
+    public function storePersonne(Request $request)
     {
         $validated = $request->validate([
+            'civilite' => 'nullable|in:M.,Mme',
             'prenom' => 'required|string|max:255',
             'nom' => 'required|string|max:255',
-            'fonction' => 'required|string|max:500',
-            'type_fonction' => 'required|in:premier_ministre,ministre,ministre_delegue,secretaire_etat',
-            'ministere_id' => 'nullable|exists:ministeres,id',
+            'date_naissance' => 'nullable|date',
+            'profession' => 'nullable|string|max:500',
             'parti_politique' => 'nullable|string|max:255',
-            'photo_url' => 'nullable|url|max:500',
-            'sexe' => 'nullable|in:M,F',
+            'photo_url' => 'nullable|url|max:1000',
+            'wikipedia_url' => 'nullable|url|max:500',
         ]);
 
-        $ministre = $gouvernement->ministres()->create([
+        $personne = PersonnePolitique::create([
             ...$validated,
             'slug' => Str::slug($validated['prenom'] . '-' . $validated['nom']),
-            'date_debut' => $gouvernement->date_debut,
-            'actif' => true,
         ]);
 
-        return back()->with('success', 'Ministre ajouté : ' . $ministre->nom_complet);
+        return back()->with('success', 'Personne créée : ' . $personne->nom_complet);
     }
 
     /**
-     * Mettre à jour un ministre
+     * Mettre à jour une personne politique
      */
-    public function updateMinistre(Request $request, Ministre $ministre)
+    public function updatePersonne(Request $request, PersonnePolitique $personne)
     {
         $validated = $request->validate([
+            'civilite' => 'nullable|in:M.,Mme',
             'prenom' => 'required|string|max:255',
             'nom' => 'required|string|max:255',
-            'fonction' => 'required|string|max:500',
-            'type_fonction' => 'required|in:premier_ministre,ministre,ministre_delegue,secretaire_etat',
-            'ministere_id' => 'nullable|exists:ministeres,id',
+            'date_naissance' => 'nullable|date',
+            'profession' => 'nullable|string|max:500',
             'parti_politique' => 'nullable|string|max:255',
-            'photo_url' => 'nullable|url|max:500',
-            'sexe' => 'nullable|in:M,F',
+            'photo_url' => 'nullable|url|max:1000',
+            'wikipedia_url' => 'nullable|url|max:500',
+        ]);
+
+        $personne->update([
+            ...$validated,
+            'slug' => Str::slug($validated['prenom'] . '-' . $validated['nom']),
+        ]);
+
+        return back()->with('success', 'Personne mise à jour');
+    }
+
+    // =====================================================
+    // POSTES MINISTÉRIELS (Affectations)
+    // =====================================================
+
+    /**
+     * Ajouter un poste ministériel (affectation)
+     */
+    public function addPoste(Request $request, Gouvernement $gouvernement)
+    {
+        $validated = $request->validate([
+            // Soit on sélectionne une personne existante
+            'personne_id' => 'nullable|exists:personnes_politiques,id',
+            // Soit on crée une nouvelle personne
+            'nouvelle_personne' => 'nullable|array',
+            'nouvelle_personne.prenom' => 'required_with:nouvelle_personne|string|max:255',
+            'nouvelle_personne.nom' => 'required_with:nouvelle_personne|string|max:255',
+            'nouvelle_personne.civilite' => 'nullable|in:M.,Mme',
+            'nouvelle_personne.parti_politique' => 'nullable|string|max:255',
+            'nouvelle_personne.photo_url' => 'nullable|url|max:1000',
+            // Infos du poste
+            'fonction' => 'required|string|max:500',
+            'type_fonction' => 'required|in:premier_ministre,ministre_etat,ministre,ministre_delegue,secretaire_etat',
+            'ministere_id' => 'nullable|exists:ministeres,id',
+            'ordre' => 'nullable|integer',
+            'date_debut' => 'nullable|date',
+            'date_fin' => 'nullable|date|after:date_debut',
+        ]);
+
+        // Créer ou récupérer la personne
+        $personneId = $validated['personne_id'];
+        
+        if (!$personneId && !empty($validated['nouvelle_personne'])) {
+            $personne = PersonnePolitique::create([
+                'prenom' => $validated['nouvelle_personne']['prenom'],
+                'nom' => $validated['nouvelle_personne']['nom'],
+                'civilite' => $validated['nouvelle_personne']['civilite'] ?? null,
+                'parti_politique' => $validated['nouvelle_personne']['parti_politique'] ?? null,
+                'photo_url' => $validated['nouvelle_personne']['photo_url'] ?? null,
+                'slug' => Str::slug($validated['nouvelle_personne']['prenom'] . '-' . $validated['nouvelle_personne']['nom']),
+            ]);
+            $personneId = $personne->id;
+        }
+
+        if (!$personneId) {
+            return back()->withErrors(['personne_id' => 'Veuillez sélectionner ou créer une personne']);
+        }
+
+        $poste = PosteMinisteriel::create([
+            'personne_id' => $personneId,
+            'gouvernement_id' => $gouvernement->id,
+            'ministere_id' => $validated['ministere_id'],
+            'fonction' => $validated['fonction'],
+            'type_fonction' => $validated['type_fonction'],
+            'ordre' => $validated['ordre'] ?? 0,
+            'date_debut' => $validated['date_debut'] ?? $gouvernement->date_debut,
+            'date_fin' => $validated['date_fin'],
+            'actif' => empty($validated['date_fin']),
+        ]);
+
+        $personne = PersonnePolitique::find($personneId);
+        
+        return back()->with('success', 'Poste ajouté : ' . $personne->nom_complet . ' - ' . $validated['fonction']);
+    }
+
+    /**
+     * Mettre à jour un poste ministériel
+     */
+    public function updatePoste(Request $request, PosteMinisteriel $poste)
+    {
+        $validated = $request->validate([
+            'fonction' => 'required|string|max:500',
+            'type_fonction' => 'required|in:premier_ministre,ministre_etat,ministre,ministre_delegue,secretaire_etat',
+            'ministere_id' => 'nullable|exists:ministeres,id',
+            'ordre' => 'nullable|integer',
+            'date_debut' => 'nullable|date',
+            'date_fin' => 'nullable|date',
             'actif' => 'boolean',
         ]);
 
-        $ministre->update([
+        $poste->update([
             ...$validated,
-            'slug' => Str::slug($validated['prenom'] . '-' . $validated['nom']),
+            'actif' => $validated['actif'] ?? empty($validated['date_fin']),
         ]);
 
-        return back()->with('success', 'Ministre mis à jour');
+        return back()->with('success', 'Poste mis à jour');
     }
 
     /**
-     * Supprimer un ministre
+     * Supprimer un poste ministériel
      */
-    public function deleteMinistre(Ministre $ministre)
+    public function deletePoste(PosteMinisteriel $poste)
     {
-        $nom = $ministre->nom_complet;
-        $ministre->delete();
+        $nom = $poste->personne?->nom_complet ?? 'Inconnu';
+        $poste->delete();
 
-        return back()->with('success', 'Ministre supprimé : ' . $nom);
+        return back()->with('success', 'Poste supprimé : ' . $nom);
     }
+
+    /**
+     * Terminer un poste (mettre date_fin = aujourd'hui)
+     */
+    public function endPoste(PosteMinisteriel $poste)
+    {
+        $poste->update([
+            'date_fin' => now(),
+            'actif' => false,
+        ]);
+
+        return back()->with('success', 'Poste terminé : ' . $poste->personne?->nom_complet);
+    }
+
+    // =====================================================
+    // MINISTÈRES
+    // =====================================================
 
     /**
      * Créer un ministère
      */
-    public function createMinistere(Request $request)
+    public function storeMinistere(Request $request)
     {
         $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'sigle' => 'nullable|string|max:50',
             'type' => 'nullable|string|max:50',
             'couleur' => 'nullable|string|max:7',
+            'site_web' => 'nullable|url|max:500',
+            'adresse' => 'nullable|string|max:500',
+            'telephone' => 'nullable|string|max:50',
         ]);
 
         $ministere = Ministere::create([
@@ -224,11 +351,79 @@ class AdminGouvernementController extends Controller
     }
 
     /**
+     * Mettre à jour un ministère
+     */
+    public function updateMinistere(Request $request, Ministere $ministere)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'sigle' => 'nullable|string|max:50',
+            'type' => 'nullable|string|max:50',
+            'couleur' => 'nullable|string|max:7',
+            'site_web' => 'nullable|url|max:500',
+            'adresse' => 'nullable|string|max:500',
+            'telephone' => 'nullable|string|max:50',
+            'actif' => 'boolean',
+        ]);
+
+        $ministere->update([
+            ...$validated,
+            'slug' => Str::slug($validated['nom']),
+        ]);
+
+        return back()->with('success', 'Ministère mis à jour');
+    }
+
+    /**
+     * Liste des ministères
+     */
+    public function ministeres()
+    {
+        $ministeres = Ministere::withCount('postes')
+            ->orderBy('nom')
+            ->get();
+
+        return Inertia::render('Admin/Gouvernement/Ministeres', [
+            'ministeres' => $ministeres,
+        ]);
+    }
+
+    /**
+     * Liste des personnes politiques
+     */
+    public function personnes(Request $request)
+    {
+        $query = PersonnePolitique::with(['postes' => function ($q) {
+            $q->with('gouvernement', 'ministere')
+              ->orderByDesc('date_debut');
+        }]);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'ilike', "%{$search}%")
+                  ->orWhere('prenom', 'ilike', "%{$search}%");
+            });
+        }
+
+        $personnes = $query->orderBy('nom')
+            ->orderBy('prenom')
+            ->paginate(50);
+
+        return Inertia::render('Admin/Gouvernement/Personnes', [
+            'personnes' => $personnes,
+            'filters' => $request->only('search'),
+        ]);
+    }
+
+    /**
      * Export JSON du gouvernement
      */
     public function exportJson(Gouvernement $gouvernement)
     {
-        $gouvernement->load('ministres');
+        $gouvernement->load(['postes' => function ($q) {
+            $q->with(['personne', 'ministere']);
+        }]);
 
         $data = [
             'metadata' => [
@@ -236,20 +431,29 @@ class AdminGouvernementController extends Controller
                 'exported_at' => now()->toIso8601String(),
             ],
             'gouvernement' => [
+                'numero' => $gouvernement->numero,
                 'nom' => $gouvernement->nom,
+                'suffixe' => $gouvernement->suffixe,
                 'premier_ministre' => $gouvernement->premier_ministre,
                 'president' => $gouvernement->president,
                 'date_debut' => $gouvernement->date_debut?->format('Y-m-d'),
                 'date_fin' => $gouvernement->date_fin?->format('Y-m-d'),
             ],
-            'membres' => $gouvernement->ministres->map(fn($m) => [
-                'prenom' => $m->prenom,
-                'nom' => $m->nom,
-                'fonction' => $m->fonction,
-                'type' => $m->type_fonction,
-                'ministere' => $m->ministere?->nom,
-                'parti' => $m->parti_politique,
-                'photo_url' => $m->photo_url,
+            'postes' => $gouvernement->postes->map(fn($p) => [
+                'personne' => [
+                    'prenom' => $p->personne?->prenom,
+                    'nom' => $p->personne?->nom,
+                    'civilite' => $p->personne?->civilite,
+                    'parti_politique' => $p->personne?->parti_politique,
+                    'photo_url' => $p->personne?->photo,
+                ],
+                'fonction' => $p->fonction,
+                'type' => $p->type_fonction,
+                'ministere' => $p->ministere?->nom,
+                'ordre' => $p->ordre,
+                'date_debut' => $p->date_debut?->format('Y-m-d'),
+                'date_fin' => $p->date_fin?->format('Y-m-d'),
+                'actif' => $p->actif,
             ])->toArray(),
         ];
 
