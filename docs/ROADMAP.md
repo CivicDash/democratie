@@ -1191,7 +1191,7 @@ CREATE TABLE budget_ministeres (
 ### 2.7.4 : 🏛️ Import Composition Gouvernement
 **Priorité** : 🟡 HAUTE  
 **Durée** : 1 semaine  
-**Statut** : ✅ TERMINÉ (01/01/2026) - Gouvernement Bayrou importé
+**Statut** : ✅ TERMINÉ (01/01/2026) - Gouvernement Lecornu II importé
 
 **Sources** :
 - info.gouv.fr/ministere (scraping)
@@ -1235,11 +1235,132 @@ CREATE TABLE ministres (
 ```
 
 **Tâches** :
-- [ ] Modèles Laravel (Gouvernement, Ministere, Ministre)
-- [ ] Commande `import:gouvernement`
-- [ ] Page `/gouvernement` avec organigramme
+- [x] Modèles Laravel (Gouvernement, Ministere, PersonnePolitique, PosteMinisteriel)
+- [x] Commande `import:gouvernement-json`
+- [x] Page `/gouvernement` avec organigramme et sélection par présidence
+- [x] Fiches ministres avec historique des postes
 - [ ] Liaison avec déclarations HATVP
-- [ ] Historique des gouvernements
+- [x] Historique des gouvernements
+
+---
+
+### 2.7.5 : 💰 Import Finances Communales OFGL
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1-2 semaines  
+**Statut** : 📋 Planifié
+
+**Source** : [OFGL - Observatoire des Finances et de la Gestion publique Locale](https://data.ofgl.fr/)
+- API : `https://data.ofgl.fr/api/explore/v2.1/`
+- Dataset : `ofgl-base-communes-consolidee`
+- Période : 2017-2024
+- Format : JSON/CSV via API
+
+**Données disponibles** :
+- 📊 **Comptes consolidés des communes** (BP + BA)
+- 💰 **Recettes de fonctionnement** (impôts, dotations, subventions)
+- 💸 **Dépenses de fonctionnement** (charges, personnel)
+- 🏗️ **Investissements** (équipement, emprunts)
+- 📈 **Dotations** (DGF, DSU, DSR, FPIC...)
+- 👥 **Population et revenus** (tranches)
+- 🗺️ **EPCI, département, région** (agrégations)
+
+**Tables à créer** :
+```sql
+CREATE TABLE communes_finances (
+    id SERIAL PRIMARY KEY,
+    code_commune VARCHAR(10),
+    nom_commune VARCHAR(255),
+    code_epci VARCHAR(20),
+    nom_epci VARCHAR(255),
+    code_departement VARCHAR(5),
+    code_region VARCHAR(5),
+    exercice INT,                        -- Année (2017-2024)
+    
+    -- Recettes
+    recettes_fonctionnement DECIMAL(15,2),
+    impots_locaux DECIMAL(15,2),
+    dotations_subventions DECIMAL(15,2),
+    
+    -- Dépenses
+    depenses_fonctionnement DECIMAL(15,2),
+    charges_personnel DECIMAL(15,2),
+    achats_services DECIMAL(15,2),
+    
+    -- Investissement
+    depenses_investissement DECIMAL(15,2),
+    recettes_investissement DECIMAL(15,2),
+    
+    -- Soldes
+    epargne_brute DECIMAL(15,2),
+    capacite_autofinancement DECIMAL(15,2),
+    
+    -- Indicateurs
+    population INT,
+    revenu_moyen_habitant DECIMAL(10,2),
+    
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+-- Dotations détaillées par commune
+CREATE TABLE communes_dotations (
+    id SERIAL PRIMARY KEY,
+    code_commune VARCHAR(10),
+    exercice INT,
+    type_dotation VARCHAR(50),           -- DGF, DSU, DSR, FPIC, etc.
+    montant DECIMAL(15,2),
+    montant_par_habitant DECIMAL(10,2),
+    created_at TIMESTAMP
+);
+```
+
+**API OFGL - Exemples** :
+```bash
+# Toutes les communes 2024
+curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-consolidee/records?limit=100&refine=exer:2024"
+
+# Filtrer par département
+curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-consolidee/records?refine=exer:2024&refine=dep_code:39"
+
+# Exporter en CSV
+curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-consolidee/exports/csv?refine=exer:2024"
+```
+
+**Tâches** :
+- [ ] Modèles Laravel (`CommuneFinances`, `CommuneDotation`)
+- [ ] Commande `import:ofgl-communes` avec options :
+  - `--year=2024` : Année spécifique
+  - `--departement=39` : Filtrer par département
+  - `--all-years` : Import 2017-2024
+- [ ] Migration tables finances communales
+- [ ] Page `/collectivites/commune/{code}` enrichie avec onglet Finances
+- [ ] Graphiques : évolution recettes/dépenses, comparaison moyenne départementale
+- [ ] Enrichissement fiche maire avec budget de la commune
+- [ ] Export CSV des données financières
+
+**Visualisations prévues** :
+- 📊 Évolution budget sur 5 ans (courbe)
+- 🥧 Répartition recettes/dépenses (pie chart)
+- 📍 Carte dotations par habitant (choroplèthe)
+- 📈 Comparaison avec moyenne départementale/nationale
+
+---
+
+### 2.7.6 : 📸 Photos des Maires
+**Priorité** : 🟢 MOYENNE  
+**Durée** : 1 semaine  
+**Statut** : 📋 Planifié
+
+**Sources possibles** :
+- Wikipedia (API Wikidata/Commons)
+- Sites mairies officiels
+- Réseaux sociaux (validation manuelle)
+
+**Tâches** :
+- [x] Migration : ajout champs `photo_url`, `photo_wikipedia_url`
+- [ ] Commande `sync:maires-photos` via Wikidata
+- [ ] Interface admin pour upload/correction manuelle
+- [ ] Affichage photos sur fiches maires
 
 ---
 
@@ -1440,6 +1561,7 @@ CREATE TABLE ministres (
 | Légifrance (PISTE) | piste.gouv.fr | 🟡 Haute | Textes consolidés (accès restreint) |
 | data.economie.gouv.fr | API v2.1 | 🟡 Haute | Marchés publics, finances |
 | Résultats électoraux | data.gouv.fr/elections | 🟡 Haute | Historique votes par bureau |
+| **OFGL Communes** | data.ofgl.fr | 🟡 Haute | Budgets, dotations, recettes communales |
 | Conseil Constitutionnel | conseil-constitutionnel.fr | 🟢 Moyenne | Décisions QPC |
 | Cour des Comptes | ccomptes.fr | 🟢 Moyenne | Rapports annuels |
 

@@ -62,6 +62,7 @@ class Maire extends Model
         'fin_mandat',
         'en_exercice',
         'photo_url',
+        'photo_wikipedia_url',
         'email',
         'telephone',
         'site_web',
@@ -200,6 +201,14 @@ class Maire extends Model
             'LFI' => 'La France Insoumise',
             default => $this->nuance_politique,
         };
+    }
+
+    /**
+     * Photo du maire (priorité : photo_url > photo_wikipedia_url)
+     */
+    public function getPhotoAttribute(): ?string
+    {
+        return $this->photo_url ?? $this->photo_wikipedia_url ?? null;
     }
 
     public function getNuanceCouleurAttribute(): string

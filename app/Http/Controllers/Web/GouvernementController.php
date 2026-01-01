@@ -157,123 +157,10 @@ class GouvernementController extends Controller
             ];
         });
 
-        // Vérifier si la personne est aussi député ou sénateur
-        $autresMandats = [];
-        if ($personne->uid_an) {
-            $autresMandats[] = ['type' => 'depute', 'uid' => $personne->uid_an];
-        }
-        if ($personne->uid_senat) {
-            $autresMandats[] = ['type' => 'senateur', 'uid' => $personne->uid_senat];
-        }
-
         return Inertia::render('Gouvernement/Personne', [
             'personne' => [
                 'id' => $personne->id,
                 'slug' => $personne->slug,
-                'civilite' => $personne->civilite,
-                'prenom' => $personne->prenom,
-                'nom' => $personne->nom,
-                'nom_complet' => $personne->nom_complet,
-                'photo' => $personne->photo,
-                'age' => $personne->age,
-                'date_naissance' => $personne->date_naissance?->format('d/m/Y'),
-                'lieu_naissance' => $personne->lieu_naissance,
-                'profession' => $personne->profession,
-                'biographie' => $personne->biographie,
-                'parti_politique' => $personne->parti_politique,
-                'wikipedia_url' => $personne->wikipedia_url,
-                'wikipedia_extract' => $personne->wikipedia_extract,
-                'twitter_url' => $personne->twitter_url,
-                'site_web' => $personne->site_web,
-            ],
-            'historique' => $historique,
-            'stats' => [
-                'nb_postes' => $nbPostes,
-                'nb_gouvernements' => $nbGouvernements,
-                'duree_totale' => $dureeTotale,
-                'est_actif' => $personne->postes->where('actif', true)->isNotEmpty(),
-                'poste_actuel' => $personne->postes->where('actif', true)->first()?->fonction,
-            ],
-            'autres_mandats' => $autresMandats,
-        ]);
-    }
-
-    /**
-     * Format les postes pour l'affichage
-     */
-    private function formatPostes($postes): array
-    {
-        return $postes->map(function ($poste) {
-            return [
-                'id' => $poste->id,
-                'fonction' => $poste->fonction,
-                'type_fonction' => $poste->type_fonction,
-                'type_fonction_libelle' => $poste->type_fonction_libelle,
-                'duree_fonction' => $poste->duree_fonction,
-                'date_debut' => $poste->date_debut?->format('d/m/Y'),
-                'date_fin' => $poste->date_fin?->format('d/m/Y'),
-                'actif' => $poste->actif,
-                'ministere' => $poste->ministere ? [
-                    'id' => $poste->ministere->id,
-                    'nom' => $poste->ministere->nom,
-                    'sigle' => $poste->ministere->sigle,
-                    'couleur' => $poste->ministere->couleur,
-                ] : null,
-                'personne' => $poste->personne ? [
-                    'id' => $poste->personne->id,
-                    'slug' => $poste->personne->slug,
-                    'nom_complet' => $poste->personne->nom_complet,
-                    'photo' => $poste->personne->photo,
-                    'parti_politique' => $poste->personne->parti_politique,
-                    'nb_postes' => $poste->personne->postes()->count(),
-                ] : null,
-            ];
-        })->values()->toArray();
-    }
-
-    /**
-     * Calcule la durée totale des postes
-     */
-    private function calculerDureeTotale($postes): string
-    {
-        $totalJours = 0;
-        
-        foreach ($postes as $poste) {
-            $debut = $poste->date_debut;
-            $fin = $poste->date_fin ?? now();
-            $totalJours += $debut->diffInDays($fin);
-        }
-
-        if ($totalJours >= 365) {
-            $annees = floor($totalJours / 365);
-            $mois = floor(($totalJours % 365) / 30);
-            return $annees . ' an' . ($annees > 1 ? 's' : '') . ($mois > 0 ? " et {$mois} mois" : '');
-        }
-        
-        if ($totalJours >= 30) {
-            return floor($totalJours / 30) . ' mois';
-        }
-        
-        return $totalJours . ' jour' . ($totalJours > 1 ? 's' : '');
-    }
-
-    /**
-     * Récupère la période d'un président
-     */
-    private function getPeriodePresident(string $president): string
-    {
-        $periodes = [
-            'Emmanuel Macron' => '2017 - présent',
-            'François Hollande' => '2012 - 2017',
-            'Nicolas Sarkozy' => '2007 - 2012',
-            'Jacques Chirac' => '1995 - 2007',
-            'François Mitterrand' => '1981 - 1995',
-        ];
-
-        return $periodes[$president] ?? '';
-    }
-}
-
                 'civilite' => $personne->civilite,
                 'prenom' => $personne->prenom,
                 'nom' => $personne->nom,
@@ -357,14 +244,19 @@ class GouvernementController extends Controller
                     'nom_complet' => $poste->personne->nom_complet,
                     'photo' => $poste->personne->photo,
                     'parti_politique' => $poste->personne->parti_politique,
+                    'nb_postes' => $poste->personne->postes()->count(),
                 ] : null,
             ];
         })->values()->toArray();
     }
 
+    /**
+     * Calcule la durée totale des postes
+     */
     private function calculerDureeTotale($postes): string
     {
         $totalJours = 0;
+        
         foreach ($postes as $poste) {
             $debut = $poste->date_debut;
             $fin = $poste->date_fin ?? now();
@@ -384,6 +276,9 @@ class GouvernementController extends Controller
         return $totalJours . ' jour' . ($totalJours > 1 ? 's' : '');
     }
 
+    /**
+     * Récupère la période d'un président
+     */
     private function getPeriodePresident(string $president): string
     {
         $periodes = [
@@ -393,6 +288,7 @@ class GouvernementController extends Controller
             'Jacques Chirac' => '1995 - 2007',
             'François Mitterrand' => '1981 - 1995',
         ];
+
         return $periodes[$president] ?? '';
     }
 }
