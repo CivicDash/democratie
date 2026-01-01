@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
@@ -13,6 +13,12 @@ const breadcrumbs = [
     { label: 'Admin', href: route('admin.dashboard'), icon: '⚙️' },
     { label: 'Gouvernements', current: true, icon: '🏛️' },
 ];
+
+const deleteGouvernement = (gouv) => {
+    if (confirm(`Supprimer le gouvernement "${gouv.nom}" et ses ${gouv.ministres_count} ministres ?`)) {
+        router.delete(route('admin.gouvernement.destroy', gouv.id));
+    }
+};
 </script>
 
 <template>
@@ -107,7 +113,7 @@ const breadcrumbs = [
                                         :href="route('admin.gouvernement.show', gouv.id)"
                                         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
                                     >
-                                        👁️ Voir
+                                        ✏️ Gérer
                                     </Link>
                                     <a
                                         :href="route('admin.gouvernement.export', gouv.id)"
@@ -116,6 +122,13 @@ const breadcrumbs = [
                                     >
                                         📥 JSON
                                     </a>
+                                    <button
+                                        v-if="!gouv.actif"
+                                        @click="deleteGouvernement(gouv)"
+                                        class="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition text-sm"
+                                    >
+                                        🗑️
+                                    </button>
                                 </div>
                             </div>
                         </div>
