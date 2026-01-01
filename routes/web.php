@@ -281,8 +281,8 @@ Route::prefix('budget-etat')->name('budget-etat.')->group(function () {
 */
 Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
     Route::get('/', [GouvernementController::class, 'index'])->name('index');
-    Route::get('/ministre/{id}', [GouvernementController::class, 'showMinistre'])->name('ministre');
     Route::get('/historique', [GouvernementController::class, 'historique'])->name('historique');
+    Route::get('/personne/{slug}', [GouvernementController::class, 'showPersonne'])->name('personne');
 });
 
 /*

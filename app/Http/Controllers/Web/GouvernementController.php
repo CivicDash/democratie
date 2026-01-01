@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Gouvernement;
 use App\Models\Ministere;
-use App\Models\Ministre;
+use App\Models\PersonnePolitique;
+use App\Models\PosteMinisteriel;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,123 +14,285 @@ use Inertia\Response;
 class GouvernementController extends Controller
 {
     /**
-     * Page principale du gouvernement
+     * Page principale du gouvernement avec sélection par présidence
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        // Gouvernement actuel
-        $gouvernement = Gouvernement::actuel();
+        // Gouvernements groupés par président
+        $tousGouvernements = Gouvernement::orderByDesc('date_debut')
+            ->get()
+            ->groupBy('president')
+            ->map(function ($gouvernements, $president) {
+                return [
+                    'president' => $president,
+                    'periode' => $this->getPeriodePresident($president),
+                    'gouvernements' => $gouvernements->map(fn($g) => [
+                        'id' => $g->id,
+                        'numero' => $g->numero,
+                        'nom' => $g->nom,
+                        'nom_complet' => $g->nom_complet,
+                        'suffixe' => $g->suffixe,
+                        'premier_ministre' => $g->premier_ministre,
+                        'date_debut' => $g->date_debut?->format('d/m/Y'),
+                        'date_fin' => $g->date_fin?->format('d/m/Y'),
+                        'duree' => $g->duree,
+                        'actif' => $g->actif,
+                    ])->values(),
+                ];
+            })->values();
+
+        // Gouvernement sélectionné (actuel par défaut)
+        $gouvernementId = $request->get('gouvernement');
+        
+        if ($gouvernementId) {
+            $gouvernement = Gouvernement::find($gouvernementId);
+        } else {
+            $gouvernement = Gouvernement::actuel();
+        }
 
         if (!$gouvernement) {
             return Inertia::render('Gouvernement/Index', [
                 'gouvernement' => null,
-                'ministeres' => [],
-                'ministres' => [],
+                'postesParType' => [],
                 'stats' => null,
+                'gouvernementsParPresident' => $tousGouvernements,
             ]);
         }
 
-        // Ministères avec leurs ministres
-        $ministeres = Ministere::where('gouvernement_id', $gouvernement->id)
-            ->where('actif', true)
-            ->orderBy('ordre')
-            ->with(['ministres' => fn($q) => $q->where('actif', true)])
-            ->get()
-            ->map(fn($m) => [
-                'id' => $m->id,
-                'nom' => $m->nom,
-                'sigle' => $m->sigle,
-                'type' => $m->type,
-                'type_libelle' => $m->type_libelle,
-                'couleur' => $m->couleur,
-                'ordre' => $m->ordre,
-                'ministre' => $m->ministres->first() ? [
-                    'id' => $m->ministres->first()->id,
-                    'nom_complet' => $m->ministres->first()->nom_complet,
-                    'fonction' => $m->ministres->first()->fonction,
-                    'photo_url' => $m->ministres->first()->photo_url,
-                    'parti' => $m->ministres->first()->parti_politique,
-                ] : null,
-            ]);
+        // Charger les postes avec les personnes et ministères
+        $gouvernement->load(['postes' => function ($q) {
+            $q->with(['personne', 'ministere'])
+              ->orderBy('ordre')
+              ->orderByRaw("CASE type_fonction 
+                  WHEN 'premier_ministre' THEN 1 
+                  WHEN 'ministre_etat' THEN 2
+                  WHEN 'ministre' THEN 3 
+                  WHEN 'ministre_delegue' THEN 4 
+                  WHEN 'secretaire_etat' THEN 5 
+                  ELSE 6 END")
+              ->orderBy('date_debut');
+        }]);
 
-        // Tous les ministres pour la vue liste
-        $ministres = Ministre::where('gouvernement_id', $gouvernement->id)
-            ->where('actif', true)
-            ->orderByRaw("CASE type_fonction 
-                WHEN 'premier_ministre' THEN 1 
-                WHEN 'ministre' THEN 2 
-                WHEN 'ministre_delegue' THEN 3 
-                WHEN 'secretaire_etat' THEN 4 
-                ELSE 5 END")
-            ->with('ministere')
-            ->get()
-            ->map(fn($m) => [
-                'id' => $m->id,
-                'prenom' => $m->prenom,
-                'nom' => $m->nom,
-                'nom_complet' => $m->nom_complet,
-                'fonction' => $m->fonction,
-                'type_fonction' => $m->type_fonction,
-                'type_fonction_libelle' => $m->type_fonction_libelle,
-                'ministere' => $m->ministere?->nom,
-                'ministere_sigle' => $m->ministere?->sigle,
-                'parti' => $m->parti_politique,
-                'photo_url' => $m->photo_url,
-                'date_debut' => $m->date_debut?->format('d/m/Y'),
-            ]);
+        // Grouper par type de fonction pour la vue
+        $postesParType = [
+            'premier_ministre' => $this->formatPostes($gouvernement->postes->where('type_fonction', 'premier_ministre')),
+            'ministre_etat' => $this->formatPostes($gouvernement->postes->where('type_fonction', 'ministre_etat')),
+            'ministre' => $this->formatPostes($gouvernement->postes->where('type_fonction', 'ministre')),
+            'ministre_delegue' => $this->formatPostes($gouvernement->postes->where('type_fonction', 'ministre_delegue')),
+            'secretaire_etat' => $this->formatPostes($gouvernement->postes->where('type_fonction', 'secretaire_etat')),
+        ];
 
         // Statistiques
         $stats = [
-            'nb_ministres' => $ministres->where('type_fonction', 'ministre')->count(),
-            'nb_ministres_delegues' => $ministres->where('type_fonction', 'ministre_delegue')->count(),
-            'nb_secretaires_etat' => $ministres->where('type_fonction', 'secretaire_etat')->count(),
-            'total' => $ministres->count(),
+            'nb_ministres' => $gouvernement->postes->where('type_fonction', 'ministre')->count(),
+            'nb_ministres_delegues' => $gouvernement->postes->where('type_fonction', 'ministre_delegue')->count(),
+            'nb_secretaires_etat' => $gouvernement->postes->where('type_fonction', 'secretaire_etat')->count(),
+            'total' => $gouvernement->postes->count(),
             'duree' => $gouvernement->duree,
-            'partis' => $ministres->pluck('parti')->filter()->countBy()->sortDesc()->take(5)->toArray(),
+            'partis' => $gouvernement->postes
+                ->map(fn($p) => $p->personne?->parti_politique)
+                ->filter()
+                ->countBy()
+                ->sortDesc()
+                ->take(5)
+                ->toArray(),
         ];
 
         return Inertia::render('Gouvernement/Index', [
             'gouvernement' => [
                 'id' => $gouvernement->id,
+                'numero' => $gouvernement->numero,
                 'nom' => $gouvernement->nom,
+                'nom_complet' => $gouvernement->nom_complet,
+                'suffixe' => $gouvernement->suffixe,
                 'premier_ministre' => $gouvernement->premier_ministre,
                 'president' => $gouvernement->president,
-                'date_debut' => $gouvernement->date_debut->format('d/m/Y'),
-                'date_debut_iso' => $gouvernement->date_debut->toISOString(),
+                'date_debut' => $gouvernement->date_debut?->format('d/m/Y'),
+                'date_debut_iso' => $gouvernement->date_debut?->toISOString(),
+                'date_fin' => $gouvernement->date_fin?->format('d/m/Y'),
                 'duree' => $gouvernement->duree,
-                'numero' => $gouvernement->numero,
+                'actif' => $gouvernement->actif,
                 'legislature' => $gouvernement->legislature,
             ],
-            'ministeres' => $ministeres,
-            'ministres' => $ministres,
+            'postesParType' => $postesParType,
             'stats' => $stats,
+            'gouvernementsParPresident' => $tousGouvernements,
         ]);
     }
 
     /**
-     * Fiche d'un ministre
+     * Fiche d'une personne politique (ministre)
      */
-    public function showMinistre(int $id): Response
+    public function showPersonne(string $slug): Response
     {
-        $ministre = Ministre::with(['ministere', 'gouvernement'])->findOrFail($id);
+        $personne = PersonnePolitique::where('slug', $slug)
+            ->with(['postes' => function ($q) {
+                $q->with(['gouvernement', 'ministere'])
+                  ->orderByDesc('date_debut');
+            }])
+            ->firstOrFail();
 
-        return Inertia::render('Gouvernement/Ministre', [
-            'ministre' => [
-                'id' => $ministre->id,
-                'prenom' => $ministre->prenom,
-                'nom' => $ministre->nom,
-                'nom_complet' => $ministre->nom_complet,
-                'fonction' => $ministre->fonction,
-                'type_fonction_libelle' => $ministre->type_fonction_libelle,
-                'ministere' => $ministre->ministere?->nom,
-                'parti' => $ministre->parti_politique,
-                'photo_url' => $ministre->photo_url,
-                'date_debut' => $ministre->date_debut?->format('d/m/Y'),
-                'duree' => $ministre->duree_fonction,
-                'age' => $ministre->age,
-                'profession' => $ministre->profession,
-                'twitter' => $ministre->twitter,
-                'wikipedia_url' => $ministre->wikipedia_url,
+        // Calculer les statistiques
+        $nbPostes = $personne->postes->count();
+        $nbGouvernements = $personne->postes->pluck('gouvernement_id')->unique()->count();
+        $dureeTotale = $this->calculerDureeTotale($personne->postes);
+
+        // Formatage de l'historique des postes
+        $historique = $personne->postes->map(function ($poste) {
+            return [
+                'id' => $poste->id,
+                'fonction' => $poste->fonction,
+                'type_fonction' => $poste->type_fonction,
+                'type_fonction_libelle' => $poste->type_fonction_libelle,
+                'ministere' => $poste->ministere?->nom,
+                'ministere_sigle' => $poste->ministere?->sigle,
+                'gouvernement' => $poste->gouvernement?->nom_complet,
+                'gouvernement_id' => $poste->gouvernement?->id,
+                'gouvernement_numero' => $poste->gouvernement?->numero,
+                'premier_ministre' => $poste->gouvernement?->premier_ministre,
+                'date_debut' => $poste->date_debut?->format('d/m/Y'),
+                'date_fin' => $poste->date_fin?->format('d/m/Y'),
+                'duree' => $poste->duree_fonction,
+                'actif' => $poste->actif,
+            ];
+        });
+
+        // Vérifier si la personne est aussi député ou sénateur
+        $autresMandats = [];
+        if ($personne->uid_an) {
+            $autresMandats[] = ['type' => 'depute', 'uid' => $personne->uid_an];
+        }
+        if ($personne->uid_senat) {
+            $autresMandats[] = ['type' => 'senateur', 'uid' => $personne->uid_senat];
+        }
+
+        return Inertia::render('Gouvernement/Personne', [
+            'personne' => [
+                'id' => $personne->id,
+                'slug' => $personne->slug,
+                'civilite' => $personne->civilite,
+                'prenom' => $personne->prenom,
+                'nom' => $personne->nom,
+                'nom_complet' => $personne->nom_complet,
+                'photo' => $personne->photo,
+                'age' => $personne->age,
+                'date_naissance' => $personne->date_naissance?->format('d/m/Y'),
+                'lieu_naissance' => $personne->lieu_naissance,
+                'profession' => $personne->profession,
+                'biographie' => $personne->biographie,
+                'parti_politique' => $personne->parti_politique,
+                'wikipedia_url' => $personne->wikipedia_url,
+                'wikipedia_extract' => $personne->wikipedia_extract,
+                'twitter_url' => $personne->twitter_url,
+                'site_web' => $personne->site_web,
+            ],
+            'historique' => $historique,
+            'stats' => [
+                'nb_postes' => $nbPostes,
+                'nb_gouvernements' => $nbGouvernements,
+                'duree_totale' => $dureeTotale,
+                'est_actif' => $personne->postes->where('actif', true)->isNotEmpty(),
+                'poste_actuel' => $personne->postes->where('actif', true)->first()?->fonction,
+            ],
+            'autres_mandats' => $autresMandats,
+        ]);
+    }
+
+    /**
+     * Format les postes pour l'affichage
+     */
+    private function formatPostes($postes): array
+    {
+        return $postes->map(function ($poste) {
+            return [
+                'id' => $poste->id,
+                'fonction' => $poste->fonction,
+                'type_fonction' => $poste->type_fonction,
+                'type_fonction_libelle' => $poste->type_fonction_libelle,
+                'duree_fonction' => $poste->duree_fonction,
+                'date_debut' => $poste->date_debut?->format('d/m/Y'),
+                'date_fin' => $poste->date_fin?->format('d/m/Y'),
+                'actif' => $poste->actif,
+                'ministere' => $poste->ministere ? [
+                    'id' => $poste->ministere->id,
+                    'nom' => $poste->ministere->nom,
+                    'sigle' => $poste->ministere->sigle,
+                    'couleur' => $poste->ministere->couleur,
+                ] : null,
+                'personne' => $poste->personne ? [
+                    'id' => $poste->personne->id,
+                    'slug' => $poste->personne->slug,
+                    'nom_complet' => $poste->personne->nom_complet,
+                    'photo' => $poste->personne->photo,
+                    'parti_politique' => $poste->personne->parti_politique,
+                    'nb_postes' => $poste->personne->postes()->count(),
+                ] : null,
+            ];
+        })->values()->toArray();
+    }
+
+    /**
+     * Calcule la durée totale des postes
+     */
+    private function calculerDureeTotale($postes): string
+    {
+        $totalJours = 0;
+        
+        foreach ($postes as $poste) {
+            $debut = $poste->date_debut;
+            $fin = $poste->date_fin ?? now();
+            $totalJours += $debut->diffInDays($fin);
+        }
+
+        if ($totalJours >= 365) {
+            $annees = floor($totalJours / 365);
+            $mois = floor(($totalJours % 365) / 30);
+            return $annees . ' an' . ($annees > 1 ? 's' : '') . ($mois > 0 ? " et {$mois} mois" : '');
+        }
+        
+        if ($totalJours >= 30) {
+            return floor($totalJours / 30) . ' mois';
+        }
+        
+        return $totalJours . ' jour' . ($totalJours > 1 ? 's' : '');
+    }
+
+    /**
+     * Récupère la période d'un président
+     */
+    private function getPeriodePresident(string $president): string
+    {
+        $periodes = [
+            'Emmanuel Macron' => '2017 - présent',
+            'François Hollande' => '2012 - 2017',
+            'Nicolas Sarkozy' => '2007 - 2012',
+            'Jacques Chirac' => '1995 - 2007',
+            'François Mitterrand' => '1981 - 1995',
+        ];
+
+        return $periodes[$president] ?? '';
+    }
+}
+
+                'civilite' => $personne->civilite,
+                'prenom' => $personne->prenom,
+                'nom' => $personne->nom,
+                'nom_complet' => $personne->nom_complet,
+                'photo' => $personne->photo,
+                'age' => $personne->age,
+                'date_naissance' => $personne->date_naissance?->format('d/m/Y'),
+                'profession' => $personne->profession,
+                'parti_politique' => $personne->parti_politique,
+                'wikipedia_url' => $personne->wikipedia_url,
+                'wikipedia_extract' => $personne->wikipedia_extract,
+            ],
+            'historique' => $historique,
+            'stats' => [
+                'nb_postes' => $nbPostes,
+                'nb_gouvernements' => $nbGouvernements,
+                'duree_totale' => $dureeTotale,
+                'est_actif' => $personne->postes->where('actif', true)->isNotEmpty(),
+                'poste_actuel' => $personne->postes->where('actif', true)->first()?->fonction,
             ],
         ]);
     }
@@ -140,21 +303,96 @@ class GouvernementController extends Controller
     public function historique(): Response
     {
         $gouvernements = Gouvernement::orderByDesc('date_debut')
-            ->withCount(['ministres', 'ministeres'])
+            ->withCount('postes')
             ->get()
-            ->map(fn($g) => [
-                'id' => $g->id,
-                'nom' => $g->nom,
-                'premier_ministre' => $g->premier_ministre,
-                'date_debut' => $g->date_debut->format('d/m/Y'),
-                'date_fin' => $g->date_fin?->format('d/m/Y'),
-                'duree' => $g->duree,
-                'actif' => $g->actif,
-                'nb_ministres' => $g->ministres_count,
-            ]);
+            ->groupBy('president')
+            ->map(function ($gouvernements, $president) {
+                return [
+                    'president' => $president,
+                    'periode' => $this->getPeriodePresident($president),
+                    'gouvernements' => $gouvernements->map(fn($g) => [
+                        'id' => $g->id,
+                        'numero' => $g->numero,
+                        'nom' => $g->nom,
+                        'nom_complet' => $g->nom_complet,
+                        'premier_ministre' => $g->premier_ministre,
+                        'date_debut' => $g->date_debut?->format('d/m/Y'),
+                        'date_fin' => $g->date_fin?->format('d/m/Y'),
+                        'duree' => $g->duree,
+                        'actif' => $g->actif,
+                        'nb_postes' => $g->postes_count,
+                    ])->values(),
+                ];
+            })->values();
 
         return Inertia::render('Gouvernement/Historique', [
-            'gouvernements' => $gouvernements,
+            'gouvernementsParPresident' => $gouvernements,
         ]);
+    }
+
+    /**
+     * Format les postes pour l'affichage
+     */
+    private function formatPostes($postes): array
+    {
+        return $postes->map(function ($poste) {
+            return [
+                'id' => $poste->id,
+                'fonction' => $poste->fonction,
+                'type_fonction' => $poste->type_fonction,
+                'type_fonction_libelle' => $poste->type_fonction_libelle,
+                'duree_fonction' => $poste->duree_fonction,
+                'date_debut' => $poste->date_debut?->format('d/m/Y'),
+                'date_fin' => $poste->date_fin?->format('d/m/Y'),
+                'actif' => $poste->actif,
+                'ministere' => $poste->ministere ? [
+                    'id' => $poste->ministere->id,
+                    'nom' => $poste->ministere->nom,
+                    'sigle' => $poste->ministere->sigle,
+                    'couleur' => $poste->ministere->couleur,
+                ] : null,
+                'personne' => $poste->personne ? [
+                    'id' => $poste->personne->id,
+                    'slug' => $poste->personne->slug,
+                    'nom_complet' => $poste->personne->nom_complet,
+                    'photo' => $poste->personne->photo,
+                    'parti_politique' => $poste->personne->parti_politique,
+                ] : null,
+            ];
+        })->values()->toArray();
+    }
+
+    private function calculerDureeTotale($postes): string
+    {
+        $totalJours = 0;
+        foreach ($postes as $poste) {
+            $debut = $poste->date_debut;
+            $fin = $poste->date_fin ?? now();
+            $totalJours += $debut->diffInDays($fin);
+        }
+
+        if ($totalJours >= 365) {
+            $annees = floor($totalJours / 365);
+            $mois = floor(($totalJours % 365) / 30);
+            return $annees . ' an' . ($annees > 1 ? 's' : '') . ($mois > 0 ? " et {$mois} mois" : '');
+        }
+        
+        if ($totalJours >= 30) {
+            return floor($totalJours / 30) . ' mois';
+        }
+        
+        return $totalJours . ' jour' . ($totalJours > 1 ? 's' : '');
+    }
+
+    private function getPeriodePresident(string $president): string
+    {
+        $periodes = [
+            'Emmanuel Macron' => '2017 - présent',
+            'François Hollande' => '2012 - 2017',
+            'Nicolas Sarkozy' => '2007 - 2012',
+            'Jacques Chirac' => '1995 - 2007',
+            'François Mitterrand' => '1981 - 1995',
+        ];
+        return $periodes[$president] ?? '';
     }
 }
