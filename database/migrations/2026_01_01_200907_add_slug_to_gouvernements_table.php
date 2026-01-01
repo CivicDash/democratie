@@ -6,23 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('gouvernements', function (Blueprint $table) {
-            //
+            if (!Schema::hasColumn('gouvernements', 'slug')) {
+                $table->string('slug')->nullable()->unique()->after('nom');
+            }
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('gouvernements', function (Blueprint $table) {
-            //
+            $table->dropColumn('slug');
         });
     }
 };

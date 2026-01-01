@@ -51,34 +51,60 @@ class ImportGouvernementJson extends Command
             return Command::FAILURE;
         }
 
-        // 2. Valider les données
-        if (!isset($data['gouvernement']) || !isset($data['membres'])) {
-            $this->error('❌ Structure JSON invalide. Clés requises : gouvernement, membres');
+        // 2. Valider les données - Support les 2 formats
+        // Format 1: { gouvernement, membres, ministeres? }
+        // Format 2: { gouvernement, ministeres: [{ nom, membres: [...] }] }
+        
+        $gouv = $data['gouvernement'] ?? null;
+        $ministeresData = $data['ministeres'] ?? [];
+        
+        // Detecter le format
+        $isNewFormat = !empty($ministeresData) && isset($ministeresData[0]['membres']);
+        
+        // Dans le nouveau format, les membres sont dans chaque ministère
+        $membres = [];
+        if ($isNewFormat) {
+            foreach ($ministeresData as $min) {
+                foreach ($min['membres'] ?? [] as $membre) {
+                    $membre['ministere'] = $min['nom'];
+                    $membre['ministere_sigle'] = $min['sigle'] ?? null;
+                    $membre['ministere_site'] = $min['site_web'] ?? null;
+                    $membre['ministere_adresse'] = $min['adresse'] ?? null;
+                    $membre['ministere_telephone'] = $min['telephone'] ?? null;
+                    $membres[] = $membre;
+                }
+            }
+        } else {
+            $membres = $data['membres'] ?? [];
+        }
+
+        if (!$gouv) {
+            $this->error('❌ Structure JSON invalide. Clé requise : gouvernement');
             return Command::FAILURE;
         }
 
-        $gouv = $data['gouvernement'];
-        $membres = $data['membres'];
-        $ministeresData = $data['ministeres'] ?? [];
+        // Compter les ministères uniques
+        $ministeresCount = $isNewFormat ? count($ministeresData) : count(array_unique(array_column($membres, 'ministere')));
 
         $this->info('📊 Gouvernement : ' . ($gouv['nom'] ?? 'Non défini'));
         $this->info('👔 Premier Ministre : ' . ($gouv['premier_ministre'] ?? 'Non défini'));
         $this->info('📅 Depuis : ' . ($gouv['date_debut'] ?? 'Non défini'));
-        $this->info('🏢 Ministères : ' . count($ministeresData));
+        $this->info('🏢 Ministères : ' . $ministeresCount);
         $this->info('👥 Membres : ' . count($membres));
         $this->newLine();
 
         // 3. Afficher les ministères
-        if (!empty($ministeresData)) {
+        if ($isNewFormat) {
             $this->info('📋 Ministères :');
             $this->table(
-                ['#', 'Nom', 'Sigle', 'Site web', 'Téléphone'],
+                ['#', 'Nom', 'Sigle', 'Site web', 'Téléphone', 'Membres'],
                 collect($ministeresData)->map(fn($m, $i) => [
-                    $m['ordre'] ?? ($i + 1),
+                    $i + 1,
                     Str::limit($m['nom'] ?? '', 50),
                     $m['sigle'] ?? '-',
-                    $m['site_web'] ? '✓' : '-',
+                    !empty($m['site_web']) ? '✓' : '-',
                     $m['telephone'] ?? '-',
+                    count($m['membres'] ?? []),
                 ])->toArray()
             );
             $this->newLine();
@@ -121,6 +147,9 @@ class ImportGouvernementJson extends Command
                 'premier_ministre' => $gouv['premier_ministre'] ?? 'Non défini',
                 'president' => $gouv['president'] ?? 'Emmanuel Macron',
                 'date_debut' => $gouv['date_debut'] ?? now()->format('Y-m-d'),
+                'legislature' => $gouv['legislature'] ?? null,
+                'numero' => $gouv['numero'] ?? null,
+                'contexte' => $gouv['contexte'] ?? null,
             ]
         );
 
@@ -139,26 +168,31 @@ class ImportGouvernementJson extends Command
 
         // 6. Créer les ministères
         $ministeresMap = [];
-        foreach ($ministeresData as $minData) {
-            $ministere = Ministere::updateOrCreate(
-                [
-                    'nom' => $minData['nom'],
-                ],
-                [
-                    'gouvernement_id' => $gouvernement->id,
-                    'slug' => Str::slug($minData['nom']),
-                    'sigle' => $minData['sigle'] ?? null,
-                    'site_web' => $minData['site_web'] ?? null,
-                    'adresse' => $minData['adresse'] ?? null,
-                    'telephone' => $minData['telephone'] ?? null,
-                    'ordre' => $minData['ordre'] ?? 99,
-                    'couleur' => Ministere::getCouleurDefaut($minData['nom']),
-                    'type' => 'ministere',
-                    'actif' => true,
-                ]
-            );
-            $ministeresMap[$minData['nom']] = $ministere->id;
+        
+        if ($isNewFormat) {
+            // Nouveau format : créer les ministères depuis la liste
+            foreach ($ministeresData as $ordre => $minData) {
+                $ministere = Ministere::updateOrCreate(
+                    [
+                        'nom' => $minData['nom'],
+                        'gouvernement_id' => $gouvernement->id,
+                    ],
+                    [
+                        'slug' => Str::slug($minData['nom']),
+                        'sigle' => $minData['sigle'] ?? null,
+                        'site_web' => $minData['site_web'] ?? null,
+                        'adresse' => $minData['adresse'] ?? null,
+                        'telephone' => $minData['telephone'] ?? null,
+                        'ordre' => $ordre + 1,
+                        'couleur' => Ministere::getCouleurDefaut($minData['nom']),
+                        'type' => $this->detectMinistereType($minData['nom']),
+                        'actif' => true,
+                    ]
+                );
+                $ministeresMap[$minData['nom']] = $ministere->id;
+            }
         }
+        
         $this->info('   → Ministères : ' . count($ministeresMap));
 
         // 7. Créer les ministres
@@ -172,23 +206,31 @@ class ImportGouvernementJson extends Command
 
             // Trouver le ministère
             $ministereId = null;
-            if (!empty($membre['ministere'])) {
-                $ministereId = $ministeresMap[$membre['ministere']] ?? null;
+            $ministereNom = $membre['ministere'] ?? null;
+            
+            if ($ministereNom) {
+                $ministereId = $ministeresMap[$ministereNom] ?? null;
                 
                 // Créer le ministère s'il n'existe pas
                 if (!$ministereId) {
                     $ministere = Ministere::firstOrCreate(
-                        ['nom' => $membre['ministere']],
                         [
+                            'nom' => $ministereNom,
                             'gouvernement_id' => $gouvernement->id,
-                            'slug' => Str::slug($membre['ministere']),
-                            'type' => 'ministere',
-                            'couleur' => Ministere::getCouleurDefaut($membre['ministere']),
+                        ],
+                        [
+                            'slug' => Str::slug($ministereNom),
+                            'sigle' => $membre['ministere_sigle'] ?? null,
+                            'site_web' => $membre['ministere_site'] ?? null,
+                            'adresse' => $membre['ministere_adresse'] ?? null,
+                            'telephone' => $membre['ministere_telephone'] ?? null,
+                            'type' => $this->detectMinistereType($ministereNom),
+                            'couleur' => Ministere::getCouleurDefaut($ministereNom),
                             'actif' => true,
                         ]
                     );
                     $ministereId = $ministere->id;
-                    $ministeresMap[$membre['ministere']] = $ministereId;
+                    $ministeresMap[$ministereNom] = $ministereId;
                 }
             }
 
@@ -230,7 +272,7 @@ class ImportGouvernementJson extends Command
                     'ministere_id' => $ministereId,
                     'parti_politique' => $membre['parti'] ?? null,
                     'photo_url' => $membre['photo_url'] ?? null,
-                    'sexe' => $membre['sexe'] ?? null,
+                    'civilite' => $this->detectCivilite($membre['sexe'] ?? null),
                     'date_debut' => $gouvernement->date_debut,
                     'uid_an' => $uidAn,
                     'uid_senat' => $uidSenat,
@@ -292,6 +334,7 @@ class ImportGouvernementJson extends Command
                 ['Ministre', 'Député', 'Sénateur'],
                 $links
             );
+            $this->info('   → ' . count($links) . ' liens potentiels trouvés');
         } else {
             $this->info('   Aucun lien trouvé');
         }
@@ -311,5 +354,23 @@ class ImportGouvernementJson extends Command
             return 'ministre_delegue';
         }
         return 'ministre';
+    }
+
+    private function detectMinistereType(string $nom): string
+    {
+        $nomLower = strtolower($nom);
+        
+        if (str_contains($nomLower, 'premier ministre')) {
+            return 'premier_ministre';
+        }
+        
+        return 'ministere';
+    }
+
+    private function detectCivilite(?string $sexe): ?string
+    {
+        if ($sexe === 'M') return 'M.';
+        if ($sexe === 'F') return 'Mme';
+        return null;
     }
 }
