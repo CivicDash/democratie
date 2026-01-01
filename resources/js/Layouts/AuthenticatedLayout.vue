@@ -7,7 +7,7 @@ import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
 import ToastContainer from "@/Components/ToastContainer.vue";
 import ConfirmContainer from "@/Components/ConfirmContainer.vue";
 import NotificationBell from "@/Components/NotificationBell.vue";
-import BottomNav from "@/Components/BottomNav.vue";
+// BottomNav retiré - le burger menu est suffisant
 import ScrollToTop from "@/Components/ScrollToTop.vue";
 import AppFooter from "@/Components/AppFooter.vue";
 import MegaMenuLink from "@/Components/MegaMenuLink.vue";
@@ -742,7 +742,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Bottom Navigation (Mobile only) -->
-        <BottomNav />
+        <!-- BottomNav retiré - burger menu suffisant -->
         
         <!-- Scroll to Top -->
         <ScrollToTop />
