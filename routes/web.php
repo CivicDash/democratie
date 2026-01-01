@@ -423,6 +423,42 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/imports', [AdminController::class, 'imports'])->name('imports');
     Route::get('/imports/{import}', [AdminController::class, 'showImport'])->name('imports.show');
     Route::post('/run-command', [AdminController::class, 'runCommand'])->name('run-command');
+
+    // Gestion du Gouvernement
+    Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Web\AdminGouvernementController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Web\AdminGouvernementController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Web\AdminGouvernementController::class, 'store'])->name('store');
+        Route::get('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'show'])->name('show');
+        Route::put('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'update'])->name('update');
+        Route::delete('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'destroy'])->name('destroy');
+        Route::get('/{gouvernement}/export', [App\Http\Controllers\Web\AdminGouvernementController::class, 'exportJson'])->name('export');
+        Route::post('/{gouvernement}/ministres', [App\Http\Controllers\Web\AdminGouvernementController::class, 'addMinistre'])->name('add-ministre');
+        Route::post('/ministeres', [App\Http\Controllers\Web\AdminGouvernementController::class, 'createMinistere'])->name('create-ministere');
+    });
+    Route::put('/ministres/{ministre}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'updateMinistre'])->name('gouvernement.update-ministre');
+    Route::delete('/ministres/{ministre}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'deleteMinistre'])->name('gouvernement.delete-ministre');
+
+    // Gestion des Élus
+    Route::prefix('elus')->name('elus.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Web\AdminElusController::class, 'index'])->name('index');
+        Route::get('/search', [App\Http\Controllers\Web\AdminElusController::class, 'search'])->name('search');
+        
+        // Députés
+        Route::get('/deputes', [App\Http\Controllers\Web\AdminElusController::class, 'deputes'])->name('deputes.index');
+        Route::get('/deputes/{depute}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editDepute'])->name('deputes.edit');
+        Route::put('/deputes/{depute}', [App\Http\Controllers\Web\AdminElusController::class, 'updateDepute'])->name('deputes.update');
+        
+        // Sénateurs
+        Route::get('/senateurs', [App\Http\Controllers\Web\AdminElusController::class, 'senateurs'])->name('senateurs.index');
+        Route::get('/senateurs/{senateur}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editSenateur'])->name('senateurs.edit');
+        Route::put('/senateurs/{senateur}', [App\Http\Controllers\Web\AdminElusController::class, 'updateSenateur'])->name('senateurs.update');
+        
+        // Maires
+        Route::get('/maires', [App\Http\Controllers\Web\AdminElusController::class, 'maires'])->name('maires.index');
+        Route::get('/maires/{maire}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editMaire'])->name('maires.edit');
+        Route::put('/maires/{maire}', [App\Http\Controllers\Web\AdminElusController::class, 'updateMaire'])->name('maires.update');
+    });
 });
 
 /*

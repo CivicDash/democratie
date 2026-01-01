@@ -10,7 +10,7 @@ class Gouvernement extends Model
     protected $table = 'gouvernements';
 
     protected $fillable = [
-        'nom', 'premier_ministre', 'president',
+        'nom', 'slug', 'premier_ministre', 'president',
         'date_debut', 'date_fin', 'actif',
         'numero', 'legislature', 'contexte', 'metadata',
     ];

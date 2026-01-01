@@ -346,6 +346,20 @@ const getStatusClass = (status) => {
                             
                             <div class="p-4 grid grid-cols-2 gap-3">
                                 <Link
+                                    :href="route('admin.gouvernement.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                                >
+                                    <span class="text-2xl">🏛️</span>
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Gouvernement</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.elus.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                                >
+                                    <span class="text-2xl">👥</span>
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Élus</span>
+                                </Link>
+                                <Link
                                     :href="route('moderation.dashboard')"
                                     class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                                 >

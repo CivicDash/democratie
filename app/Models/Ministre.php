@@ -11,9 +11,9 @@ class Ministre extends Model
 
     protected $fillable = [
         'ministere_id', 'gouvernement_id',
-        'civilite', 'prenom', 'nom', 'fonction', 'type_fonction',
+        'civilite', 'prenom', 'nom', 'slug', 'fonction', 'type_fonction',
         'date_debut', 'date_fin', 'actif',
-        'date_naissance', 'lieu_naissance', 'profession', 'parti_politique',
+        'date_naissance', 'lieu_naissance', 'profession', 'parti_politique', 'sexe',
         'photo_url', 'twitter', 'wikipedia_url',
         'decret_nomination', 'date_decret',
     ];
