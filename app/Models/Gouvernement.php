@@ -12,7 +12,7 @@ class Gouvernement extends Model
     protected $fillable = [
         'nom', 'slug', 'premier_ministre', 'president',
         'date_debut', 'date_fin', 'actif',
-        'numero', 'legislature', 'contexte', 'metadata',
+        'numero', 'suffixe', 'legislature', 'contexte', 'metadata',
     ];
 
     protected $casts = [
@@ -21,6 +21,8 @@ class Gouvernement extends Model
         'actif' => 'boolean',
         'metadata' => 'array',
     ];
+
+    protected $appends = ['nom_complet', 'numero_ordinal'];
 
     // Relations
     public function ministeres(): HasMany
@@ -36,6 +38,20 @@ class Gouvernement extends Model
     public function remaniements(): HasMany
     {
         return $this->hasMany(Remaniement::class, 'gouvernement_id');
+    }
+
+    // Nouvelle relation avec les postes ministériels
+    public function postes(): HasMany
+    {
+        return $this->hasMany(PosteMinisteriel::class, 'gouvernement_id')
+            ->orderBy('ordre');
+    }
+
+    public function postesActifs(): HasMany
+    {
+        return $this->hasMany(PosteMinisteriel::class, 'gouvernement_id')
+            ->where('actif', true)
+            ->orderBy('ordre');
     }
 
     // Scopes
@@ -69,9 +85,49 @@ class Gouvernement extends Model
         return $this->ministeres()->where('actif', true)->count();
     }
 
+    // Nom complet avec numéro : "48ème Gouvernement - Lecornu II"
+    public function getNomCompletAttribute(): string
+    {
+        $parts = [];
+        
+        if ($this->numero) {
+            $parts[] = $this->numero_ordinal . ' Gouvernement';
+        }
+        
+        $parts[] = $this->nom;
+        
+        if ($this->suffixe) {
+            $parts[count($parts) - 1] .= ' ' . $this->suffixe;
+        }
+        
+        return implode(' - ', $parts);
+    }
+
+    // Numéro ordinal : 48 -> "48ème"
+    public function getNumeroOrdinalAttribute(): ?string
+    {
+        if (!$this->numero) {
+            return null;
+        }
+        
+        if ($this->numero === 1) {
+            return '1er';
+        }
+        
+        return $this->numero . 'ème';
+    }
+
     // Gouvernement actuel
     public static function actuel(): ?self
     {
         return self::where('actif', true)->first();
+    }
+
+    // Liste des gouvernements de la Vème République
+    public static function listeHistorique(): \Illuminate\Database\Eloquent\Collection
+    {
+        return self::orderBy('numero', 'desc')
+            ->orderBy('date_debut', 'desc')
+            ->get();
     }
 }

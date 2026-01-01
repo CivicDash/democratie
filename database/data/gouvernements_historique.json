@@ -1,0 +1,151 @@
+{
+  "description": "Historique des gouvernements de la Vème République (récents)",
+  "source": "https://fr.wikipedia.org/wiki/Liste_des_gouvernements_de_la_France",
+  "derniere_maj": "2025-01-01",
+  "gouvernements": [
+    {
+      "numero": 48,
+      "nom": "Gouvernement Lecornu",
+      "suffixe": "II",
+      "premier_ministre": "Sébastien Lecornu",
+      "president": "Emmanuel Macron",
+      "date_debut": "2025-01-03",
+      "date_fin": null,
+      "actif": true,
+      "legislature": 17,
+      "contexte": "Suite à la démission de François Bayrou"
+    },
+    {
+      "numero": 47,
+      "nom": "Gouvernement Lecornu",
+      "suffixe": "",
+      "premier_ministre": "Sébastien Lecornu",
+      "president": "Emmanuel Macron",
+      "date_debut": "2024-12-14",
+      "date_fin": "2025-01-03",
+      "actif": false,
+      "legislature": 17,
+      "contexte": "Suite à la motion de censure contre le gouvernement Barnier"
+    },
+    {
+      "numero": 46,
+      "nom": "Gouvernement Bayrou",
+      "suffixe": "",
+      "premier_ministre": "François Bayrou",
+      "president": "Emmanuel Macron",
+      "date_debut": "2024-12-13",
+      "date_fin": "2024-12-14",
+      "actif": false,
+      "legislature": 17,
+      "contexte": "Gouvernement de très courte durée"
+    },
+    {
+      "numero": 45,
+      "nom": "Gouvernement Barnier",
+      "suffixe": "",
+      "premier_ministre": "Michel Barnier",
+      "president": "Emmanuel Macron",
+      "date_debut": "2024-09-21",
+      "date_fin": "2024-12-04",
+      "actif": false,
+      "legislature": 17,
+      "contexte": "Renversé par motion de censure (331 voix)"
+    },
+    {
+      "numero": 44,
+      "nom": "Gouvernement Attal",
+      "suffixe": "",
+      "premier_ministre": "Gabriel Attal",
+      "president": "Emmanuel Macron",
+      "date_debut": "2024-01-11",
+      "date_fin": "2024-09-05",
+      "actif": false,
+      "legislature": 16,
+      "contexte": "Plus jeune Premier ministre de l'histoire"
+    },
+    {
+      "numero": 43,
+      "nom": "Gouvernement Borne",
+      "suffixe": "II",
+      "premier_ministre": "Élisabeth Borne",
+      "president": "Emmanuel Macron",
+      "date_debut": "2022-07-04",
+      "date_fin": "2024-01-09",
+      "actif": false,
+      "legislature": 16,
+      "contexte": "Après les législatives 2022"
+    },
+    {
+      "numero": 42,
+      "nom": "Gouvernement Borne",
+      "suffixe": "",
+      "premier_ministre": "Élisabeth Borne",
+      "president": "Emmanuel Macron",
+      "date_debut": "2022-05-16",
+      "date_fin": "2022-07-04",
+      "actif": false,
+      "legislature": 15,
+      "contexte": "Première femme Premier ministre depuis Édith Cresson"
+    },
+    {
+      "numero": 41,
+      "nom": "Gouvernement Castex",
+      "suffixe": "",
+      "premier_ministre": "Jean Castex",
+      "president": "Emmanuel Macron",
+      "date_debut": "2020-07-06",
+      "date_fin": "2022-05-16",
+      "actif": false,
+      "legislature": 15,
+      "contexte": "Gouvernement de la crise COVID-19"
+    },
+    {
+      "numero": 40,
+      "nom": "Gouvernement Philippe",
+      "suffixe": "II",
+      "premier_ministre": "Édouard Philippe",
+      "president": "Emmanuel Macron",
+      "date_debut": "2017-06-21",
+      "date_fin": "2020-07-03",
+      "actif": false,
+      "legislature": 15,
+      "contexte": "Après les législatives 2017"
+    },
+    {
+      "numero": 39,
+      "nom": "Gouvernement Philippe",
+      "suffixe": "",
+      "premier_ministre": "Édouard Philippe",
+      "president": "Emmanuel Macron",
+      "date_debut": "2017-05-15",
+      "date_fin": "2017-06-21",
+      "actif": false,
+      "legislature": 14,
+      "contexte": "Premier gouvernement Macron"
+    },
+    {
+      "numero": 38,
+      "nom": "Gouvernement Cazeneuve",
+      "suffixe": "",
+      "premier_ministre": "Bernard Cazeneuve",
+      "president": "François Hollande",
+      "date_debut": "2016-12-06",
+      "date_fin": "2017-05-10",
+      "actif": false,
+      "legislature": 14,
+      "contexte": "Après la démission de Valls"
+    },
+    {
+      "numero": 37,
+      "nom": "Gouvernement Valls",
+      "suffixe": "II",
+      "premier_ministre": "Manuel Valls",
+      "president": "François Hollande",
+      "date_debut": "2014-08-26",
+      "date_fin": "2016-12-06",
+      "actif": false,
+      "legislature": 14,
+      "contexte": "Remaniement après fronde des frondeurs"
+    }
+  ]
+}
