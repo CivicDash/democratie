@@ -216,6 +216,67 @@ const breadcrumbs = [
     <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
+        <!-- Bloc "Trouvez vos représentants" - En premier si pas de localisation -->
+        <Card v-if="!hasLocation" class="border-2 border-dashed border-indigo-300 dark:border-indigo-600">
+          <div class="max-w-md mx-auto text-center py-8">
+            <div class="text-6xl mb-4">📍</div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Trouvez vos représentants
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">
+              Entrez votre code postal ou votre ville pour découvrir votre député, vos sénateurs et votre maire
+            </p>
+            
+            <!-- Simulateur de recherche -->
+            <div class="mb-6">
+              <div class="relative">
+                <TextInput
+                  v-model="searchQuery"
+                  @input="searchLocation"
+                  placeholder="75001 ou Paris..."
+                  class="w-full pr-10"
+                />
+                <div v-if="isSearching" class="absolute right-3 top-3">
+                  <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Résultats de recherche -->
+              <div v-if="searchResults.length > 0" class="mt-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-y-auto text-left">
+                <button
+                  v-for="result in searchResults"
+                  :key="result.insee_code || result.postal_code"
+                  @click="selectLocation(result)"
+                  class="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition"
+                >
+                  <div class="font-medium text-gray-900 dark:text-gray-100">
+                    {{ result.nom || result.city_name }}
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">
+                    {{ result.code_postal || result.postal_code }} - {{ result.departement?.nom || result.department_name }}
+                  </div>
+                </button>
+              </div>
+              
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                💡 Recherchez par code postal ou nom de ville
+              </p>
+            </div>
+
+            <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+              <Link
+                :href="route('profile.edit')"
+                class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition"
+              >
+                ⚙️ Configurer mon profil
+              </Link>
+            </div>
+          </div>
+        </Card>
+
         <!-- Hémicycles -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <HemicycleView chamber="assembly" />
@@ -285,69 +346,8 @@ const breadcrumbs = [
           </div>
         </Card>
 
-        <!-- Pas de localisation -->
-        <Card v-if="!hasLocation" class="border-2 border-dashed border-indigo-300 dark:border-indigo-600">
-          <div class="max-w-md mx-auto text-center py-8">
-            <div class="text-6xl mb-4">📍</div>
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Trouvez vos représentants
-            </h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-6">
-              Entrez votre code postal ou votre ville pour découvrir votre député, vos sénateurs et votre maire
-            </p>
-            
-            <!-- Simulateur de recherche -->
-            <div class="mb-6">
-              <div class="relative">
-                <TextInput
-                  v-model="searchQuery"
-                  @input="searchLocation"
-                  placeholder="75001 ou Paris..."
-                  class="w-full pr-10"
-                />
-                <div v-if="isSearching" class="absolute right-3 top-3">
-                  <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Résultats de recherche -->
-              <div v-if="searchResults.length > 0" class="mt-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-y-auto text-left">
-                <button
-                  v-for="result in searchResults"
-                  :key="result.insee_code || result.postal_code"
-                  @click="selectLocation(result)"
-                  class="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition"
-                >
-                  <div class="font-medium text-gray-900 dark:text-gray-100">
-                    {{ result.nom || result.city_name }}
-                  </div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ result.code_postal || result.postal_code }} - {{ result.departement?.nom || result.department_name }}
-                  </div>
-                </button>
-              </div>
-              
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
-                💡 Recherchez par code postal ou nom de ville
-              </p>
-            </div>
-
-            <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
-              <Link
-                :href="route('profile.edit')"
-                class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition"
-              >
-                ⚙️ Configurer mon profil
-              </Link>
-            </div>
-          </div>
-        </Card>
-
         <!-- Avec localisation -->
-        <template v-else>
+        <template v-if="hasLocation">
           <!-- Ma localisation -->
           <Card class="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200 dark:border-indigo-700">
             <div class="flex items-center justify-between">
