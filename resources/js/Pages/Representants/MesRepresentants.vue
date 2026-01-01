@@ -386,76 +386,7 @@ const breadcrumbs = [
           </div>
         </Card>
 
-        <!-- Hémicycles -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <HemicycleView chamber="assembly" />
-          <HemicycleView chamber="senate" />
-        </div>
-
-        <!-- Carte de France Interactive -->
-        <Card>
-          <div class="mb-4">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              🗺️ Carte de France Interactive
-            </h2>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">
-              Cliquez sur un département pour découvrir ses représentants
-            </p>
-          </div>
-          
-          <FranceMapInteractive 
-            :regionalData="regionalDataForMap"
-            heatmapMetric="deputesCount"
-            @department-selected="handleDepartmentSelected"
-          />
-
-          <!-- Détail du département sélectionné -->
-          <div v-if="selectedDepartment" class="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {{ selectedDepartment.name }} ({{ selectedDepartment.code }})
-              </h3>
-              <button 
-                @click="selectedDepartment = null"
-                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4 mb-4">
-              <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                <div class="text-2xl font-bold text-blue-600">
-                  {{ deputesByDepartment?.[selectedDepartment.code] || 0 }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">Député(s)</div>
-              </div>
-              <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                <div class="text-2xl font-bold text-red-600">
-                  {{ senateursByDepartment?.[selectedDepartment.code] || 0 }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">Sénateur(s)</div>
-              </div>
-            </div>
-
-            <div class="flex gap-2">
-              <Link
-                :href="route('representants.deputes.index', { department: selectedDepartment.code })"
-                class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
-              >
-                Voir les députés
-              </Link>
-              <Link
-                :href="route('representants.senateurs.index', { department: selectedDepartment.code })"
-                class="flex-1 text-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
-              >
-                Voir les sénateurs
-              </Link>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Avec localisation -->
+        <!-- Avec localisation - Résultats en premier -->
         <template v-if="currentHasLocation && !isLoadingRepresentants">
           <!-- Ma localisation -->
           <Card id="representants-results" class="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200 dark:border-indigo-700">
@@ -499,50 +430,36 @@ const breadcrumbs = [
               <p class="text-gray-600 dark:text-gray-400">{{ currentDepute.circonscription || 'Assemblée Nationale' }}</p>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-6">
-              <!-- Photo et infos principales -->
-              <div class="md:col-span-1">
-                <div class="text-center">
-                  <div class="w-40 h-40 mx-auto mb-4 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-4 ring-blue-500/30">
-                    <img
-                      v-if="currentDepute.photo_url"
-                      :src="currentDepute.photo_url"
-                      :alt="currentDepute.nom_complet"
-                      class="w-full h-full object-cover"
-                    />
-                    <div v-else class="w-full h-full flex items-center justify-center text-6xl">
-                      👤
-                    </div>
-                  </div>
-                  <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                    {{ currentDepute.nom_complet }}
-                  </h3>
-                  <Badge
-                    v-if="currentDepute.groupe"
-                    :style="{ backgroundColor: currentDepute.groupe.couleur, color: '#fff' }"
-                    class="mb-2"
-                  >
-                    {{ currentDepute.groupe.sigle }}
-                  </Badge>
-                  <p v-if="currentDepute.groupe" class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ currentDepute.groupe.nom }}
-                  </p>
+            <div class="flex flex-col md:flex-row items-center gap-6">
+              <!-- Photo -->
+              <div class="w-32 h-32 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-4 ring-blue-500/30 flex-shrink-0">
+                <img
+                  v-if="currentDepute.photo_url"
+                  :src="currentDepute.photo_url"
+                  :alt="currentDepute.nom_complet"
+                  class="w-full h-full object-cover"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center text-5xl">
+                  👤
                 </div>
               </div>
-
-              <!-- Statistiques -->
-              <div class="md:col-span-2">
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                  <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                    <div class="text-3xl font-bold text-blue-600">{{ currentDepute.nb_votes || 0 }}</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">Votes (L17)</div>
-                  </div>
-                  <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                    <div class="text-3xl font-bold text-green-600">{{ currentDepute.nb_amendements || 0 }}</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">Amendements</div>
-                  </div>
-                </div>
-
+              
+              <!-- Infos -->
+              <div class="flex-1 text-center md:text-left">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  {{ currentDepute.nom_complet }}
+                </h3>
+                <Badge
+                  v-if="currentDepute.groupe"
+                  :style="{ backgroundColor: currentDepute.groupe.couleur, color: '#fff' }"
+                  class="mb-2"
+                >
+                  {{ currentDepute.groupe.sigle }}
+                </Badge>
+                <p v-if="currentDepute.groupe" class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {{ currentDepute.groupe.nom }}
+                </p>
+                
                 <Link
                   :href="currentDepute.url_profil"
                   class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
@@ -698,35 +615,76 @@ const breadcrumbs = [
             </div>
           </Card>
 
-          <!-- Liens rapides -->
-          <div class="grid md:grid-cols-2 gap-6">
-            <Link
-              :href="route('representants.deputes.index')"
-              class="block bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white hover:shadow-xl transition group"
-            >
-              <div class="text-4xl mb-3">🏛️</div>
-              <h3 class="text-xl font-bold mb-2 group-hover:translate-x-1 transition">
-                Tous les Députés
-              </h3>
-              <p class="text-blue-100">
-                Découvrez les 577 députés de l'Assemblée Nationale
-              </p>
-            </Link>
-
-            <Link
-              :href="route('representants.senateurs.index')"
-              class="block bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white hover:shadow-xl transition group"
-            >
-              <div class="text-4xl mb-3">🏰</div>
-              <h3 class="text-xl font-bold mb-2 group-hover:translate-x-1 transition">
-                Tous les Sénateurs
-              </h3>
-              <p class="text-red-100">
-                Découvrez les 348 sénateurs du Sénat
-              </p>
-            </Link>
-          </div>
         </template>
+
+        <!-- Hémicycles -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <HemicycleView chamber="assembly" />
+          <HemicycleView chamber="senate" />
+        </div>
+
+        <!-- Carte de France Interactive -->
+        <Card>
+          <div class="mb-4">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              🗺️ Carte de France Interactive
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+              Cliquez sur un département pour découvrir ses représentants
+            </p>
+          </div>
+          
+          <FranceMapInteractive 
+            :regionalData="regionalDataForMap"
+            heatmapMetric="deputesCount"
+            @department-selected="handleDepartmentSelected"
+          />
+
+          <!-- Détail du département sélectionné -->
+          <div v-if="selectedDepartment" class="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {{ selectedDepartment.name }} ({{ selectedDepartment.code }})
+              </h3>
+              <button 
+                @click="selectedDepartment = null"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-blue-600">
+                  {{ deputesByDepartment?.[selectedDepartment.code] || 0 }}
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Député(s)</div>
+              </div>
+              <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                <div class="text-2xl font-bold text-red-600">
+                  {{ senateursByDepartment?.[selectedDepartment.code] || 0 }}
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Sénateur(s)</div>
+              </div>
+            </div>
+
+            <div class="flex gap-2">
+              <Link
+                :href="route('representants.deputes.index', { department: selectedDepartment.code })"
+                class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+              >
+                Voir les députés
+              </Link>
+              <Link
+                :href="route('representants.senateurs.index', { department: selectedDepartment.code })"
+                class="flex-1 text-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+              >
+                Voir les sénateurs
+              </Link>
+            </div>
+          </div>
+        </Card>
 
       </div>
     </div>
