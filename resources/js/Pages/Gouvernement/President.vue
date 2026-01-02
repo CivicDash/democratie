@@ -203,35 +203,35 @@ const breadcrumbs = [
 
                     <!-- Sidebar -->
                     <div class="space-y-6">
-                        <!-- Autres présidents -->
+                        <!-- Tous les présidents de la Ve République -->
                         <Card>
                             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                                📜 Présidents récents
+                                📜 Présidents de la Ve République
                             </h3>
-                            <div class="space-y-3">
+                            <div class="space-y-2 max-h-[500px] overflow-y-auto pr-2">
                                 <div 
                                     v-for="pres in presidents" 
                                     :key="pres.nom"
                                     :class="[
-                                        'flex items-center gap-3 p-3 rounded-lg',
+                                        'flex items-center gap-3 p-2.5 rounded-lg transition',
                                         pres.actuel 
                                             ? 'bg-[#28285a]/10 border-2 border-[#28285a]' 
-                                            : 'bg-gray-50 dark:bg-gray-800'
+                                            : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
                                     ]"
                                 >
                                     <img 
                                         :src="pres.photo" 
                                         :alt="pres.nom"
-                                        class="w-12 h-12 rounded-full object-cover"
+                                        class="w-11 h-11 rounded-full object-cover object-top shadow-sm"
                                     />
-                                    <div>
-                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
                                             {{ pres.nom }}
                                         </p>
                                         <p class="text-xs text-gray-500">{{ pres.mandat }}</p>
                                     </div>
-                                    <span v-if="pres.actuel" class="ml-auto px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">
-                                        En fonction
+                                    <span v-if="pres.actuel" class="flex-shrink-0 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">
+                                        Actuel
                                     </span>
                                 </div>
                             </div>
