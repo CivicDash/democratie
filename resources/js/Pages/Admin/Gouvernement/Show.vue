@@ -1,9 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+
+const page = usePage();
+const errors = computed(() => page.props.errors || {});
 
 const props = defineProps({
     gouvernement: Object,
@@ -40,11 +43,34 @@ const posteForm = useForm({
 });
 
 const addPoste = () => {
-    posteForm.post(route('admin.gouvernement.add-poste', props.gouvernement.id), {
+    // Préparer les données à envoyer
+    const data = {
+        fonction: posteForm.fonction,
+        type_fonction: posteForm.type_fonction,
+        ministere_id: posteForm.ministere_id,
+        ordre: posteForm.ordre,
+        date_debut: posteForm.date_debut,
+        date_fin: posteForm.date_fin,
+    };
+
+    // Ajouter soit personne_id, soit nouvelle_personne (pas les deux)
+    if (createNewPerson.value) {
+        data.nouvelle_personne = posteForm.nouvelle_personne;
+    } else {
+        data.personne_id = posteForm.personne_id;
+    }
+
+    // Utiliser router.post pour plus de contrôle
+    router.post(route('admin.gouvernement.add-poste', props.gouvernement.id), data, {
+        preserveScroll: true,
         onSuccess: () => {
             showAddModal.value = false;
             posteForm.reset();
             createNewPerson.value = false;
+            searchPersonne.value = '';
+        },
+        onError: (errors) => {
+            console.error('Erreurs de validation:', errors);
         },
     });
 };
@@ -425,6 +451,14 @@ const deleteGouvernement = () => {
                 </div>
                 <form @submit.prevent="addPoste" class="p-6 space-y-4">
                     
+                    <!-- Affichage des erreurs -->
+                    <div v-if="Object.keys(errors).length > 0" class="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg p-4">
+                        <h4 class="font-semibold text-red-700 dark:text-red-300 mb-2">⚠️ Erreurs de validation :</h4>
+                        <ul class="text-sm text-red-600 dark:text-red-400 space-y-1">
+                            <li v-for="(error, key) in errors" :key="key">• {{ error }}</li>
+                        </ul>
+                    </div>
+
                     <!-- Choix personne existante ou nouvelle -->
                     <div class="flex gap-4 mb-4">
                         <button

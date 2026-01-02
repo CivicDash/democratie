@@ -220,29 +220,47 @@ class AdminGouvernementController extends Controller
      */
     public function addPoste(Request $request, Gouvernement $gouvernement)
     {
-        $validated = $request->validate([
-            // Soit on sélectionne une personne existante
-            'personne_id' => 'nullable|exists:personnes_politiques,id',
-            // Soit on crée une nouvelle personne
-            'nouvelle_personne' => 'nullable|array',
-            'nouvelle_personne.prenom' => 'required_with:nouvelle_personne|string|max:255',
-            'nouvelle_personne.nom' => 'required_with:nouvelle_personne|string|max:255',
-            'nouvelle_personne.civilite' => 'nullable|in:M.,Mme',
-            'nouvelle_personne.parti_politique' => 'nullable|string|max:255',
-            'nouvelle_personne.photo_url' => 'nullable|url|max:1000',
-            // Infos du poste
+        // Déterminer si on crée une nouvelle personne
+        $hasNouvellePersonne = $request->has('nouvelle_personne') 
+            && is_array($request->input('nouvelle_personne'))
+            && !empty($request->input('nouvelle_personne.prenom'))
+            && !empty($request->input('nouvelle_personne.nom'));
+
+        $rules = [
+            // Infos du poste (toujours requis)
             'fonction' => 'required|string|max:500',
             'type_fonction' => 'required|in:premier_ministre,ministre_etat,ministre,ministre_delegue,secretaire_etat',
             'ministere_id' => 'nullable|exists:ministeres,id',
             'ordre' => 'nullable|integer',
             'date_debut' => 'nullable|date',
             'date_fin' => 'nullable|date|after:date_debut',
+        ];
+
+        if ($hasNouvellePersonne) {
+            // Validation pour nouvelle personne
+            $rules['nouvelle_personne'] = 'required|array';
+            $rules['nouvelle_personne.prenom'] = 'required|string|max:255';
+            $rules['nouvelle_personne.nom'] = 'required|string|max:255';
+            $rules['nouvelle_personne.civilite'] = 'nullable|in:M.,Mme';
+            $rules['nouvelle_personne.parti_politique'] = 'nullable|string|max:255';
+            $rules['nouvelle_personne.photo_url'] = 'nullable|url|max:1000';
+        } else {
+            // Validation pour personne existante
+            $rules['personne_id'] = 'required|exists:personnes_politiques,id';
+        }
+
+        $validated = $request->validate($rules, [
+            'personne_id.required' => 'Veuillez sélectionner une personne existante ou créer une nouvelle personne.',
+            'personne_id.exists' => 'La personne sélectionnée n\'existe pas.',
+            'fonction.required' => 'La fonction est obligatoire.',
+            'nouvelle_personne.prenom.required' => 'Le prénom est obligatoire.',
+            'nouvelle_personne.nom.required' => 'Le nom est obligatoire.',
         ]);
 
         // Créer ou récupérer la personne
-        $personneId = $validated['personne_id'];
+        $personneId = $validated['personne_id'] ?? null;
         
-        if (!$personneId && !empty($validated['nouvelle_personne'])) {
+        if ($hasNouvellePersonne) {
             $personne = PersonnePolitique::create([
                 'prenom' => $validated['nouvelle_personne']['prenom'],
                 'nom' => $validated['nouvelle_personne']['nom'],
@@ -252,10 +270,6 @@ class AdminGouvernementController extends Controller
                 'slug' => Str::slug($validated['nouvelle_personne']['prenom'] . '-' . $validated['nouvelle_personne']['nom']),
             ]);
             $personneId = $personne->id;
-        }
-
-        if (!$personneId) {
-            return back()->withErrors(['personne_id' => 'Veuillez sélectionner ou créer une personne']);
         }
 
         $poste = PosteMinisteriel::create([
