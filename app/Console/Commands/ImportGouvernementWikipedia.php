@@ -49,7 +49,9 @@ class ImportGouvernementWikipedia extends Command
             'prop' => 'text|wikitext',
         ]);
 
-        $response = Http::timeout(30)->get($apiUrl);
+        $response = Http::timeout(30)
+            ->withUserAgent('CivicDash/1.0 (https://demo.objectif2027.fr)')
+            ->get($apiUrl);
         
         if (!$response->successful()) {
             $this->error("❌ Impossible de récupérer la page Wikipedia");
