@@ -100,12 +100,27 @@ const breadcrumbs = [
                                 
                                 <!-- Infos -->
                                 <div class="flex-1">
-                                    <div class="flex items-center gap-3 mb-3">
+                                    <div class="flex items-center gap-3 mb-3 flex-wrap">
                                         <span class="px-3 py-1 bg-[#28285a] text-white text-xs font-bold rounded-full">
                                             {{ president.mandat_numero }}e PRÉSIDENT
                                         </span>
-                                        <span class="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold rounded-full">
+                                        <span 
+                                            v-if="president.actuel"
+                                            class="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold rounded-full"
+                                        >
                                             EN FONCTION
+                                        </span>
+                                        <span 
+                                            v-else-if="president.date_deces"
+                                            class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-bold rounded-full"
+                                        >
+                                            † {{ president.date_deces }}
+                                        </span>
+                                        <span 
+                                            v-else
+                                            class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-full"
+                                        >
+                                            ANCIEN PRÉSIDENT
                                         </span>
                                     </div>
                                     
@@ -115,8 +130,11 @@ const breadcrumbs = [
                                     
                                     <div class="grid md:grid-cols-2 gap-4 text-sm">
                                         <div>
-                                            <span class="text-gray-500 dark:text-gray-400">Né le</span>
-                                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ president.date_naissance }} ({{ president.age }} ans)</p>
+                                            <span class="text-gray-500 dark:text-gray-400">{{ president.date_deces ? 'Né le' : 'Naissance' }}</span>
+                                            <p class="font-medium text-gray-900 dark:text-gray-100">
+                                                {{ president.date_naissance }}
+                                                <span v-if="!president.date_deces">({{ president.age }} ans)</span>
+                                            </p>
                                         </div>
                                         <div>
                                             <span class="text-gray-500 dark:text-gray-400">Lieu de naissance</span>
@@ -131,13 +149,24 @@ const breadcrumbs = [
                                             <p class="font-medium text-gray-900 dark:text-gray-100">{{ president.parti }}</p>
                                         </div>
                                         <div>
-                                            <span class="text-gray-500 dark:text-gray-400">Début du mandat</span>
-                                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ president.debut_mandat }}</p>
+                                            <span class="text-gray-500 dark:text-gray-400">Mandat</span>
+                                            <p class="font-medium text-gray-900 dark:text-gray-100">
+                                                {{ president.debut_mandat }}
+                                                <span v-if="president.fin_mandat"> → {{ president.fin_mandat }}</span>
+                                                <span v-else class="text-emerald-600"> → en cours</span>
+                                            </p>
                                         </div>
-                                        <div>
-                                            <span class="text-gray-500 dark:text-gray-400">Résidence officielle</span>
-                                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ president.residence }}</p>
+                                        <div v-if="president.conjoint">
+                                            <span class="text-gray-500 dark:text-gray-400">Conjoint(e)</span>
+                                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ president.conjoint }}</p>
                                         </div>
+                                    </div>
+
+                                    <!-- Biographie -->
+                                    <div v-if="president.bio" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                                            {{ president.bio }}
+                                        </p>
                                     </div>
                                     
                                     <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -209,12 +238,13 @@ const breadcrumbs = [
                                 📜 Présidents de la Ve République
                             </h3>
                             <div class="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-                                <div 
+                                <Link 
                                     v-for="pres in presidents" 
-                                    :key="pres.nom"
+                                    :key="pres.slug"
+                                    :href="route('gouvernement.president.show', pres.slug)"
                                     :class="[
-                                        'flex items-center gap-3 p-2.5 rounded-lg transition',
-                                        pres.actuel 
+                                        'flex items-center gap-3 p-2.5 rounded-lg transition group',
+                                        president.slug === pres.slug
                                             ? 'bg-[#28285a]/10 border-2 border-[#28285a]' 
                                             : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
                                     ]"
@@ -222,10 +252,10 @@ const breadcrumbs = [
                                     <img 
                                         :src="pres.photo" 
                                         :alt="pres.nom"
-                                        class="w-11 h-11 rounded-full object-cover object-top shadow-sm"
+                                        class="w-11 h-11 rounded-full object-cover object-top shadow-sm group-hover:scale-105 transition"
                                     />
                                     <div class="flex-1 min-w-0">
-                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate group-hover:text-[#28285a] dark:group-hover:text-blue-300 transition">
                                             {{ pres.nom }}
                                         </p>
                                         <p class="text-xs text-gray-500">{{ pres.mandat }}</p>
@@ -233,7 +263,10 @@ const breadcrumbs = [
                                     <span v-if="pres.actuel" class="flex-shrink-0 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">
                                         Actuel
                                     </span>
-                                </div>
+                                    <svg v-else class="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </Link>
                             </div>
                         </Card>
 

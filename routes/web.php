@@ -282,6 +282,7 @@ Route::prefix('budget-etat')->name('budget-etat.')->group(function () {
 Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
     Route::get('/', [GouvernementController::class, 'index'])->name('index');
     Route::get('/president', [GouvernementController::class, 'showPresident'])->name('president');
+    Route::get('/president/{slug}', [GouvernementController::class, 'showPresident'])->name('president.show');
     Route::get('/historique', [GouvernementController::class, 'historique'])->name('historique');
     Route::get('/personne/{slug}', [GouvernementController::class, 'showPersonne'])->name('personne');
 });

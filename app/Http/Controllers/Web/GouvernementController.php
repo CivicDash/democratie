@@ -187,17 +187,26 @@ class GouvernementController extends Controller
     /**
      * Page du Président de la République
      */
-    public function showPresident(): Response
+    public function showPresident(?string $slug = null): Response
     {
-        // Gouvernement actuel
-        $gouvernementActuel = Gouvernement::actuel();
-        $presidentActuel = $gouvernementActuel?->president ?? 'Emmanuel Macron';
+        // Liste complète des présidents
+        $tousPresidents = $this->getAllPresidents();
+        
+        // Trouver le président demandé
+        if ($slug) {
+            $president = collect($tousPresidents)->firstWhere('slug', $slug);
+            if (!$president) {
+                abort(404, 'Président non trouvé');
+            }
+        } else {
+            // Par défaut : président actuel
+            $gouvernementActuel = Gouvernement::actuel();
+            $presidentActuel = $gouvernementActuel?->president ?? 'Emmanuel Macron';
+            $president = $this->getPresidentData($presidentActuel);
+        }
 
-        // Données du président actuel
-        $president = $this->getPresidentData($presidentActuel);
-
-        // Tous les gouvernements du président actuel
-        $gouvernements = Gouvernement::where('president', $presidentActuel)
+        // Tous les gouvernements de ce président
+        $gouvernements = Gouvernement::where('president', $president['nom'])
             ->orderByDesc('date_debut')
             ->withCount('postes')
             ->get()
@@ -214,57 +223,17 @@ class GouvernementController extends Controller
                 'nb_postes' => $g->postes_count,
             ]);
 
-        // Liste des présidents de la Ve République
-        $presidents = [
-            [
-                'nom' => 'Emmanuel Macron',
-                'mandat' => '2017 - aujourd\'hui',
-                'photo' => '/images/portraits_presidents/emmanuel_macron_2017.avif',
-                'actuel' => $presidentActuel === 'Emmanuel Macron',
-            ],
-            [
-                'nom' => 'François Hollande',
-                'mandat' => '2012 - 2017',
-                'photo' => '/images/portraits_presidents/françois_hollande_2012.avif',
-                'actuel' => $presidentActuel === 'François Hollande',
-            ],
-            [
-                'nom' => 'Nicolas Sarkozy',
-                'mandat' => '2007 - 2012',
-                'photo' => '/images/portraits_presidents/nicolas_sarkozy_2007.avif',
-                'actuel' => $presidentActuel === 'Nicolas Sarkozy',
-            ],
-            [
-                'nom' => 'Jacques Chirac',
-                'mandat' => '1995 - 2007',
-                'photo' => '/images/portraits_presidents/jacques_chirac_1995.avif',
-                'actuel' => false,
-            ],
-            [
-                'nom' => 'François Mitterrand',
-                'mandat' => '1981 - 1995',
-                'photo' => '/images/portraits_presidents/françois_mitterand_1981.avif',
-                'actuel' => false,
-            ],
-            [
-                'nom' => 'Valéry Giscard d\'Estaing',
-                'mandat' => '1974 - 1981',
-                'photo' => '/images/portraits_presidents/valery_giscard_destaing_1974.avif',
-                'actuel' => false,
-            ],
-            [
-                'nom' => 'Georges Pompidou',
-                'mandat' => '1969 - 1974',
-                'photo' => '/images/portraits_presidents/georges_pompidou_1969.avif',
-                'actuel' => false,
-            ],
-            [
-                'nom' => 'Charles de Gaulle',
-                'mandat' => '1959 - 1969',
-                'photo' => '/images/portraits_presidents/charles_de_gaulle_1959.avif',
-                'actuel' => false,
-            ],
-        ];
+        // Gouvernement actuel (pour l'affichage)
+        $gouvernementActuel = Gouvernement::actuel();
+
+        // Liste des présidents pour la sidebar
+        $presidents = collect($tousPresidents)->map(fn($p) => [
+            'nom' => $p['nom'],
+            'slug' => $p['slug'],
+            'mandat' => $p['mandat'] ?? ($p['debut_mandat'] . ' - ' . ($p['fin_mandat'] ?? "aujourd'hui")),
+            'photo' => $p['photo'],
+            'actuel' => $p['actuel'] ?? false,
+        ])->toArray();
 
         return Inertia::render('Gouvernement/President', [
             'president' => $president,
@@ -280,13 +249,31 @@ class GouvernementController extends Controller
     }
 
     /**
-     * Données du président
+     * Liste complète de tous les présidents de la Ve République
+     */
+    private function getAllPresidents(): array
+    {
+        return [
+            $this->getPresidentData('Emmanuel Macron'),
+            $this->getPresidentData('François Hollande'),
+            $this->getPresidentData('Nicolas Sarkozy'),
+            $this->getPresidentData('Jacques Chirac'),
+            $this->getPresidentData('François Mitterrand'),
+            $this->getPresidentData('Valéry Giscard d\'Estaing'),
+            $this->getPresidentData('Georges Pompidou'),
+            $this->getPresidentData('Charles de Gaulle'),
+        ];
+    }
+
+    /**
+     * Données complètes d'un président
      */
     private function getPresidentData(string $nom): array
     {
         $data = [
             'Emmanuel Macron' => [
                 'nom' => 'Emmanuel Macron',
+                'slug' => 'emmanuel-macron',
                 'prenom' => 'Emmanuel',
                 'nom_famille' => 'Macron',
                 'date_naissance' => '21 décembre 1977',
@@ -301,9 +288,12 @@ class GouvernementController extends Controller
                 'republique' => 'Ve République',
                 'conjoint' => 'Brigitte Macron',
                 'residence' => 'Palais de l\'Élysée',
+                'actuel' => true,
+                'bio' => 'Emmanuel Macron est le 25e président de la République française depuis le 14 mai 2017. Ancien ministre de l\'Économie sous François Hollande, il fonde le mouvement En Marche ! en 2016 et remporte l\'élection présidentielle de 2017 face à Marine Le Pen, puis est réélu en 2022.',
             ],
             'François Hollande' => [
                 'nom' => 'François Hollande',
+                'slug' => 'francois-hollande',
                 'prenom' => 'François',
                 'nom_famille' => 'Hollande',
                 'date_naissance' => '12 août 1954',
@@ -318,9 +308,12 @@ class GouvernementController extends Controller
                 'mandat_numero' => 24,
                 'republique' => 'Ve République',
                 'residence' => 'Palais de l\'Élysée',
+                'actuel' => false,
+                'bio' => 'François Hollande est le 24e président de la République française du 15 mai 2012 au 14 mai 2017. Premier secrétaire du Parti socialiste de 1997 à 2008, il remporte l\'élection présidentielle de 2012 face à Nicolas Sarkozy. Il renonce à se représenter en 2017.',
             ],
             'Nicolas Sarkozy' => [
                 'nom' => 'Nicolas Sarkozy',
+                'slug' => 'nicolas-sarkozy',
                 'prenom' => 'Nicolas',
                 'nom_famille' => 'Sarkozy',
                 'date_naissance' => '28 janvier 1955',
@@ -336,9 +329,12 @@ class GouvernementController extends Controller
                 'republique' => 'Ve République',
                 'conjoint' => 'Carla Bruni-Sarkozy',
                 'residence' => 'Palais de l\'Élysée',
+                'actuel' => false,
+                'bio' => 'Nicolas Sarkozy est le 23e président de la République française du 16 mai 2007 au 15 mai 2012. Ancien ministre de l\'Intérieur et président de l\'UMP, il est battu par François Hollande lors de l\'élection présidentielle de 2012.',
             ],
             'Jacques Chirac' => [
                 'nom' => 'Jacques Chirac',
+                'slug' => 'jacques-chirac',
                 'prenom' => 'Jacques',
                 'nom_famille' => 'Chirac',
                 'date_naissance' => '29 novembre 1932',
@@ -354,12 +350,100 @@ class GouvernementController extends Controller
                 'republique' => 'Ve République',
                 'conjoint' => 'Bernadette Chirac',
                 'residence' => 'Palais de l\'Élysée',
+                'actuel' => false,
+                'bio' => 'Jacques Chirac est le 22e président de la République française du 17 mai 1995 au 16 mai 2007. Deux fois Premier ministre et maire de Paris pendant 18 ans, il effectue deux mandats présidentiels. Il décède le 26 septembre 2019.',
+            ],
+            'François Mitterrand' => [
+                'nom' => 'François Mitterrand',
+                'slug' => 'francois-mitterrand',
+                'prenom' => 'François',
+                'nom_famille' => 'Mitterrand',
+                'date_naissance' => '26 octobre 1916',
+                'date_deces' => '8 janvier 1996',
+                'lieu_naissance' => 'Jarnac (Charente)',
+                'profession' => 'Avocat, homme politique',
+                'parti' => 'Parti socialiste',
+                'debut_mandat' => '21 mai 1981',
+                'fin_mandat' => '17 mai 1995',
+                'photo' => '/images/portraits_presidents/françois_mitterand_1981.avif',
+                'wikipedia' => 'https://fr.wikipedia.org/wiki/François_Mitterrand',
+                'mandat_numero' => 21,
+                'republique' => 'Ve République',
+                'conjoint' => 'Danielle Mitterrand',
+                'residence' => 'Palais de l\'Élysée',
+                'actuel' => false,
+                'bio' => 'François Mitterrand est le 21e président de la République française du 21 mai 1981 au 17 mai 1995. Premier président socialiste de la Ve République, il effectue deux septennats consécutifs, un record sous la Ve République.',
+            ],
+            'Valéry Giscard d\'Estaing' => [
+                'nom' => 'Valéry Giscard d\'Estaing',
+                'slug' => 'valery-giscard-destaing',
+                'prenom' => 'Valéry',
+                'nom_famille' => 'Giscard d\'Estaing',
+                'date_naissance' => '2 février 1926',
+                'date_deces' => '2 décembre 2020',
+                'lieu_naissance' => 'Coblence (Allemagne)',
+                'profession' => 'Inspecteur des finances',
+                'parti' => 'UDF',
+                'debut_mandat' => '27 mai 1974',
+                'fin_mandat' => '21 mai 1981',
+                'photo' => '/images/portraits_presidents/valery_giscard_destaing_1974.avif',
+                'wikipedia' => 'https://fr.wikipedia.org/wiki/Valéry_Giscard_d%27Estaing',
+                'mandat_numero' => 20,
+                'republique' => 'Ve République',
+                'conjoint' => 'Anne-Aymone Giscard d\'Estaing',
+                'residence' => 'Palais de l\'Élysée',
+                'actuel' => false,
+                'bio' => 'Valéry Giscard d\'Estaing est le 20e président de la République française du 27 mai 1974 au 21 mai 1981. Plus jeune président élu à 48 ans, il modernise la société française (majorité à 18 ans, IVG). Il décède le 2 décembre 2020.',
+            ],
+            'Georges Pompidou' => [
+                'nom' => 'Georges Pompidou',
+                'slug' => 'georges-pompidou',
+                'prenom' => 'Georges',
+                'nom_famille' => 'Pompidou',
+                'date_naissance' => '5 juillet 1911',
+                'date_deces' => '2 avril 1974',
+                'lieu_naissance' => 'Montboudif (Cantal)',
+                'profession' => 'Agrégé de lettres, banquier',
+                'parti' => 'UDR',
+                'debut_mandat' => '20 juin 1969',
+                'fin_mandat' => '2 avril 1974',
+                'photo' => '/images/portraits_presidents/georges_pompidou_1969.avif',
+                'wikipedia' => 'https://fr.wikipedia.org/wiki/Georges_Pompidou',
+                'mandat_numero' => 19,
+                'republique' => 'Ve République',
+                'conjoint' => 'Claude Pompidou',
+                'residence' => 'Palais de l\'Élysée',
+                'actuel' => false,
+                'bio' => 'Georges Pompidou est le 19e président de la République française du 20 juin 1969 au 2 avril 1974. Ancien Premier ministre du général de Gaulle, il succède à ce dernier après sa démission. Il décède en fonction le 2 avril 1974.',
+            ],
+            'Charles de Gaulle' => [
+                'nom' => 'Charles de Gaulle',
+                'slug' => 'charles-de-gaulle',
+                'prenom' => 'Charles',
+                'nom_famille' => 'de Gaulle',
+                'date_naissance' => '22 novembre 1890',
+                'date_deces' => '9 novembre 1970',
+                'lieu_naissance' => 'Lille (Nord)',
+                'profession' => 'Général, homme d\'État',
+                'parti' => 'UNR / UDR',
+                'debut_mandat' => '8 janvier 1959',
+                'fin_mandat' => '28 avril 1969',
+                'photo' => '/images/portraits_presidents/charles_de_gaulle_1959.avif',
+                'wikipedia' => 'https://fr.wikipedia.org/wiki/Charles_de_Gaulle',
+                'mandat_numero' => 18,
+                'republique' => 'Ve République',
+                'conjoint' => 'Yvonne de Gaulle',
+                'residence' => 'Palais de l\'Élysée',
+                'actuel' => false,
+                'bio' => 'Charles de Gaulle est le fondateur de la Ve République et son premier président du 8 janvier 1959 au 28 avril 1969. Chef de la France libre pendant la Seconde Guerre mondiale, il instaure la Ve République en 1958. Il démissionne en 1969 après l\'échec d\'un référendum.',
             ],
         ];
 
         return $data[$nom] ?? [
             'nom' => $nom,
+            'slug' => \Illuminate\Support\Str::slug($nom),
             'photo' => null,
+            'actuel' => false,
         ];
     }
 
