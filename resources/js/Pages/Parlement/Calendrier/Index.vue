@@ -18,8 +18,7 @@ const props = defineProps({
 
 const breadcrumbItems = [
     { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
-    { label: 'Parlement' },
-    { label: 'Calendrier Législatif', icon: '📅' },
+    { label: 'Calendrier unifié', current: true, icon: '📅' },
 ];
 
 // Filtres locaux
@@ -135,52 +134,58 @@ const formatHeure = (dateIso) => {
 </script>
 
 <template>
-    <Head title="Calendrier Législatif" />
+    <Head title="Calendrier unifié" />
     
     <AuthenticatedLayout>
-        <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950/20">
-            <div class="py-8 px-4 sm:px-6 lg:px-8 xl:px-16 2xl:px-24">
+        <!-- Hero Section -->
+        <section class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900">
+            <div class="absolute inset-0 opacity-10">
+                <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+            </div>
+            
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+                <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-6" />
                 
-                <!-- Breadcrumb -->
-                <Breadcrumb :items="breadcrumbItems" class="mb-6" />
-                
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-xl p-8 text-white mb-8">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                        <div>
-                            <h1 class="text-4xl font-bold mb-2 flex items-center gap-3">
-                                📅 Calendrier Législatif Unifié
-                            </h1>
-                            <p class="text-indigo-100 text-lg">
-                                Agenda de l'Assemblée Nationale et du Sénat
-                            </p>
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+                    <div>
+                        <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight flex items-center gap-4">
+                            <span class="text-4xl">📅</span>
+                            Calendrier unifié
+                        </h1>
+                        <p class="text-indigo-200 text-lg max-w-xl">
+                            Agenda de l'Assemblée Nationale, du Sénat et de l'Élysée
+                        </p>
+                        <p class="text-indigo-300 text-sm mt-2">
+                            {{ nomsMois[mois - 1] }} {{ annee }}
+                        </p>
+                    </div>
+                    
+                    <!-- Stats rapides -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 text-center border border-white/20">
+                            <p class="text-3xl font-bold text-white">{{ stats.total }}</p>
+                            <p class="text-xs text-indigo-200">Événements</p>
                         </div>
-                        
-                        <!-- Stats rapides -->
-                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                            <div class="bg-white/10 backdrop-blur rounded-xl px-4 py-3 text-center">
-                                <p class="text-3xl font-bold">{{ stats.total }}</p>
-                                <p class="text-xs text-indigo-200">Total</p>
-                            </div>
-                            <div class="bg-blue-500/30 backdrop-blur rounded-xl px-4 py-3 text-center">
-                                <p class="text-3xl font-bold">{{ stats.an }}</p>
-                                <p class="text-xs text-blue-200">🔵 AN</p>
-                            </div>
-                            <div class="bg-red-500/30 backdrop-blur rounded-xl px-4 py-3 text-center">
-                                <p class="text-3xl font-bold">{{ stats.senat }}</p>
-                                <p class="text-xs text-red-200">🔴 Sénat</p>
-                            </div>
-                            <div class="bg-yellow-500/30 backdrop-blur rounded-xl px-4 py-3 text-center">
-                                <p class="text-3xl font-bold">{{ stats.elysee || 0 }}</p>
-                                <p class="text-xs text-yellow-200">🟡 Élysée</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur rounded-xl px-4 py-3 text-center">
-                                <p class="text-3xl font-bold">{{ stats.seances }}</p>
-                                <p class="text-xs text-indigo-200">Séances</p>
-                            </div>
+                        <div class="bg-blue-500/20 backdrop-blur-sm rounded-xl px-4 py-3 text-center border border-blue-400/30">
+                            <p class="text-3xl font-bold text-white">{{ stats.an }}</p>
+                            <p class="text-xs text-blue-200">Assemblée</p>
+                        </div>
+                        <div class="bg-red-500/20 backdrop-blur-sm rounded-xl px-4 py-3 text-center border border-red-400/30">
+                            <p class="text-3xl font-bold text-white">{{ stats.senat }}</p>
+                            <p class="text-xs text-red-200">Sénat</p>
+                        </div>
+                        <div class="bg-amber-500/20 backdrop-blur-sm rounded-xl px-4 py-3 text-center border border-amber-400/30">
+                            <p class="text-3xl font-bold text-white">{{ stats.elysee || 0 }}</p>
+                            <p class="text-xs text-amber-200">Élysée</p>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Contenu principal -->
+        <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 
                 <!-- Filtres -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 mb-6">
@@ -451,6 +456,7 @@ const formatHeure = (dateIso) => {
                 </div>
                 
             </div>
+        </div>
         </div>
     </AuthenticatedLayout>
 </template>

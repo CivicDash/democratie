@@ -325,23 +325,17 @@ onUnmounted(() => {
                                                 title="Composition du Gouvernement"
                                                 description="Ministres et ministères"
                                             />
-                                            <MegaMenuLink
-                                                :href="route('parlement.calendrier.index')"
-                                                icon="📅"
-                                                title="Agenda Élysée"
-                                                description="Activités présidentielles"
-                                            />
                                         </div>
                                     </template>
                                 </Dropdown>
                                 
-                                <!-- 📅 CALENDRIER - Lien direct -->
+                                <!-- 📅 CALENDRIER UNIFIÉ - Lien direct -->
                                 <NavLink 
                                     :href="route('parlement.calendrier.index')" 
                                     :active="route().current('parlement.calendrier.*')"
                                     class="!px-3"
                                 >
-                                    📅 Calendrier
+                                    📅 Calendrier unifié
                                 </NavLink>
                                 
                                 <!-- ⚖️ LÉGISLATION -->
@@ -641,14 +635,13 @@ onUnmounted(() => {
                             <div v-show="expandedSection === 'gouvernement'" class="pl-4 space-y-1 mt-1">
                                 <ResponsiveNavLink :href="route('gouvernement.president')">🏛️ Président de la République</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('gouvernement.index')">👔 Composition du gouvernement</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('parlement.calendrier.index')">📅 Agenda Élysée</ResponsiveNavLink>
                             </div>
                         </div>
                         
-                        <!-- 📅 CALENDRIER - Lien direct -->
+                        <!-- 📅 CALENDRIER UNIFIÉ - Lien direct -->
                         <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
                             <ResponsiveNavLink :href="route('parlement.calendrier.index')">
-                                📅 Calendrier
+                                📅 Calendrier unifié
                             </ResponsiveNavLink>
                         </div>
                         
