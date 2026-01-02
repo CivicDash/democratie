@@ -478,6 +478,18 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         Route::get('/maires/{maire}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editMaire'])->name('maires.edit');
         Route::put('/maires/{maire}', [App\Http\Controllers\Web\AdminElusController::class, 'updateMaire'])->name('maires.update');
     });
+
+    // Gestion du Budget PLF
+    Route::prefix('budget')->name('budget.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Web\AdminBudgetController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Web\AdminBudgetController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Web\AdminBudgetController::class, 'store'])->name('store');
+        Route::get('/{budget}/edit', [App\Http\Controllers\Web\AdminBudgetController::class, 'edit'])->name('edit');
+        Route::put('/{budget}', [App\Http\Controllers\Web\AdminBudgetController::class, 'update'])->name('update');
+        Route::delete('/{budget}', [App\Http\Controllers\Web\AdminBudgetController::class, 'destroy'])->name('destroy');
+        Route::post('/duplicate', [App\Http\Controllers\Web\AdminBudgetController::class, 'duplicate'])->name('duplicate');
+        Route::get('/export', [App\Http\Controllers\Web\AdminBudgetController::class, 'export'])->name('export');
+    });
 });
 
 /*

@@ -16,15 +16,26 @@ class BudgetMinistere extends Model
         'type_loi',
         'budget_ae',
         'budget_cp',
+        'budget_general',
+        'budgets_annexes',
+        'comptes_affectation_speciale',
+        'comptes_concours_financiers',
+        'budget_total',
         'effectifs_etpt',
         'nb_programmes',
         'couleur',
+        'source',
     ];
 
     protected $casts = [
         'annee' => 'integer',
         'budget_ae' => 'decimal:2',
         'budget_cp' => 'decimal:2',
+        'budget_general' => 'decimal:2',
+        'budgets_annexes' => 'decimal:2',
+        'comptes_affectation_speciale' => 'decimal:2',
+        'comptes_concours_financiers' => 'decimal:2',
+        'budget_total' => 'decimal:2',
         'effectifs_etpt' => 'integer',
         'nb_programmes' => 'integer',
     ];
