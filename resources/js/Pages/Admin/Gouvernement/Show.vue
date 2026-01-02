@@ -77,23 +77,60 @@ const addPoste = () => {
 
 // Édition inline d'un poste
 const editingPoste = ref(null);
-const editForm = useForm({});
+const editFormProcessing = ref(false);
+const editForm = ref({
+    fonction: '',
+    type_fonction: 'ministre',
+    ministere_id: null,
+    ordre: 0,
+    date_debut: '',
+    date_fin: '',
+    actif: true,
+});
+
+// Helper pour formater la date (supporte plusieurs formats)
+const formatDateForInput = (dateStr) => {
+    if (!dateStr) return '';
+    // Si c'est déjà au format YYYY-MM-DD, retourner tel quel
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    // Si c'est un format ISO avec T
+    if (dateStr.includes('T')) return dateStr.split('T')[0];
+    // Sinon essayer de parser
+    try {
+        const date = new Date(dateStr);
+        return date.toISOString().split('T')[0];
+    } catch {
+        return '';
+    }
+};
 
 const startEditPoste = (poste) => {
     editingPoste.value = poste.id;
-    editForm.fonction = poste.fonction;
-    editForm.type_fonction = poste.type_fonction;
-    editForm.ministere_id = poste.ministere_id;
-    editForm.ordre = poste.ordre;
-    editForm.date_debut = poste.date_debut?.split('T')[0];
-    editForm.date_fin = poste.date_fin?.split('T')[0];
-    editForm.actif = poste.actif;
+    editForm.value = {
+        fonction: poste.fonction || '',
+        type_fonction: poste.type_fonction || 'ministre',
+        ministere_id: poste.ministere_id,
+        ordre: poste.ordre || 0,
+        date_debut: formatDateForInput(poste.date_debut),
+        date_fin: formatDateForInput(poste.date_fin),
+        actif: poste.actif ?? true,
+    };
 };
 
 const savePoste = (poste) => {
-    editForm.put(route('admin.gouvernement.update-poste', poste.id), {
+    editFormProcessing.value = true;
+    router.put(route('admin.gouvernement.update-poste', poste.id), editForm.value, {
+        preserveScroll: true,
         onSuccess: () => {
             editingPoste.value = null;
+            editFormProcessing.value = false;
+        },
+        onError: (errors) => {
+            console.error('Erreurs de sauvegarde:', errors);
+            editFormProcessing.value = false;
+        },
+        onFinish: () => {
+            editFormProcessing.value = false;
         },
     });
 };
@@ -407,10 +444,10 @@ const deleteGouvernement = () => {
                                     </button>
                                     <button
                                         @click="savePoste(poste)"
-                                        :disabled="editForm.processing"
-                                        class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                        :disabled="editFormProcessing"
+                                        class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
                                     >
-                                        Enregistrer
+                                        {{ editFormProcessing ? 'Enregistrement...' : 'Enregistrer' }}
                                     </button>
                                 </div>
                             </div>
