@@ -35,6 +35,13 @@ const fillDemoAccount = () => {
     form.password = 'demo2025';
     form.remember = true;
 };
+
+// Remplir avec le compte démo élu
+const fillDemoEluAccount = () => {
+    form.email = 'demo-elu@civicdash.fr';
+    form.password = 'DemoElu2026!';
+    form.remember = true;
+};
 </script>
 
 <template>
@@ -72,18 +79,28 @@ const fillDemoAccount = () => {
             </div>
         </div>
 
-        <!-- Bouton compte démo -->
-        <div class="mb-6">
+        <!-- Boutons comptes démo -->
+        <div class="mb-6 space-y-3">
             <button
                 type="button"
                 @click="fillDemoAccount"
                 class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
             >
                 <span class="text-xl">🎭</span>
-                <span>Utiliser le compte démo</span>
+                <span>Compte démo citoyen</span>
             </button>
-            <p class="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
-                Accédez à une version de démonstration avec un compte citoyen fictif
+            
+            <button
+                type="button"
+                @click="fillDemoEluAccount"
+                class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            >
+                <span class="text-xl">🏛️</span>
+                <span>Compte démo élu</span>
+            </button>
+            
+            <p class="text-center text-xs text-gray-500 dark:text-gray-400">
+                Testez la plateforme avec un compte citoyen ou un espace élu dédié
             </p>
         </div>
 

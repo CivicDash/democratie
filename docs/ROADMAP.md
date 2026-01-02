@@ -1615,10 +1615,33 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
 22. ✅ Dashboard widgets cliquables + calcul scrutins
 23. ✅ Hero banner dashboard uniformisé
 
+### ✅ Accompli semaine 4 (2 janvier 2026)
+24. ✅ **Domaines Ministériels** : Architecture avec 16 catégories permanentes
+    - Table `domaines_ministeriels` + FK sur postes/ministères
+    - Commande `sync:domaines-ministeriels` (--init, --link, --enrich)
+    - Pages `/gouvernement/ministeres` et `/gouvernement/ministeres/{slug}`
+    - Admin : catégorisation des postes ministériels
+25. ✅ **Statistiques gouvernementales** : Page `/donnees/gouvernements/statistiques`
+    - Stats par président, évolution parité, durée moyenne
+    - Déplacée dans menu Données
+26. ✅ **Recherche globale étendue** : Ministres et Présidents dans les résultats
+27. ✅ **Dashboard Élu complet** :
+    - Routes `/elu/dashboard`, `/elu/interpellations`, `/elu/stats`, `/elu/ma-fiche`
+    - Stats avancées : délai moyen de réponse, taux de réponse, évolution mensuelle
+    - Page statistiques élu avec thématiques et conseils
+    - Lien "Espace Élu" dans le menu pour élus vérifiés
+    - Compte démo élu : `demo-elu@civicdash.fr` / `DemoElu2026!`
+28. ✅ **Corrections diverses** :
+    - Couleur Élysée moins criarde sur calendrier (amber → slate)
+    - Photos auteurs sur Questions au Gouvernement
+    - Slug unique ministres (fix doublon)
+    - Page votes sénateurs : hero banner + breadcrumb modernisés
+29. ✅ **Migration users** : Champs élu ajoutés (elu_type, elu_ref, is_verified_elu, etc.)
+
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
-2. 🔄 Interpellation des élus
-3. 🔄 Menu "État" restructuré
+2. ✅ Interpellation des élus → **TERMINÉ**
+3. ✅ Menu "État" restructuré → **TERMINÉ**
 
 ### 🔴 Priorité T1 2026 - Données Gouvernementales
 1. [x] **Import Budget de l'État** (data.gouv.fr PLF) ✅ *Terminé 01/01/2026*
@@ -1650,24 +1673,31 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
    - Affichage enrichi (card preview)
    - Notifications aux élus mentionnés
 
-### 👔 Espace Élus (T1-T2 2026)
-1. [ ] **Authentification élu** : Vérification identité
+### 👔 Espace Élus (T1 2026) ✅ IMPLÉMENTÉ
+1. [x] **Authentification élu** : Vérification identité
    - Validation par email officiel (@assemblee-nationale.fr, @senat.fr)
    - Badge "Compte vérifié" sur profil
-   - Demande manuelle avec pièces justificatives
-2. [ ] **Dashboard élu** : Interface dédiée
-   - Vue des interpellations reçues
-   - Notifications en temps réel (mentions, questions)
-   - Statistiques de l'élu (participation, votes, présence)
-3. [ ] **Réponses aux interpellations** : 
+   - Champs users : `elu_type`, `elu_ref`, `is_verified_elu`, `verified_at`
+   - Compte démo : `demo-elu@civicdash.fr` / `DemoElu2026!`
+2. [x] **Dashboard élu** : Interface dédiée `/elu/dashboard`
+   - Vue des interpellations reçues avec filtres
+   - Stats temps réel : total, en attente, répondues, taux de réponse, délai moyen
+   - Lien "Espace Élu" dans menu (desktop + mobile)
+   - Actions rapides : Ma fiche, Interpellations, Stats
+3. [x] **Réponses aux interpellations** : `/elu/interpellations`
    - Réponse officielle avec horodatage
-   - Affichage distinct (encadré "Réponse de l'élu")
-   - Historique des échanges
-   - Possibilité de refuser/ignorer avec justification
-4. [ ] **Communication encadrée** :
+   - Possibilité de refuser avec justification
+   - Page détail avec topic complet et commentaires
+   - Statuts : pending, viewed, answered, declined
+4. [x] **Statistiques élu** : `/elu/stats`
+   - Score de performance (Excellent/Très bien/Bien/À améliorer)
+   - Évolution mensuelle (graphique barres)
+   - Thématiques populaires (top 10)
+   - Conseils pour améliorer son score
+5. [ ] **Communication encadrée** (à venir) :
    - Pas de messages privés (tout est public)
    - Template de réponse suggéré
-   - Délai de réponse affiché (transparence)
+   - Notifications email aux citoyens
 
 ---
 
@@ -1730,6 +1760,6 @@ CivicDash vise à devenir **la référence citoyenne** pour comprendre et partic
 ---
 
 **Maintenu par** : CivicDash Core Team / Civis Consilium  
-**Version** : 2.3  
-**Dernière mise à jour** : 31 décembre 2025  
+**Version** : 2.4  
+**Dernière mise à jour** : 2 janvier 2026  
 **Licence** : AGPL-3.0 Open Source

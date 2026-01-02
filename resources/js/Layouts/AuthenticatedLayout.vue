@@ -437,6 +437,16 @@ onUnmounted(() => {
                                 >
                                     ⚙️ Admin
                                 </NavLink>
+                                
+                                <!-- Espace Élu (si élu vérifié) -->
+                                <NavLink
+                                    v-if="$page.props.auth.user.is_verified_elu"
+                                    :href="route('elu.dashboard')"
+                                    :active="route().current('elu.*')"
+                                    class="!text-purple-600 dark:!text-purple-400 font-semibold"
+                                >
+                                    🏛️ Espace Élu
+                                </NavLink>
                             </div>
                         </div>
 
@@ -702,6 +712,22 @@ onUnmounted(() => {
                                 :href="route('admin.dashboard')"
                             >
                                 ⚙️ Administration
+                            </ResponsiveNavLink>
+                        </div>
+                        
+                        <!-- Espace Élu (si élu vérifié) -->
+                        <div
+                            v-if="$page.props.auth.user.is_verified_elu"
+                            class="border-t border-purple-200 dark:border-purple-700 pt-2"
+                        >
+                            <ResponsiveNavLink :href="route('elu.dashboard')" class="text-purple-600 dark:text-purple-400">
+                                🏛️ Espace Élu
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('elu.interpellations')">
+                                📬 Interpellations
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('elu.stats')">
+                                📊 Mes Statistiques
                             </ResponsiveNavLink>
                         </div>
                     </div>

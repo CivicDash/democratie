@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -12,6 +13,13 @@ const props = defineProps({
   filters: Object,
   statistiques: Object,
 });
+
+const breadcrumbs = [
+  { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+  { label: 'Sénateurs', href: route('representants.senateurs.index'), icon: '🏛️' },
+  { label: props.senateur.nom_usuel, href: route('representants.senateurs.show', props.senateur.id) },
+  { label: 'Votes', current: true, icon: '🗳️' },
+];
 
 const search = ref(props.filters.search || '');
 const typeVote = ref(props.filters.type || '');
@@ -51,83 +59,64 @@ const getVoteIcon = (position) => {
   <Head :title="`Votes de ${senateur.nom_complet}`" />
 
   <AuthenticatedLayout>
-    <div class="py-8">
-      <div class="mx-auto sm:px-6 lg:px-8 space-y-6" style="max-width: 100%;">
-        
-        <!-- Breadcrumb -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-0 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 transition font-medium">
-          <Link :href="route('representants.mes-representants')" class="hover:text-blue-600">
-            Mes Représentants
-          </Link>
-          <span>/</span>
-          <Link :href="route('representants.senateurs.index')" class="hover:text-blue-600">
-            Sénateurs
-          </Link>
-          <span>/</span>
-          <Link :href="route('representants.senateurs.show', senateur.id)" class="hover:text-blue-600">
-            {{ senateur.nom_usuel }}
-          </Link>
-          <span>/</span>
-          <span class="text-gray-900 dark:text-gray-100">Votes</span>
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+      
+      <!-- Hero Section Full Width -->
+      <section class="relative overflow-hidden bg-gradient-to-br from-rose-900 via-pink-800 to-fuchsia-900">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+          <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
         </div>
-
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-red-700 to-pink-700 rounded-xl shadow-lg p-8 text-white">
-          <div class="flex items-center gap-6">
-            <div class="w-24 h-24 rounded-full overflow-hidden bg-white/10 flex-shrink-0">
-              <img
-                v-if="senateur.photo_wikipedia_url"
-                :src="senateur.photo_wikipedia_url"
-                :alt="senateur.nom_complet"
-                class="w-full h-full object-cover"
-              />
-              <div v-else class="w-full h-full flex items-center justify-center text-4xl">
-                👤
+        
+        <div class="relative w-full px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+          <Breadcrumb :items="breadcrumbs" variant="light" class="mb-6" />
+          
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div class="flex items-center gap-6">
+              <div class="w-20 h-20 rounded-full overflow-hidden bg-white/20 flex-shrink-0 ring-4 ring-white/30">
+                <img
+                  v-if="senateur.photo_wikipedia_url"
+                  :src="senateur.photo_wikipedia_url"
+                  :alt="senateur.nom_complet"
+                  class="w-full h-full object-cover"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center text-4xl">
+                  👤
+                </div>
+              </div>
+              <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
+                  🗳️ Votes de {{ senateur.nom_usuel }}
+                </h1>
+                <p class="text-rose-200 text-lg">{{ senateur.groupe_politique || 'Non inscrit' }}</p>
               </div>
             </div>
-            <div class="flex-1">
-              <h1 class="text-4xl font-bold mb-2">🗳️ Votes de {{ senateur.nom_usuel }}</h1>
-              <p class="text-red-100 text-lg">{{ senateur.groupe_politique || 'Non inscrit' }}</p>
+            
+            <!-- Stats rapides Hero -->
+            <div class="flex flex-wrap gap-4">
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                <div class="text-2xl md:text-3xl font-bold text-white">{{ statistiques.total }}</div>
+                <div class="text-rose-200 text-xs uppercase tracking-wide">Total</div>
+              </div>
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                <div class="text-2xl md:text-3xl font-bold text-emerald-400">{{ statistiques.pour }}</div>
+                <div class="text-rose-200 text-xs uppercase tracking-wide">Pour</div>
+              </div>
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                <div class="text-2xl md:text-3xl font-bold text-rose-400">{{ statistiques.contre }}</div>
+                <div class="text-rose-200 text-xs uppercase tracking-wide">Contre</div>
+              </div>
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                <div class="text-2xl md:text-3xl font-bold text-amber-400">{{ statistiques.abstention }}</div>
+                <div class="text-rose-200 text-xs uppercase tracking-wide">Abstention</div>
+              </div>
             </div>
           </div>
         </div>
+      </section>
 
-        <!-- Statistiques -->
-        <div class="grid md:grid-cols-4 gap-4">
-          <Card>
-            <div class="text-center">
-              <div class="text-3xl font-bold text-blue-600">{{ statistiques.total }}</div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Total votes</div>
-            </div>
-          </Card>
-          <Card>
-            <div class="text-center">
-              <div class="text-3xl font-bold text-green-600">{{ statistiques.pour }}</div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Pour</div>
-              <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {{ statistiques.pour_percent }}%
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <div class="text-center">
-              <div class="text-3xl font-bold text-red-600">{{ statistiques.contre }}</div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Contre</div>
-              <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {{ statistiques.contre_percent }}%
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <div class="text-center">
-              <div class="text-3xl font-bold text-yellow-600">{{ statistiques.abstention }}</div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Abstentions</div>
-              <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                {{ statistiques.abstention_percent }}%
-              </div>
-            </div>
-          </Card>
-        </div>
+      <!-- Content -->
+      <div class="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
         <!-- Filtres -->
         <Card>

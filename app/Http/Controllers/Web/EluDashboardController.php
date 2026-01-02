@@ -28,12 +28,35 @@ class EluDashboardController extends Controller
             abort(403, 'Accès réservé aux élus vérifiés.');
         }
 
-        // Statistiques
+        // Statistiques de base
+        $total = $this->getInterpellationsQuery($user)->count();
+        $pending = $this->getInterpellationsQuery($user)->where('response_status', 'pending')->count();
+        $answered = $this->getInterpellationsQuery($user)->where('response_status', 'answered')->count();
+        $declined = $this->getInterpellationsQuery($user)->where('response_status', 'declined')->count();
+        
+        // Calcul du délai moyen de réponse (en jours)
+        $avgResponseTime = $this->getInterpellationsQuery($user)
+            ->whereNotNull('answered_at')
+            ->selectRaw('AVG(EXTRACT(EPOCH FROM (answered_at - created_at)) / 86400) as avg_days')
+            ->value('avg_days');
+        
+        // % de réponse
+        $responseRate = $total > 0 ? round(($answered / $total) * 100, 1) : 0;
+        
+        // Interpellations cette semaine
+        $thisWeek = $this->getInterpellationsQuery($user)
+            ->where('created_at', '>=', now()->subWeek())
+            ->count();
+        
         $stats = [
-            'total_interpellations' => $this->getInterpellationsQuery($user)->count(),
-            'pending' => $this->getInterpellationsQuery($user)->where('response_status', 'pending')->count(),
-            'answered' => $this->getInterpellationsQuery($user)->where('response_status', 'answered')->count(),
+            'total_interpellations' => $total,
+            'pending' => $pending,
+            'answered' => $answered,
+            'declined' => $declined,
             'views' => $this->getInterpellationsQuery($user)->whereNotNull('viewed_at')->count(),
+            'avg_response_days' => $avgResponseTime ? round($avgResponseTime, 1) : null,
+            'response_rate' => $responseRate,
+            'this_week' => $thisWeek,
         ];
 
         // Dernières interpellations non répondues
@@ -284,6 +307,100 @@ class EluDashboardController extends Controller
             ] : null,
             'interpellations' => $interpellations,
             'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Page "Ma fiche" - Lien vers le profil public de l'élu
+     */
+    public function maFiche()
+    {
+        $user = Auth::user();
+        
+        if (!$user->isVerifiedElu()) {
+            abort(403, 'Accès réservé aux élus vérifiés.');
+        }
+
+        // Rediriger vers le profil public correspondant
+        return match ($user->elu_type) {
+            'depute' => redirect()->route('representants.deputes.show', $user->elu_ref),
+            'senateur' => redirect()->route('representants.senateurs.show', $user->elu_ref),
+            'maire' => redirect()->route('collectivites.maires.show', $user->elu_ref),
+            default => redirect()->route('elu.dashboard')->with('error', 'Type d\'élu non reconnu'),
+        };
+    }
+
+    /**
+     * Statistiques détaillées pour l'élu
+     */
+    public function stats(): Response
+    {
+        $user = Auth::user();
+        
+        if (!$user->isVerifiedElu()) {
+            abort(403, 'Accès réservé aux élus vérifiés.');
+        }
+
+        // Statistiques globales
+        $total = $this->getInterpellationsQuery($user)->count();
+        $answered = $this->getInterpellationsQuery($user)->where('response_status', 'answered')->count();
+        $declined = $this->getInterpellationsQuery($user)->where('response_status', 'declined')->count();
+        $pending = $this->getInterpellationsQuery($user)->where('response_status', 'pending')->count();
+        
+        // Délai moyen de réponse
+        $avgResponseTime = $this->getInterpellationsQuery($user)
+            ->whereNotNull('answered_at')
+            ->selectRaw('AVG(EXTRACT(EPOCH FROM (answered_at - created_at)) / 86400) as avg_days')
+            ->value('avg_days');
+        
+        // Évolution par mois (12 derniers mois)
+        $evolutionByMonth = $this->getInterpellationsQuery($user)
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as mois, COUNT(*) as total")
+            ->selectRaw("SUM(CASE WHEN response_status = 'answered' THEN 1 ELSE 0 END) as repondues")
+            ->groupBy('mois')
+            ->orderBy('mois')
+            ->get();
+        
+        // Thématiques des interpellations (top 10)
+        $topThemes = $this->getInterpellationsQuery($user)
+            ->join('topics', 'topics.id', '=', 'topic_elus.topic_id')
+            ->leftJoin('topic_tag', 'topic_tag.topic_id', '=', 'topics.id')
+            ->leftJoin('tags', 'tags.id', '=', 'topic_tag.tag_id')
+            ->whereNotNull('tags.nom')
+            ->selectRaw('tags.nom as theme, COUNT(*) as count')
+            ->groupBy('tags.nom')
+            ->orderByDesc('count')
+            ->limit(10)
+            ->get();
+        
+        // Temps de réponse par période
+        $responseTimeEvolution = $this->getInterpellationsQuery($user)
+            ->whereNotNull('answered_at')
+            ->where('answered_at', '>=', now()->subMonths(6))
+            ->selectRaw("TO_CHAR(answered_at, 'YYYY-MM') as mois")
+            ->selectRaw('AVG(EXTRACT(EPOCH FROM (answered_at - created_at)) / 86400) as avg_days')
+            ->groupBy('mois')
+            ->orderBy('mois')
+            ->get();
+
+        return Inertia::render('Elu/Stats', [
+            'globalStats' => [
+                'total' => $total,
+                'answered' => $answered,
+                'declined' => $declined,
+                'pending' => $pending,
+                'response_rate' => $total > 0 ? round(($answered / $total) * 100, 1) : 0,
+                'avg_response_days' => $avgResponseTime ? round($avgResponseTime, 1) : null,
+            ],
+            'evolutionByMonth' => $evolutionByMonth,
+            'topThemes' => $topThemes,
+            'responseTimeEvolution' => $responseTimeEvolution,
+            'eluData' => $user->elu_data ? [
+                'nom_complet' => $user->elu_data->nom_complet ?? null,
+                'photo_url' => $user->elu_data->photo_url ?? null,
+                'type' => $user->elu_type,
+            ] : null,
         ]);
     }
 

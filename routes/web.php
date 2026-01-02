@@ -563,6 +563,24 @@ Route::middleware('auth')->prefix('parlement')->name('parlement.')->group(functi
 
 /*
 |--------------------------------------------------------------------------
+| Espace Élu (Dashboard pour élus vérifiés)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('elu')->name('elu.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Web\EluDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/interpellations', [App\Http\Controllers\Web\EluDashboardController::class, 'interpellations'])->name('interpellations');
+    Route::get('/interpellations/{interpellation}', [App\Http\Controllers\Web\EluDashboardController::class, 'showInterpellation'])->name('interpellations.show');
+    Route::post('/interpellations/{interpellation}/respond', [App\Http\Controllers\Web\EluDashboardController::class, 'respond'])->name('interpellations.respond');
+    Route::post('/interpellations/{interpellation}/decline', [App\Http\Controllers\Web\EluDashboardController::class, 'decline'])->name('interpellations.decline');
+    Route::get('/ma-fiche', [App\Http\Controllers\Web\EluDashboardController::class, 'maFiche'])->name('ma-fiche');
+    Route::get('/stats', [App\Http\Controllers\Web\EluDashboardController::class, 'stats'])->name('stats');
+});
+
+// Profil public d'un élu
+Route::get('/elu/{type}/{ref}', [App\Http\Controllers\Web\EluDashboardController::class, 'publicProfile'])->name('elu.public');
+
+/*
+|--------------------------------------------------------------------------
 | Authentication Routes
 |--------------------------------------------------------------------------
 */

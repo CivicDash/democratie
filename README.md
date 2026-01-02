@@ -15,6 +15,8 @@ CivicDash est une plateforme démocratique qui permet aux citoyens de :
 - 💰 **Répartir leur budget** par secteurs (éducation, santé, écologie, etc.) avec contraintes min/max
 - 📊 **Consulter la transparence** des recettes et dépenses publiques
 - 🏛️ **Suivre la législation** : Assemblée Nationale et Sénat en temps réel avec votes citoyens
+- 🏛️ **Suivre le Gouvernement** : Ministres, ministères, statistiques gouvernementales
+- 👔 **Interpeller les élus** : Députés, sénateurs et maires avec suivi des réponses
 - 🔍 **Rechercher en < 50ms** : Meilisearch pour une recherche ultra-rapide avec autocomplete
 - 🎨 **Profiter d'une UX premium** : Loading skeletons, toast notifications, empty states
 - 🛡️ **Modérer** les contenus avec un système de signalement et sanctions
@@ -120,8 +122,8 @@ Cette commande génère automatiquement :
 
 **Comptes de test** :
 - Admin : `admin@civicdash.fr` / `password`
-- Citoyen : `citoyen1@demo.civicdash.fr` / `demo2025`
-- Député : `depute1@demo.assemblee-nationale.fr` / `demo2025`
+- Citoyen : `citoyen1@civicdash.fr` / `demo2025`
+- Élu (Député) : `demo-elu@civicdash.fr` / `DemoElu2026!`
 
 📚 **Documentation complète** : [docs/DEMO_MODE.md](docs/DEMO_MODE.md)
 
@@ -256,17 +258,20 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 - [x] Transparence (recettes/dépenses publiques)
 - [x] **🏛️ Législation** : Intégration Assemblée + Sénat + votes citoyens + timeline
 - [x] **🏛️ Légifrance API** : Contexte juridique + Jurisprudence automatique 🌟 KILLER FEATURE
+- [x] **🏛️ Gouvernement** : Ministres, ministères, 16 domaines ministériels, statistiques
+- [x] **👔 Espace Élu** : Dashboard dédié, interpellations, stats de réactivité 🌟 NEW
 - [x] **👥 Groupes Parlementaires** : Votes par groupe + thématiques + hémicycle SVG
 - [x] **🔍 Recherche Meilisearch** : < 50ms avec autocomplete intelligent + filtres
 - [x] **🎨 Composants UX** : LoadingSkeleton, Toast, EmptyState, ConfirmModal
 - [x] **🎮 Gamification** : Badges, XP, Levels, Streaks, Leaderboard, Achievements
 - [x] **📱 Mobile Responsive** : Bottom Nav, Hamburger, Touch-optimized, FAB, Pull-to-Refresh
 - [x] **📊 Dashboard Législatif** : Trending propositions + graphiques circulaires
+- [x] **📅 Calendrier unifié** : AN + Sénat + Élysée
 - [x] Modération workflow (reports + sanctions)
 - [x] Documents vérifiés (upload + workflow validation)
 - [x] 122 tests Pest (Unit + Feature)
-- [x] 73+ routes API REST
-- [x] 30+ pages Vue 3 + Inertia
+- [x] 90+ routes API REST
+- [x] 50+ pages Vue 3 + Inertia
 - [x] Cache Redis (540x plus rapide)
 - [x] Rate Limiting (9 limites anti-spam)
 - [x] FranceConnect+ ready (95%)
@@ -332,6 +337,16 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 - [x] 📧 **Système Notifications** : In-app + Email + Préférences + Follow system
 - [x] 🧩 **2 Composables** : useToast, useConfirm
 - [x] 📚 **Documentation enrichie** : 30+ fichiers incluant guides complets
+
+**✨ NOUVEAU (Janvier 2026)** :
+- [x] 🏛️ **Gouvernement complet** : Import Wikipedia, photos ministres, statistiques
+- [x] 🏛️ **Domaines Ministériels** : 16 catégories permanentes avec historique
+- [x] 👔 **Espace Élu** : Dashboard + interpellations + stats de réactivité
+- [x] 📊 **Statistiques Gouvernementales** : Parité, durée, évolution par président
+- [x] 📅 **Calendrier Unifié** : AN + Sénat + Élysée en une seule vue
+- [x] 🔍 **Recherche étendue** : Ministres + Présidents dans les résultats
+- [x] 📸 **Questions au Gouvernement** : Photos auteurs + hero banner
+- [x] 🎨 **Hero banners uniformisés** : Design cohérent sur toutes les pages
 
 ### ⚡ Phase 2 : Qualité Production (T2 2026 - Avril-Juin)
 

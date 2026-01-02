@@ -1,14 +1,32 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Card from '@/Components/Card.vue';
 
-defineProps({
+const props = defineProps({
     stats: { type: Object, required: true },
     pendingInterpellations: { type: Array, default: () => [] },
     recentResponses: { type: Array, default: () => [] },
     eluData: { type: Object, default: null },
+});
+
+// Couleur du taux de réponse
+const responseRateColor = computed(() => {
+    const rate = props.stats.response_rate || 0;
+    if (rate >= 80) return 'text-emerald-400';
+    if (rate >= 50) return 'text-amber-400';
+    return 'text-rose-400';
+});
+
+// Couleur du délai moyen
+const avgResponseColor = computed(() => {
+    const days = props.stats.avg_response_days;
+    if (!days) return 'text-white';
+    if (days <= 3) return 'text-emerald-400';
+    if (days <= 7) return 'text-amber-400';
+    return 'text-rose-400';
 });
 
 function formatDate(dateStr) {
@@ -77,18 +95,26 @@ const breadcrumbs = [
                     </div>
                     
                     <!-- Stats rapides -->
-                    <div class="flex flex-wrap gap-4">
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                    <div class="flex flex-wrap gap-3">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[90px]">
                             <div class="text-2xl md:text-3xl font-bold text-white">{{ stats.total_interpellations }}</div>
-                            <div class="text-indigo-200 text-xs uppercase tracking-wide">Interpellations</div>
+                            <div class="text-indigo-200 text-xs uppercase tracking-wide">Total</div>
                         </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[90px]">
                             <div class="text-2xl md:text-3xl font-bold text-amber-400">{{ stats.pending }}</div>
                             <div class="text-indigo-200 text-xs uppercase tracking-wide">En attente</div>
                         </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[100px]">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[90px]">
                             <div class="text-2xl md:text-3xl font-bold text-emerald-400">{{ stats.answered }}</div>
                             <div class="text-indigo-200 text-xs uppercase tracking-wide">Répondues</div>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[90px]">
+                            <div class="text-2xl md:text-3xl font-bold" :class="responseRateColor">{{ stats.response_rate }}%</div>
+                            <div class="text-indigo-200 text-xs uppercase tracking-wide">Taux réponse</div>
+                        </div>
+                        <div v-if="stats.avg_response_days" class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center min-w-[90px]">
+                            <div class="text-2xl md:text-3xl font-bold" :class="avgResponseColor">{{ stats.avg_response_days }}j</div>
+                            <div class="text-indigo-200 text-xs uppercase tracking-wide">Délai moyen</div>
                         </div>
                     </div>
                 </div>
@@ -155,6 +181,13 @@ const breadcrumbs = [
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">⚡ Actions rapides</h3>
                             <div class="space-y-2">
                                 <Link 
+                                    :href="route('elu.ma-fiche')"
+                                    class="w-full flex items-center gap-3 px-4 py-3 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-xl transition"
+                                >
+                                    <span>👤</span>
+                                    <span>Voir ma fiche publique</span>
+                                </Link>
+                                <Link 
                                     :href="route('elu.interpellations')"
                                     class="w-full flex items-center gap-3 px-4 py-3 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl transition"
                                 >
@@ -167,6 +200,13 @@ const breadcrumbs = [
                                 >
                                     <span>⏳</span>
                                     <span>En attente ({{ stats.pending }})</span>
+                                </Link>
+                                <Link 
+                                    :href="route('elu.stats')"
+                                    class="w-full flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-xl transition"
+                                >
+                                    <span>📊</span>
+                                    <span>Mes statistiques</span>
                                 </Link>
                             </div>
                         </Card>

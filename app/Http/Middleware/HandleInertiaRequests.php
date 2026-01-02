@@ -38,6 +38,10 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'roles' => $request->user()->roles->pluck('name')->toArray(),
                     'permissions' => $request->user()->getAllPermissions()->pluck('name')->toArray(),
+                    // Champs élu
+                    'is_verified_elu' => $request->user()->is_verified_elu ?? false,
+                    'elu_type' => $request->user()->elu_type,
+                    'elu_ref' => $request->user()->elu_ref,
                 ] : null,
             ],
             'flash' => [
