@@ -336,7 +336,7 @@ onUnmounted(() => {
                                     :active="route().current('parlement.calendrier.*')"
                                     class="!px-3"
                                 >
-                                    📅 Calendrier unifié
+                                    📅 Calendrier
                                 </NavLink>
                                 
                                 <!-- ⚖️ LÉGISLATION -->
@@ -642,7 +642,7 @@ onUnmounted(() => {
                         <!-- 📅 CALENDRIER UNIFIÉ - Lien direct -->
                         <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
                             <ResponsiveNavLink :href="route('parlement.calendrier.index')">
-                                📅 Calendrier unifié
+                                📅 Calendrier
                             </ResponsiveNavLink>
                         </div>
                         
