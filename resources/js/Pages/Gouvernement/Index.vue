@@ -69,8 +69,8 @@ const getPartiCouleur = (parti) => {
 // Changer de gouvernement
 const selectGouvernement = (gouvId) => {
     router.get(route('gouvernement.index'), { gouvernement: gouvId }, {
-        preserveState: true,
-        preserveScroll: true,
+        preserveState: false,
+        preserveScroll: false,
     });
     showGouvernementSelector.value = false;
 };
