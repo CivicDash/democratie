@@ -35,7 +35,7 @@ class PosteMinisteriel extends Model
         'metadata' => 'array',
     ];
 
-    protected $appends = ['duree_fonction', 'type_fonction_libelle'];
+    protected $appends = ['duree_fonction', 'type_fonction_libelle', 'est_actif'];
 
     /**
      * Relations
@@ -61,6 +61,11 @@ class PosteMinisteriel extends Model
     public function getDureeFonctionAttribute(): string
     {
         $debut = $this->date_debut;
+        
+        if (!$debut) {
+            return 'Durée inconnue';
+        }
+        
         $fin = $this->date_fin ?? now();
         
         $diff = $debut->diff($fin);
@@ -92,11 +97,27 @@ class PosteMinisteriel extends Model
     }
 
     /**
+     * Détermine si le poste est actuellement actif
+     * Un poste est actif s'il n'a pas de date de fin OU si la date de fin est dans le futur
+     */
+    public function getEstActifAttribute(): bool
+    {
+        if ($this->date_fin === null) {
+            return true;
+        }
+        
+        return $this->date_fin->isFuture();
+    }
+
+    /**
      * Scopes
      */
     public function scopeActifs($query)
     {
-        return $query->where('actif', true);
+        return $query->where(function ($q) {
+            $q->whereNull('date_fin')
+              ->orWhere('date_fin', '>', now());
+        });
     }
 
     public function scopeDuGouvernement($query, int $gouvernementId)

@@ -40,8 +40,9 @@ class LoiController extends Controller
             $query->where('typloicod', $request->type);
         }
 
-        // Par défaut, filtrer sur l'année en cours si pas d'autre filtre d'année
-        $annee = $request->get('annee', date('Y'));
+        // Par défaut, filtrer sur 2025 (2026 est encore vide)
+        // TODO: Basculer sur date('Y') quand les données 2026 seront disponibles
+        $annee = $request->get('annee', '2025');
         if ($annee && $annee !== 'all') {
             $query->whereYear('loidatjo', $annee);
         }

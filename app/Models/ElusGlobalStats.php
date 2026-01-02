@@ -70,10 +70,18 @@ class ElusGlobalStats extends Model
                 ];
 
                 $ages[$type] = [
-                    'moyen' => $stat->age_moyen,
-                    'min' => $stat->age_min,
-                    'max' => $stat->age_max,
-                    'tranches' => $stat->tranches_age ?? [],
+                    'moyenne' => $stat->age_moyen ?? 0,
+                    'median' => $stat->age_moyen ?? 0, // Approximation
+                    'min' => $stat->age_min ?? 0,
+                    'max' => $stat->age_max ?? 0,
+                    'distribution' => $stat->tranches_age ?? [
+                        '< 30 ans' => 0,
+                        '30-39 ans' => 0,
+                        '40-49 ans' => 0,
+                        '50-59 ans' => 0,
+                        '60-69 ans' => 0,
+                        '70+ ans' => 0,
+                    ],
                 ];
 
                 $parite[$type] = [
@@ -87,7 +95,20 @@ class ElusGlobalStats extends Model
             } else {
                 // Valeurs par défaut si pas de stats
                 $effectifs[$type] = ['total' => 0, 'actifs' => 0];
-                $ages[$type] = ['moyen' => null, 'min' => null, 'max' => null, 'tranches' => []];
+                $ages[$type] = [
+                    'moyenne' => 0,
+                    'median' => 0,
+                    'min' => 0,
+                    'max' => 0,
+                    'distribution' => [
+                        '< 30 ans' => 0,
+                        '30-39 ans' => 0,
+                        '40-49 ans' => 0,
+                        '50-59 ans' => 0,
+                        '60-69 ans' => 0,
+                        '70+ ans' => 0,
+                    ],
+                ];
                 $parite[$type] = ['hommes' => 0, 'femmes' => 0, 'pct_femmes' => 0];
                 $professions[$type] = [];
                 $groupes[$type] = [];

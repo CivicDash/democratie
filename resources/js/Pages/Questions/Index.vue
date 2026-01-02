@@ -232,8 +232,8 @@ const breadcrumbs = [
                                     <!-- Député photo -->
                                     <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-2xl shrink-0 overflow-hidden">
                                         <img 
-                                            v-if="q.acteur?.photo_url" 
-                                            :src="q.acteur.photo_url" 
+                                            v-if="q.acteur?.photo_wikipedia_url" 
+                                            :src="q.acteur.photo_wikipedia_url" 
                                             :alt="q.acteur.nom"
                                             class="w-full h-full object-cover"
                                         />

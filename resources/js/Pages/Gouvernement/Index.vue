@@ -144,8 +144,14 @@ const selectGouvernement = (gouvId) => {
                         </div>
                     </div>
                     
-                    <!-- Bouton sélecteur de gouvernement -->
-                    <div class="relative">
+                    <!-- Boutons d'action -->
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <Link 
+                            :href="route('donnees.gouvernements')"
+                            class="flex items-center gap-2 px-4 py-3 bg-emerald-500/80 hover:bg-emerald-500 border border-emerald-400/50 rounded-lg text-white transition"
+                        >
+                            <span>📊 Statistiques</span>
+                        </Link>
                         <button 
                             @click="showGouvernementSelector = !showGouvernementSelector"
                             class="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white transition"
@@ -155,62 +161,6 @@ const selectGouvernement = (gouvId) => {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        
-                        <!-- Dropdown sélecteur -->
-                        <div 
-                            v-if="showGouvernementSelector"
-                            class="absolute right-0 top-full mt-2 w-96 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50"
-                        >
-                            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                                <h3 class="font-bold text-gray-900 dark:text-gray-100">Sélectionner un gouvernement</h3>
-                            </div>
-                            <div class="p-2">
-                                <div v-for="groupe in gouvernementsParPresident" :key="groupe.president" class="mb-4">
-                                    <!-- En-tête du Président -->
-                                    <div class="px-3 py-2 bg-[#28285a]/10 dark:bg-[#28285a]/30 rounded-lg mb-2 flex items-center gap-3">
-                                        <img 
-                                            src="/images/Logo_de_la_présidence_de_la_République_(2018).svg"
-                                            alt="Présidence"
-                                            class="w-6 h-6"
-                                        />
-                                        <div>
-                                            <h4 class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                                                {{ groupe.president }}
-                                            </h4>
-                                            <span class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ groupe.periode }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <button
-                                            v-for="gouv in groupe.gouvernements"
-                                            :key="gouv.id"
-                                            @click="selectGouvernement(gouv.id)"
-                                            :class="[
-                                                'w-full text-left px-3 py-2 rounded-lg transition flex items-center justify-between group',
-                                                gouvernement.id === gouv.id
-                                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                            ]"
-                                        >
-                                            <div>
-                                                <div class="font-medium text-sm flex items-center gap-2">
-                                                    <span v-if="gouv.actif" class="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                                                    {{ gouv.nom_complet || gouv.nom }}
-                                                </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                    <span class="font-medium">PM:</span> {{ gouv.premier_ministre }} • {{ gouv.date_debut }}
-                                                </div>
-                                            </div>
-                                            <span class="text-xs text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
-                                                {{ gouv.duree }}
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
                 
@@ -242,12 +192,78 @@ const selectGouvernement = (gouvId) => {
             </div>
         </section>
 
-        <!-- Overlay pour fermer le sélecteur -->
-        <div 
-            v-if="showGouvernementSelector" 
-            @click="showGouvernementSelector = false"
-            class="fixed inset-0 z-40"
-        ></div>
+        <!-- Overlay + Dropdown sélecteur de gouvernement (hors du container overflow-hidden) -->
+        <Teleport to="body">
+            <div v-if="showGouvernementSelector">
+                <!-- Overlay -->
+                <div 
+                    @click="showGouvernementSelector = false"
+                    class="fixed inset-0 z-40 bg-black/20"
+                ></div>
+                
+                <!-- Dropdown -->
+                <div 
+                    class="fixed top-20 right-4 sm:right-8 w-[calc(100vw-2rem)] sm:w-96 max-h-[70vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 flex flex-col"
+                >
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-gray-900 dark:text-gray-100">Sélectionner un gouvernement</h3>
+                            <button @click="showGouvernementSelector = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-y-auto flex-1 p-2">
+                        <div v-for="groupe in gouvernementsParPresident" :key="groupe.president" class="mb-4">
+                            <!-- En-tête du Président -->
+                            <div class="px-3 py-2 bg-[#28285a]/10 dark:bg-[#28285a]/30 rounded-lg mb-2 flex items-center gap-3 sticky top-0">
+                                <img 
+                                    src="/images/Logo_de_la_présidence_de_la_République_(2018).svg"
+                                    alt="Présidence"
+                                    class="w-6 h-6"
+                                />
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                                        {{ groupe.president }}
+                                    </h4>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ groupe.periode }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <button
+                                    v-for="gouv in groupe.gouvernements"
+                                    :key="gouv.id"
+                                    @click="selectGouvernement(gouv.id)"
+                                    :class="[
+                                        'w-full text-left px-3 py-2 rounded-lg transition flex items-center justify-between group',
+                                        gouvernement.id === gouv.id
+                                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                    ]"
+                                >
+                                    <div>
+                                        <div class="font-medium text-sm flex items-center gap-2">
+                                            <span v-if="gouv.actif" class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                                            {{ gouv.nom_complet || gouv.nom }}
+                                        </div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                                            <span class="font-medium">PM:</span> {{ gouv.premier_ministre }} • {{ gouv.date_debut }}
+                                        </div>
+                                    </div>
+                                    <span class="text-xs text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
+                                        {{ gouv.duree }}
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <!-- Contenu principal -->
         <div v-if="gouvernement" class="bg-gray-50 dark:bg-gray-900 min-h-screen">

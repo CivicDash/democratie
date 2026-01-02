@@ -78,11 +78,18 @@ const deleteGouvernement = (gouv) => {
                     >
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-4">
-                                <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center text-3xl">
-                                    🏛️
+                                <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center">
+                                    <span v-if="gouv.numero" class="text-2xl font-bold text-blue-700 dark:text-blue-300">{{ gouv.numero }}</span>
+                                    <span v-else class="text-3xl">🏛️</span>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2">
+                                        <span 
+                                            v-if="gouv.numero"
+                                            class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-full"
+                                        >
+                                            {{ gouv.numero }}ème
+                                        </span>
                                         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">
                                             {{ gouv.nom }}
                                         </h3>

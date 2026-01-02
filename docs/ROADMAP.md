@@ -1191,56 +1191,65 @@ CREATE TABLE budget_ministeres (
 ### 2.7.4 : 🏛️ Import Composition Gouvernement
 **Priorité** : 🟡 HAUTE  
 **Durée** : 1 semaine  
-**Statut** : ✅ TERMINÉ (01/01/2026) - Gouvernement Lecornu II importé
+**Statut** : ✅ TERMINÉ (02/01/2026) - Gouvernements importés + Domaines ministériels
 
 **Sources** :
 - info.gouv.fr/ministere (scraping)
+- Wikipedia (composition gouvernements)
 - JORF (décrets de nomination)
 - data.gouv.fr (RNE - élus)
 
-**Données à importer** :
-- Ministres en fonction
-- Ministères et attributions
-- Secrétaires d'État
-- Historique des gouvernements
+**Données importées** :
+- [x] Ministres en fonction (1941 postes importés)
+- [x] Ministères et attributions
+- [x] Secrétaires d'État
+- [x] Historique des gouvernements (50+ gouvernements)
+- [x] Photos des ministres (Wikipedia)
+- [x] Biographies des ministres (Wikipedia)
 
-**Tables à créer** :
+**Architecture Domaines Ministériels (V2 - Janvier 2026)** :
+
+Le système utilise maintenant des "domaines ministériels" permanents (Intérieur, Justice, Économie...)
+qui servent de catégories de référence à travers les différents gouvernements.
+
 ```sql
-CREATE TABLE gouvernements (
+-- Catégories permanentes (16 domaines)
+CREATE TABLE domaines_ministeriels (
     id SERIAL PRIMARY KEY,
-    premier_ministre VARCHAR(255),
-    date_debut DATE,
-    date_fin DATE,
-    president VARCHAR(255)
+    nom VARCHAR(255),              -- Ex: "Intérieur", "Justice"
+    slug VARCHAR(100) UNIQUE,
+    sigle VARCHAR(20),             -- Ex: "MI", "MJ"
+    description TEXT,
+    wikipedia_url VARCHAR(500),
+    wikipedia_extract TEXT,
+    site_web VARCHAR(500),
+    couleur VARCHAR(10),
+    ...
 );
 
-CREATE TABLE ministeres (
-    id SERIAL PRIMARY KEY,
-    nom VARCHAR(255),
-    sigle VARCHAR(50),
-    type VARCHAR(50),  -- ministere, secretariat_etat
-    gouvernement_id INT
-);
-
-CREATE TABLE ministres (
-    id SERIAL PRIMARY KEY,
-    nom VARCHAR(255),
-    prenom VARCHAR(255),
-    ministere_id INT,
-    fonction VARCHAR(255),
-    date_debut DATE,
-    date_fin DATE,
-    photo_url VARCHAR(500)
-);
+-- Liaison postes → domaines
+ALTER TABLE postes_ministeriels 
+    ADD COLUMN domaine_ministeriel_id BIGINT REFERENCES domaines_ministeriels(id);
 ```
 
-**Tâches** :
-- [x] Modèles Laravel (Gouvernement, Ministere, PersonnePolitique, PosteMinisteriel)
-- [x] Commande `import:gouvernement-json`
+**Tâches réalisées** :
+- [x] Modèles Laravel (Gouvernement, Ministere, PersonnePolitique, PosteMinisteriel, DomaineMinisteriel)
+- [x] Commandes : `import:gouvernement-json`, `import:gouvernement-wikipedia`
+- [x] Commande `sync:domaines-ministeriels` (--init, --link, --enrich)
 - [x] Page `/gouvernement` avec organigramme et sélection par présidence
+- [x] Page `/gouvernement/ministeres` - Liste des 16 domaines ministériels
+- [x] Page `/gouvernement/ministeres/{slug}` - Historique complet d'un ministère
 - [x] Fiches ministres avec historique des postes
+- [x] Photos ministres depuis Wikipedia
+- [x] Enrichissement biographies depuis Wikipedia
+- [x] Historique des gouvernements (Ve République)
+- [x] Statistiques gouvernementales (`/donnees/gouvernements`)
+
+**Tâches restantes** :
 - [ ] Liaison avec déclarations HATVP
-- [x] Historique des gouvernements
+- [ ] Import logos officiels des ministères
+- [ ] Coordonnées complètes (adresse, téléphone)
+- [ ] Organigrammes internes des ministères
 
 ---
 
@@ -1625,6 +1634,40 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
 4. [ ] Questions Écrites Sénat (import base SQL)
 5. [ ] Recherche globale Meilisearch multi-modèles
 6. [ ] Résultats électoraux historiques
+
+### 🛡️ Modération & Qualité du contenu (T1 2026)
+1. [ ] **Liste de mots interdits** : Système de ban words (insultes FR, spam)
+   - Table `banned_words` avec catégories (insultes, spam, politique extrême)
+   - Validation côté serveur avant publication
+   - Alerte modérateurs si contenu suspect
+   - Historique des tentatives bloquées
+2. [ ] **Pas de liens externes** : Propositions/questions/débats/pétitions/interpellations
+   - Sanitization des contenus (strip URLs)
+   - Exception : références internes au site uniquement
+   - Format interne : `@loi:2024-123`, `@depute:PA123456`, `@senat:M12345`
+3. [ ] **Références internes** : Mentions automatiques
+   - Parser `@loi:`, `@depute:`, `@senateur:`, `@maire:`, `@scrutin:`
+   - Affichage enrichi (card preview)
+   - Notifications aux élus mentionnés
+
+### 👔 Espace Élus (T1-T2 2026)
+1. [ ] **Authentification élu** : Vérification identité
+   - Validation par email officiel (@assemblee-nationale.fr, @senat.fr)
+   - Badge "Compte vérifié" sur profil
+   - Demande manuelle avec pièces justificatives
+2. [ ] **Dashboard élu** : Interface dédiée
+   - Vue des interpellations reçues
+   - Notifications en temps réel (mentions, questions)
+   - Statistiques de l'élu (participation, votes, présence)
+3. [ ] **Réponses aux interpellations** : 
+   - Réponse officielle avec horodatage
+   - Affichage distinct (encadré "Réponse de l'élu")
+   - Historique des échanges
+   - Possibilité de refuser/ignorer avec justification
+4. [ ] **Communication encadrée** :
+   - Pas de messages privés (tout est public)
+   - Template de réponse suggéré
+   - Délai de réponse affiché (transparence)
 
 ---
 

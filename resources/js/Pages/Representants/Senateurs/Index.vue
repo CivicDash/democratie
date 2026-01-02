@@ -59,15 +59,23 @@ const breadcrumbs = [
         <Breadcrumb :items="breadcrumbs" variant="light" class="mb-6" />
         
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <!-- Titre -->
-          <div>
-            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight flex items-center gap-4">
-              <span class="text-4xl">🏰</span>
-              Sénat
-            </h1>
-            <p class="text-rose-200 text-lg">
-              La chambre haute du Parlement français, représentante des collectivités territoriales
-            </p>
+          <!-- Titre avec logo officiel -->
+          <div class="flex items-center gap-6">
+            <div class="hidden md:flex w-20 h-20 bg-white rounded-2xl p-2 shadow-lg flex-shrink-0">
+              <img 
+                src="/images/Logo_du_Sénat_Republique_française.svg" 
+                alt="Logo du Sénat" 
+                class="w-full h-full object-contain"
+              />
+            </div>
+            <div>
+              <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight">
+                Sénat
+              </h1>
+              <p class="text-rose-200 text-lg">
+                La chambre haute du Parlement français, représentante des collectivités territoriales
+              </p>
+            </div>
           </div>
           
           <!-- Stats rapides -->

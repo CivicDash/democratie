@@ -281,6 +281,9 @@ Route::prefix('budget-etat')->name('budget-etat.')->group(function () {
 */
 Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
     Route::get('/', [GouvernementController::class, 'index'])->name('index');
+    Route::get('/statistiques', [GouvernementController::class, 'statistiques'])->name('statistiques');
+    Route::get('/ministeres', [GouvernementController::class, 'ministeres'])->name('ministeres');
+    Route::get('/ministeres/{slug}', [GouvernementController::class, 'showMinistere'])->name('ministere.show');
     Route::get('/president', [GouvernementController::class, 'showPresident'])->name('president');
     Route::get('/president/{slug}', [GouvernementController::class, 'showPresident'])->name('president.show');
     Route::get('/historique', [GouvernementController::class, 'historique'])->name('historique');
@@ -417,6 +420,15 @@ Route::prefix('statistiques')->name('statistics.')->middleware('auth')->group(fu
 
 /*
 |--------------------------------------------------------------------------
+| Données (section unifiée)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('donnees')->name('donnees.')->middleware('auth')->group(function () {
+    Route::get('/gouvernements', [GouvernementController::class, 'statistiques'])->name('gouvernements');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Admin
 |--------------------------------------------------------------------------
 */
@@ -484,6 +496,21 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         Route::get('/ministres', [App\Http\Controllers\Web\AdminElusController::class, 'ministres'])->name('ministres.index');
         Route::get('/ministres/{personne}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editMinistre'])->name('ministres.edit');
         Route::put('/ministres/{personne}', [App\Http\Controllers\Web\AdminElusController::class, 'updateMinistre'])->name('ministres.update');
+    });
+    
+    // Gestion des Domaines Ministériels (catégorisation)
+    Route::prefix('domaines')->name('domaines.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Web\AdminDomainesController::class, 'index'])->name('index');
+        Route::post('/assigner-fonction', [App\Http\Controllers\Web\AdminDomainesController::class, 'assignerFonction'])->name('assigner-fonction');
+        Route::post('/assigner-masse', [App\Http\Controllers\Web\AdminDomainesController::class, 'assignerMasse'])->name('assigner-masse');
+        
+        Route::get('/gestion', [App\Http\Controllers\Web\AdminDomainesController::class, 'domaines'])->name('gestion');
+        Route::post('/gestion', [App\Http\Controllers\Web\AdminDomainesController::class, 'storeDomaine'])->name('store');
+        Route::put('/gestion/{domaine}', [App\Http\Controllers\Web\AdminDomainesController::class, 'updateDomaine'])->name('update');
+        Route::delete('/gestion/{domaine}', [App\Http\Controllers\Web\AdminDomainesController::class, 'destroyDomaine'])->name('destroy');
+        
+        Route::get('/suggestions', [App\Http\Controllers\Web\AdminDomainesController::class, 'suggestions'])->name('suggestions');
+        Route::post('/suggestions/apply', [App\Http\Controllers\Web\AdminDomainesController::class, 'applySuggestions'])->name('suggestions.apply');
     });
 
     // Gestion du Budget PLF

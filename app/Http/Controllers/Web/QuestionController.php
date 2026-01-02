@@ -18,7 +18,7 @@ class QuestionController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = QuestionAN::with(['acteur:uid,prenom,nom'])
+        $query = QuestionAN::with(['acteur:uid,prenom,nom,photo_wikipedia_url'])
             ->orderByDesc('date_question');
 
         // Filtres
@@ -91,7 +91,7 @@ class QuestionController extends Controller
             ->firstOrFail();
 
         // Questions similaires (même rubrique)
-        $similaires = QuestionAN::with(['acteur:uid,prenom,nom'])
+        $similaires = QuestionAN::with(['acteur:uid,prenom,nom,photo_wikipedia_url'])
             ->where('rubrique', $question->rubrique)
             ->where('uid', '!=', $uid)
             ->orderByDesc('date_question')

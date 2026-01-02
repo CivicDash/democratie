@@ -410,6 +410,12 @@ onUnmounted(() => {
                                                 title="Budget de l'État"
                                                 description="PLF & dépenses par mission"
                                             />
+                                            <MegaMenuLink
+                                                :href="route('donnees.gouvernements')"
+                                                icon="🏛️"
+                                                title="Stats Gouvernements"
+                                                description="Ve République"
+                                            />
                                         </div>
                                     </template>
                                 </Dropdown>
@@ -676,6 +682,7 @@ onUnmounted(() => {
                             </button>
                             <div v-show="expandedSection === 'donnees'" class="pl-4 space-y-1 mt-1">
                                 <ResponsiveNavLink :href="route('parlement.comparaison')">📈 Stats Élus</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('donnees.gouvernements')">🏛️ Stats Gouvernements</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('statistics.france')">🗺️ Statistiques France</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('documents.index')">📄 Documents Publics</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('budget-etat.index')">💰 Budget de l'État</ResponsiveNavLink>

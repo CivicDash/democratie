@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\DomaineMinisteriel;
 use App\Models\Gouvernement;
 use App\Models\Ministere;
 use App\Models\PersonnePolitique;
@@ -153,7 +154,7 @@ class GouvernementController extends Controller
                 'date_debut' => $poste->date_debut?->format('d/m/Y'),
                 'date_fin' => $poste->date_fin?->format('d/m/Y'),
                 'duree' => $poste->duree_fonction,
-                'actif' => $poste->actif,
+                'actif' => $poste->est_actif,
             ];
         });
 
@@ -178,8 +179,8 @@ class GouvernementController extends Controller
                 'nb_postes' => $nbPostes,
                 'nb_gouvernements' => $nbGouvernements,
                 'duree_totale' => $dureeTotale,
-                'est_actif' => $personne->postes->where('actif', true)->isNotEmpty(),
-                'poste_actuel' => $personne->postes->where('actif', true)->first()?->fonction,
+                'est_actif' => $personne->postes->filter(fn($p) => $p->est_actif)->isNotEmpty(),
+                'poste_actuel' => $personne->postes->filter(fn($p) => $p->est_actif)->first()?->fonction,
             ],
         ]);
     }
@@ -481,6 +482,157 @@ class GouvernementController extends Controller
     }
 
     /**
+     * Page des statistiques gouvernementales
+     */
+    public function statistiques(): Response
+    {
+        $gouvernements = Gouvernement::withCount('postes')
+            ->with(['postes.personne'])
+            ->orderByDesc('date_debut')
+            ->get();
+
+        // ========================================
+        // STATISTIQUES GÉNÉRALES
+        // ========================================
+        $totalGouvernements = $gouvernements->count();
+        $moyenneMembres = round($gouvernements->avg('postes_count'), 1);
+        
+        // Durées
+        $gouvernementsAvecDuree = $gouvernements->filter(fn($g) => $g->date_debut)->map(function ($g) {
+            $fin = $g->date_fin ?? now();
+            return [
+                'nom' => $g->nom_complet ?? $g->nom,
+                'premier_ministre' => $g->premier_ministre,
+                'president' => $g->president,
+                'duree_jours' => $g->date_debut->diffInDays($fin),
+                'duree' => $g->duree,
+                'nb_membres' => $g->postes_count,
+                'date_debut' => $g->date_debut->format('Y'),
+            ];
+        });
+
+        $plusLong = $gouvernementsAvecDuree->sortByDesc('duree_jours')->first();
+        $plusCourt = $gouvernementsAvecDuree->filter(fn($g) => $g['duree_jours'] > 0)->sortBy('duree_jours')->first();
+        $dureeMoyenne = round($gouvernementsAvecDuree->avg('duree_jours'));
+
+        // ========================================
+        // STATISTIQUES PAR PRÉSIDENT
+        // ========================================
+        $parPresident = $gouvernements->groupBy('president')->map(function ($gouvs, $president) {
+            $nbGouvernements = $gouvs->count();
+            $totalMembres = $gouvs->sum('postes_count');
+            $moyenneMembres = $nbGouvernements > 0 ? round($totalMembres / $nbGouvernements, 1) : 0;
+            
+            // Durée totale de la présidence (approximation)
+            $dateDebut = $gouvs->min('date_debut');
+            $dateFin = $gouvs->max('date_fin') ?? now();
+            
+            return [
+                'president' => $president,
+                'nb_gouvernements' => $nbGouvernements,
+                'total_membres' => $totalMembres,
+                'moyenne_membres' => $moyenneMembres,
+                'periode' => $this->getPeriodePresident($president),
+            ];
+        })->values();
+
+        // ========================================
+        // ÉVOLUTION DE LA PARITÉ
+        // ========================================
+        $pariteParAnnee = [];
+        $gouvernementsParAnnee = $gouvernements->groupBy(fn($g) => $g->date_debut?->format('Y'));
+        
+        foreach ($gouvernementsParAnnee as $annee => $gouvs) {
+            if (!$annee) continue;
+            
+            $hommes = 0;
+            $femmes = 0;
+            
+            foreach ($gouvs as $g) {
+                foreach ($g->postes as $poste) {
+                    if ($poste->personne) {
+                        if ($poste->personne->civilite === 'Mme') {
+                            $femmes++;
+                        } else {
+                            $hommes++;
+                        }
+                    }
+                }
+            }
+            
+            $total = $hommes + $femmes;
+            $pariteParAnnee[] = [
+                'annee' => (int)$annee,
+                'hommes' => $hommes,
+                'femmes' => $femmes,
+                'total' => $total,
+                'pct_femmes' => $total > 0 ? round(($femmes / $total) * 100, 1) : 0,
+            ];
+        }
+        
+        // Trier par année
+        usort($pariteParAnnee, fn($a, $b) => $a['annee'] <=> $b['annee']);
+
+        // ========================================
+        // TOP 10 DES MINISTRES LES PLUS PRÉSENTS
+        // ========================================
+        $topMinistres = PersonnePolitique::withCount('postes')
+            ->whereHas('postes')
+            ->orderByDesc('postes_count')
+            ->limit(10)
+            ->get()
+            ->map(fn($p) => [
+                'nom' => $p->nom_complet,
+                'slug' => $p->slug,
+                'photo' => $p->photo,
+                'nb_postes' => $p->postes_count,
+                'parti' => $p->parti_politique,
+            ]);
+
+        // ========================================
+        // ÉVOLUTION DU NOMBRE DE MEMBRES
+        // ========================================
+        $evolutionMembres = $gouvernementsAvecDuree->sortBy('date_debut')->map(fn($g) => [
+            'nom' => $g['nom'],
+            'annee' => $g['date_debut'],
+            'nb_membres' => $g['nb_membres'],
+        ])->values();
+
+        // ========================================
+        // RECORDS
+        // ========================================
+        $records = [
+            'plus_long' => $plusLong,
+            'plus_court' => $plusCourt,
+            'plus_nombreux' => $gouvernementsAvecDuree->sortByDesc('nb_membres')->first(),
+            'moins_nombreux' => $gouvernementsAvecDuree->filter(fn($g) => $g['nb_membres'] > 0)->sortBy('nb_membres')->first(),
+        ];
+
+        // ========================================
+        // RÉPARTITION PAR TYPE DE FONCTION
+        // ========================================
+        $repartitionTypes = PosteMinisteriel::selectRaw("type_fonction, COUNT(*) as total")
+            ->groupBy('type_fonction')
+            ->get()
+            ->mapWithKeys(fn($r) => [$r->type_fonction => $r->total]);
+
+        return Inertia::render('Gouvernement/Statistiques', [
+            'stats' => [
+                'total_gouvernements' => $totalGouvernements,
+                'moyenne_membres' => $moyenneMembres,
+                'duree_moyenne_jours' => $dureeMoyenne,
+                'total_ministres_uniques' => PersonnePolitique::whereHas('postes')->count(),
+            ],
+            'parPresident' => $parPresident,
+            'pariteParAnnee' => $pariteParAnnee,
+            'topMinistres' => $topMinistres,
+            'evolutionMembres' => $evolutionMembres,
+            'records' => $records,
+            'repartitionTypes' => $repartitionTypes,
+        ]);
+    }
+
+    /**
      * Format les postes pour l'affichage
      */
     private function formatPostes($postes): array
@@ -494,7 +646,7 @@ class GouvernementController extends Controller
                 'duree_fonction' => $poste->duree_fonction,
                 'date_debut' => $poste->date_debut?->format('d/m/Y'),
                 'date_fin' => $poste->date_fin?->format('d/m/Y'),
-                'actif' => $poste->actif,
+                'actif' => $poste->est_actif,
                 'ministere' => $poste->ministere ? [
                     'id' => $poste->ministere->id,
                     'nom' => $poste->ministere->nom,
@@ -553,5 +705,127 @@ class GouvernementController extends Controller
         ];
 
         return $periodes[$president] ?? '';
+    }
+
+    /**
+     * Liste des ministères (domaines ministériels)
+     */
+    public function ministeres(): Response
+    {
+        $domaines = DomaineMinisteriel::actif()
+            ->orderBy('ordre')
+            ->get()
+            ->map(function ($domaine) {
+                // Ministre actuel
+                $ministreActuel = PersonnePolitique::whereHas('postes', function ($q) use ($domaine) {
+                    $q->where('domaine_ministeriel_id', $domaine->id)
+                      ->where('actif', true);
+                })->with(['postes' => function ($q) use ($domaine) {
+                    $q->where('domaine_ministeriel_id', $domaine->id)
+                      ->where('actif', true)
+                      ->with('gouvernement');
+                }])->first();
+
+                // Nombre de ministres historiques
+                $nbMinistres = PosteMinisteriel::where('domaine_ministeriel_id', $domaine->id)
+                    ->distinct('personne_politique_id')
+                    ->count('personne_politique_id');
+
+                return [
+                    'id' => $domaine->id,
+                    'nom' => $domaine->nom,
+                    'slug' => $domaine->slug,
+                    'sigle' => $domaine->sigle,
+                    'description' => $domaine->description,
+                    'wikipedia_extract' => $domaine->wikipedia_extract,
+                    'site_web' => $domaine->site_web,
+                    'couleur' => $domaine->couleur,
+                    'icone' => $domaine->icone,
+                    'ministre_actuel' => $ministreActuel ? [
+                        'nom' => $ministreActuel->nom_complet,
+                        'photo' => $ministreActuel->photo,
+                        'fonction' => $ministreActuel->postes->first()?->fonction,
+                    ] : null,
+                    'nb_ministres_historiques' => $nbMinistres,
+                ];
+            });
+
+        return Inertia::render('Gouvernement/Ministeres', [
+            'domaines' => $domaines,
+        ]);
+    }
+
+    /**
+     * Détail d'un ministère (domaine ministériel)
+     */
+    public function showMinistere(string $slug): Response
+    {
+        $domaine = DomaineMinisteriel::where('slug', $slug)->firstOrFail();
+
+        // Tous les postes liés à ce domaine avec les personnes et gouvernements
+        $postes = PosteMinisteriel::where('domaine_ministeriel_id', $domaine->id)
+            ->with(['personne', 'gouvernement'])
+            ->orderByDesc('date_debut')
+            ->get()
+            ->map(fn($poste) => [
+                'id' => $poste->id,
+                'fonction' => $poste->fonction,
+                'date_debut' => $poste->date_debut?->format('d/m/Y'),
+                'date_fin' => $poste->date_fin?->format('d/m/Y'),
+                'duree' => $poste->duree_fonction,
+                'actif' => $poste->est_actif,
+                'personne' => [
+                    'id' => $poste->personne->id,
+                    'nom' => $poste->personne->nom_complet,
+                    'slug' => $poste->personne->slug,
+                    'photo' => $poste->personne->photo,
+                    'parti' => $poste->personne->parti_politique,
+                ],
+                'gouvernement' => [
+                    'id' => $poste->gouvernement->id,
+                    'nom' => $poste->gouvernement->nom_complet,
+                    'premier_ministre' => $poste->gouvernement->premier_ministre,
+                ],
+            ]);
+
+        // Grouper par personne pour l'historique
+        $ministresParPersonne = $postes->groupBy('personne.id')
+            ->map(function ($postesPersonne) {
+                $first = $postesPersonne->first();
+                return [
+                    'personne' => $first['personne'],
+                    'postes' => $postesPersonne->values(),
+                    'nb_postes' => $postesPersonne->count(),
+                    'premier_poste' => $postesPersonne->last()['date_debut'],
+                    'dernier_poste' => $postesPersonne->first()['date_fin'] ?? 'En cours',
+                ];
+            })
+            ->sortByDesc('nb_postes')
+            ->values();
+
+        return Inertia::render('Gouvernement/Ministere', [
+            'domaine' => [
+                'id' => $domaine->id,
+                'nom' => $domaine->nom,
+                'slug' => $domaine->slug,
+                'sigle' => $domaine->sigle,
+                'description' => $domaine->description,
+                'wikipedia_extract' => $domaine->wikipedia_extract,
+                'wikipedia_url' => $domaine->wikipedia_url,
+                'site_web' => $domaine->site_web,
+                'adresse' => $domaine->adresse,
+                'telephone' => $domaine->telephone,
+                'email' => $domaine->email,
+                'couleur' => $domaine->couleur,
+                'logo_url' => $domaine->logo_url,
+            ],
+            'postes' => $postes,
+            'ministres' => $ministresParPersonne,
+            'stats' => [
+                'total_ministres' => $ministresParPersonne->count(),
+                'total_postes' => $postes->count(),
+                'ministre_actuel' => $postes->firstWhere('actif', true),
+            ],
+        ]);
     }
 }

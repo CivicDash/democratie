@@ -353,6 +353,13 @@ const getStatusClass = (status) => {
                                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Gouvernement</span>
                                 </Link>
                                 <Link
+                                    :href="route('admin.domaines.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition border border-purple-200 dark:border-purple-700"
+                                >
+                                    <span class="text-2xl">🏷️</span>
+                                    <span class="text-sm font-medium text-purple-700 dark:text-purple-300">Catégoriser</span>
+                                </Link>
+                                <Link
                                     :href="route('admin.elus.index')"
                                     class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                                 >

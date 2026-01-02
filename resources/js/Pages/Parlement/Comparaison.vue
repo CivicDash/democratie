@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
     effectifs: Object,
@@ -11,6 +12,12 @@ const props = defineProps({
     groupes: Object,
     totaux: Object,
 });
+
+const breadcrumbs = [
+    { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+    { label: 'Données', icon: '📊' },
+    { label: 'Statistiques Élus', current: true, icon: '📈' },
+];
 
 // Configuration des 3 catégories
 const categories = [
@@ -29,9 +36,22 @@ const getColorClass = (color, type = 'text') => {
     return colors[color]?.[type] || '';
 };
 
-// Format nombre avec séparateur de milliers
+// Format nombre avec séparateur de milliers - gérer NaN
 const formatNumber = (num) => {
+    if (num === null || num === undefined || isNaN(num)) return '0';
     return new Intl.NumberFormat('fr-FR').format(num);
+};
+
+// Safe percentage
+const safePct = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return 0;
+    return val;
+};
+
+// Safe number
+const safeNum = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return 0;
+    return val;
 };
 </script>
 
@@ -39,41 +59,54 @@ const formatNumber = (num) => {
     <Head title="Statistiques des Élus Français" />
 
     <AuthenticatedLayout>
-        <div class="py-8">
-            <div class="w-full px-4 sm:px-6 lg:px-8 space-y-8">
+        <!-- Hero Section -->
+        <section class="relative overflow-hidden bg-gradient-to-br from-[#28285a] via-[#1e1e4a] to-slate-900">
+            <div class="absolute inset-0 opacity-5">
+                <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+            </div>
+            
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <Breadcrumb :items="breadcrumbs" variant="light" class="mb-6" />
                 
-                <!-- Header avec stats globales -->
-                <div class="text-center mb-8">
-                    <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-                        📊 Statistiques des Élus Français
-                    </h1>
-                    <p class="text-lg text-gray-600 dark:text-gray-400 mb-6">
-                        Députés, Sénateurs et Maires en exercice
-                    </p>
-                    
-                    <!-- Résumé global -->
-                    <div class="inline-flex items-center gap-6 px-6 py-4 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl text-white">
-                        <div class="text-center">
-                            <div class="text-3xl font-bold">{{ formatNumber(totaux.elus_total) }}</div>
-                            <div class="text-sm text-slate-300">élus au total</div>
-                        </div>
-                        <div class="w-px h-12 bg-slate-600"></div>
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-pink-400">{{ totaux.pct_femmes_global }}%</div>
-                            <div class="text-sm text-slate-300">de femmes</div>
-                        </div>
-                        <div class="w-px h-12 bg-slate-600"></div>
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-blue-400">{{ formatNumber(totaux.hommes_total) }}</div>
-                            <div class="text-sm text-slate-300">hommes</div>
-                        </div>
-                        <div class="w-px h-12 bg-slate-600"></div>
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-pink-400">{{ formatNumber(totaux.femmes_total) }}</div>
-                            <div class="text-sm text-slate-300">femmes</div>
-                        </div>
+                <div class="flex items-center gap-6 mb-8">
+                    <div class="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center text-4xl">
+                        📊
+                    </div>
+                    <div>
+                        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
+                            Statistiques des Élus Français
+                        </h1>
+                        <p class="text-blue-200 text-lg">
+                            Députés, Sénateurs et Maires en exercice
+                        </p>
                     </div>
                 </div>
+
+                <!-- Chiffres clés dans la hero -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
+                        <div class="text-3xl md:text-4xl font-bold text-white">{{ formatNumber(safeNum(totaux?.elus_total)) }}</div>
+                        <div class="text-blue-200 text-sm">élus au total</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
+                        <div class="text-3xl md:text-4xl font-bold text-pink-400">{{ safePct(totaux?.pct_femmes_global) }}%</div>
+                        <div class="text-blue-200 text-sm">de femmes</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
+                        <div class="text-3xl md:text-4xl font-bold text-blue-400">{{ formatNumber(safeNum(totaux?.hommes_total)) }}</div>
+                        <div class="text-blue-200 text-sm">hommes</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center">
+                        <div class="text-3xl md:text-4xl font-bold text-pink-400">{{ formatNumber(safeNum(totaux?.femmes_total)) }}</div>
+                        <div class="text-blue-200 text-sm">femmes</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contenu principal -->
+        <div class="bg-gray-50 dark:bg-gray-900 min-h-screen py-8">
+            <div class="w-full px-4 sm:px-6 lg:px-8 space-y-8">
 
                 <!-- ===== EFFECTIFS ===== -->
                 <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -125,7 +158,7 @@ const formatNumber = (num) => {
                             
                             <!-- Pourcentage femmes -->
                             <div class="text-center mb-4">
-                                <div class="text-4xl font-bold text-pink-600">{{ parite[cat.key].pct_femmes }}%</div>
+                                <div class="text-4xl font-bold text-pink-600">{{ safePct(parite[cat.key]?.pct_femmes) }}%</div>
                                 <div class="text-sm text-gray-600 dark:text-gray-400">de femmes</div>
                             </div>
                             
@@ -133,7 +166,7 @@ const formatNumber = (num) => {
                             <div class="h-4 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 mb-4">
                                 <div 
                                     class="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
-                                    :style="{ width: (100 - parite[cat.key].pct_femmes) + '%' }"
+                                    :style="{ width: (100 - safePct(parite[cat.key]?.pct_femmes)) + '%' }"
                                 ></div>
                             </div>
                             
@@ -141,11 +174,11 @@ const formatNumber = (num) => {
                             <div class="grid grid-cols-2 gap-3 text-sm">
                                 <div class="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                     <span>👨 Hommes</span>
-                                    <span class="font-bold">{{ formatNumber(parite[cat.key].hommes) }}</span>
+                                    <span class="font-bold">{{ formatNumber(safeNum(parite[cat.key]?.hommes)) }}</span>
                                 </div>
                                 <div class="flex items-center justify-between p-2 bg-pink-50 dark:bg-pink-900/20 rounded-lg">
                                     <span>👩 Femmes</span>
-                                    <span class="font-bold">{{ formatNumber(parite[cat.key].femmes) }}</span>
+                                    <span class="font-bold">{{ formatNumber(safeNum(parite[cat.key]?.femmes)) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -155,14 +188,14 @@ const formatNumber = (num) => {
                     <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
                         <div class="text-sm text-gray-600 dark:text-gray-400 text-center mb-3">Classement parité</div>
                         <div class="flex items-center justify-center gap-4 flex-wrap">
-                            <template v-for="(cat, index) in [...categories].sort((a, b) => parite[b.key].pct_femmes - parite[a.key].pct_femmes)" :key="cat.key">
+                            <template v-for="(cat, index) in [...categories].sort((a, b) => safePct(parite[b.key]?.pct_femmes) - safePct(parite[a.key]?.pct_femmes))" :key="cat.key">
                                 <div class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
                                     <span class="text-lg font-bold" :class="index === 0 ? 'text-yellow-500' : 'text-gray-400'">
                                         {{ index + 1 }}
                                     </span>
                                     <span class="text-xl">{{ cat.icon }}</span>
                                     <span class="font-medium text-gray-900 dark:text-gray-100">{{ cat.label }}</span>
-                                    <span class="font-bold text-pink-600">{{ parite[cat.key].pct_femmes }}%</span>
+                                    <span class="font-bold text-pink-600">{{ safePct(parite[cat.key]?.pct_femmes) }}%</span>
                                 </div>
                             </template>
                         </div>
@@ -186,11 +219,11 @@ const formatNumber = (num) => {
                             <div class="text-2xl mb-1">{{ cat.icon }}</div>
                             <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Âge moyen</div>
                             <div class="text-3xl font-bold" :class="getColorClass(cat.color, 'text')">
-                                {{ ages[cat.key].moyenne }}
+                                {{ safeNum(ages[cat.key]?.moyenne) }}
                             </div>
                             <div class="text-xs text-gray-500">ans</div>
                             <div class="text-xs text-gray-400 mt-1">
-                                ({{ ages[cat.key].min }} - {{ ages[cat.key].max }} ans)
+                                ({{ safeNum(ages[cat.key]?.min) }} - {{ safeNum(ages[cat.key]?.max) }} ans)
                             </div>
                         </div>
                     </div>
@@ -208,7 +241,7 @@ const formatNumber = (num) => {
                             </thead>
                             <tbody>
                                 <tr 
-                                    v-for="(_, tranche) in ages.deputes.distribution" 
+                                    v-for="tranche in ['< 30 ans', '30-39 ans', '40-49 ans', '50-59 ans', '60-69 ans', '70+ ans']" 
                                     :key="tranche"
                                     class="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30"
                                 >
@@ -216,10 +249,10 @@ const formatNumber = (num) => {
                                     <td v-for="cat in categories" :key="cat.key" class="text-center py-3 px-4">
                                         <div class="inline-flex items-center gap-2">
                                             <span class="font-bold" :class="getColorClass(cat.color, 'text')">
-                                                {{ formatNumber(ages[cat.key].distribution[tranche]) }}
+                                                {{ formatNumber(safeNum(ages[cat.key]?.distribution?.[tranche])) }}
                                             </span>
                                             <span class="text-xs text-gray-400">
-                                                ({{ effectifs[cat.key].actifs > 0 ? ((ages[cat.key].distribution[tranche] / effectifs[cat.key].actifs) * 100).toFixed(1) : 0 }}%)
+                                                ({{ safeNum(effectifs[cat.key]?.actifs) > 0 ? ((safeNum(ages[cat.key]?.distribution?.[tranche]) / safeNum(effectifs[cat.key]?.actifs)) * 100).toFixed(1) : 0 }}%)
                                             </span>
                                         </div>
                                     </td>
@@ -255,8 +288,8 @@ const formatNumber = (num) => {
                                         >
                                             {{ index + 1 }}
                                         </span>
-                                        <span class="text-sm text-gray-700 dark:text-gray-300 truncate">
-                                            {{ prof.profession }}
+                                        <span class="text-sm text-gray-700 dark:text-gray-300 truncate" :title="prof.nom">
+                                            {{ prof.nom }}
                                         </span>
                                     </div>
                                     <span class="text-sm font-bold ml-2" :class="getColorClass(cat.color, 'text')">
@@ -264,7 +297,7 @@ const formatNumber = (num) => {
                                     </span>
                                 </div>
                                 
-                                <div v-if="professions[cat.key].length === 0" class="text-center py-4 text-gray-400">
+                                <div v-if="!professions[cat.key] || professions[cat.key].length === 0" class="text-center py-4 text-gray-400">
                                     Aucune donnée
                                 </div>
                             </div>
@@ -290,25 +323,26 @@ const formatNumber = (num) => {
                             
                             <div class="space-y-2 max-h-96 overflow-y-auto">
                                 <div 
-                                    v-for="groupe in groupes[cat.key]" 
-                                    :key="groupe.sigle"
+                                    v-for="(groupe, index) in groupes[cat.key]" 
+                                    :key="index"
                                     class="flex items-center justify-between py-2 px-4 rounded-lg"
                                     :class="getColorClass(cat.color, 'bgLight')"
                                 >
-                                    <div class="flex-1 min-w-0">
-                                        <div class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                                            {{ groupe.sigle }}
-                                        </div>
-                                        <div class="text-xs text-gray-600 dark:text-gray-400 truncate" v-if="groupe.nom !== groupe.sigle">
+                                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                                        <div 
+                                            class="w-3 h-3 rounded-full flex-shrink-0"
+                                            :style="{ backgroundColor: groupe.couleur || '#6b7280' }"
+                                        ></div>
+                                        <div class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate" :title="groupe.nom">
                                             {{ groupe.nom }}
                                         </div>
                                     </div>
                                     <div class="text-lg font-bold ml-3" :class="getColorClass(cat.color, 'text')">
-                                        {{ formatNumber(groupe.effectif) }}
+                                        {{ formatNumber(groupe.count) }}
                                     </div>
                                 </div>
                                 
-                                <div v-if="groupes[cat.key].length === 0" class="text-center py-4 text-gray-400">
+                                <div v-if="!groupes[cat.key] || groupes[cat.key].length === 0" class="text-center py-4 text-gray-400">
                                     Aucune donnée
                                 </div>
                             </div>
@@ -320,3 +354,12 @@ const formatNumber = (num) => {
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+/* Animation pour les barres */
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 500ms;
+}
+</style>

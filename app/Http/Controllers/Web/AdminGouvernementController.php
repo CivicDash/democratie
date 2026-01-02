@@ -23,7 +23,9 @@ class AdminGouvernementController extends Controller
             ->get()
             ->map(fn($g) => [
                 ...$g->toArray(),
-                'postes_count' => $g->postes_count,
+                'ministres_count' => $g->postes_count,
+                'date_debut' => $g->date_debut?->format('d/m/Y'),
+                'date_fin' => $g->date_fin?->format('d/m/Y'),
                 'duree' => $this->calculateDuree($g->date_debut, $g->date_fin),
             ]);
 
@@ -203,9 +205,23 @@ class AdminGouvernementController extends Controller
             'wikipedia_url' => 'nullable|url|max:500',
         ]);
 
+        // Régénérer le slug seulement si le nom/prénom a changé
+        $newSlug = $personne->slug;
+        if ($personne->prenom !== $validated['prenom'] || $personne->nom !== $validated['nom']) {
+            $baseSlug = Str::slug($validated['prenom'] . '-' . $validated['nom']);
+            $newSlug = $baseSlug;
+            $counter = 1;
+            
+            // S'assurer que le slug est unique (sauf pour cette personne)
+            while (PersonnePolitique::where('slug', $newSlug)->where('id', '!=', $personne->id)->exists()) {
+                $newSlug = $baseSlug . '-' . $counter;
+                $counter++;
+            }
+        }
+
         $personne->update([
             ...$validated,
-            'slug' => Str::slug($validated['prenom'] . '-' . $validated['nom']),
+            'slug' => $newSlug,
         ]);
 
         return back()->with('success', 'Personne mise à jour');

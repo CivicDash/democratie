@@ -28,26 +28,26 @@ class DocumentController extends Controller
 
         // Filtres
         if ($request->filled('type')) {
-            $query->where('document_type', $request->type);
+            $query->where('documentable_type', $request->type);
         }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        $documents = $query->latest()->paginate(15);
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'ILIKE', "%{$search}%")
+                  ->orWhere('description', 'ILIKE', "%{$search}%");
+            });
+        }
 
-        $stats = [
-            'total' => Document::count(),
-            'verified' => Document::where('status', 'verified')->count(),
-            'pending' => Document::where('status', 'pending')->count(),
-            'rejected' => Document::where('status', 'rejected')->count(),
-        ];
+        $documents = $query->latest()->paginate(15);
 
         return Inertia::render('Documents/Index', [
             'documents' => $documents,
-            'filters' => $request->only(['type', 'status']),
-            'stats' => $stats,
+            'filters' => $request->only(['type', 'status', 'search']),
         ]);
     }
 

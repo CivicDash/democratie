@@ -193,7 +193,7 @@ const getPartiCouleur = (parti) => {
                                         <!-- Gouvernement -->
                                         <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                             <Link 
-                                                :href="route('gouvernement.index') + '?id=' + (poste.gouvernement_id || '')"
+                                                :href="route('gouvernement.index', { gouvernement: poste.gouvernement_id })"
                                                 class="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"
                                             >
                                                 🏛️ {{ poste.gouvernement }}

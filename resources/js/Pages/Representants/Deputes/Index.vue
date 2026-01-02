@@ -60,15 +60,23 @@ const breadcrumbs = [
         <Breadcrumb :items="breadcrumbs" variant="light" class="mb-6" />
         
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <!-- Titre -->
-          <div>
-            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight flex items-center gap-4">
-              <span class="text-4xl">🏛️</span>
-              Assemblée Nationale
-            </h1>
-            <p class="text-blue-200 text-lg">
-              Les représentants du peuple français à la chambre basse du Parlement
-            </p>
+          <!-- Titre avec logo officiel -->
+          <div class="flex items-center gap-6">
+            <div class="hidden md:flex w-20 h-20 bg-white rounded-2xl p-2 shadow-lg flex-shrink-0">
+              <img 
+                src="/images/Logo_de_l'Assemblée_nationale_française.svg" 
+                alt="Logo Assemblée Nationale" 
+                class="w-full h-full object-contain"
+              />
+            </div>
+            <div>
+              <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight">
+                Assemblée Nationale
+              </h1>
+              <p class="text-blue-200 text-lg">
+                Les représentants du peuple français à la chambre basse du Parlement
+              </p>
+            </div>
           </div>
           
           <!-- Stats rapides -->

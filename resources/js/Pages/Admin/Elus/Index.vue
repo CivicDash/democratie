@@ -157,6 +157,23 @@ const categories = [
                             </div>
                         </Link>
 
+                        <Link
+                            :href="route('admin.domaines.index')"
+                            class="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition"
+                        >
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">🏷️</span>
+                                <div>
+                                    <h3 class="font-semibold text-purple-800 dark:text-purple-200">
+                                        Catégoriser les postes
+                                    </h3>
+                                    <p class="text-sm text-purple-600 dark:text-purple-400">
+                                        Associer fonctions aux domaines
+                                    </p>
+                                </div>
+                            </div>
+                        </Link>
+
                         <a
                             href="https://www.info.gouv.fr/composition-du-gouvernement"
                             target="_blank"

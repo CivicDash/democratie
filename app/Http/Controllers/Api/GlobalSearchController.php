@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
 use App\Models\Loi;
 use App\Models\Maire;
+use App\Models\PersonnePolitique;
 use App\Models\Senateur;
 use App\Models\Topic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 /**
  * Recherche globale intelligente avec suggestions contextuelles
@@ -36,6 +38,8 @@ class GlobalSearchController extends Controller
         $results = array_merge(
             $this->searchDeputes($query, $limit),
             $this->searchSenateurs($query, $limit),
+            $this->searchMinistres($query, $limit),
+            $this->searchPresidents($query, $limit),
             $this->searchLois($query, $limit),
             $this->searchIdees($query, $limit),
             $this->searchMaires($query, $limit),
@@ -61,7 +65,7 @@ class GlobalSearchController extends Controller
     {
         $validated = $request->validate([
             'q' => ['required', 'string', 'min:2', 'max:200'],
-            'category' => ['nullable', 'in:all,deputes,senateurs,lois,idees,maires'],
+            'category' => ['nullable', 'in:all,deputes,senateurs,ministres,presidents,lois,idees,maires'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -78,6 +82,12 @@ class GlobalSearchController extends Controller
         }
         if ($category === 'all' || $category === 'senateurs') {
             $results['senateurs'] = $this->searchSenateurs($query, $category === 'all' ? 5 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'ministres') {
+            $results['ministres'] = $this->searchMinistres($query, $category === 'all' ? 5 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'presidents') {
+            $results['presidents'] = $this->searchPresidents($query, $category === 'all' ? 3 : $limit, true);
         }
         if ($category === 'all' || $category === 'lois') {
             $results['lois'] = $this->searchLois($query, $category === 'all' ? 5 : $limit, true);
@@ -306,6 +316,153 @@ class GlobalSearchController extends Controller
         })->toArray();
     }
 
+    private function searchMinistres(string $query, int $limit, bool $detailed = false): array
+    {
+        $ministres = PersonnePolitique::whereHas('postes')
+            ->where(function ($q) use ($query) {
+                $q->where('nom', 'ilike', "%{$query}%")
+                  ->orWhere('prenom', 'ilike', "%{$query}%")
+                  ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
+            })
+            ->with(['postes' => function ($q) {
+                $q->with('gouvernement')->orderByDesc('date_debut')->limit(1);
+            }])
+            ->limit($limit)
+            ->get();
+
+        return $ministres->map(function ($m) use ($query, $detailed) {
+            $nomComplet = trim("{$m->prenom} {$m->nom}");
+            $score = $this->calculateScore($nomComplet, $query);
+            
+            $posteActuel = $m->postes->first();
+            $fonction = $posteActuel?->fonction ?? 'Ancien ministre';
+            
+            // Générer le slug pour l'URL
+            $slug = Str::slug($nomComplet);
+            
+            $result = [
+                'id' => $m->id,
+                'type' => 'ministre',
+                'category' => 'Ministre',
+                'icon' => '👔',
+                'title' => $nomComplet,
+                'subtitle' => Str::limit($fonction, 50),
+                'url' => route('gouvernement.personne', $slug),
+                'photo_url' => $m->photo_url ?? $m->photo_wikipedia_url,
+                'score' => $score,
+            ];
+
+            if ($detailed) {
+                $result['fonction'] = $fonction;
+                $result['gouvernement'] = $posteActuel?->gouvernement?->nom;
+                $result['parti'] = $m->parti_politique;
+            }
+
+            return $result;
+        })->toArray();
+    }
+
+    private function searchPresidents(string $query, int $limit, bool $detailed = false): array
+    {
+        // Liste statique des présidents de la Ve République
+        $presidents = [
+            [
+                'nom' => 'Emmanuel Macron',
+                'slug' => 'emmanuel-macron',
+                'mandat' => '2017 - présent',
+                'photo' => '/images/portraits_presidents/Emmanuel_Macron.avif',
+                'actif' => true,
+            ],
+            [
+                'nom' => 'François Hollande',
+                'slug' => 'francois-hollande',
+                'mandat' => '2012 - 2017',
+                'photo' => '/images/portraits_presidents/François_Hollande.avif',
+                'actif' => false,
+            ],
+            [
+                'nom' => 'Nicolas Sarkozy',
+                'slug' => 'nicolas-sarkozy',
+                'mandat' => '2007 - 2012',
+                'photo' => '/images/portraits_presidents/Nicolas_Sarkozy.avif',
+                'actif' => false,
+            ],
+            [
+                'nom' => 'Jacques Chirac',
+                'slug' => 'jacques-chirac',
+                'mandat' => '1995 - 2007',
+                'photo' => '/images/portraits_presidents/Jacques_Chirac.avif',
+                'actif' => false,
+            ],
+            [
+                'nom' => 'François Mitterrand',
+                'slug' => 'francois-mitterrand',
+                'mandat' => '1981 - 1995',
+                'photo' => '/images/portraits_presidents/François_Mitterrand.avif',
+                'actif' => false,
+            ],
+            [
+                'nom' => 'Valéry Giscard d\'Estaing',
+                'slug' => 'valery-giscard-destaing',
+                'mandat' => '1974 - 1981',
+                'photo' => '/images/portraits_presidents/Valéry_Giscard_d\'Estaing.avif',
+                'actif' => false,
+            ],
+            [
+                'nom' => 'Georges Pompidou',
+                'slug' => 'georges-pompidou',
+                'mandat' => '1969 - 1974',
+                'photo' => '/images/portraits_presidents/Georges_Pompidou.avif',
+                'actif' => false,
+            ],
+            [
+                'nom' => 'Charles de Gaulle',
+                'slug' => 'charles-de-gaulle',
+                'mandat' => '1959 - 1969',
+                'photo' => '/images/portraits_presidents/Charles_de_Gaulle.avif',
+                'actif' => false,
+            ],
+        ];
+
+        $results = [];
+        $queryLower = strtolower($query);
+
+        foreach ($presidents as $president) {
+            $nomLower = strtolower($president['nom']);
+            
+            if (str_contains($nomLower, $queryLower)) {
+                $score = $this->calculateScore($president['nom'], $query);
+                // Boost pour le président actuel
+                if ($president['actif']) {
+                    $score += 20;
+                }
+                
+                $result = [
+                    'id' => $president['slug'],
+                    'type' => 'president',
+                    'category' => 'Président',
+                    'icon' => '🇫🇷',
+                    'title' => $president['nom'],
+                    'subtitle' => $president['actif'] ? 'Président en exercice' : $president['mandat'],
+                    'url' => route('gouvernement.president.show', $president['slug']),
+                    'photo_url' => $president['photo'],
+                    'score' => $score,
+                ];
+
+                if ($detailed) {
+                    $result['mandat'] = $president['mandat'];
+                    $result['actif'] = $president['actif'];
+                }
+
+                $results[] = $result;
+            }
+        }
+
+        // Trier par score et limiter
+        usort($results, fn($a, $b) => $b['score'] <=> $a['score']);
+        return array_slice($results, 0, $limit);
+    }
+
     // ========================================================================
     // HELPERS
     // ========================================================================
@@ -348,6 +505,8 @@ class GlobalSearchController extends Controller
         return [
             ['key' => 'deputes', 'label' => 'Députés', 'icon' => '🏛️'],
             ['key' => 'senateurs', 'label' => 'Sénateurs', 'icon' => '🏰'],
+            ['key' => 'ministres', 'label' => 'Ministres', 'icon' => '👔'],
+            ['key' => 'presidents', 'label' => 'Présidents', 'icon' => '🇫🇷'],
             ['key' => 'lois', 'label' => 'Lois', 'icon' => '📜'],
             ['key' => 'idees', 'label' => 'Idées', 'icon' => '💡'],
             ['key' => 'maires', 'label' => 'Maires', 'icon' => '🏘️'],

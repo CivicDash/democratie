@@ -14,7 +14,8 @@ class ImportGouvernementWikipedia extends Command
 {
     protected $signature = 'import:gouvernement-wikipedia 
                             {url : URL Wikipedia du gouvernement (ex: https://fr.wikipedia.org/wiki/Gouvernement_Bayrou)}
-                            {--dry-run : Afficher les données sans les importer}';
+                            {--dry-run : Afficher les données sans les importer}
+                            {--with-photos : Récupérer les photos des ministres depuis leurs pages Wikipedia}';
 
     protected $description = 'Importe les données d\'un gouvernement depuis Wikipedia';
 
@@ -66,12 +67,13 @@ class ImportGouvernementWikipedia extends Command
         }
 
         $html = $data['parse']['text']['*'] ?? '';
+        $wikitext = $data['parse']['wikitext']['*'] ?? '';
         $title = $data['parse']['title'] ?? $pageName;
 
         $this->info("📄 Page : {$title}");
 
-        // Parser le HTML pour extraire les informations
-        $gouvernementData = $this->parseGouvernementHtml($html, $title);
+        // Parser le wikitext pour extraire les informations de l'infobox (plus fiable)
+        $gouvernementData = $this->parseGouvernementWikitext($wikitext, $html, $title);
         
         // Dédupliquer les ministres par nom
         $ministresUniques = [];
@@ -96,7 +98,7 @@ class ImportGouvernementWikipedia extends Command
         return Command::SUCCESS;
     }
 
-    private function parseGouvernementHtml(string $html, string $title): array
+    private function parseGouvernementWikitext(string $wikitext, string $html, string $title): array
     {
         $data = [
             'nom' => $this->extractGouvernementName($title),
@@ -105,6 +107,78 @@ class ImportGouvernementWikipedia extends Command
             'date_debut' => null,
             'date_fin' => null,
             'ministres' => [],
+        ];
+
+        // Extraire les paramètres de l'infobox depuis le wikitext
+        // Pattern pour "| parametre = valeur"
+        $patterns = [
+            'president' => '/\|\s*président\s*=\s*\[\[([^\]|]+)/iu',
+            'premier_ministre_chef' => '/\|\s*chef\s*=\s*\[\[([^\]|]+)/iu',
+            'premier_ministre_label' => '/\|\s*premier[_ ]ministre\s*=\s*\[\[([^\]|]+)/iu',
+            'date_debut' => '/\|\s*(?:début|formation)\s*=\s*([^\n|]+)/iu',
+            'date_fin' => '/\|\s*fin\s*=\s*([^\n|]+)/iu',
+        ];
+
+        // Extraire le président
+        if (preg_match($patterns['president'], $wikitext, $match)) {
+            $data['president'] = $this->cleanName($match[1]);
+            $this->info("  📌 Président trouvé : {$data['president']}");
+        }
+
+        // Extraire le Premier ministre (essayer "chef" puis "premier ministre")
+        if (preg_match($patterns['premier_ministre_chef'], $wikitext, $match)) {
+            $data['premier_ministre'] = $this->cleanName($match[1]);
+            $this->info("  📌 Premier ministre trouvé (chef) : {$data['premier_ministre']}");
+        } elseif (preg_match($patterns['premier_ministre_label'], $wikitext, $match)) {
+            $data['premier_ministre'] = $this->cleanName($match[1]);
+            $this->info("  📌 Premier ministre trouvé : {$data['premier_ministre']}");
+        }
+
+        // Extraire les dates
+        if (preg_match($patterns['date_debut'], $wikitext, $match)) {
+            $dateStr = trim($match[1]);
+            $data['date_debut'] = $this->parseDate($dateStr);
+            if ($data['date_debut']) {
+                $this->info("  📅 Date début trouvée : {$data['date_debut']} (depuis '{$dateStr}')");
+            }
+        }
+
+        if (preg_match($patterns['date_fin'], $wikitext, $match)) {
+            $dateStr = trim($match[1]);
+            $data['date_fin'] = $this->parseDate($dateStr);
+            if ($data['date_fin']) {
+                $this->info("  📅 Date fin trouvée : {$data['date_fin']} (depuis '{$dateStr}')");
+            }
+        }
+
+        // Si pas de données depuis wikitext, essayer HTML comme fallback
+        if (!$data['premier_ministre'] || !$data['date_debut']) {
+            $htmlData = $this->parseGouvernementHtmlFallback($html);
+            $data['premier_ministre'] = $data['premier_ministre'] ?? $htmlData['premier_ministre'];
+            $data['president'] = $data['president'] ?? $htmlData['president'];
+            $data['date_debut'] = $data['date_debut'] ?? $htmlData['date_debut'];
+            $data['date_fin'] = $data['date_fin'] ?? $htmlData['date_fin'];
+        }
+
+        // Extraire les ministres depuis le HTML (les tableaux sont plus faciles à parser en HTML)
+        libxml_use_internal_errors(true);
+        $dom = new \DOMDocument();
+        $dom->loadHTML('<?xml encoding="UTF-8">' . $html);
+        libxml_clear_errors();
+        $xpath = new \DOMXPath($dom);
+        
+        $data['ministres'] = $this->parseMinistresFromTables($xpath, $dom);
+
+        return $data;
+    }
+
+    private function parseGouvernementHtmlFallback(string $html): array
+    {
+        $data = [
+            'premier_ministre' => null,
+            'president' => null,
+            'date_debut' => null,
+            'date_fin' => null,
         ];
 
         // Utiliser DOMDocument pour parser le HTML
@@ -120,9 +194,6 @@ class ImportGouvernementWikipedia extends Command
         if ($infobox) {
             $data = array_merge($data, $this->parseInfobox($xpath, $infobox));
         }
-
-        // Extraire les ministres depuis les tableaux
-        $data['ministres'] = $this->parseMinistresFromTables($xpath, $dom);
 
         return $data;
     }
@@ -335,23 +406,50 @@ class ImportGouvernementWikipedia extends Command
     {
         // Nettoyer
         $dateStr = preg_replace('/\[.*?\]/', '', $dateStr);
+        $dateStr = preg_replace('/\{\{[^}]+\}\}/', '', $dateStr); // Supprimer les templates wiki
         $dateStr = trim($dateStr);
         
-        // Patterns français
-        $mois = [
+        // Pattern 1: "DD-MM-YYYY" ou "DD/MM/YYYY"
+        if (preg_match('/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/', $dateStr, $matches)) {
+            $jour = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $mois = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+            $annee = $matches[3];
+            return "{$annee}-{$mois}-{$jour}";
+        }
+        
+        // Pattern 2: "YYYY-MM-DD" (format ISO)
+        if (preg_match('/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/', $dateStr, $matches)) {
+            $annee = $matches[1];
+            $mois = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+            $jour = str_pad($matches[3], 2, '0', STR_PAD_LEFT);
+            return "{$annee}-{$mois}-{$jour}";
+        }
+        
+        // Patterns français avec mois en texte
+        $moisMapping = [
             'janvier' => '01', 'février' => '02', 'mars' => '03', 'avril' => '04',
             'mai' => '05', 'juin' => '06', 'juillet' => '07', 'août' => '08',
             'septembre' => '09', 'octobre' => '10', 'novembre' => '11', 'décembre' => '12',
         ];
         
-        // Pattern: "14 mai 2017" ou "14 mai 2017"
+        // Pattern 3: "14 mai 2017"
         if (preg_match('/(\d{1,2})\s+(\w+)\s+(\d{4})/u', $dateStr, $matches)) {
             $jour = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
             $moisNom = strtolower($matches[2]);
             $annee = $matches[3];
             
-            if (isset($mois[$moisNom])) {
-                return "{$annee}-{$mois[$moisNom]}-{$jour}";
+            if (isset($moisMapping[$moisNom])) {
+                return "{$annee}-{$moisMapping[$moisNom]}-{$jour}";
+            }
+        }
+        
+        // Pattern 4: "mai 2017" (juste mois et année)
+        if (preg_match('/(\w+)\s+(\d{4})/u', $dateStr, $matches)) {
+            $moisNom = strtolower($matches[1]);
+            $annee = $matches[2];
+            
+            if (isset($moisMapping[$moisNom])) {
+                return "{$annee}-{$moisMapping[$moisNom]}-01";
             }
         }
         
@@ -419,6 +517,9 @@ class ImportGouvernementWikipedia extends Command
         $this->info("✅ Gouvernement : {$gouvernement->nom} (ID: {$gouvernement->id})");
 
         $ordre = 0;
+        $withPhotos = $this->option('with-photos');
+        $photosRecuperees = 0;
+        
         foreach ($data['ministres'] as $ministreData) {
             $ordre++;
             
@@ -433,6 +534,16 @@ class ImportGouvernementWikipedia extends Command
                     'civilite' => $this->guessCivilite($parts['prenom']),
                 ]
             );
+
+            // Récupérer la photo si demandé et si la personne n'en a pas déjà une
+            if ($withPhotos && empty($personne->photo_url)) {
+                $photoUrl = $this->fetchWikipediaPhoto($ministreData['nom']);
+                if ($photoUrl) {
+                    $personne->update(['photo_url' => $photoUrl]);
+                    $photosRecuperees++;
+                    $this->line("  📷 Photo trouvée pour {$ministreData['nom']}");
+                }
+            }
 
             // Créer le poste
             PosteMinisteriel::updateOrCreate(
@@ -453,6 +564,51 @@ class ImportGouvernementWikipedia extends Command
         }
 
         $this->info("📊 {$ordre} postes importés");
+        if ($withPhotos) {
+            $this->info("📷 {$photosRecuperees} photos récupérées");
+        }
+    }
+
+    /**
+     * Récupère la photo d'une personne depuis sa page Wikipedia
+     */
+    private function fetchWikipediaPhoto(string $nom): ?string
+    {
+        try {
+            // Construire le nom de la page Wikipedia
+            $pageName = str_replace(' ', '_', $nom);
+            
+            // Utiliser l'API Wikipedia pour récupérer les images de la page
+            $apiUrl = "https://fr.wikipedia.org/w/api.php?" . http_build_query([
+                'action' => 'query',
+                'titles' => $pageName,
+                'prop' => 'pageimages',
+                'format' => 'json',
+                'pithumbsize' => 400,
+            ]);
+
+            $response = Http::timeout(10)
+                ->withUserAgent('CivicDash/1.0 (https://demo.objectif2027.fr)')
+                ->get($apiUrl);
+            
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $data = $response->json();
+            $pages = $data['query']['pages'] ?? [];
+            
+            foreach ($pages as $page) {
+                if (isset($page['thumbnail']['source'])) {
+                    return $page['thumbnail']['source'];
+                }
+            }
+            
+            return null;
+        } catch (\Exception $e) {
+            $this->warn("  ⚠️  Erreur récupération photo {$nom}: " . $e->getMessage());
+            return null;
+        }
     }
 
     private function splitName(string $fullName): array

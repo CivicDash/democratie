@@ -174,9 +174,9 @@ const formatHeure = (dateIso) => {
                             <p class="text-3xl font-bold text-white">{{ stats.senat }}</p>
                             <p class="text-xs text-red-200">Sénat</p>
                         </div>
-                        <div class="bg-amber-500/20 backdrop-blur-sm rounded-xl px-4 py-3 text-center border border-amber-400/30">
+                        <div class="bg-slate-500/20 backdrop-blur-sm rounded-xl px-4 py-3 text-center border border-slate-400/30">
                             <p class="text-3xl font-bold text-white">{{ stats.elysee || 0 }}</p>
-                            <p class="text-xs text-amber-200">Élysée</p>
+                            <p class="text-xs text-slate-200">Élysée</p>
                         </div>
                     </div>
                 </div>
@@ -225,7 +225,7 @@ const formatHeure = (dateIso) => {
                                     @click="filtreSource = 'elysee'; appliquerFiltres()"
                                     class="px-3 py-1.5 text-sm rounded-lg transition flex items-center gap-1"
                                     :class="filtreSource === 'elysee' 
-                                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300 font-semibold' 
+                                        ? 'bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-200 font-semibold' 
                                         : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'"
                                 >
                                     🟡 Élysée

@@ -151,7 +151,7 @@ class DashboardController extends Controller
 
         // 🎯 ACTIVITÉ RÉCENTE DE L'UTILISATEUR
         $userActivity = [
-            'derniers_topics' => Topic::where('author_id', $user->id)
+            'derniers_topics' => $user ? Topic::where('author_id', $user->id)
                 ->orderByDesc('created_at')
                 ->limit(3)
                 ->get(['id', 'slug', 'title', 'created_at'])
@@ -160,19 +160,19 @@ class DashboardController extends Controller
                     'slug' => $t->slug,
                     'titre' => $t->title,
                     'date' => $t->created_at->diffForHumans(),
-                ]),
-            'derniers_votes_loi' => VotePropositionLoi::where('user_id', $user->id)
+                ]) : collect([]),
+            'derniers_votes_loi' => $user ? VotePropositionLoi::where('user_id', $user->id)
                 ->with('proposition:id,numero,titre')
                 ->orderByDesc('created_at')
                 ->limit(3)
                 ->get()
                 ->map(fn($v) => [
-                    'id' => $v->proposition->id,
-                    'numero' => $v->proposition->numero,
-                    'titre' => $v->proposition->titre,
+                    'id' => $v->proposition?->id,
+                    'numero' => $v->proposition?->numero,
+                    'titre' => $v->proposition?->titre,
                     'type_vote' => $v->type_vote,
                     'date' => $v->created_at->diffForHumans(),
-                ]),
+                ]) : collect([]),
         ];
 
         // 🏛️ GROUPES PARLEMENTAIRES (top 5 par nombre de députés) - Cache 1h
@@ -244,7 +244,7 @@ class DashboardController extends Controller
             'senateurs' => [],
         ];
 
-        $profile = $user->profile;
+        $profile = $user?->profile;
         if ($profile && $profile->circonscription) {
             $mesRepresentants['hasLocation'] = true;
 

@@ -1,11 +1,8 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import MainLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Card from '@/Components/Card.vue';
-import Badge from '@/Components/Badge.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import InputError from '@/Components/InputError.vue';
+import { ref, computed } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
     documents: Object,
@@ -13,250 +10,267 @@ const props = defineProps({
     stats: Object,
 });
 
-const uploadForm = useForm({
-    title: '',
-    file: null,
-    document_type: 'law',
-    source_url: '',
-});
+const breadcrumbs = [
+    { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
+    { label: 'Documents Publics', current: true, icon: '📄' },
+];
 
-const uploadDocument = () => {
-    uploadForm.post(route('documents.store'), {
-        onSuccess: () => {
-            uploadForm.reset();
-        },
+// Filtres locaux
+const selectedType = ref(props.filters?.type || '');
+const selectedStatus = ref(props.filters?.status || '');
+const searchQuery = ref(props.filters?.search || '');
+
+// Types de documents
+const documentTypes = [
+    { value: '', label: 'Tous les types', icon: '📁' },
+    { value: 'law', label: 'Lois', icon: '📜', color: 'blue' },
+    { value: 'budget', label: 'Budgets', icon: '💰', color: 'green' },
+    { value: 'report', label: 'Rapports', icon: '📊', color: 'amber' },
+    { value: 'decree', label: 'Décrets', icon: '📋', color: 'indigo' },
+    { value: 'other', label: 'Autres', icon: '📄', color: 'gray' },
+];
+
+// Appliquer les filtres
+function applyFilters() {
+    router.get(route('documents.index'), {
+        type: selectedType.value || undefined,
+        status: selectedStatus.value || undefined,
+        search: searchQuery.value || undefined,
+    }, {
+        preserveState: true,
+        replace: true,
     });
-};
+}
 
-const getTypeBadge = (type) => {
-    const badges = {
-        law: { variant: 'blue', icon: '📜', label: 'Loi' },
-        budget: { variant: 'green', icon: '💰', label: 'Budget' },
-        report: { variant: 'yellow', icon: '📊', label: 'Rapport' },
-        decree: { variant: 'indigo', icon: '📋', label: 'Décret' },
-        other: { variant: 'gray', icon: '📄', label: 'Autre' },
-    };
-    return badges[type] || badges.other;
-};
+// Helpers
+function getTypeInfo(type) {
+    return documentTypes.find(t => t.value === type) || documentTypes[documentTypes.length - 1];
+}
 
-const getStatusBadge = (status) => {
-    const badges = {
-        pending: { variant: 'yellow', label: '⏳ En attente' },
-        verified: { variant: 'green', label: '✅ Vérifié' },
-        rejected: { variant: 'red', label: '❌ Rejeté' },
-    };
-    return badges[status] || badges.pending;
-};
-
-const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('fr-FR', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+function formatDate(date) {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
     });
-};
+}
 
-const formatFileSize = (bytes) => {
-    if (!bytes) return 'N/A';
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(2)} MB`;
-};
+function formatFileSize(bytes) {
+    if (!bytes) return '-';
+    if (bytes < 1024) return bytes + ' o';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' Mo';
+}
+
+// Stats calculées
+const hasDocuments = computed(() => props.documents?.data?.length > 0);
+const totalDocs = computed(() => props.stats?.total || 0);
 </script>
 
 <template>
     <Head title="Documents Publics" />
 
-    <MainLayout title="Documents Publics">
-        <div class="py-12">
-            <div class="max-w-full mx-auto sm:px-6 lg:px-8">
-                <div class="mb-8 flex justify-between items-center">
+    <AuthenticatedLayout>
+        <!-- Hero Banner -->
+        <section class="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-cyan-800 py-12">
+            <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyOHYySDI0di0yaDEyek0yNCAyMmgxMnYySDI0di0yek0yNCAzNmgxMnYySDI0di0yeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30"></div>
+            
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+                <Breadcrumb :items="breadcrumbs" variant="light" class="mb-6" />
+                
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            📄 Documents Publics
+                        <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight flex items-center gap-4">
+                            <span class="text-4xl">📄</span>
+                            Documents Publics
                         </h1>
-                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            Lois, budgets, rapports et documents officiels vérifiés
+                        <p class="text-emerald-100 text-lg max-w-2xl">
+                            Lois, rapports parlementaires, budgets et documents officiels de la République
                         </p>
                     </div>
-                </div>
-
-                <!-- Stats -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <Card class="text-center">
-                        <div class="text-4xl mb-2">📄</div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            {{ stats?.total || 0 }}
+                    
+                    <!-- Stats rapides -->
+                    <div class="flex gap-4">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-center">
+                            <div class="text-3xl font-bold text-white">{{ totalDocs }}</div>
+                            <div class="text-xs text-emerald-200">Documents</div>
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Documents</div>
-                    </Card>
-                    <Card class="text-center">
-                        <div class="text-4xl mb-2">✅</div>
-                        <div class="text-3xl font-bold text-green-600 dark:text-green-400">
-                            {{ stats?.verified || 0 }}
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-center">
+                            <div class="text-3xl font-bold text-green-300">{{ stats?.verified || 0 }}</div>
+                            <div class="text-xs text-emerald-200">Vérifiés</div>
                         </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Vérifiés</div>
-                    </Card>
-                    <Card class="text-center">
-                        <div class="text-4xl mb-2">⏳</div>
-                        <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-                            {{ stats?.pending || 0 }}
-                        </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">En attente</div>
-                    </Card>
-                    <Card class="text-center">
-                        <div class="text-4xl mb-2">👥</div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            {{ stats?.verifiers || 0 }}
-                        </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400">Vérificateurs</div>
-                    </Card>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Documents List -->
-                    <div class="lg:col-span-2 space-y-4">
-                        <Card>
-                            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                                📚 Bibliothèque de Documents
-                            </h2>
-
-                            <!-- Filters -->
-                            <div class="mb-4 flex gap-3">
-                                <select class="flex-1 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
-                                    <option value="">Tous les types</option>
-                                    <option value="law">📜 Lois</option>
-                                    <option value="budget">💰 Budgets</option>
-                                    <option value="report">📊 Rapports</option>
-                                    <option value="decree">📋 Décrets</option>
-                                    <option value="other">📄 Autres</option>
-                                </select>
-                                <select class="flex-1 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
-                                    <option value="">Tous les statuts</option>
-                                    <option value="verified">✅ Vérifiés</option>
-                                    <option value="pending">⏳ En attente</option>
-                                </select>
-                            </div>
-
-                            <!-- Documents -->
-                            <div v-if="documents.data.length > 0" class="space-y-3">
-                                <div v-for="doc in documents.data" :key="doc.id"
-                                    class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
-                                    <div class="flex items-start justify-between mb-2">
-                                        <div class="flex items-center gap-2">
-                                            <Badge :variant="getTypeBadge(doc.document_type).variant">
-                                                {{ getTypeBadge(doc.document_type).icon }} {{ getTypeBadge(doc.document_type).label }}
-                                            </Badge>
-                                            <Badge :variant="getStatusBadge(doc.verification_status).variant" size="sm">
-                                                {{ getStatusBadge(doc.verification_status).label }}
-                                            </Badge>
-                                        </div>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ formatDate(doc.created_at) }}
-                                        </span>
-                                    </div>
-                                    <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                                        {{ doc.title }}
-                                    </h3>
-                                    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                                        <div class="space-x-3">
-                                            <span>📂 {{ formatFileSize(doc.file_size) }}</span>
-                                            <span>👤 {{ doc.uploader?.name || 'Anonyme' }}</span>
-                                            <span v-if="doc.verifications_count">✅ {{ doc.verifications_count }} vérifications</span>
-                                        </div>
-                                        <div class="space-x-2">
-                                            <Link :href="route('documents.show', doc.id)" class="text-indigo-600 dark:text-indigo-400 hover:underline">
-                                                Détails
-                                            </Link>
-                                            <a :href="route('documents.download', doc.id)" class="text-green-600 dark:text-green-400 hover:underline">
-                                                ⬇️ Télécharger
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
-                                Aucun document trouvé
-                            </div>
-                        </Card>
-                    </div>
-
-                    <!-- Upload Form -->
-                    <div v-if="$page.props.auth.user">
-                        <Card>
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                                ⬆️ Téléverser un Document
-                            </h3>
-                            <form @submit.prevent="uploadDocument" class="space-y-4">
-                                <div>
-                                    <InputLabel for="title" value="Titre *" />
-                                    <input 
-                                        id="title"
-                                        v-model="uploadForm.title"
-                                        type="text"
-                                        class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
-                                        required
-                                    />
-                                    <InputError class="mt-2" :message="uploadForm.errors.title" />
-                                </div>
-
-                                <div>
-                                    <InputLabel for="document_type" value="Type *" />
-                                    <select 
-                                        id="document_type"
-                                        v-model="uploadForm.document_type"
-                                        class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
-                                        required
-                                    >
-                                        <option value="law">📜 Loi</option>
-                                        <option value="budget">💰 Budget</option>
-                                        <option value="report">📊 Rapport</option>
-                                        <option value="decree">📋 Décret</option>
-                                        <option value="other">📄 Autre</option>
-                                    </select>
-                                    <InputError class="mt-2" :message="uploadForm.errors.document_type" />
-                                </div>
-
-                                <div>
-                                    <InputLabel for="file" value="Fichier (PDF) *" />
-                                    <input 
-                                        id="file"
-                                        type="file"
-                                        accept=".pdf"
-                                        @input="uploadForm.file = $event.target.files[0]"
-                                        class="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400
-                                            file:mr-4 file:py-2 file:px-4
-                                            file:rounded-md file:border-0
-                                            file:text-sm file:font-semibold
-                                            file:bg-indigo-50 file:text-indigo-700
-                                            hover:file:bg-indigo-100
-                                            dark:file:bg-indigo-900/20 dark:file:text-indigo-400"
-                                        required
-                                    />
-                                    <InputError class="mt-2" :message="uploadForm.errors.file" />
-                                </div>
-
-                                <div>
-                                    <InputLabel for="source_url" value="URL source (optionnel)" />
-                                    <input 
-                                        id="source_url"
-                                        v-model="uploadForm.source_url"
-                                        type="url"
-                                        class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
-                                        placeholder="https://..."
-                                    />
-                                    <InputError class="mt-2" :message="uploadForm.errors.source_url" />
-                                </div>
-
-                                <PrimaryButton type="submit" :disabled="uploadForm.processing">
-                                    {{ uploadForm.processing ? 'Envoi...' : '⬆️ Téléverser' }}
-                                </PrimaryButton>
-                            </form>
-                        </Card>
                     </div>
                 </div>
             </div>
-        </div>
-    </MainLayout>
-</template>
+        </section>
 
+        <!-- Contenu principal -->
+        <div class="bg-gray-50 dark:bg-gray-900 min-h-screen py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                <!-- Filtres par type (badges) -->
+                <div class="flex flex-wrap gap-2 mb-6">
+                    <button
+                        v-for="type in documentTypes"
+                        :key="type.value"
+                        @click="selectedType = type.value; applyFilters()"
+                        class="px-4 py-2 rounded-full text-sm font-medium transition-all"
+                        :class="selectedType === type.value 
+                            ? 'bg-emerald-600 text-white shadow-lg' 
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-gray-200 dark:border-gray-700'"
+                    >
+                        <span class="mr-1">{{ type.icon }}</span>
+                        {{ type.label }}
+                    </button>
+                </div>
+
+                <!-- Message si vide -->
+                <div v-if="!hasDocuments" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                    <div class="text-6xl mb-4">📭</div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        Aucun document disponible
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                        La bibliothèque de documents publics est en cours de constitution. 
+                        Les lois, rapports et budgets seront bientôt disponibles.
+                    </p>
+                    <div class="flex justify-center gap-4">
+                        <Link 
+                            :href="route('lois.index')"
+                            class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition"
+                        >
+                            📜 Voir les Lois
+                        </Link>
+                        <Link 
+                            :href="route('dashboard')"
+                            class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition"
+                        >
+                            🏠 Accueil
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- Liste des documents -->
+                <div v-else class="space-y-4">
+                    <div 
+                        v-for="doc in documents.data" 
+                        :key="doc.id"
+                        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-shadow"
+                    >
+                        <div class="flex items-start gap-4">
+                            <!-- Icône type -->
+                            <div 
+                                class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+                                :class="{
+                                    'bg-blue-100 dark:bg-blue-900/30': doc.document_type === 'law',
+                                    'bg-green-100 dark:bg-green-900/30': doc.document_type === 'budget',
+                                    'bg-amber-100 dark:bg-amber-900/30': doc.document_type === 'report',
+                                    'bg-indigo-100 dark:bg-indigo-900/30': doc.document_type === 'decree',
+                                    'bg-gray-100 dark:bg-gray-700': !['law', 'budget', 'report', 'decree'].includes(doc.document_type),
+                                }"
+                            >
+                                {{ getTypeInfo(doc.document_type).icon }}
+                            </div>
+                            
+                            <!-- Contenu -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start justify-between gap-4 mb-2">
+                                    <h3 class="font-semibold text-gray-900 dark:text-white text-lg">
+                                        {{ doc.title }}
+                                    </h3>
+                                    <span 
+                                        class="px-2 py-1 rounded-full text-xs font-medium flex-shrink-0"
+                                        :class="{
+                                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': doc.status === 'verified',
+                                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400': doc.status === 'pending',
+                                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': doc.status === 'rejected',
+                                        }"
+                                    >
+                                        {{ doc.status === 'verified' ? '✅ Vérifié' : doc.status === 'pending' ? '⏳ En attente' : '❌ Rejeté' }}
+                                    </span>
+                                </div>
+                                
+                                <p v-if="doc.description" class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                                    {{ doc.description }}
+                                </p>
+                                
+                                <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                                    <span class="flex items-center gap-1">
+                                        📅 {{ formatDate(doc.created_at) }}
+                                    </span>
+                                    <span v-if="doc.file_size" class="flex items-center gap-1">
+                                        📦 {{ formatFileSize(doc.file_size) }}
+                                    </span>
+                                    <span v-if="doc.uploader" class="flex items-center gap-1">
+                                        👤 {{ doc.uploader.name }}
+                                    </span>
+                                    <span v-if="doc.verifications_count" class="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                        ✅ {{ doc.verifications_count }} vérification(s)
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="flex flex-col gap-2">
+                                <Link 
+                                    :href="route('documents.show', doc.id)"
+                                    class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition text-center"
+                                >
+                                    Voir
+                                </Link>
+                                <a 
+                                    v-if="doc.file_path"
+                                    :href="route('documents.download', doc.id)"
+                                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition text-center"
+                                >
+                                    ⬇️ PDF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div v-if="documents.last_page > 1" class="flex justify-center gap-2 mt-8">
+                        <Link 
+                            v-if="documents.prev_page_url"
+                            :href="documents.prev_page_url"
+                            class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                            ← Précédent
+                        </Link>
+                        <span class="px-4 py-2 text-gray-600 dark:text-gray-400">
+                            Page {{ documents.current_page }} / {{ documents.last_page }}
+                        </span>
+                        <Link 
+                            v-if="documents.next_page_url"
+                            :href="documents.next_page_url"
+                            class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                            Suivant →
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- Note informative -->
+                <div class="mt-8 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-5">
+                    <div class="flex items-start gap-4">
+                        <div class="text-3xl">💡</div>
+                        <div>
+                            <h4 class="font-semibold text-emerald-800 dark:text-emerald-200 mb-1">
+                                Sources officielles
+                            </h4>
+                            <p class="text-sm text-emerald-700 dark:text-emerald-300">
+                                Les documents présentés ici proviennent des sources officielles : 
+                                <a href="https://www.legifrance.gouv.fr" target="_blank" class="underline hover:text-emerald-900 dark:hover:text-emerald-100">Légifrance</a>, 
+                                <a href="https://www.assemblee-nationale.fr" target="_blank" class="underline hover:text-emerald-900 dark:hover:text-emerald-100">Assemblée nationale</a>, 
+                                <a href="https://www.senat.fr" target="_blank" class="underline hover:text-emerald-900 dark:hover:text-emerald-100">Sénat</a>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </AuthenticatedLayout>
+</template>
