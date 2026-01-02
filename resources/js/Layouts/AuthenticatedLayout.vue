@@ -54,17 +54,6 @@ const toggleSection = (section) => {
     expandedSection.value = expandedSection.value === section ? null : section;
 };
 
-// Présidents de la Ve République pour le menu
-const presidentsVeRepublique = [
-    { nom: 'Emmanuel Macron', slug: 'emmanuel-macron', periode: '2017-', actuel: true },
-    { nom: 'François Hollande', slug: 'francois-hollande', periode: '2012-2017' },
-    { nom: 'Nicolas Sarkozy', slug: 'nicolas-sarkozy', periode: '2007-2012' },
-    { nom: 'Jacques Chirac', slug: 'jacques-chirac', periode: '1995-2007', decede: true },
-    { nom: 'François Mitterrand', slug: 'francois-mitterrand', periode: '1981-1995', decede: true },
-    { nom: 'Valéry Giscard d\'Estaing', slug: 'valery-giscard-d-estaing', periode: '1974-1981', decede: true },
-    { nom: 'Georges Pompidou', slug: 'georges-pompidou', periode: '1969-1974', decede: true },
-    { nom: 'Charles de Gaulle', slug: 'charles-de-gaulle', periode: '1959-1969', decede: true },
-];
 
 // Référence pour le champ de recherche desktop
 const searchInputDesktop = ref(null);
@@ -324,40 +313,19 @@ onUnmounted(() => {
                                         </button>
                                     </template>
                                     <template #content>
-                                        <div class="flex divide-x divide-gray-200 dark:divide-gray-700">
-                                            <!-- Colonne gauche : Liens principaux -->
-                                            <div class="p-3 space-y-1 w-64">
-                                                <MegaMenuLink
-                                                    :href="route('gouvernement.president')"
-                                                    icon="🏛️"
-                                                    title="Président actuel"
-                                                    description="Emmanuel Macron"
-                                                />
-                                                <MegaMenuLink
-                                                    :href="route('gouvernement.index')"
-                                                    icon="👔"
-                                                    title="Composition du Gouvernement"
-                                                    description="Ministres et ministères"
-                                                />
-                                            </div>
-                                            <!-- Colonne droite : Présidents de la Ve République -->
-                                            <div class="p-3 w-64">
-                                                <p class="px-2 pb-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    Présidents de la Ve République
-                                                </p>
-                                                <div class="space-y-0.5 max-h-80 overflow-y-auto">
-                                                    <Link
-                                                        v-for="pres in presidentsVeRepublique"
-                                                        :key="pres.slug"
-                                                        :href="route('gouvernement.president.show', pres.slug)"
-                                                        class="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                    >
-                                                        <span class="text-base">{{ pres.actuel ? '🔵' : pres.decede ? '⚫' : '⚪' }}</span>
-                                                        <span class="text-gray-700 dark:text-gray-300">{{ pres.nom }}</span>
-                                                        <span class="text-xs text-gray-400 ml-auto">{{ pres.periode }}</span>
-                                                    </Link>
-                                                </div>
-                                            </div>
+                                        <div class="p-3 space-y-1">
+                                            <MegaMenuLink
+                                                :href="route('gouvernement.president')"
+                                                icon="🏛️"
+                                                title="Président de la République"
+                                                description="Chef de l'État"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('gouvernement.index')"
+                                                icon="👔"
+                                                title="Composition du Gouvernement"
+                                                description="Ministres et ministères"
+                                            />
                                         </div>
                                     </template>
                                 </Dropdown>
@@ -666,19 +634,8 @@ onUnmounted(() => {
                                 </svg>
                             </button>
                             <div v-show="expandedSection === 'gouvernement'" class="pl-4 space-y-1 mt-1">
-                                <ResponsiveNavLink :href="route('gouvernement.president')">🏛️ Président actuel</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('gouvernement.president')">🏛️ Président de la République</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('gouvernement.index')">👔 Composition du gouvernement</ResponsiveNavLink>
-                                <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700">
-                                    <p class="px-3 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Présidents de la Ve</p>
-                                    <ResponsiveNavLink 
-                                        v-for="pres in presidentsVeRepublique" 
-                                        :key="pres.slug"
-                                        :href="route('gouvernement.president.show', pres.slug)"
-                                        class="!text-sm"
-                                    >
-                                        {{ pres.actuel ? '🔵' : pres.decede ? '⚫' : '⚪' }} {{ pres.nom }}
-                                    </ResponsiveNavLink>
-                                </div>
                             </div>
                         </div>
                         
