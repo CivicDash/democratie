@@ -89,6 +89,37 @@ const editForm = ref({
     actif: true,
 });
 
+// Édition des informations personnelles d'un ministre
+const showPersonneModal = ref(false);
+const editingPersonne = ref(null);
+const personneForm = useForm({
+    prenom: '',
+    nom: '',
+    civilite: null,
+    parti_politique: '',
+    photo_url: '',
+});
+
+const startEditPersonne = (personne) => {
+    editingPersonne.value = personne;
+    personneForm.prenom = personne.prenom || '';
+    personneForm.nom = personne.nom || '';
+    personneForm.civilite = personne.civilite || null;
+    personneForm.parti_politique = personne.parti_politique || '';
+    personneForm.photo_url = personne.photo_url || personne.photo || '';
+    showPersonneModal.value = true;
+};
+
+const savePersonne = () => {
+    personneForm.put(route('admin.gouvernement.update-personne', editingPersonne.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showPersonneModal.value = false;
+            editingPersonne.value = null;
+        },
+    });
+};
+
 // Helper pour formater la date (supporte plusieurs formats)
 const formatDateForInput = (dateStr) => {
     if (!dateStr) return '';
@@ -372,12 +403,19 @@ const deleteGouvernement = () => {
                                         </p>
                                     </div>
                                 </div>
-                                <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                <div class="flex flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                    <button
+                                        v-if="poste.personne"
+                                        @click="startEditPersonne(poste.personne)"
+                                        class="px-3 py-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded text-sm"
+                                    >
+                                        👤 Éditer personne
+                                    </button>
                                     <button
                                         @click="startEditPoste(poste)"
                                         class="px-3 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-sm"
                                     >
-                                        ✏️ Modifier
+                                        ✏️ Modifier poste
                                     </button>
                                     <button
                                         v-if="poste.actif"
@@ -880,6 +918,117 @@ const deleteGouvernement = () => {
                                 💾 Enregistrer
                             </button>
                         </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal édition personne -->
+        <div 
+            v-if="showPersonneModal"
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            @click.self="showPersonneModal = false"
+        >
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        👤 Modifier la fiche de {{ editingPersonne?.prenom }} {{ editingPersonne?.nom }}
+                    </h2>
+                </div>
+                <form @submit.prevent="savePersonne" class="p-6 space-y-4">
+                    <!-- Civilité -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Civilité</label>
+                        <select
+                            v-model="personneForm.civilite"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                        >
+                            <option :value="null">-- Non spécifié --</option>
+                            <option value="M.">M.</option>
+                            <option value="Mme">Mme</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Prénom -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prénom *</label>
+                            <input
+                                v-model="personneForm.prenom"
+                                type="text"
+                                placeholder="Prénom"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                                required
+                            />
+                        </div>
+                        <!-- Nom -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom *</label>
+                            <input
+                                v-model="personneForm.nom"
+                                type="text"
+                                placeholder="Nom"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Parti politique -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parti politique</label>
+                        <select
+                            v-model="personneForm.parti_politique"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                        >
+                            <option value="">-- Aucun --</option>
+                            <option v-for="p in partis" :key="p" :value="p">{{ p }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Photo URL -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL de la photo</label>
+                        <input
+                            v-model="personneForm.photo_url"
+                            type="url"
+                            placeholder="https://..."
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Laissez vide pour utiliser la photo par défaut</p>
+                    </div>
+
+                    <!-- Aperçu photo -->
+                    <div v-if="personneForm.photo_url" class="flex justify-center">
+                        <img 
+                            :src="personneForm.photo_url" 
+                            alt="Aperçu"
+                            class="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                        />
+                    </div>
+
+                    <!-- Erreurs -->
+                    <div v-if="personneForm.errors && Object.keys(personneForm.errors).length > 0" class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                        <p v-for="(error, key) in personneForm.errors" :key="key" class="text-red-600 dark:text-red-400 text-sm">
+                            {{ error }}
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                            type="button"
+                            @click="showPersonneModal = false"
+                            class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="personneForm.processing"
+                            class="px-6 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                        >
+                            💾 Enregistrer
+                        </button>
                     </div>
                 </form>
             </div>
