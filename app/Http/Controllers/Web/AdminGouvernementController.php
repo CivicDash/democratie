@@ -301,15 +301,27 @@ class AdminGouvernementController extends Controller
             'ordre' => 'nullable|integer',
             'date_debut' => 'nullable|date',
             'date_fin' => 'nullable|date',
-            'actif' => 'boolean',
+            'actif' => 'nullable',
         ]);
+
+        // Convertir les chaînes vides en null pour les dates
+        $dateDebut = !empty($validated['date_debut']) ? $validated['date_debut'] : null;
+        $dateFin = !empty($validated['date_fin']) ? $validated['date_fin'] : null;
+        
+        // Déterminer si actif (si pas de date_fin, alors actif)
+        $actif = $validated['actif'] ?? ($dateFin === null);
 
         $poste->update([
-            ...$validated,
-            'actif' => $validated['actif'] ?? empty($validated['date_fin']),
+            'fonction' => $validated['fonction'],
+            'type_fonction' => $validated['type_fonction'],
+            'ministere_id' => $validated['ministere_id'],
+            'ordre' => $validated['ordre'] ?? 0,
+            'date_debut' => $dateDebut,
+            'date_fin' => $dateFin,
+            'actif' => $actif,
         ]);
 
-        return back()->with('success', 'Poste mis à jour');
+        return back()->with('success', 'Poste mis à jour : ' . $poste->personne?->nom_complet);
     }
 
     /**

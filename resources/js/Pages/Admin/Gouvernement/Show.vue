@@ -7,6 +7,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const page = usePage();
 const errors = computed(() => page.props.errors || {});
+const flash = computed(() => page.props.flash || {});
 
 const props = defineProps({
     gouvernement: Object,
@@ -298,6 +299,15 @@ const deleteGouvernement = () => {
         <div class="bg-gray-50 dark:bg-gray-900 min-h-screen py-8">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
                 
+                <!-- Message de succès -->
+                <div 
+                    v-if="flash.success" 
+                    class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 rounded-lg p-4 flex items-center gap-3"
+                >
+                    <span class="text-2xl">✅</span>
+                    <p class="text-emerald-700 dark:text-emerald-300 font-medium">{{ flash.success }}</p>
+                </div>
+
                 <!-- Par type de fonction -->
                 <div v-for="(postes, type) in postesParType" :key="type" class="space-y-4">
                     <h2 
