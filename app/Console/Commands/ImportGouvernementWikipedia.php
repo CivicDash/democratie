@@ -72,6 +72,16 @@ class ImportGouvernementWikipedia extends Command
 
         // Parser le HTML pour extraire les informations
         $gouvernementData = $this->parseGouvernementHtml($html, $title);
+        
+        // Dédupliquer les ministres par nom
+        $ministresUniques = [];
+        foreach ($gouvernementData['ministres'] as $m) {
+            $key = Str::slug($m['nom']);
+            if (!isset($ministresUniques[$key])) {
+                $ministresUniques[$key] = $m;
+            }
+        }
+        $gouvernementData['ministres'] = array_values($ministresUniques);
 
         if ($dryRun) {
             $this->info("\n📋 Données extraites (dry-run) :");
@@ -283,6 +293,21 @@ class ImportGouvernementWikipedia extends Command
             if (str_contains($lowerText, $keyword)) return false;
         }
         
+        // Exclure les noms de partis et autres faux positifs
+        $exclusions = [
+            'les républicains', 'mouvement démocrate', 'renaissance', 'horizons', 'parti socialiste',
+            'union des démocrates', 'fédération progressiste', 'parti radical', 'divers gauche',
+            'divers droite', 'sans étiquette', 'répartition', 'coalition', 'composition',
+        ];
+        foreach ($exclusions as $exclusion) {
+            if (str_contains($lowerText, $exclusion)) return false;
+        }
+        
+        // Exclure les dates
+        if (preg_match('/\d{1,2}\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}/i', $text)) {
+            return false;
+        }
+        
         return preg_match('/^[A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇ]/u', $text) === 1;
     }
 
@@ -357,13 +382,35 @@ class ImportGouvernementWikipedia extends Command
     {
         $this->info("\n📥 Import en cours...");
 
+        // Extraire le Premier ministre depuis la liste des ministres si pas trouvé dans l'infobox
+        $premierMinistre = $data['premier_ministre'];
+        if (!$premierMinistre) {
+            foreach ($data['ministres'] as $m) {
+                if ($m['type_fonction'] === 'premier_ministre') {
+                    $premierMinistre = $m['nom'];
+                    break;
+                }
+            }
+        }
+        
+        // Fallback sur le nom du gouvernement
+        if (!$premierMinistre) {
+            $premierMinistre = $data['nom'];
+        }
+
+        // Fallback pour date_debut si non trouvée
+        $dateDebut = $data['date_debut'] ?? now()->format('Y-m-d');
+        if (!$data['date_debut']) {
+            $this->warn("⚠️  Date de début non trouvée, utilisation de la date du jour. Pensez à la corriger manuellement.");
+        }
+
         // Créer ou mettre à jour le gouvernement
         $gouvernement = Gouvernement::updateOrCreate(
             ['nom' => $data['nom']],
             [
-                'premier_ministre' => $data['premier_ministre'],
+                'premier_ministre' => $premierMinistre,
                 'president' => $data['president'] ?? 'Emmanuel Macron',
-                'date_debut' => $data['date_debut'],
+                'date_debut' => $dateDebut,
                 'date_fin' => $data['date_fin'],
                 'actif' => $data['date_fin'] === null,
             ]
