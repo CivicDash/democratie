@@ -43,7 +43,7 @@ const categories = [
         icon: '👔',
         title: 'Ministres',
         description: 'Gouvernement',
-        route: 'admin.gouvernement.index',
+        route: 'admin.elus.ministres.index',
         color: 'purple',
     },
 ];

@@ -39,8 +39,8 @@ class AdminElusController extends Controller
                 'sans_email' => Maire::whereNull('email')->count(),
             ],
             'ministres' => [
-                'total' => Ministre::count(),
-                'actifs' => Ministre::where('actif', true)->count(),
+                'total' => PersonnePolitique::count(),
+                'actifs' => PersonnePolitique::whereHas('postes', fn($q) => $q->whereNull('date_fin'))->count(),
             ],
         ];
 
