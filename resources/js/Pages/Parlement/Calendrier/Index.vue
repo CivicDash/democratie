@@ -457,6 +457,5 @@ const formatHeure = (dateIso) => {
                 
             </div>
         </div>
-        </div>
     </AuthenticatedLayout>
 </template>
