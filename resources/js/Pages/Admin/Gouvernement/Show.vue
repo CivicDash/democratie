@@ -145,6 +145,33 @@ const selectPersonne = (personne) => {
 const totalPostes = computed(() => {
     return Object.values(props.postesParType).reduce((sum, arr) => sum + arr.length, 0);
 });
+
+// Modal d'édition du gouvernement
+const showEditGouvernementModal = ref(false);
+const gouvernementForm = useForm({
+    nom: props.gouvernement.nom,
+    numero: props.gouvernement.numero || '',
+    suffixe: props.gouvernement.suffixe || '',
+    premier_ministre: props.gouvernement.premier_ministre,
+    president: props.gouvernement.president,
+    date_debut: props.gouvernement.date_debut?.split('T')[0] || '',
+    date_fin: props.gouvernement.date_fin?.split('T')[0] || '',
+    actif: props.gouvernement.actif,
+});
+
+const updateGouvernement = () => {
+    gouvernementForm.put(route('admin.gouvernement.update', props.gouvernement.id), {
+        onSuccess: () => {
+            showEditGouvernementModal.value = false;
+        },
+    });
+};
+
+const deleteGouvernement = () => {
+    if (confirm(`Supprimer le gouvernement "${props.gouvernement.nom}" et tous ses postes associés ?`)) {
+        router.delete(route('admin.gouvernement.destroy', props.gouvernement.id));
+    }
+};
 </script>
 
 <template>
@@ -175,6 +202,12 @@ const totalPostes = computed(() => {
                         </p>
                     </div>
                     <div class="flex gap-3">
+                        <button
+                            @click="showEditGouvernementModal = true"
+                            class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition"
+                        >
+                            ✏️ Modifier infos
+                        </button>
                         <button
                             @click="showMinistereModal = true"
                             class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
@@ -627,6 +660,145 @@ const totalPostes = computed(() => {
                         >
                             Créer
                         </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal édition gouvernement -->
+        <div 
+            v-if="showEditGouvernementModal"
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            @click.self="showEditGouvernementModal = false"
+        >
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        ✏️ Modifier le gouvernement
+                    </h2>
+                </div>
+                <form @submit.prevent="updateGouvernement" class="p-6 space-y-4">
+                    <!-- Nom -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom *</label>
+                        <input
+                            v-model="gouvernementForm.nom"
+                            type="text"
+                            placeholder="Ex: Bayrou, Barnier..."
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                            required
+                        />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Numéro -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Numéro</label>
+                            <input
+                                v-model="gouvernementForm.numero"
+                                type="number"
+                                min="1"
+                                max="100"
+                                placeholder="48"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                            />
+                        </div>
+                        <!-- Suffixe -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Suffixe</label>
+                            <input
+                                v-model="gouvernementForm.suffixe"
+                                type="text"
+                                placeholder="II, III..."
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Premier ministre -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Premier ministre *</label>
+                        <input
+                            v-model="gouvernementForm.premier_ministre"
+                            type="text"
+                            placeholder="Prénom Nom"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                            required
+                        />
+                    </div>
+
+                    <!-- Président -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Président de la République *</label>
+                        <input
+                            v-model="gouvernementForm.president"
+                            type="text"
+                            placeholder="Emmanuel Macron"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                            required
+                        />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Date de début -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de début *</label>
+                            <input
+                                v-model="gouvernementForm.date_debut"
+                                type="date"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                                required
+                            />
+                        </div>
+                        <!-- Date de fin -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de fin</label>
+                            <input
+                                v-model="gouvernementForm.date_fin"
+                                type="date"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100"
+                            />
+                            <p class="text-xs text-gray-500 mt-1">Laisser vide si toujours en fonction</p>
+                        </div>
+                    </div>
+
+                    <!-- Actif -->
+                    <div class="flex items-center gap-3">
+                        <input
+                            v-model="gouvernementForm.actif"
+                            type="checkbox"
+                            id="gouvernement-actif"
+                            class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                        />
+                        <label for="gouvernement-actif" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Gouvernement actuellement en fonction
+                        </label>
+                    </div>
+
+                    <div class="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                            type="button"
+                            @click="deleteGouvernement"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        >
+                            🗑️ Supprimer
+                        </button>
+                        <div class="flex gap-3">
+                            <button
+                                type="button"
+                                @click="showEditGouvernementModal = false"
+                                class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                type="submit"
+                                :disabled="gouvernementForm.processing"
+                                class="px-6 py-2 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                            >
+                                💾 Enregistrer
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
