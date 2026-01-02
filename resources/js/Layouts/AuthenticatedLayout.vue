@@ -300,7 +300,12 @@ onUnmounted(() => {
                                             class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
                                             :class="route().current('gouvernement.*') ? 'border-amber-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
                                         >
-                                            🏛️ Gouvernement
+                                            <img 
+                                                src="/images/Logo_de_la_présidence_de_la_République_(2018).svg" 
+                                                alt="" 
+                                                class="w-5 h-5 mr-1.5"
+                                            />
+                                            Gouvernement
                                             <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                             </svg>
@@ -309,16 +314,22 @@ onUnmounted(() => {
                                     <template #content>
                                         <div class="p-3 space-y-1">
                                             <MegaMenuLink
+                                                :href="route('gouvernement.president')"
+                                                icon="🏛️"
+                                                title="Président de la République"
+                                                description="Chef de l'État"
+                                            />
+                                            <MegaMenuLink
                                                 :href="route('gouvernement.index')"
                                                 icon="👔"
-                                                title="Composition"
+                                                title="Composition du Gouvernement"
                                                 description="Ministres et ministères"
                                             />
                                             <MegaMenuLink
                                                 :href="route('parlement.calendrier.index')"
-                                                icon="🏰"
+                                                icon="📅"
                                                 title="Agenda Élysée"
-                                                description="Président de la République"
+                                                description="Activités présidentielles"
                                             />
                                         </div>
                                     </template>
@@ -619,14 +630,18 @@ onUnmounted(() => {
                                 @click="toggleSection('gouvernement')"
                                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
                             >
-                                <span>🏛️ Gouvernement</span>
+                                <span class="flex items-center gap-2">
+                                    <img src="/images/Logo_de_la_présidence_de_la_République_(2018).svg" alt="" class="w-5 h-5" />
+                                    Gouvernement
+                                </span>
                                 <svg :class="{ 'rotate-180': expandedSection === 'gouvernement' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
                             <div v-show="expandedSection === 'gouvernement'" class="pl-4 space-y-1 mt-1">
+                                <ResponsiveNavLink :href="route('gouvernement.president')">🏛️ Président de la République</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('gouvernement.index')">👔 Composition du gouvernement</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('parlement.calendrier.index')">🏰 Agenda Élysée</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('parlement.calendrier.index')">📅 Agenda Élysée</ResponsiveNavLink>
                             </div>
                         </div>
                         

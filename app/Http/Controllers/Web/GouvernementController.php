@@ -185,6 +185,102 @@ class GouvernementController extends Controller
     }
 
     /**
+     * Page du Président de la République
+     */
+    public function showPresident(): Response
+    {
+        // Gouvernement actuel
+        $gouvernementActuel = Gouvernement::actuel();
+        $presidentActuel = $gouvernementActuel?->president ?? 'Emmanuel Macron';
+
+        // Données du président actuel
+        $president = $this->getPresidentData($presidentActuel);
+
+        // Tous les gouvernements du président actuel
+        $gouvernements = Gouvernement::where('president', $presidentActuel)
+            ->orderByDesc('date_debut')
+            ->withCount('postes')
+            ->get()
+            ->map(fn($g) => [
+                'id' => $g->id,
+                'numero' => $g->numero,
+                'nom' => $g->nom,
+                'nom_complet' => $g->nom_complet,
+                'premier_ministre' => $g->premier_ministre,
+                'date_debut' => $g->date_debut?->format('d/m/Y'),
+                'date_fin' => $g->date_fin?->format('d/m/Y'),
+                'duree' => $g->duree,
+                'actif' => $g->actif,
+                'nb_postes' => $g->postes_count,
+            ]);
+
+        // Liste des présidents
+        $presidents = [
+            [
+                'nom' => 'Emmanuel Macron',
+                'mandat' => '2017 - aujourd\'hui',
+                'photo' => 'https://www.elysee.fr/images/default/0001/16/e3aa06e6e24f3b0fc03eb5e9e8c3d45f2bc57b12.png',
+                'actuel' => $presidentActuel === 'Emmanuel Macron',
+            ],
+            [
+                'nom' => 'François Hollande',
+                'mandat' => '2012 - 2017',
+                'photo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Fran%C3%A7ois_Hollande_-_Janvier_2012.jpg/220px-Fran%C3%A7ois_Hollande_-_Janvier_2012.jpg',
+                'actuel' => $presidentActuel === 'François Hollande',
+            ],
+            [
+                'nom' => 'Nicolas Sarkozy',
+                'mandat' => '2007 - 2012',
+                'photo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Nicolas_Sarkozy_%282%29.jpg/220px-Nicolas_Sarkozy_%282%29.jpg',
+                'actuel' => $presidentActuel === 'Nicolas Sarkozy',
+            ],
+        ];
+
+        return Inertia::render('Gouvernement/President', [
+            'president' => $president,
+            'gouvernements' => $gouvernements,
+            'gouvernementActuel' => $gouvernementActuel ? [
+                'id' => $gouvernementActuel->id,
+                'nom' => $gouvernementActuel->nom_complet,
+                'premier_ministre' => $gouvernementActuel->premier_ministre,
+                'date_debut' => $gouvernementActuel->date_debut?->format('d/m/Y'),
+            ] : null,
+            'presidents' => $presidents,
+        ]);
+    }
+
+    /**
+     * Données du président
+     */
+    private function getPresidentData(string $nom): array
+    {
+        $data = [
+            'Emmanuel Macron' => [
+                'nom' => 'Emmanuel Macron',
+                'prenom' => 'Emmanuel',
+                'nom_famille' => 'Macron',
+                'date_naissance' => '21 décembre 1977',
+                'age' => now()->diffInYears(\Carbon\Carbon::parse('1977-12-21')),
+                'lieu_naissance' => 'Amiens (Somme)',
+                'profession' => 'Inspecteur des finances, banquier d\'affaires',
+                'parti' => 'Renaissance (ex-LREM)',
+                'debut_mandat' => '14 mai 2017',
+                'photo' => 'https://www.elysee.fr/images/default/0001/16/e3aa06e6e24f3b0fc03eb5e9e8c3d45f2bc57b12.png',
+                'wikipedia' => 'https://fr.wikipedia.org/wiki/Emmanuel_Macron',
+                'mandat_numero' => 25,
+                'republique' => 'Ve République',
+                'conjoint' => 'Brigitte Macron',
+                'residence' => 'Palais de l\'Élysée',
+            ],
+        ];
+
+        return $data[$nom] ?? [
+            'nom' => $nom,
+            'photo' => null,
+        ];
+    }
+
+    /**
      * Historique des gouvernements
      */
     public function historique(): Response

@@ -81,8 +81,8 @@ const selectGouvernement = (gouvId) => {
 
     <AuthenticatedLayout>
         <!-- Hero Section -->
-        <section class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-            <div class="absolute inset-0 opacity-10">
+        <section class="relative overflow-hidden bg-gradient-to-br from-[#28285a] via-[#1e1e4a] to-slate-900">
+            <div class="absolute inset-0 opacity-5">
                 <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
             </div>
             
@@ -90,33 +90,58 @@ const selectGouvernement = (gouvId) => {
                 <Breadcrumb :items="breadcrumbs" variant="light" class="mb-6" />
                 
                 <div v-if="gouvernement" class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span v-if="gouvernement.actif" class="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full">
-                                ACTIF
-                            </span>
-                            <span v-else class="px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full">
-                                HISTORIQUE
-                            </span>
-                            <span v-if="gouvernement.numero" class="text-blue-300 text-sm">
-                                {{ gouvernement.numero }}ème gouvernement de la Vème République
-                            </span>
+                    <!-- Logo Présidence + Infos -->
+                    <div class="flex items-start gap-6 flex-1">
+                        <!-- Logo de la Présidence -->
+                        <Link 
+                            :href="route('gouvernement.president')"
+                            class="hidden md:flex w-24 h-24 lg:w-28 lg:h-28 bg-white rounded-full p-2 shadow-xl flex-shrink-0 hover:scale-105 transition group"
+                            title="Voir la fiche du Président"
+                        >
+                            <img 
+                                src="/images/Logo_de_la_présidence_de_la_République_(2018).svg"
+                                alt="Présidence de la République"
+                                class="w-full h-full object-contain"
+                            />
+                        </Link>
+                        
+                        <div class="flex-1">
+                            <!-- Président -->
+                            <Link 
+                                :href="route('gouvernement.president')"
+                                class="inline-flex items-center gap-2 text-blue-200 hover:text-white transition mb-2 group"
+                            >
+                                <span class="text-sm">🇫🇷 Président :</span>
+                                <strong class="text-white group-hover:underline">{{ gouvernement.president }}</strong>
+                                <svg class="w-4 h-4 opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </Link>
+                            
+                            <div class="flex items-center gap-3 mb-2">
+                                <span v-if="gouvernement.actif" class="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full">
+                                    ACTIF
+                                </span>
+                                <span v-else class="px-3 py-1 bg-gray-500 text-white text-xs font-bold rounded-full">
+                                    HISTORIQUE
+                                </span>
+                                <span v-if="gouvernement.numero" class="text-blue-300 text-sm">
+                                    {{ gouvernement.numero }}ème gouvernement de la Vème République
+                                </span>
+                            </div>
+                            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight flex items-center gap-4">
+                                <span class="text-4xl">🏛️</span>
+                                {{ gouvernement.nom_complet || gouvernement.nom }}
+                            </h1>
+                            <p class="text-blue-200 text-lg">
+                                Premier ministre : <strong class="text-white">{{ gouvernement.premier_ministre }}</strong>
+                            </p>
+                            <p class="text-blue-300 text-sm mt-2">
+                                {{ gouvernement.date_debut }} 
+                                <span v-if="gouvernement.date_fin">→ {{ gouvernement.date_fin }}</span>
+                                • {{ gouvernement.duree }}
+                            </p>
                         </div>
-                        <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight flex items-center gap-4">
-                            <span class="text-4xl">🏛️</span>
-                            {{ gouvernement.nom_complet || gouvernement.nom }}
-                        </h1>
-                        <p class="text-blue-200 text-lg">
-                            Premier ministre : <strong class="text-white">{{ gouvernement.premier_ministre }}</strong>
-                        </p>
-                        <p class="text-blue-200 text-sm mt-1">
-                            Président : <strong class="text-white">{{ gouvernement.president }}</strong>
-                        </p>
-                        <p class="text-blue-300 text-sm mt-2">
-                            {{ gouvernement.date_debut }} 
-                            <span v-if="gouvernement.date_fin">→ {{ gouvernement.date_fin }}</span>
-                            • {{ gouvernement.duree }}
-                        </p>
                     </div>
                     
                     <!-- Bouton sélecteur de gouvernement -->
@@ -141,13 +166,21 @@ const selectGouvernement = (gouvId) => {
                             </div>
                             <div class="p-2">
                                 <div v-for="groupe in gouvernementsParPresident" :key="groupe.president" class="mb-4">
-                                    <div class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg mb-2">
-                                        <h4 class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                                            🇫🇷 {{ groupe.president }}
-                                        </h4>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ groupe.periode }}
-                                        </span>
+                                    <!-- En-tête du Président -->
+                                    <div class="px-3 py-2 bg-[#28285a]/10 dark:bg-[#28285a]/30 rounded-lg mb-2 flex items-center gap-3">
+                                        <img 
+                                            src="/images/Logo_de_la_présidence_de_la_République_(2018).svg"
+                                            alt="Présidence"
+                                            class="w-6 h-6"
+                                        />
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                                                {{ groupe.president }}
+                                            </h4>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ groupe.periode }}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="space-y-1">
                                         <button
@@ -167,7 +200,7 @@ const selectGouvernement = (gouvId) => {
                                                     {{ gouv.nom_complet || gouv.nom }}
                                                 </div>
                                                 <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                    {{ gouv.premier_ministre }} • {{ gouv.date_debut }}
+                                                    <span class="font-medium">PM:</span> {{ gouv.premier_ministre }} • {{ gouv.date_debut }}
                                                 </div>
                                             </div>
                                             <span class="text-xs text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
