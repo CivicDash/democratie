@@ -479,6 +479,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
         Route::get('/maires', [App\Http\Controllers\Web\AdminElusController::class, 'maires'])->name('maires.index');
         Route::get('/maires/{maire}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editMaire'])->name('maires.edit');
         Route::put('/maires/{maire}', [App\Http\Controllers\Web\AdminElusController::class, 'updateMaire'])->name('maires.update');
+        
+        // Ministres (Personnes politiques du gouvernement)
+        Route::get('/ministres', [App\Http\Controllers\Web\AdminElusController::class, 'ministres'])->name('ministres.index');
+        Route::get('/ministres/{personne}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editMinistre'])->name('ministres.edit');
+        Route::put('/ministres/{personne}', [App\Http\Controllers\Web\AdminElusController::class, 'updateMinistre'])->name('ministres.update');
     });
 
     // Gestion du Budget PLF

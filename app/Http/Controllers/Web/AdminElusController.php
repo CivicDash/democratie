@@ -7,6 +7,7 @@ use App\Models\ActeurAN;
 use App\Models\Senateur;
 use App\Models\Maire;
 use App\Models\Ministre;
+use App\Models\PersonnePolitique;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -258,6 +259,104 @@ class AdminElusController extends Controller
         $maire->update($validated);
 
         return back()->with('success', 'Maire mis à jour : ' . $maire->nom_complet);
+    }
+
+    /**
+     * Liste des ministres (personnes politiques)
+     */
+    public function ministres(Request $request)
+    {
+        $query = PersonnePolitique::query()
+            ->withCount('postes')
+            ->with(['postes' => function ($q) {
+                $q->latest('date_debut')->limit(1);
+            }])
+            ->orderBy('nom');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'ilike', "%{$search}%")
+                  ->orWhere('prenom', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('parti')) {
+            $query->where('parti_politique', $request->parti);
+        }
+
+        if ($request->filled('actif')) {
+            $query->whereHas('postes', function ($q) {
+                $q->whereNull('date_fin');
+            });
+        }
+
+        $ministres = $query->paginate(50)->through(function ($personne) {
+            $dernierPoste = $personne->postes->first();
+            return [
+                'id' => $personne->id,
+                'nom' => $personne->nom,
+                'prenom' => $personne->prenom,
+                'civilite' => $personne->civilite,
+                'nom_complet' => $personne->nom_complet,
+                'slug' => $personne->slug,
+                'parti_politique' => $personne->parti_politique,
+                'photo_url' => $personne->photo_url,
+                'nb_postes' => $personne->postes_count,
+                'dernier_poste' => $dernierPoste?->fonction,
+                'actif' => $dernierPoste && !$dernierPoste->date_fin,
+            ];
+        });
+
+        $partis = PersonnePolitique::select('parti_politique')
+            ->whereNotNull('parti_politique')
+            ->where('parti_politique', '!=', '')
+            ->distinct()
+            ->orderBy('parti_politique')
+            ->pluck('parti_politique');
+
+        return Inertia::render('Admin/Elus/Ministres', [
+            'ministres' => $ministres,
+            'partis' => $partis,
+            'filters' => $request->only(['search', 'parti', 'actif']),
+        ]);
+    }
+
+    /**
+     * Éditer un ministre (personne politique)
+     */
+    public function editMinistre(PersonnePolitique $personne)
+    {
+        $personne->load(['postes' => function ($q) {
+            $q->with(['gouvernement', 'ministere'])->orderByDesc('date_debut');
+        }]);
+
+        return Inertia::render('Admin/Elus/EditMinistre', [
+            'personne' => $personne,
+        ]);
+    }
+
+    /**
+     * Mettre à jour un ministre (personne politique)
+     */
+    public function updateMinistre(Request $request, PersonnePolitique $personne)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'civilite' => 'nullable|in:M.,Mme',
+            'date_naissance' => 'nullable|date',
+            'profession' => 'nullable|string|max:500',
+            'parti_politique' => 'nullable|string|max:255',
+            'photo_url' => 'nullable|url|max:1000',
+            'wikipedia_url' => 'nullable|url|max:500',
+        ]);
+
+        $validated['slug'] = \Illuminate\Support\Str::slug($validated['prenom'] . '-' . $validated['nom']);
+        
+        $personne->update($validated);
+
+        return back()->with('success', 'Ministre mis à jour : ' . $personne->nom_complet);
     }
 
     /**
