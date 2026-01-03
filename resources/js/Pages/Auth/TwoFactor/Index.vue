@@ -97,7 +97,7 @@ const confirmDisable = () => {
                             <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                                 <li class="flex items-start gap-2">
                                     <span class="text-emerald-500">1️⃣</span>
-                                    <span>Installez une application d'authentification (Google Authenticator, Authy, 1Password, etc.)</span>
+                                    <span>Installez une application d'authentification (Aegis, Google Authenticator, Authy, etc.)</span>
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <span class="text-emerald-500">2️⃣</span>
@@ -170,7 +170,10 @@ const confirmDisable = () => {
                     <h4 class="font-medium text-blue-900 dark:text-blue-100 mb-2">
                         💡 Applications recommandées
                     </h4>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                        <a href="https://getaegis.app/" target="_blank" class="flex items-center gap-2 text-blue-700 hover:underline dark:text-blue-300" title="Open-source, Android">
+                            🛡️ Aegis
+                        </a>
                         <a href="https://support.google.com/accounts/answer/1066447" target="_blank" class="flex items-center gap-2 text-blue-700 hover:underline dark:text-blue-300">
                             Google Authenticator
                         </a>
@@ -184,6 +187,9 @@ const confirmDisable = () => {
                             Bitwarden
                         </a>
                     </div>
+                    <p class="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                        💚 Aegis est recommandé : open-source, gratuit et sans compte requis (Android)
+                    </p>
                 </div>
             </div>
         </div>

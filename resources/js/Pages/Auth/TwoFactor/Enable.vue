@@ -48,7 +48,7 @@ const submit = () => {
                                 Étape 1 : Scannez le QR code
                             </h3>
                             <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                                Ouvrez votre application d'authentification (Google Authenticator, Authy, etc.) et scannez ce QR code.
+                                Ouvrez votre application d'authentification (<a href="https://getaegis.app/" target="_blank" class="text-blue-600 hover:underline">Aegis</a>, Google Authenticator, Authy, etc.) et scannez ce QR code.
                             </p>
 
                             <div class="flex justify-center p-6 bg-white rounded-lg border dark:bg-gray-100">
