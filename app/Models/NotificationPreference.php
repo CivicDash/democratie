@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NotificationPreference extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'user_id',
         'notify_new_reply',
@@ -41,10 +38,24 @@ class NotificationPreference extends Model
         'notify_followed_legislation_update' => 'boolean',
         'channel_in_app' => 'boolean',
         'channel_email' => 'boolean',
+        'group_similar_notifications' => 'boolean',
     ];
 
     /**
-     * Relation : l'utilisateur
+     * Mapping des catégories vers les champs de préférence
+     */
+    public const CATEGORY_MAPPING = [
+        'interpellation' => 'notify_mention',
+        'response' => 'notify_new_reply',
+        'mention' => 'notify_mention',
+        'vote' => 'notify_vote_on_my_proposal',
+        'comment' => 'notify_new_reply',
+        'moderation' => 'notify_system_announcement',
+        'system' => 'notify_system_announcement',
+    ];
+
+    /**
+     * Utilisateur
      */
     public function user(): BelongsTo
     {
@@ -52,86 +63,45 @@ class NotificationPreference extends Model
     }
 
     /**
-     * Obtenir les préférences d'un utilisateur (ou créer les valeurs par défaut)
+     * Vérifier si une catégorie est activée pour un canal
      */
-    public static function getForUser(int $userId): self
+    public function isEnabled(string $category, string $channel): bool
     {
-        return self::firstOrCreate(['user_id' => $userId]);
-    }
-
-    /**
-     * Vérifier si un type de notification est activé
-     */
-    public function isEnabled(string $type): bool
-    {
-        $field = 'notify_' . $type;
-        return $this->$field ?? false;
-    }
-
-    /**
-     * Vérifier si on est dans les heures calmes
-     */
-    public function isQuietHours(): bool
-    {
-        if (!$this->quiet_hours_start || !$this->quiet_hours_end) {
+        // Vérifier d'abord si le canal est activé
+        if ($channel === 'site' && !$this->channel_in_app) {
+            return false;
+        }
+        if ($channel === 'email' && !$this->channel_email) {
             return false;
         }
 
-        $now = now()->format('H:i:s');
-        $start = $this->quiet_hours_start;
-        $end = $this->quiet_hours_end;
-
-        // Gérer le cas où les heures calmes passent minuit
-        if ($start < $end) {
-            return $now >= $start && $now <= $end;
-        } else {
-            return $now >= $start || $now <= $end;
-        }
+        // Vérifier la catégorie
+        $field = self::CATEGORY_MAPPING[$category] ?? 'notify_system_announcement';
+        return $this->{$field} ?? true;
     }
 
     /**
-     * Vérifier si on peut envoyer une notification in-app
+     * Obtenir ou créer les préférences par défaut
      */
-    public function canSendInApp(): bool
+    public static function getOrCreateForUser(int $userId): self
     {
-        return $this->channel_in_app && !$this->isQuietHours();
-    }
-
-    /**
-     * Vérifier si on peut envoyer une notification par email
-     */
-    public function canSendEmail(): bool
-    {
-        return $this->channel_email && $this->email_frequency === 'instant' && !$this->isQuietHours();
-    }
-
-    /**
-     * Obtenir toutes les préférences sous forme de tableau
-     */
-    public function toPreferencesArray(): array
-    {
-        return [
-            'notifications' => [
-                'new_reply' => $this->notify_new_reply,
-                'new_vote_on_topic' => $this->notify_new_vote_on_topic,
-                'legislative_vote_result' => $this->notify_legislative_vote_result,
-                'mention' => $this->notify_mention,
-                'vote_on_my_proposal' => $this->notify_vote_on_my_proposal,
-                'new_thematique_proposition' => $this->notify_new_thematique_proposition,
-                'system_announcement' => $this->notify_system_announcement,
-                'followed_topic_update' => $this->notify_followed_topic_update,
-                'followed_legislation_update' => $this->notify_followed_legislation_update,
-            ],
-            'channels' => [
-                'in_app' => $this->channel_in_app,
-                'email' => $this->channel_email,
-            ],
-            'email_frequency' => $this->email_frequency,
-            'quiet_hours' => [
-                'start' => $this->quiet_hours_start,
-                'end' => $this->quiet_hours_end,
-            ],
-            'group_similar' => $this->group_similar_notifications,
-        ];
+        return self::firstOrCreate(
+            ['user_id' => $userId],
+            [
+                'notify_new_reply' => true,
+                'notify_new_vote_on_topic' => true,
+                'notify_legislative_vote_result' => true,
+                'notify_mention' => true,
+                'notify_vote_on_my_proposal' => true,
+                'notify_new_thematique_proposition' => false,
+                'notify_system_announcement' => true,
+                'notify_followed_topic_update' => true,
+                'notify_followed_legislation_update' => true,
+                'channel_in_app' => true,
+                'channel_email' => true,
+                'email_frequency' => 'instant',
+                'group_similar_notifications' => false,
+            ]
+        );
     }
 }

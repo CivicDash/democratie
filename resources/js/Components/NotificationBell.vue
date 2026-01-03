@@ -85,16 +85,18 @@ const toggleDropdown = () => {
 const loadNotifications = async () => {
     loading.value = true;
     try {
-        const response = await fetch('/api/notifications?per_page=20', {
+        const response = await fetch('/api/notifications/recent', {
             headers: {
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`,
+                'X-CSRF-TOKEN': getAuthToken(),
             },
+            credentials: 'same-origin',
         });
 
         if (response.ok) {
             const data = await response.json();
             notifications.value = data.notifications || [];
+            unreadCount.value = data.unread_count || 0;
         }
     } catch (error) {
         console.error('Erreur lors du chargement des notifications:', error);
@@ -108,8 +110,9 @@ const loadUnreadCount = async () => {
         const response = await fetch('/api/notifications/unread-count', {
             headers: {
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`,
+                'X-CSRF-TOKEN': getAuthToken(),
             },
+            credentials: 'same-origin',
         });
 
         if (response.ok) {
@@ -123,12 +126,13 @@ const loadUnreadCount = async () => {
 
 const handleMarkAsRead = async (notificationId) => {
     try {
-        const response = await fetch(`/api/notifications/${notificationId}/mark-as-read`, {
+        const response = await fetch(`/notifications/${notificationId}/read`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`,
+                'X-CSRF-TOKEN': getAuthToken(),
             },
+            credentials: 'same-origin',
         });
 
         if (response.ok) {
@@ -146,12 +150,13 @@ const handleMarkAsRead = async (notificationId) => {
 
 const handleMarkAllAsRead = async () => {
     try {
-        const response = await fetch('/api/notifications/mark-all-as-read', {
+        const response = await fetch('/notifications/read-all', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`,
+                'X-CSRF-TOKEN': getAuthToken(),
             },
+            credentials: 'same-origin',
         });
 
         if (response.ok) {
@@ -168,12 +173,13 @@ const handleMarkAllAsRead = async () => {
 
 const handleDelete = async (notificationId) => {
     try {
-        const response = await fetch(`/api/notifications/${notificationId}`, {
+        const response = await fetch(`/notifications/${notificationId}`, {
             method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${getAuthToken()}`,
+                'X-CSRF-TOKEN': getAuthToken(),
             },
+            credentials: 'same-origin',
         });
 
         if (response.ok) {

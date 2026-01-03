@@ -433,6 +433,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/gamification', function () {
         return Inertia::render('Profile/Gamification');
     })->name('profile.gamification');
+    
+    // Notifications
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Web\NotificationController::class, 'index'])->name('index');
+        Route::get('/preferences', [App\Http\Controllers\Web\NotificationController::class, 'preferences'])->name('preferences');
+        Route::post('/preferences', [App\Http\Controllers\Web\NotificationController::class, 'updatePreferences'])->name('preferences.update');
+        Route::post('/read-all', [App\Http\Controllers\Web\NotificationController::class, 'markAllAsRead'])->name('read-all');
+        Route::post('/{notification}/read', [App\Http\Controllers\Web\NotificationController::class, 'markAsRead'])->name('read');
+        Route::post('/{notification}/acknowledge', [App\Http\Controllers\Web\NotificationController::class, 'acknowledge'])->name('acknowledge');
+        Route::post('/{notification}/action', [App\Http\Controllers\Web\NotificationController::class, 'action'])->name('action');
+        Route::delete('/{notification}', [App\Http\Controllers\Web\NotificationController::class, 'destroy'])->name('destroy');
+    });
+    
+    // API Notifications (pour dropdown via session)
+    Route::get('/api/notifications/recent', [App\Http\Controllers\Web\NotificationController::class, 'recent'])->name('api.notifications.recent');
+    Route::get('/api/notifications/unread-count', [App\Http\Controllers\Web\NotificationController::class, 'unreadCount'])->name('api.notifications.unread-count');
 });
 
 /*

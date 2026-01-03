@@ -1659,6 +1659,19 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
       - Outil de test en temps réel
       - Historique des remplacements
     - Commande `php artisan moderation:seed`
+32. ✅ **Système de notifications complet** :
+    - Service `NotificationService` centralisé
+    - Centre de notifications `/notifications` avec :
+      - Liste paginée avec filtres (toutes, non lues, à acquitter)
+      - Statuts : non lue → lue → acquittée → traitée
+      - Actions rapides (marquer comme lu, acquitter, supprimer)
+    - Préférences utilisateur `/notifications/preferences` :
+      - Canaux : notifications site, notifications email
+      - Fréquence email (instantané, quotidien, hebdomadaire)
+      - Types : réponses, mentions, votes, législatif, système, etc.
+      - Options avancées (regroupement, heures calmes)
+    - Dropdown notifications dans le header (cloche avec badge)
+    - Intégration avec le modèle existant `notification_preferences`
 
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)

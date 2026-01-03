@@ -2,64 +2,37 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notification extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'user_id',
         'type',
+        'category',
         'title',
         'message',
         'icon',
         'link',
         'data',
-        'read_at',
         'priority',
+        'read_at',
+        'acknowledged_at',
+        'actioned_at',
+        'action_type',
     ];
 
     protected $casts = [
         'data' => 'array',
         'read_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'acknowledged_at' => 'datetime',
+        'actioned_at' => 'datetime',
+        'priority' => 'integer',
     ];
 
     /**
-     * Types de notifications disponibles
-     */
-    public const TYPE_NEW_THEMATIQUE = 'new_thematique';
-    public const TYPE_NEW_GROUPE = 'new_groupe';
-    public const TYPE_NEW_VOTE = 'new_vote';
-    public const TYPE_NEW_LEGISLATION = 'new_legislation';
-    public const TYPE_VOTE_RESULT = 'vote_result';
-    public const TYPE_SYSTEM = 'system';
-    public const TYPE_ALERT = 'alert';
-    
-    // Nouveaux types
-    public const TYPE_NEW_REPLY = 'new_reply'; // Nouvelle réponse sur conversation suivie
-    public const TYPE_NEW_VOTE_ON_TOPIC = 'new_vote_on_topic'; // Nouveau vote sur sujet d'intérêt
-    public const TYPE_LEGISLATIVE_VOTE_RESULT = 'legislative_vote_result'; // Résultat vote législatif suivi
-    public const TYPE_MENTION = 'mention'; // Mention dans un commentaire
-    public const TYPE_VOTE_ON_MY_PROPOSAL = 'vote_on_my_proposal'; // Vote sur ma proposition citoyenne
-    public const TYPE_NEW_THEMATIQUE_PROPOSITION = 'new_thematique_proposition'; // Nouvelle proposition dans thématique suivie
-    public const TYPE_FOLLOWED_TOPIC_UPDATE = 'followed_topic_update'; // Mise à jour sujet suivi
-    public const TYPE_FOLLOWED_LEGISLATION_UPDATE = 'followed_legislation_update'; // Mise à jour législation suivie
-
-    /**
-     * Priorités
-     */
-    public const PRIORITY_LOW = 'low';
-    public const PRIORITY_NORMAL = 'normal';
-    public const PRIORITY_HIGH = 'high';
-    public const PRIORITY_URGENT = 'urgent';
-
-    /**
-     * Relation : l'utilisateur qui reçoit la notification
+     * Utilisateur destinataire
      */
     public function user(): BelongsTo
     {
@@ -67,41 +40,62 @@ class Notification extends Model
     }
 
     /**
-     * Marquer comme lue
+     * Catégories de notifications disponibles
      */
-    public function markAsRead(): void
-    {
-        if (!$this->read_at) {
-            $this->update(['read_at' => now()]);
-        }
-    }
+    public const CATEGORIES = [
+        'interpellation' => [
+            'label' => 'Interpellations',
+            'description' => 'Quand quelqu\'un vous interpelle sur un sujet',
+            'icon' => '📢',
+        ],
+        'response' => [
+            'label' => 'Réponses',
+            'description' => 'Quand un élu répond à une interpellation',
+            'icon' => '💬',
+        ],
+        'mention' => [
+            'label' => 'Mentions',
+            'description' => 'Quand vous êtes mentionné dans un débat',
+            'icon' => '@',
+        ],
+        'vote' => [
+            'label' => 'Votes',
+            'description' => 'Activité sur vos propositions (votes, seuils atteints)',
+            'icon' => '🗳️',
+        ],
+        'comment' => [
+            'label' => 'Commentaires',
+            'description' => 'Nouveaux commentaires sur vos sujets',
+            'icon' => '💭',
+        ],
+        'moderation' => [
+            'label' => 'Modération',
+            'description' => 'Actions de modération sur vos contenus',
+            'icon' => '🛡️',
+        ],
+        'system' => [
+            'label' => 'Système',
+            'description' => 'Informations importantes du site',
+            'icon' => '⚙️',
+        ],
+    ];
 
     /**
-     * Marquer comme non lue
+     * Canaux de notification
      */
-    public function markAsUnread(): void
-    {
-        $this->update(['read_at' => null]);
-    }
+    public const CHANNELS = [
+        'site' => [
+            'label' => 'Notifications site',
+            'description' => 'Affichées dans le centre de notifications',
+        ],
+        'email' => [
+            'label' => 'Notifications email',
+            'description' => 'Envoyées par email',
+        ],
+    ];
 
     /**
-     * Vérifier si la notification est lue
-     */
-    public function isRead(): bool
-    {
-        return $this->read_at !== null;
-    }
-
-    /**
-     * Vérifier si la notification est non lue
-     */
-    public function isUnread(): bool
-    {
-        return $this->read_at === null;
-    }
-
-    /**
-     * Scope : notifications non lues
+     * Scope: non lues
      */
     public function scopeUnread($query)
     {
@@ -109,7 +103,15 @@ class Notification extends Model
     }
 
     /**
-     * Scope : notifications lues
+     * Scope: pour un utilisateur
+     */
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope: lues
      */
     public function scopeRead($query)
     {
@@ -117,66 +119,112 @@ class Notification extends Model
     }
 
     /**
-     * Scope : par type
+     * Scope: non acquittées
      */
-    public function scopeOfType($query, string $type)
+    public function scopeUnacknowledged($query)
     {
-        return $query->where('type', $type);
+        return $query->whereNull('acknowledged_at');
     }
 
     /**
-     * Scope : par priorité
+     * Scope: non traitées
      */
-    public function scopeWithPriority($query, string $priority)
+    public function scopePending($query)
     {
-        return $query->where('priority', $priority);
+        return $query->whereNull('actioned_at');
     }
 
     /**
-     * Scope : récentes (dernières 30 jours)
+     * Scope: par catégorie
      */
-    public function scopeRecent($query)
+    public function scopeOfCategory($query, string $category)
     {
-        return $query->where('created_at', '>=', now()->subDays(30));
+        return $query->where('type', 'like', "%\\{$category}%");
     }
 
     /**
-     * Obtenir l'icône par défaut selon le type
+     * Marquer comme lue
      */
-    public function getDefaultIcon(): string
+    public function markAsRead(): self
     {
-        return match($this->type) {
-            self::TYPE_NEW_THEMATIQUE => '🏷️',
-            self::TYPE_NEW_GROUPE => '🏛️',
-            self::TYPE_NEW_VOTE => '🗳️',
-            self::TYPE_NEW_LEGISLATION => '📜',
-            self::TYPE_VOTE_RESULT => '📊',
-            self::TYPE_ALERT => '⚠️',
-            self::TYPE_SYSTEM => '⚙️',
-            // Nouveaux types
-            self::TYPE_NEW_REPLY => '💬',
-            self::TYPE_NEW_VOTE_ON_TOPIC => '👍',
-            self::TYPE_LEGISLATIVE_VOTE_RESULT => '🏛️',
-            self::TYPE_MENTION => '👤',
-            self::TYPE_VOTE_ON_MY_PROPOSAL => '⭐',
-            self::TYPE_NEW_THEMATIQUE_PROPOSITION => '📢',
-            self::TYPE_FOLLOWED_TOPIC_UPDATE => '🔔',
-            self::TYPE_FOLLOWED_LEGISLATION_UPDATE => '📋',
-            default => '🔔',
-        };
+        if (is_null($this->read_at)) {
+            $this->update(['read_at' => now()]);
+        }
+        return $this;
     }
 
     /**
-     * Obtenir la couleur selon la priorité
+     * Marquer comme non lue
      */
-    public function getPriorityColor(): string
+    public function markAsUnread(): self
     {
-        return match($this->priority) {
-            self::PRIORITY_LOW => 'gray',
-            self::PRIORITY_NORMAL => 'blue',
-            self::PRIORITY_HIGH => 'orange',
-            self::PRIORITY_URGENT => 'red',
-            default => 'blue',
-        };
+        $this->update(['read_at' => null]);
+        return $this;
+    }
+
+    /**
+     * Acquitter la notification
+     */
+    public function acknowledge(): self
+    {
+        $this->update([
+            'read_at' => $this->read_at ?? now(),
+            'acknowledged_at' => now(),
+        ]);
+        return $this;
+    }
+
+    /**
+     * Marquer comme traitée
+     */
+    public function markAsActioned(string $actionType = 'completed'): self
+    {
+        $this->update([
+            'read_at' => $this->read_at ?? now(),
+            'acknowledged_at' => $this->acknowledged_at ?? now(),
+            'actioned_at' => now(),
+            'action_type' => $actionType,
+        ]);
+        return $this;
+    }
+
+    /**
+     * Vérifier si la notification est lue
+     */
+    public function isRead(): bool
+    {
+        return !is_null($this->read_at);
+    }
+
+    /**
+     * Vérifier si acquittée
+     */
+    public function isAcknowledged(): bool
+    {
+        return !is_null($this->acknowledged_at);
+    }
+
+    /**
+     * Vérifier si traitée
+     */
+    public function isActioned(): bool
+    {
+        return !is_null($this->actioned_at);
+    }
+
+    /**
+     * Obtenir le lien d'action
+     */
+    public function getActionUrlAttribute(): ?string
+    {
+        return $this->link ?? $this->data['action_url'] ?? null;
+    }
+
+    /**
+     * Accesseur: time_ago
+     */
+    public function getTimeAgoAttribute(): string
+    {
+        return $this->created_at->diffForHumans();
     }
 }
