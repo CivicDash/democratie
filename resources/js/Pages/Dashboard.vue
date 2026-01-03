@@ -130,7 +130,7 @@ const getScoreClass = (score) => {
                         </div>
                         
                         <!-- Quick Stats -->
-                        <div class="flex flex-wrap gap-3 lg:gap-4">
+                        <div data-tour="dashboard-stats" class="flex flex-wrap gap-3 lg:gap-4">
                             <div class="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px] border border-white/10">
                                 <div class="text-2xl font-bold text-white">{{ globalStats?.total_topics || 0 }}</div>
                                 <div class="text-xs text-emerald-100">Discussions</div>
@@ -151,7 +151,7 @@ const getScoreClass = (score) => {
             <!-- Contenu principal -->
             <div class="px-4 sm:px-6 lg:px-8 xl:px-12 py-8 -mt-4">
                 <!-- Quick Actions -->
-                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+                <div data-tour="dashboard-quick-actions" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
                     <Link
                         :href="route('representants.deputes.index')"
                         class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:shadow-lg transition-all flex items-center gap-3"
@@ -294,7 +294,7 @@ const getScoreClass = (score) => {
                         </div>
 
                         <!-- Propositions de Loi (cliquables) -->
-                        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div data-tour="dashboard-lois" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
@@ -364,7 +364,7 @@ const getScoreClass = (score) => {
                         </div>
 
                         <!-- Derniers Scrutins AN (cliquables) -->
-                        <div v-if="derniersScrutins && derniersScrutins.length > 0" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div data-tour="dashboard-scrutins" v-if="derniersScrutins && derniersScrutins.length > 0" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl flex items-center justify-center">

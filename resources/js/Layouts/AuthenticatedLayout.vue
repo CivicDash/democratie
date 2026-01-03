@@ -7,6 +7,8 @@ import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
 import ToastContainer from "@/Components/ToastContainer.vue";
 import ConfirmContainer from "@/Components/ConfirmContainer.vue";
 import NotificationBell from "@/Components/NotificationBell.vue";
+import TourMenu from "@/Components/GuidedTour/TourMenu.vue";
+import TourOverlay from "@/Components/GuidedTour/TourOverlay.vue";
 // BottomNav retiré - le burger menu est suffisant
 import ScrollToTop from "@/Components/ScrollToTop.vue";
 import AppFooter from "@/Components/AppFooter.vue";
@@ -149,7 +151,7 @@ onUnmounted(() => {
 <template>
     <div>
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-            <nav class="border-b border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800 sticky top-0 z-40">
+            <nav data-tour="navigation" class="border-b border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800 sticky top-0 z-40">
                 <div class="mx-auto px-4 sm:px-6 lg:px-8" style="max-width: 100%;">
                     <div class="flex h-16 justify-between">
                         <div class="flex items-center">
@@ -453,7 +455,7 @@ onUnmounted(() => {
                         <!-- Right side: Search + Actions -->
                         <div class="hidden lg:flex lg:items-center lg:space-x-4">
                             <!-- Search Bar Desktop avec suggestions -->
-                            <GlobalSearch placeholder="Rechercher élus, lois, idées..." />
+                            <GlobalSearch data-tour="search" placeholder="Rechercher élus, lois, idées..." />
                             
                             <!-- Dark Mode Toggle -->
                             <button
@@ -470,11 +472,14 @@ onUnmounted(() => {
                                 </svg>
                             </button>
                             
+                            <!-- Tour Guide Menu -->
+                            <TourMenu />
+                            
                             <!-- Notification Bell -->
-                            <NotificationBell />
+                            <NotificationBell data-tour="notifications" />
                             
                             <!-- User Dropdown -->
-                            <Dropdown align="right" width="48">
+                            <Dropdown align="right" width="48" data-tour="user-menu">
                                 <template #trigger>
                                     <button
                                         type="button"
@@ -780,6 +785,9 @@ onUnmounted(() => {
         
         <!-- Scroll to Top -->
         <ScrollToTop />
+        
+        <!-- Tour Overlay (visite guidée) -->
+        <TourOverlay />
     </div>
 
     <!-- Global Toast Notifications -->

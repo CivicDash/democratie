@@ -996,23 +996,49 @@ Modération:
 
 ---
 
-### 2.5 : 🎮 Gamification Participation
+### 2.5 : 🎮 Gamification Participation ✅ IMPLÉMENTÉ
 **Priorité** : 🟡 HAUTE  
-**Durée** : 1 semaine
+**Durée** : 1 semaine → **Terminé le 03/01/2026**
 
-**Badges citoyens** :
+**Badges citoyens** (38 badges implémentés) :
 ```
-🏅 "Première idée"      → A proposé une idée
-🗳️ "Voix citoyenne"     → 100 votes donnés
-⭐ "Influenceur"        → Idée avec 1000+ votes pour
-💬 "Débatteur"          → 50 commentaires constructifs
+🏅 "Premier Pas"         → Premier vote citoyen
+🗳️ "Voix Active"         → 10 votes donnés
+⭐ "Voix de la Nation"   → 500 votes donnés
+💡 "Visionnaire"         → Créer un premier sujet
+💬 "Contributeur Actif"  → 25 commentaires
+🔥 "Marathonien"         → 7 jours consécutifs
+🏛️ "Citoyen Éternel"     → 365 jours consécutifs (secret)
+👑 "Légende Démocratique"→ Niveau 50 (secret)
 ```
+
+**Catégories de badges** :
+- 🗳️ Participation (votes, sujets, commentaires)
+- 📜 Législatif (votes sur lois, suivi)
+- 💰 Budget (allocations budgétaires)
+- 👥 Social (upvotes reçus)
+- 🔥 Engagement (streaks, régularité)
+- 🎓 Expertise (niveaux atteints)
+
+**Composants implémentés** :
+- [x] `GamificationWidget.vue` : Widget compact pour header
+- [x] `LevelProgressBar.vue` : Barre de progression XP
+- [x] `BadgeCard.vue` : Affichage d'un badge
+- [x] `AchievementUnlocked.vue` : Popup déblocage
+- [x] Page `/profile/gamification` : Tableau de bord complet
+
+**API Gamification** :
+- [x] `GET /api/gamification/my-stats` : Mes statistiques
+- [x] `GET /api/gamification/achievements` : Tous les badges
+- [x] `GET /api/gamification/leaderboard` : Classement
 
 **Tableau de bord utilisateur** :
-- [ ] Mes idées et leur score
-- [ ] Mes votes sur les lois (historique)
-- [ ] Comparaison avec vote parlementaire
-- [ ] "Vous êtes aligné à X% avec le groupe Y"
+- [x] Mes idées et leur score
+- [x] Mes badges débloqués et en cours
+- [x] Progression niveau + XP
+- [x] Streak actuel et record
+- [ ] Comparaison avec vote parlementaire (à venir)
+- [ ] "Vous êtes aligné à X% avec le groupe Y" (à venir)
 
 ---
 
@@ -1736,12 +1762,28 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
     - `ReferenceInput.vue` : Textarea avec autocomplete intelligent
     - API `/api/references/preview/{type}/{identifier}`
     - Support : @depute:, @senateur:, @maire:, @loi:, @scrutin:, @amendement:
+38. ✅ **Visite guidée enrichie** :
+    - Composable `useGuidedTour.js` avec 8 tours interactifs
+    - Tours : Bienvenue, Dashboard, Participation, Lois, Députés, Sénateurs, Gouvernement, Élu
+    - Composant `TourOverlay.vue` : Interface élégante avec barre de progression
+    - Composant `TourMenu.vue` : Menu dropdown avec sélection des tours
+    - Sauvegarde progression en localStorage
+    - Attributs `data-tour` sur tous les éléments clés
+    - Intégration dans le header (icône 🎯)
+39. ✅ **Gamification enrichie (38 badges)** :
+    - 14 nouveaux badges ajoutés (total : 38)
+    - Catégories : Participation, Législatif, Budget, Social, Engagement, Expertise
+    - Raretés : Commun, Rare, Épique, Légendaire
+    - Badges secrets pour les accomplissements exceptionnels
+    - Seeder `AchievementSeeder` enrichi
 
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
 2. ✅ Interpellation des élus → **TERMINÉ**
 3. ✅ Menu "État" restructuré → **TERMINÉ**
 4. ✅ Notifications élus & Interface réponses → **TERMINÉ**
+5. ✅ Visite guidée enrichie → **TERMINÉ 03/01/2026**
+6. ✅ Gamification (38 badges) → **TERMINÉ 03/01/2026**
 
 ### 🔴 Priorité T1 2026 - Données Gouvernementales
 1. [x] **Import Budget de l'État** (data.gouv.fr PLF) ✅ *Terminé 01/01/2026*
