@@ -1647,6 +1647,18 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
     - Bandeau de sécurité sur le profil utilisateur
     - Codes de récupération (8 codes, usage unique)
     - Migration : champs `two_factor_*` sur users
+31. ✅ **Modération automatique des mots bannis** :
+    - Tables `banned_words`, `nice_words`, `moderation_logs`
+    - Service `ContentModerationService` avec détection variantes (m3rde, p*tain)
+    - Remplacement humoristique par mots gentils/emojis aléatoires
+    - Intégration dans TopicService (création topics/posts)
+    - Interface admin `/admin/moderation/words` avec :
+      - Dashboard statistiques (remplacements aujourd'hui/semaine)
+      - Gestion mots bannis (catégories, sévérité)
+      - Gestion mots gentils (emojis, animaux, compliments)
+      - Outil de test en temps réel
+      - Historique des remplacements
+    - Commande `php artisan moderation:seed`
 
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
@@ -1684,12 +1696,17 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
    - `two_factor_secret`, `two_factor_recovery_codes` (chiffrés)
    - `two_factor_enabled`, `two_factor_confirmed_at`
 
-### 🛡️ Modération & Qualité du contenu (T1 2026)
-1. [ ] **Liste de mots interdits** : Système de ban words (insultes FR, spam)
-   - Table `banned_words` avec catégories (insultes, spam, politique extrême)
-   - Validation côté serveur avant publication
-   - Alerte modérateurs si contenu suspect
-   - Historique des tentatives bloquées
+### 🛡️ Modération & Qualité du contenu (T1 2026) ✅ PARTIELLEMENT IMPLÉMENTÉ
+1. [x] **Liste de mots interdits** : Système de ban words (insultes FR, spam)
+   - Table `banned_words` avec catégories (insultes, spam, politique extrême, racisme, violence)
+   - Table `nice_words` avec mots gentils de remplacement (emojis, animaux, compliments)
+   - Remplacement automatique humoristique ("crétin" → "🌈", "merde" → "petit chaton")
+   - 35 mots bannis + 58 mots gentils par défaut
+   - Validation côté serveur avant publication (Topics, Posts)
+   - Blocage si racisme/violence grave
+   - Interface admin `/admin/moderation/words` pour gérer les mots
+   - Historique des remplacements (table `moderation_logs`)
+   - Commande `php artisan moderation:seed` pour initialiser
 2. [ ] **Pas de liens externes** : Propositions/questions/débats/pétitions/interpellations
    - Sanitization des contenus (strip URLs)
    - Exception : références internes au site uniquement

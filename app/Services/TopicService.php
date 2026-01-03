@@ -14,8 +14,15 @@ use RuntimeException;
  */
 class TopicService
 {
+    protected ContentModerationService $moderationService;
+
+    public function __construct(ContentModerationService $moderationService)
+    {
+        $this->moderationService = $moderationService;
+    }
+
     /**
-     * Crée un nouveau topic.
+     * Crée un nouveau topic avec modération automatique.
      */
     public function createTopic(User $author, array $data): Topic
     {
@@ -23,11 +30,20 @@ class TopicService
             throw new RuntimeException('User cannot create topics.');
         }
 
-        return DB::transaction(function () use ($author, $data) {
+        // Modérer le titre et la description
+        $titleResult = $this->moderationService->moderate($data['title'], $author->id);
+        $descriptionResult = $this->moderationService->moderate($data['description'], $author->id);
+
+        // Si contenu bloqué (racisme, etc.), on refuse
+        if ($titleResult['blocked'] || $descriptionResult['blocked']) {
+            throw new RuntimeException('Votre contenu contient des propos inacceptables et ne peut pas être publié.');
+        }
+
+        return DB::transaction(function () use ($author, $data, $titleResult, $descriptionResult) {
             $topic = Topic::create([
                 'author_id' => $author->id,
-                'title' => $data['title'],
-                'description' => $data['description'],
+                'title' => $titleResult['content'], // Titre modéré (mots remplacés)
+                'description' => $descriptionResult['content'], // Description modérée
                 'type' => $data['type'] ?? 'debate',
                 'status' => $data['status'] ?? 'draft',
                 'scope' => $data['scope'] ?? 'national',
@@ -83,7 +99,7 @@ class TopicService
     }
 
     /**
-     * Crée un post dans un topic.
+     * Crée un post dans un topic avec modération automatique.
      */
     public function createPost(Topic $topic, User $user, string $content, ?int $parentId = null): Post
     {
@@ -91,12 +107,20 @@ class TopicService
             throw new RuntimeException('User cannot post in this topic.');
         }
 
-        return DB::transaction(function () use ($topic, $user, $content, $parentId) {
+        // Modérer le contenu du post
+        $contentResult = $this->moderationService->moderate($content, $user->id);
+
+        // Si contenu bloqué (racisme, etc.), on refuse
+        if ($contentResult['blocked']) {
+            throw new RuntimeException('Votre commentaire contient des propos inacceptables et ne peut pas être publié.');
+        }
+
+        return DB::transaction(function () use ($topic, $user, $contentResult, $parentId) {
             $post = Post::create([
                 'topic_id' => $topic->id,
                 'user_id' => $user->id,
                 'parent_id' => $parentId,
-                'content' => $content,
+                'content' => $contentResult['content'], // Contenu modéré
             ]);
 
             return $post;
@@ -104,7 +128,7 @@ class TopicService
     }
 
     /**
-     * Met à jour un post.
+     * Met à jour un post avec modération automatique.
      */
     public function updatePost(Post $post, User $user, string $content): Post
     {
@@ -112,7 +136,14 @@ class TopicService
             throw new RuntimeException('User cannot update this post.');
         }
 
-        $post->update(['content' => $content]);
+        // Modérer le contenu du post
+        $contentResult = $this->moderationService->moderate($content, $user->id);
+
+        if ($contentResult['blocked']) {
+            throw new RuntimeException('Votre commentaire contient des propos inacceptables et ne peut pas être modifié ainsi.');
+        }
+
+        $post->update(['content' => $contentResult['content']]);
 
         return $post->fresh();
     }

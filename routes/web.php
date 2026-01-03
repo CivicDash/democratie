@@ -553,6 +553,23 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
         Route::post('/duplicate', [App\Http\Controllers\Web\AdminBudgetController::class, 'duplicate'])->name('duplicate');
         Route::get('/export', [App\Http\Controllers\Web\AdminBudgetController::class, 'export'])->name('export');
     });
+
+    // Modération - Mots bannis & mots gentils
+    Route::prefix('moderation')->name('moderation.')->group(function () {
+        Route::get('/words', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'index'])->name('words');
+        Route::post('/test', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'test'])->name('test');
+        Route::post('/seed', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'seed'])->name('seed');
+        
+        // Mots bannis
+        Route::post('/banned', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'storeBanned'])->name('banned.store');
+        Route::put('/banned/{bannedWord}', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'updateBanned'])->name('banned.update');
+        Route::delete('/banned/{bannedWord}', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'destroyBanned'])->name('banned.destroy');
+        
+        // Mots gentils
+        Route::post('/nice', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'storeNice'])->name('nice.store');
+        Route::put('/nice/{niceWord}', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'updateNice'])->name('nice.update');
+        Route::delete('/nice/{niceWord}', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'destroyNice'])->name('nice.destroy');
+    });
 });
 
 /*
