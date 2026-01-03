@@ -71,6 +71,46 @@ class User extends Authenticatable
     }
 
     /**
+     * Vérifie si c'est un compte de démonstration
+     */
+    public function isDemoAccount(): bool
+    {
+        $demoPatterns = [
+            'demo@civicdash.fr',
+            'demo-elu@civicdash.fr',
+            '@demo.civicdash.fr',
+            '@demo.assemblee-nationale.fr',
+            '@demo.senat.fr',
+        ];
+
+        foreach ($demoPatterns as $pattern) {
+            if (str_contains($this->email, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut activer la 2FA
+     */
+    public function canEnableTwoFactor(): bool
+    {
+        // Les comptes démo ne peuvent pas activer la 2FA
+        if ($this->isDemoAccount()) {
+            return false;
+        }
+
+        // Les comptes FranceConnect n'ont pas besoin de 2FA
+        if ($this->franceconnect_sub !== null) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Vérifie si la 2FA est activée et confirmée
      */
     public function hasTwoFactorEnabled(): bool
@@ -84,6 +124,11 @@ class User extends Authenticatable
     public function shouldEnableTwoFactor(): bool
     {
         if ($this->two_factor_enabled) {
+            return false;
+        }
+
+        // Les comptes démo ne peuvent pas activer la 2FA
+        if ($this->isDemoAccount()) {
             return false;
         }
 

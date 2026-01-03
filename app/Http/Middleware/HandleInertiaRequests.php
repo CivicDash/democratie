@@ -46,6 +46,8 @@ class HandleInertiaRequests extends Middleware
                     'two_factor_enabled' => $request->user()->two_factor_enabled ?? false,
                     'should_enable_two_factor' => $request->user()->shouldEnableTwoFactor(),
                     'has_franceconnect' => $request->user()->franceconnect_sub !== null,
+                    'is_demo_account' => $request->user()->isDemoAccount(),
+                    'can_enable_two_factor' => $request->user()->canEnableTwoFactor(),
                 ] : null,
             ],
             'flash' => [

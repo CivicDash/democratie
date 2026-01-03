@@ -14,6 +14,8 @@ const props = defineProps({
     confirmedAt: String,
     isEluOrAdmin: Boolean,
     hasPassword: Boolean,
+    isDemoAccount: Boolean,
+    canEnable: Boolean,
 });
 
 const showDisableModal = ref(false);
@@ -110,13 +112,31 @@ const confirmDisable = () => {
 
                         <!-- Actions -->
                         <div v-if="!enabled">
-                            <div v-if="!hasPassword" class="mb-4 p-4 bg-blue-50 rounded-lg dark:bg-blue-900/20">
+                            <!-- Compte démo -->
+                            <div v-if="isDemoAccount" class="p-4 bg-amber-50 rounded-lg dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                <div class="flex items-start gap-3">
+                                    <span class="text-xl">⚠️</span>
+                                    <div>
+                                        <p class="font-medium text-amber-800 dark:text-amber-200">
+                                            Compte de démonstration
+                                        </p>
+                                        <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                            La double authentification n'est pas disponible pour les comptes de démonstration car ils sont partagés entre plusieurs utilisateurs.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- FranceConnect -->
+                            <div v-else-if="!hasPassword" class="mb-4 p-4 bg-blue-50 rounded-lg dark:bg-blue-900/20">
                                 <p class="text-sm text-blue-700 dark:text-blue-300">
                                     ℹ️ Vous êtes connecté via FranceConnect. La double authentification n'est disponible que pour les comptes avec mot de passe.
                                 </p>
                             </div>
+
+                            <!-- Peut activer -->
                             <Link
-                                v-else
+                                v-else-if="canEnable"
                                 :href="route('two-factor.enable')"
                                 class="inline-flex items-center px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 focus:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150"
                             >

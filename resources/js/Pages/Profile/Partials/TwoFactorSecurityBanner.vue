@@ -7,12 +7,13 @@ const user = computed(() => page.props.auth.user);
 const shouldEnableTwoFactor = computed(() => user.value?.should_enable_two_factor);
 const hasFranceConnect = computed(() => user.value?.has_franceconnect);
 const twoFactorEnabled = computed(() => user.value?.two_factor_enabled);
+const isDemoAccount = computed(() => user.value?.is_demo_account);
 </script>
 
 <template>
-    <!-- Bandeau de recommandation 2FA pour élus/admins -->
+    <!-- Bandeau de recommandation 2FA pour élus/admins (pas pour les comptes démo) -->
     <div 
-        v-if="shouldEnableTwoFactor && !hasFranceConnect"
+        v-if="shouldEnableTwoFactor && !hasFranceConnect && !isDemoAccount"
         class="rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 dark:from-amber-900/20 dark:to-orange-900/20 dark:border-amber-800 shadow-sm"
     >
         <div class="flex items-start gap-4">

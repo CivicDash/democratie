@@ -6,6 +6,8 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 const twoFactorEnabled = computed(() => user.value?.two_factor_enabled);
 const hasFranceConnect = computed(() => user.value?.has_franceconnect);
+const isDemoAccount = computed(() => user.value?.is_demo_account);
+const canEnableTwoFactor = computed(() => user.value?.can_enable_two_factor);
 </script>
 
 <template>
@@ -21,8 +23,21 @@ const hasFranceConnect = computed(() => user.value?.has_franceconnect);
         </header>
 
         <div class="mt-6">
+            <!-- Compte démo -->
+            <div v-if="isDemoAccount" class="p-4 bg-amber-50 rounded-lg dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">⚠️</span>
+                    <div>
+                        <p class="font-medium text-amber-800 dark:text-amber-200">Compte de démonstration</p>
+                        <p class="text-sm text-amber-700 dark:text-amber-300">
+                            La double authentification n'est pas disponible pour les comptes de démonstration.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Info FranceConnect -->
-            <div v-if="hasFranceConnect" class="p-4 bg-blue-50 rounded-lg dark:bg-blue-900/20">
+            <div v-else-if="hasFranceConnect" class="p-4 bg-blue-50 rounded-lg dark:bg-blue-900/20">
                 <div class="flex items-center gap-3">
                     <span class="text-xl">🇫🇷</span>
                     <p class="text-sm text-blue-700 dark:text-blue-300">

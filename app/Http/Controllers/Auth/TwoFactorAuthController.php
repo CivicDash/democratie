@@ -32,6 +32,8 @@ class TwoFactorAuthController extends Controller
             'confirmedAt' => $user->two_factor_confirmed_at,
             'isEluOrAdmin' => $user->is_verified_elu || $user->hasRole('admin') || $user->hasRole('super-admin'),
             'hasPassword' => !empty($user->password) && $user->franceconnect_sub === null,
+            'isDemoAccount' => $user->isDemoAccount(),
+            'canEnable' => $user->canEnableTwoFactor(),
         ]);
     }
 
@@ -41,6 +43,12 @@ class TwoFactorAuthController extends Controller
     public function enable(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
+        
+        // Vérifier si l'utilisateur peut activer la 2FA
+        if (!$user->canEnableTwoFactor()) {
+            return redirect()->route('two-factor.show')
+                ->with('error', 'La double authentification n\'est pas disponible pour ce type de compte.');
+        }
         
         // Si déjà activé, rediriger
         if ($user->two_factor_enabled) {
