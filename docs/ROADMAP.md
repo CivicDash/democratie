@@ -1638,6 +1638,16 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
     - Page votes sénateurs : hero banner + breadcrumb modernisés
 29. ✅ **Migration users** : Champs élu ajoutés (elu_type, elu_ref, is_verified_elu, etc.)
 
+### ✅ Accompli semaine 5 (3 janvier 2026)
+30. ✅ **Double Authentification (2FA OTP)** :
+    - Package `pragmarx/google2fa-laravel` + QR code
+    - Contrôleur `TwoFactorAuthController` complet
+    - Pages Vue : Index, Enable, RecoveryCodes, Challenge
+    - Middleware `two-factor` sur routes admin, élu, modération
+    - Bandeau de sécurité sur le profil utilisateur
+    - Codes de récupération (8 codes, usage unique)
+    - Migration : champs `two_factor_*` sur users
+
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
 2. ✅ Interpellation des élus → **TERMINÉ**
@@ -1657,6 +1667,22 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
 4. [ ] Questions Écrites Sénat (import base SQL)
 5. [ ] Recherche globale Meilisearch multi-modèles
 6. [ ] Résultats électoraux historiques
+
+### 🔐 Sécurité & Authentification (T1 2026) ✅ IMPLÉMENTÉ
+1. [x] **Double Authentification (2FA OTP)** : Pour utilisateurs non-FranceConnect
+   - Package `pragmarx/google2fa-laravel` + `bacon/bacon-qr-code`
+   - Configuration 2FA avec QR code et clé manuelle
+   - Codes de récupération (8 codes, usage unique)
+   - Challenge 2FA lors de la connexion
+   - Middleware `two-factor` pour routes sensibles (admin, elu, moderation)
+   - Pages Vue : Index, Enable, RecoveryCodes, Challenge
+2. [x] **Bandeau de sécurité sur le profil**
+   - Recommandation 2FA pour élus et admins sans 2FA
+   - Info FranceConnect pour utilisateurs déjà sécurisés
+   - Lien rapide vers configuration 2FA
+3. [x] **Migration users** : Champs 2FA ajoutés
+   - `two_factor_secret`, `two_factor_recovery_codes` (chiffrés)
+   - `two_factor_enabled`, `two_factor_confirmed_at`
 
 ### 🛡️ Modération & Qualité du contenu (T1 2026)
 1. [ ] **Liste de mots interdits** : Système de ban words (insultes FR, spam)
@@ -1760,6 +1786,6 @@ CivicDash vise à devenir **la référence citoyenne** pour comprendre et partic
 ---
 
 **Maintenu par** : CivicDash Core Team / Civis Consilium  
-**Version** : 2.4  
-**Dernière mise à jour** : 2 janvier 2026  
+**Version** : 2.5  
+**Dernière mise à jour** : 3 janvier 2026  
 **Licence** : AGPL-3.0 Open Source

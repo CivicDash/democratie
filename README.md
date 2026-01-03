@@ -209,6 +209,11 @@ civicdash/
 
 ## 🔐 Sécurité & Conformité
 
+- **Double Authentification (2FA)** : OTP avec Google Authenticator, Authy, etc.
+  - Configuration avec QR code et clé manuelle
+  - Codes de récupération (8 codes usage unique)
+  - Bandeau de recommandation pour élus et admins
+- **FranceConnect** : Authentification via l'État (niveau eIDAS)
 - **Hashing** : Argon2id pour mots de passe
 - **CSRF** : protection Laravel native
 - **Rate limiting** : throttle API + Redis
@@ -376,7 +381,8 @@ L'AGPL-3.0 garantit que toute modification du code, même sur un serveur, doit �
 
 - [ ] 🎨 Design System complet (3-4 jours)
 - [ ] 📱 PWA (Progressive Web App) (2-3 jours)
-- [ ] 🔐 Sécurité avancée (CSP, 2FA, audits) (4-5 jours)
+- [x] 🔐 Double Authentification (2FA OTP) ✅
+- [ ] 🔐 Sécurité avancée (CSP, audits) (3-4 jours)
 - [ ] 📊 Analytics & Métriques (2-3 jours)
 - [ ] 🚀 Optimisations Performance (2-3 jours)
 - [ ] 📄 Documentation utilisateur (2-3 jours)

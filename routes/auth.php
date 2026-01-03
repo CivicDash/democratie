@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\TwoFactorAuthController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,4 +57,39 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    // Two-Factor Authentication (2FA)
+    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+        // Page principale 2FA (affiche l'état)
+        Route::get('/', [TwoFactorAuthController::class, 'show'])
+            ->name('show');
+
+        // Activer la 2FA (génère le secret et affiche le QR code)
+        Route::get('/enable', [TwoFactorAuthController::class, 'enable'])
+            ->name('enable');
+
+        // Confirmer l'activation avec un code OTP
+        Route::post('/confirm', [TwoFactorAuthController::class, 'confirm'])
+            ->name('confirm');
+
+        // Afficher les codes de récupération
+        Route::get('/recovery-codes', [TwoFactorAuthController::class, 'recoveryCodes'])
+            ->name('recovery-codes');
+
+        // Régénérer les codes de récupération
+        Route::post('/regenerate-recovery-codes', [TwoFactorAuthController::class, 'regenerateRecoveryCodes'])
+            ->name('regenerate-recovery-codes');
+
+        // Désactiver la 2FA
+        Route::delete('/disable', [TwoFactorAuthController::class, 'disable'])
+            ->name('disable');
+
+        // Challenge 2FA (lors de la connexion)
+        Route::get('/challenge', [TwoFactorAuthController::class, 'challenge'])
+            ->name('challenge');
+
+        // Vérifier le code 2FA
+        Route::post('/verify', [TwoFactorAuthController::class, 'verify'])
+            ->name('verify');
+    });
 });

@@ -34,6 +34,10 @@ class User extends Authenticatable
         'twitter_handle',
         'facebook_url',
         'website_url',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_confirmed_at',
+        'two_factor_enabled',
     ];
 
     /**
@@ -44,6 +48,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -59,7 +65,34 @@ class User extends Authenticatable
             'is_public_profile' => 'boolean',
             'is_verified_elu' => 'boolean',
             'verified_at' => 'datetime',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_enabled' => 'boolean',
         ];
+    }
+
+    /**
+     * Vérifie si la 2FA est activée et confirmée
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_enabled && $this->two_factor_confirmed_at !== null;
+    }
+
+    /**
+     * Vérifie si la 2FA devrait être recommandée (élu ou admin sans 2FA)
+     */
+    public function shouldEnableTwoFactor(): bool
+    {
+        if ($this->two_factor_enabled) {
+            return false;
+        }
+
+        // FranceConnect users don't need 2FA (already secure)
+        if ($this->franceconnect_sub !== null) {
+            return false;
+        }
+
+        return $this->is_verified_elu || $this->hasRole('admin') || $this->hasRole('super-admin');
     }
 
     // ==================== Élu Relations ====================

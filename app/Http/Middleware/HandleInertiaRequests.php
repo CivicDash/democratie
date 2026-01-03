@@ -42,6 +42,10 @@ class HandleInertiaRequests extends Middleware
                     'is_verified_elu' => $request->user()->is_verified_elu ?? false,
                     'elu_type' => $request->user()->elu_type,
                     'elu_ref' => $request->user()->elu_ref,
+                    // 2FA
+                    'two_factor_enabled' => $request->user()->two_factor_enabled ?? false,
+                    'should_enable_two_factor' => $request->user()->shouldEnableTwoFactor(),
+                    'has_franceconnect' => $request->user()->franceconnect_sub !== null,
                 ] : null,
             ],
             'flash' => [

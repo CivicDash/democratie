@@ -306,7 +306,7 @@ Route::prefix('legislation/propositions')->middleware('auth:web')->group(functio
 | Modération
 |--------------------------------------------------------------------------
 */
-Route::prefix('moderation')->name('moderation.')->middleware(['auth', 'role:moderator|admin'])->group(function () {
+Route::prefix('moderation')->name('moderation.')->middleware(['auth', 'role:moderator|admin', 'two-factor'])->group(function () {
     Route::get('/dashboard', [ModerationController::class, 'dashboard'])->name('dashboard');
     Route::get('/reports', [ModerationController::class, 'reports'])->name('reports.index');
     Route::get('/reports/priority', [ModerationController::class, 'priorityReports'])->name('reports.priority');
@@ -432,7 +432,7 @@ Route::prefix('donnees')->name('donnees.')->middleware('auth')->group(function (
 | Admin
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-factor'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/imports', [AdminController::class, 'imports'])->name('imports');
     Route::get('/imports/{import}', [AdminController::class, 'showImport'])->name('imports.show');
@@ -566,7 +566,7 @@ Route::middleware('auth')->prefix('parlement')->name('parlement.')->group(functi
 | Espace Élu (Dashboard pour élus vérifiés)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->prefix('elu')->name('elu.')->group(function () {
+Route::middleware(['auth', 'two-factor'])->prefix('elu')->name('elu.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Web\EluDashboardController::class, 'index'])->name('dashboard');
     Route::get('/interpellations', [App\Http\Controllers\Web\EluDashboardController::class, 'interpellations'])->name('interpellations');
     Route::get('/interpellations/{interpellation}', [App\Http\Controllers\Web\EluDashboardController::class, 'showInterpellation'])->name('interpellations.show');
