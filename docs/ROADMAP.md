@@ -138,7 +138,11 @@
   - Coordonnées GPS
   - Mandature (2020-2026)
   - Commande : `import:maires-datagouv`
-- [ ] **Questions Écrites** (Sénat) - Import base SQL externe
+- [x] **Questions Écrites Sénat** - Import base SQL data.senat.fr ✅ *Terminé 03/01/2026*
+  - 289 433 questions brutes disponibles (depuis 1978)
+  - Commande : `import:questions-senat`
+  - Pages `/questions/senat` avec filtres, stats, détail
+  - Liaison avec sénateurs existants
 - [ ] **Textes Akoma Ntoso** (Sénat) - Documents législatifs
 - [ ] Proportion hommes/femmes (statistiques)
 
@@ -1672,6 +1676,18 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
       - Options avancées (regroupement, heures calmes)
     - Dropdown notifications dans le header (cloche avec badge)
     - Intégration avec le modèle existant `notification_preferences`
+33. ✅ **Questions Écrites Sénat** :
+    - Import depuis data.senat.fr (289 433 questions depuis 1978)
+    - Commande `import:questions-senat` avec options :
+      - `--limit=N` : Limite de questions
+      - `--year=YYYY` : Année spécifique
+      - `--sync-only` : Synchro sans téléchargement
+    - Pages Vue complètes :
+      - `/questions/senat` : Liste avec filtres (type, thème, statut)
+      - `/questions/senat/{numero}` : Détail avec réponse ministérielle
+      - `/questions/senat/stats` : Statistiques détaillées
+      - `/questions/senat/senateur/{matricule}` : Questions par sénateur
+    - Hero banner rose/fuchsia cohérent avec l'identité Sénat
 
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
@@ -1689,7 +1705,7 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
 1. [ ] Wizard création idée (5 étapes)
 2. [ ] Liaison idées ↔ élus (interpellation)
 3. [ ] Suggestions IA pour catégories/tags
-4. [ ] Questions Écrites Sénat (import base SQL)
+4. [x] Questions Écrites Sénat (import base SQL) ✅
 5. [ ] Recherche globale Meilisearch multi-modèles
 6. [ ] Résultats électoraux historiques
 

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\QuestionAN;
 use App\Models\ActeurAN;
+use App\Models\SenateurQuestion;
+use App\Models\Senateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -247,6 +249,248 @@ class QuestionController extends Controller
                 'top_deputes' => $topDeputes,
                 'evolution_mensuelle' => $evolutionMensuelle,
                 'delai_moyen_jours' => $delaiMoyen ? round($delaiMoyen->delai_moyen) : null,
+            ];
+        });
+    }
+
+    // =========================================================================
+    // QUESTIONS SÉNAT
+    // =========================================================================
+
+    /**
+     * Liste des questions au gouvernement - Sénat
+     */
+    public function indexSenat(Request $request): Response
+    {
+        $query = SenateurQuestion::with(['senateur:matricule,nom,prenom,photo_url'])
+            ->orderByDesc('date_question');
+
+        // Filtres
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('texte_question', 'ilike', "%{$search}%")
+                  ->orWhere('theme', 'ilike', "%{$search}%")
+                  ->orWhere('ministre_destinataire', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->filled('theme')) {
+            $query->where('theme', $request->theme);
+        }
+
+        if ($request->filled('statut')) {
+            if ($request->statut === 'repondu') {
+                $query->repondues();
+            } else {
+                $query->enAttente();
+            }
+        }
+
+        if ($request->filled('senateur')) {
+            $query->where('senateur_matricule', $request->senateur);
+        }
+
+        $questions = $query->paginate(20)->withQueryString();
+
+        // Stats
+        $stats = $this->getSenatStats();
+
+        // Données pour filtres
+        $themes = SenateurQuestion::select('theme')
+            ->distinct()
+            ->whereNotNull('theme')
+            ->where('theme', '!=', '')
+            ->orderBy('theme')
+            ->pluck('theme');
+
+        $types = SenateurQuestion::select('type')
+            ->distinct()
+            ->whereNotNull('type')
+            ->orderBy('type')
+            ->pluck('type');
+
+        return Inertia::render('Questions/Senat/Index', [
+            'questions' => $questions,
+            'filters' => $request->only(['search', 'type', 'theme', 'statut', 'senateur']),
+            'stats' => $stats,
+            'themes' => $themes,
+            'types' => $types,
+        ]);
+    }
+
+    /**
+     * Détail d'une question Sénat
+     */
+    public function showSenat(string $numero): Response
+    {
+        $question = SenateurQuestion::with(['senateur'])
+            ->where('numero', $numero)
+            ->firstOrFail();
+
+        // Questions similaires (même thème)
+        $similaires = SenateurQuestion::with(['senateur:matricule,nom,prenom,photo_url'])
+            ->where('theme', $question->theme)
+            ->where('numero', '!=', $numero)
+            ->orderByDesc('date_question')
+            ->limit(5)
+            ->get();
+
+        // Autres questions du même sénateur
+        $autresSenateur = SenateurQuestion::where('senateur_matricule', $question->senateur_matricule)
+            ->where('numero', '!=', $numero)
+            ->orderByDesc('date_question')
+            ->limit(5)
+            ->get();
+
+        return Inertia::render('Questions/Senat/Show', [
+            'question' => $question,
+            'similaires' => $similaires,
+            'autresSenateur' => $autresSenateur,
+        ]);
+    }
+
+    /**
+     * Statistiques des questions Sénat
+     */
+    public function statsSenat(): Response
+    {
+        $stats = $this->getSenatDetailedStats();
+
+        return Inertia::render('Questions/Senat/Stats', [
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Questions d'un sénateur spécifique
+     */
+    public function bySenateur(string $matricule): Response
+    {
+        $senateur = Senateur::where('matricule', $matricule)->firstOrFail();
+
+        $questions = SenateurQuestion::where('senateur_matricule', $matricule)
+            ->orderByDesc('date_question')
+            ->paginate(20);
+
+        // Stats du sénateur
+        $senateurStats = [
+            'total' => SenateurQuestion::where('senateur_matricule', $matricule)->count(),
+            'repondues' => SenateurQuestion::where('senateur_matricule', $matricule)->repondues()->count(),
+            'par_theme' => SenateurQuestion::where('senateur_matricule', $matricule)
+                ->select('theme', DB::raw('count(*) as nb'))
+                ->whereNotNull('theme')
+                ->groupBy('theme')
+                ->orderByDesc('nb')
+                ->limit(5)
+                ->get(),
+            'par_type' => SenateurQuestion::where('senateur_matricule', $matricule)
+                ->select('type', DB::raw('count(*) as nb'))
+                ->whereNotNull('type')
+                ->groupBy('type')
+                ->orderByDesc('nb')
+                ->get(),
+        ];
+
+        return Inertia::render('Questions/Senat/BySenateur', [
+            'senateur' => $senateur,
+            'questions' => $questions,
+            'stats' => $senateurStats,
+        ]);
+    }
+
+    /**
+     * Stats globales Sénat
+     */
+    protected function getSenatStats(): array
+    {
+        return Cache::remember('questions_senat_stats', 3600, function () {
+            return [
+                'total' => SenateurQuestion::count(),
+                'repondues' => SenateurQuestion::repondues()->count(),
+                'en_attente' => SenateurQuestion::enAttente()->count(),
+                'cette_semaine' => SenateurQuestion::where('date_question', '>=', now()->subWeek())->count(),
+                'ce_mois' => SenateurQuestion::where('date_question', '>=', now()->subMonth())->count(),
+                'senateurs_actifs' => SenateurQuestion::distinct('senateur_matricule')->count('senateur_matricule'),
+            ];
+        });
+    }
+
+    /**
+     * Stats détaillées Sénat
+     */
+    protected function getSenatDetailedStats(): array
+    {
+        return Cache::remember('questions_senat_detailed_stats', 3600, function () {
+            // Top thèmes
+            $topThemes = SenateurQuestion::select('theme', DB::raw('count(*) as nb'))
+                ->whereNotNull('theme')
+                ->where('theme', '!=', '')
+                ->groupBy('theme')
+                ->orderByDesc('nb')
+                ->limit(15)
+                ->get();
+
+            // Top ministères
+            $topMinisteres = SenateurQuestion::select('ministre_destinataire', DB::raw('count(*) as nb'))
+                ->whereNotNull('ministre_destinataire')
+                ->groupBy('ministre_destinataire')
+                ->orderByDesc('nb')
+                ->limit(10)
+                ->get();
+
+            // Top sénateurs
+            $topSenateurs = SenateurQuestion::select('senateur_matricule', DB::raw('count(*) as nb'))
+                ->groupBy('senateur_matricule')
+                ->orderByDesc('nb')
+                ->limit(20)
+                ->get()
+                ->map(function ($item) {
+                    $senateur = Senateur::where('matricule', $item->senateur_matricule)->first();
+                    return [
+                        'matricule' => $item->senateur_matricule,
+                        'nom' => $senateur ? $senateur->prenom . ' ' . $senateur->nom : $item->senateur_matricule,
+                        'groupe' => $senateur?->groupe_sigle,
+                        'photo_url' => $senateur?->photo_url,
+                        'nb' => $item->nb,
+                    ];
+                });
+
+            // Évolution mensuelle
+            $evolutionMensuelle = SenateurQuestion::select(
+                    DB::raw("TO_CHAR(date_question, 'YYYY-MM') as mois"),
+                    DB::raw('count(*) as nb')
+                )
+                ->whereNotNull('date_question')
+                ->groupBy('mois')
+                ->orderBy('mois')
+                ->get();
+
+            // Délai moyen de réponse
+            $delaiMoyen = SenateurQuestion::repondues()
+                ->whereNotNull('date_question')
+                ->selectRaw('AVG(date_reponse - date_question) as delai_moyen')
+                ->first();
+
+            // Par type de question
+            $parType = SenateurQuestion::select('type', DB::raw('count(*) as nb'))
+                ->whereNotNull('type')
+                ->groupBy('type')
+                ->orderByDesc('nb')
+                ->get();
+
+            return [
+                'global' => $this->getSenatStats(),
+                'top_themes' => $topThemes,
+                'top_ministeres' => $topMinisteres,
+                'top_senateurs' => $topSenateurs,
+                'par_type' => $parType,
+                'evolution_mensuelle' => $evolutionMensuelle,
+                'delai_moyen_jours' => $delaiMoyen && $delaiMoyen->delai_moyen ? round($delaiMoyen->delai_moyen) : null,
             ];
         });
     }

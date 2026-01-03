@@ -123,10 +123,17 @@ Route::get('/cookies', [PolicyController::class, 'cookies'])->name('cookies');
 |--------------------------------------------------------------------------
 */
 Route::prefix('questions')->name('questions.')->middleware('auth')->group(function () {
+    // Questions Assemblée Nationale (par défaut)
     Route::get('/', [\App\Http\Controllers\Web\QuestionController::class, 'index'])->name('index');
     Route::get('/stats', [\App\Http\Controllers\Web\QuestionController::class, 'stats'])->name('stats');
     Route::get('/depute/{uid}', [\App\Http\Controllers\Web\QuestionController::class, 'byDepute'])->name('depute');
-    Route::get('/{uid}', [\App\Http\Controllers\Web\QuestionController::class, 'show'])->name('show');
+    Route::get('/an/{uid}', [\App\Http\Controllers\Web\QuestionController::class, 'show'])->name('show');
+    
+    // Questions Sénat
+    Route::get('/senat', [\App\Http\Controllers\Web\QuestionController::class, 'indexSenat'])->name('senat.index');
+    Route::get('/senat/stats', [\App\Http\Controllers\Web\QuestionController::class, 'statsSenat'])->name('senat.stats');
+    Route::get('/senat/senateur/{matricule}', [\App\Http\Controllers\Web\QuestionController::class, 'bySenateur'])->name('senateur');
+    Route::get('/senat/{numero}', [\App\Http\Controllers\Web\QuestionController::class, 'showSenat'])->name('senat.show');
 });
 
 /*
