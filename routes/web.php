@@ -31,9 +31,38 @@ use Inertia\Inertia;
 |
 */
 
-// Page d'accueil principale - Deux parcours utilisateurs
+// Page d'accueil - Redirection vers login ou dashboard
 Route::get('/', function () {
-    // Statistiques pré-calculées (table dashboard_stats)
+    // Si l'utilisateur est connecté, rediriger vers le dashboard
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    
+    // Sinon, afficher la page de login avec les stats
+    $globalStats = \App\Models\DashboardStat::get('global_stats', [
+        'nb_deputes' => 577,
+        'nb_senateurs' => 348,
+        'nb_scrutins' => 0,
+        'nb_lois_en_cours' => 0,
+        'nb_maires' => 0,
+    ]);
+    
+    $stats = [
+        'deputes' => $globalStats['nb_deputes'] ?? 577,
+        'senateurs' => $globalStats['nb_senateurs'] ?? 348,
+        'lois_en_cours' => $globalStats['nb_lois_en_cours'] ?? \App\Models\Loi::whereNull('loidatjo')->count(),
+        'maires' => $globalStats['nb_maires'] ?? \App\Models\Maire::enExercice()->count(),
+    ];
+    
+    return Inertia::render('Welcome', [
+        'stats' => $stats,
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+    ]);
+})->name('home');
+
+// Ancienne page d'accueil (accessible via /accueil pour les utilisateurs connectés)
+Route::get('/accueil', function () {
     $globalStats = \App\Models\DashboardStat::get('global_stats', [
         'nb_deputes' => 577,
         'nb_senateurs' => 348,
@@ -52,7 +81,7 @@ Route::get('/', function () {
     return Inertia::render('Home', [
         'stats' => $stats,
     ]);
-})->name('home');
+})->middleware('auth')->name('home.explore');
 
 // Ancienne page démo (pour référence/développement)
 Route::get('/demo', function () {

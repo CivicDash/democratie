@@ -679,6 +679,24 @@ const recyclingChartData = computed(() => {
 
     <AuthenticatedLayout>
         <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <!-- Bandeau d'avertissement données -->
+            <div class="bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl flex-shrink-0">⚠️</span>
+                        <div class="text-sm text-amber-800 dark:text-amber-200">
+                            <p class="font-medium">Données à titre indicatif</p>
+                            <p class="text-amber-700 dark:text-amber-300">
+                                Ces statistiques sont cohérentes et basées sur des sources officielles (INSEE, Ministères, Cour des Comptes), 
+                                mais restent présentées à titre d'exemple. L'ensemble de ces données fait l'objet d'un processus de 
+                                <strong>vérification et de sourcing approfondi</strong> en cours. 
+                                <a href="#" class="underline hover:no-underline">En savoir plus →</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Header Sticky -->
             <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-md">
                 <div class="px-4 py-4 sm:px-6 lg:px-8">
