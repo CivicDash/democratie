@@ -472,6 +472,23 @@ Route::prefix('hashtags')->name('hashtags.')->group(function () {
     Route::get('/{slug}', [App\Http\Controllers\Api\HashtagController::class, 'show'])->name('show');
 });
 
+// ============================================================================
+// MODÉRATION DE CONTENU - Validation & Références
+// ============================================================================
+
+Route::prefix('content-moderation')->name('content-moderation.')->group(function () {
+    // Routes publiques
+    Route::get('/whitelisted-domains', [App\Http\Controllers\Api\ContentModerationController::class, 'whitelistedDomains'])->name('whitelisted_domains');
+    Route::get('/reference-formats', [App\Http\Controllers\Api\ContentModerationController::class, 'referenceFormats'])->name('reference_formats');
+    
+    // Routes authentifiées
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/validate', [App\Http\Controllers\Api\ContentModerationController::class, 'validate'])->name('validate');
+        Route::post('/preview', [App\Http\Controllers\Api\ContentModerationController::class, 'preview'])->name('preview');
+        Route::post('/resolve-references', [App\Http\Controllers\Api\ContentModerationController::class, 'resolveReferences'])->name('resolve_references');
+    });
+});
+
 Route::fallback(function () {
     return response()->json([
         'message' => 'Endpoint introuvable. Vérifiez l\'URL et la méthode HTTP.',

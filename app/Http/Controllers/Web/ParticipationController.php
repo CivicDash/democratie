@@ -9,6 +9,7 @@ use App\Models\TopicElu;
 use App\Models\TopicVote;
 use App\Models\TerritoryRegion;
 use App\Models\TerritoryDepartment;
+use App\Services\ContentModerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -162,7 +163,7 @@ class ParticipationController extends Controller
     /**
      * Enregistrer une nouvelle idée
      */
-    public function ideasStore(Request $request)
+    public function ideasStore(Request $request, ContentModerationService $moderationService)
     {
         $validated = $request->validate([
             'idea_type' => ['required', 'in:discussion,proposal,question,debate,petition,interpellation'],
@@ -180,15 +181,54 @@ class ParticipationController extends Controller
             'is_interpellation' => ['boolean'],
         ]);
 
-        // Pour les discussions : vérifier et nettoyer le contenu (pas de liens externes, pas d'images)
-        $description = $validated['description'];
+        // =====================================================================
+        // MODÉRATION DU CONTENU
+        // =====================================================================
+        
+        // 1. Modérer le titre
+        $titleModeration = $moderationService->fullModerate(
+            $validated['title'],
+            auth()->id(),
+            null,
+            ['moderate_words' => true, 'sanitize_links' => true, 'parse_references' => false]
+        );
+        
+        // Si le titre contient du contenu bloqué (racisme, violence grave)
+        if ($titleModeration['blocked']) {
+            return back()->withErrors([
+                'title' => 'Le titre contient du contenu interdit. Merci de reformuler.',
+            ])->withInput();
+        }
+        
+        // 2. Modérer la description
+        $descModeration = $moderationService->fullModerate(
+            $validated['description'],
+            auth()->id(),
+            null,
+            ['moderate_words' => true, 'sanitize_links' => true, 'parse_references' => false]
+        );
+        
+        if ($descModeration['blocked']) {
+            return back()->withErrors([
+                'description' => 'Le contenu contient des propos interdits (discours de haine, violence). Merci de reformuler.',
+            ])->withInput();
+        }
+        
+        // Utiliser le contenu modéré
+        $title = $titleModeration['content'];
+        $description = $descModeration['content'];
+        
+        // Informer l'utilisateur si des liens ont été supprimés
+        $warnings = [];
+        if (!empty($descModeration['removed_links'])) {
+            $warnings[] = count($descModeration['removed_links']) . ' lien(s) externe(s) ont été supprimés. Seuls les liens vers les sites officiels (.gouv.fr, insee.fr, etc.) sont autorisés.';
+        }
+        if (!empty($titleModeration['word_replacements']) || !empty($descModeration['word_replacements'])) {
+            $warnings[] = 'Certains mots inappropriés ont été automatiquement remplacés.';
+        }
+        
+        // Vérification spécifique aux discussions
         if ($validated['idea_type'] === 'discussion') {
-            // Vérification des restrictions de contenu
-            if (Topic::containsExternalLinks($description)) {
-                return back()->withErrors([
-                    'description' => 'Les discussions ne peuvent pas contenir de liens externes. Seuls les liens vers objectif2027.fr et civis-consilium.eu sont autorisés.',
-                ])->withInput();
-            }
             if (Topic::containsMedia($description)) {
                 return back()->withErrors([
                     'description' => 'Les discussions ne peuvent pas contenir d\'images ou de médias. Utilisez uniquement du texte.',
@@ -205,7 +245,7 @@ class ParticipationController extends Controller
 
         // Créer le topic
         $topic = Topic::create([
-            'title' => $validated['title'],
+            'title' => $title,
             'description' => $description,
             'idea_type' => $validated['idea_type'],
             'type' => 'debate', // Type legacy
@@ -235,14 +275,20 @@ class ParticipationController extends Controller
             }
         }
 
+        // Préparer le message de succès avec éventuels warnings
+        $successMessage = 'Votre contribution a été publiée !';
+        if (!empty($warnings)) {
+            $successMessage .= ' Note : ' . implode(' ', $warnings);
+        }
+
         // Redirection
         if ($topic->loi_cod) {
             return redirect()->route('lois.show', trim($topic->loi_cod))
-                ->with('success', 'Votre contribution a été publiée !');
+                ->with('success', $successMessage);
         }
 
         return redirect()->route('participation.ideas.show', $topic->slug ?: $topic->id)
-            ->with('success', 'Votre contribution a été publiée !');
+            ->with('success', $successMessage);
     }
 
     /**

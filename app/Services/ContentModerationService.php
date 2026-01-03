@@ -5,6 +5,10 @@ namespace App\Services;
 use App\Models\BannedWord;
 use App\Models\NiceWord;
 use App\Models\ModerationLog;
+use App\Models\Loi;
+use App\Models\ActeurAN;
+use App\Models\Senateur;
+use App\Models\Maire;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -14,6 +18,33 @@ class ContentModerationService
      * Durée du cache en secondes (1 heure)
      */
     protected const CACHE_TTL = 3600;
+
+    /**
+     * Domaines whitelistés (liens autorisés)
+     * Chargés depuis config/moderation.php
+     */
+    protected array $whitelistedDomains;
+
+    /**
+     * Patterns de références internes
+     * Chargés depuis config/moderation.php
+     */
+    protected array $internalReferencePatterns;
+
+    public function __construct()
+    {
+        // Charger la configuration
+        $this->whitelistedDomains = config('moderation.whitelisted_domains', [
+            '*.gouv.fr', 'insee.fr', 'assemblee-nationale.fr', 'senat.fr',
+        ]);
+        
+        // Charger les patterns de références
+        $patterns = config('moderation.reference_patterns', []);
+        $this->internalReferencePatterns = [];
+        foreach ($patterns as $type => $config) {
+            $this->internalReferencePatterns[$type] = $config['pattern'];
+        }
+    }
 
     /**
      * Mots gentils par défaut si la table est vide
@@ -340,6 +371,409 @@ class ContentModerationService
                 ->groupBy('category')
                 ->get()
                 ->pluck('count', 'category'),
+        ];
+    }
+
+    // =========================================================================
+    // GESTION DES LIENS
+    // =========================================================================
+
+    /**
+     * Sanitize les liens dans le contenu
+     * - Supprime les liens vers des domaines non autorisés
+     * - Conserve les liens vers les domaines whitelistés
+     * - Conserve les références internes (@loi:, @depute:, etc.)
+     * 
+     * @param string $content Le contenu à nettoyer
+     * @return array ['content' => string, 'removed_links' => array, 'kept_links' => array]
+     */
+    public function sanitizeLinks(string $content): array
+    {
+        $removedLinks = [];
+        $keptLinks = [];
+        
+        // Pattern pour détecter les URLs
+        $urlPattern = '/https?:\/\/[^\s\<\>\"\'\)\]]+/i';
+        
+        $sanitizedContent = preg_replace_callback($urlPattern, function ($match) use (&$removedLinks, &$keptLinks) {
+            $url = $match[0];
+            
+            // Extraire le domaine
+            $parsedUrl = parse_url($url);
+            $host = $parsedUrl['host'] ?? '';
+            
+            if ($this->isDomainWhitelisted($host)) {
+                $keptLinks[] = $url;
+                return $url; // Conserver le lien
+            }
+            
+            // Lien non autorisé : le remplacer par un message
+            $removedLinks[] = $url;
+            return '[lien externe supprimé]';
+        }, $content);
+        
+        return [
+            'content' => $sanitizedContent,
+            'removed_links' => $removedLinks,
+            'kept_links' => $keptLinks,
+            'links_removed_count' => count($removedLinks),
+        ];
+    }
+
+    /**
+     * Vérifie si un domaine est whitelisté
+     */
+    public function isDomainWhitelisted(string $host): bool
+    {
+        $host = strtolower($host);
+        
+        foreach ($this->whitelistedDomains as $pattern) {
+            // Wildcard pattern (*.gouv.fr)
+            if (str_starts_with($pattern, '*.')) {
+                $suffix = substr($pattern, 1); // .gouv.fr
+                if (str_ends_with($host, $suffix) || $host === substr($pattern, 2)) {
+                    return true;
+                }
+            } else {
+                // Exact match
+                if ($host === strtolower($pattern)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Obtenir la liste des domaines whitelistés
+     */
+    public function getWhitelistedDomains(): array
+    {
+        return $this->whitelistedDomains;
+    }
+
+    // =========================================================================
+    // RÉFÉRENCES INTERNES
+    // =========================================================================
+
+    /**
+     * Parse et enrichit les références internes dans le contenu
+     * Transforme @loi:2024-123 en lien cliquable avec preview
+     * 
+     * @param string $content Le contenu à parser
+     * @return array ['content' => string, 'references' => array]
+     */
+    public function parseInternalReferences(string $content): array
+    {
+        $references = [];
+        $parsedContent = $content;
+        
+        foreach ($this->internalReferencePatterns as $type => $pattern) {
+            $parsedContent = preg_replace_callback($pattern, function ($match) use ($type, &$references) {
+                $fullMatch = $match[0];
+                $identifier = $match[1];
+                
+                // Résoudre la référence
+                $resolved = $this->resolveReference($type, $identifier);
+                
+                if ($resolved) {
+                    $references[] = [
+                        'type' => $type,
+                        'identifier' => $identifier,
+                        'label' => $resolved['label'],
+                        'url' => $resolved['url'],
+                        'exists' => true,
+                    ];
+                    
+                    // Retourner le format HTML enrichi
+                    return sprintf(
+                        '<a href="%s" class="internal-ref internal-ref-%s" data-type="%s" data-id="%s" title="%s">%s</a>',
+                        $resolved['url'],
+                        $type,
+                        $type,
+                        $identifier,
+                        htmlspecialchars($resolved['label']),
+                        $fullMatch
+                    );
+                }
+                
+                // Référence non trouvée : marquer comme invalide
+                $references[] = [
+                    'type' => $type,
+                    'identifier' => $identifier,
+                    'exists' => false,
+                ];
+                
+                return sprintf(
+                    '<span class="internal-ref internal-ref-invalid" title="Référence non trouvée">%s</span>',
+                    $fullMatch
+                );
+            }, $parsedContent);
+        }
+        
+        return [
+            'content' => $parsedContent,
+            'references' => $references,
+            'valid_count' => count(array_filter($references, fn($r) => $r['exists'])),
+            'invalid_count' => count(array_filter($references, fn($r) => !$r['exists'])),
+        ];
+    }
+
+    /**
+     * Extraire les références internes sans les transformer
+     * Utile pour la validation ou les notifications
+     */
+    public function extractReferences(string $content): array
+    {
+        $references = [];
+        
+        foreach ($this->internalReferencePatterns as $type => $pattern) {
+            preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
+            
+            foreach ($matches as $match) {
+                $identifier = $match[1];
+                $resolved = $this->resolveReference($type, $identifier);
+                
+                $references[] = [
+                    'type' => $type,
+                    'identifier' => $identifier,
+                    'raw' => $match[0],
+                    'label' => $resolved['label'] ?? null,
+                    'url' => $resolved['url'] ?? null,
+                    'exists' => $resolved !== null,
+                ];
+            }
+        }
+        
+        return $references;
+    }
+
+    /**
+     * Résoudre une référence interne vers ses données
+     */
+    protected function resolveReference(string $type, string $identifier): ?array
+    {
+        return match ($type) {
+            'loi' => $this->resolveLoi($identifier),
+            'depute' => $this->resolveDepute($identifier),
+            'senateur' => $this->resolveSenateur($identifier),
+            'maire' => $this->resolveMaire($identifier),
+            'scrutin' => $this->resolveScrutin($identifier),
+            'amendement' => $this->resolveAmendement($identifier),
+            default => null,
+        };
+    }
+
+    protected function resolveLoi(string $code): ?array
+    {
+        try {
+            $loi = Cache::remember("ref_loi_{$code}", 3600, function () use ($code) {
+                return Loi::where('loicod', $code)->first(['loicod', 'loititre']);
+            });
+            
+            if ($loi) {
+                return [
+                    'label' => $loi->loititre,
+                    'url' => route('lois.show', $code),
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::debug("Reference loi not found: {$code}");
+        }
+        
+        return null;
+    }
+
+    protected function resolveDepute(string $uid): ?array
+    {
+        try {
+            $depute = Cache::remember("ref_depute_{$uid}", 3600, function () use ($uid) {
+                return ActeurAN::where('uid', $uid)->first(['uid', 'prenom', 'nom', 'slug']);
+            });
+            
+            if ($depute) {
+                return [
+                    'label' => $depute->prenom . ' ' . $depute->nom,
+                    'url' => route('representants.deputes.show', $depute->slug ?? $uid),
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::debug("Reference depute not found: {$uid}");
+        }
+        
+        return null;
+    }
+
+    protected function resolveSenateur(string $matricule): ?array
+    {
+        try {
+            $senateur = Cache::remember("ref_senateur_{$matricule}", 3600, function () use ($matricule) {
+                return Senateur::where('matricule', $matricule)->first(['matricule', 'prenom', 'nom']);
+            });
+            
+            if ($senateur) {
+                return [
+                    'label' => $senateur->prenom . ' ' . $senateur->nom,
+                    'url' => route('representants.senateurs.show', $matricule),
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::debug("Reference senateur not found: {$matricule}");
+        }
+        
+        return null;
+    }
+
+    protected function resolveMaire(string $id): ?array
+    {
+        try {
+            $maire = Cache::remember("ref_maire_{$id}", 3600, function () use ($id) {
+                return Maire::find($id, ['id', 'prenom', 'nom', 'commune']);
+            });
+            
+            if ($maire) {
+                return [
+                    'label' => $maire->prenom . ' ' . $maire->nom . ' (' . $maire->commune . ')',
+                    'url' => route('representants.maires.show', $id),
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::debug("Reference maire not found: {$id}");
+        }
+        
+        return null;
+    }
+
+    protected function resolveScrutin(string $numero): ?array
+    {
+        // Pour les scrutins, on retourne juste l'URL sans vérification
+        // Car la table peut avoir différentes structures
+        return [
+            'label' => "Scrutin #{$numero}",
+            'url' => "/scrutins/{$numero}",
+        ];
+    }
+
+    protected function resolveAmendement(string $numero): ?array
+    {
+        // Pour les amendements, on retourne juste l'URL
+        return [
+            'label' => "Amendement #{$numero}",
+            'url' => "/amendements/{$numero}",
+        ];
+    }
+
+    // =========================================================================
+    // MODÉRATION COMPLÈTE
+    // =========================================================================
+
+    /**
+     * Modération complète du contenu :
+     * 1. Remplace les mots bannis par des mots gentils
+     * 2. Supprime les liens non autorisés
+     * 3. Parse les références internes
+     * 
+     * @param string $content Le contenu à modérer
+     * @param int|null $userId L'ID de l'utilisateur
+     * @param object|null $model Le modèle associé
+     * @param array $options Options de modération
+     * @return array Résultat complet de la modération
+     */
+    public function fullModerate(
+        string $content,
+        ?int $userId = null,
+        ?object $model = null,
+        array $options = []
+    ): array {
+        $result = [
+            'original' => $content,
+            'content' => $content,
+            'blocked' => false,
+            'modifications' => [],
+        ];
+        
+        // 1. Modération des mots bannis
+        if ($options['moderate_words'] ?? true) {
+            $wordResult = $this->moderate($content, $userId, $model);
+            $result['content'] = $wordResult['content'];
+            $result['blocked'] = $wordResult['blocked'];
+            $result['word_replacements'] = $wordResult['replacements'];
+            $result['word_details'] = $wordResult['details'];
+            
+            if ($wordResult['modified']) {
+                $result['modifications'][] = 'words';
+            }
+        }
+        
+        // Si bloqué, on arrête là
+        if ($result['blocked']) {
+            return $result;
+        }
+        
+        // 2. Sanitization des liens
+        if ($options['sanitize_links'] ?? true) {
+            $linkResult = $this->sanitizeLinks($result['content']);
+            $result['content'] = $linkResult['content'];
+            $result['removed_links'] = $linkResult['removed_links'];
+            $result['kept_links'] = $linkResult['kept_links'];
+            
+            if (!empty($linkResult['removed_links'])) {
+                $result['modifications'][] = 'links';
+            }
+        }
+        
+        // 3. Parsing des références internes (optionnel, pour l'affichage)
+        if ($options['parse_references'] ?? false) {
+            $refResult = $this->parseInternalReferences($result['content']);
+            $result['content_html'] = $refResult['content'];
+            $result['references'] = $refResult['references'];
+            
+            if (!empty($refResult['references'])) {
+                $result['modifications'][] = 'references';
+            }
+        }
+        
+        $result['modified'] = !empty($result['modifications']);
+        
+        return $result;
+    }
+
+    /**
+     * Valider le contenu sans le modifier
+     * Retourne les problèmes détectés
+     */
+    public function validate(string $content): array
+    {
+        $issues = [];
+        
+        // Vérifier les mots bannis
+        $wordCheck = $this->check($content);
+        if (!$wordCheck['clean']) {
+            $issues['banned_words'] = $wordCheck['found'];
+        }
+        
+        // Vérifier les liens non autorisés
+        $linkResult = $this->sanitizeLinks($content);
+        if (!empty($linkResult['removed_links'])) {
+            $issues['external_links'] = $linkResult['removed_links'];
+        }
+        
+        // Extraire les références pour vérification
+        $references = $this->extractReferences($content);
+        $invalidRefs = array_filter($references, fn($r) => !$r['exists']);
+        if (!empty($invalidRefs)) {
+            $issues['invalid_references'] = $invalidRefs;
+        }
+        
+        return [
+            'valid' => empty($issues),
+            'issues' => $issues,
+            'summary' => [
+                'banned_words' => count($issues['banned_words'] ?? []),
+                'external_links' => count($issues['external_links'] ?? []),
+                'invalid_references' => count($issues['invalid_references'] ?? []),
+            ],
         ];
     }
 }

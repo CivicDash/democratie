@@ -1688,6 +1688,22 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
       - `/questions/senat/stats` : Statistiques détaillées
       - `/questions/senat/senateur/{matricule}` : Questions par sénateur
     - Hero banner rose/fuchsia cohérent avec l'identité Sénat
+34. ✅ **Whitelist de domaines & Références internes** :
+    - Configuration `config/moderation.php` avec :
+      - Liste des domaines autorisés (*.gouv.fr, insee.fr, europa.eu, etc.)
+      - Patterns de références internes (@loi:, @depute:, @senateur:, etc.)
+    - Service `ContentModerationService` étendu :
+      - `sanitizeLinks()` : Supprime les liens non whitelistés
+      - `parseInternalReferences()` : Transforme les @mentions en liens
+      - `fullModerate()` : Modération complète (mots + liens + références)
+      - `validate()` : Validation sans modification
+    - API `/api/content-moderation/*` :
+      - `GET /whitelisted-domains` : Liste des domaines autorisés
+      - `GET /reference-formats` : Formats des mentions supportées
+      - `POST /validate` : Validation de contenu
+      - `POST /preview` : Aperçu après modération
+      - `POST /resolve-references` : Résolution des références
+    - Intégration dans le wizard de création d'idées
 
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
@@ -1725,7 +1741,7 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
    - `two_factor_secret`, `two_factor_recovery_codes` (chiffrés)
    - `two_factor_enabled`, `two_factor_confirmed_at`
 
-### 🛡️ Modération & Qualité du contenu (T1 2026) ✅ PARTIELLEMENT IMPLÉMENTÉ
+### 🛡️ Modération & Qualité du contenu (T1 2026) ✅ IMPLÉMENTÉ
 1. [x] **Liste de mots interdits** : Système de ban words (insultes FR, spam)
    - Table `banned_words` avec catégories (insultes, spam, politique extrême, racisme, violence)
    - Table `nice_words` avec mots gentils de remplacement (emojis, animaux, compliments)
@@ -1736,14 +1752,22 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
    - Interface admin `/admin/moderation/words` pour gérer les mots
    - Historique des remplacements (table `moderation_logs`)
    - Commande `php artisan moderation:seed` pour initialiser
-2. [ ] **Pas de liens externes** : Propositions/questions/débats/pétitions/interpellations
-   - Sanitization des contenus (strip URLs)
-   - Exception : références internes au site uniquement
-   - Format interne : `@loi:2024-123`, `@depute:PA123456`, `@senat:M12345`
-3. [ ] **Références internes** : Mentions automatiques
-   - Parser `@loi:`, `@depute:`, `@senateur:`, `@maire:`, `@scrutin:`
-   - Affichage enrichi (card preview)
+2. [x] **Whitelist de domaines** : Seuls les liens officiels sont autorisés ✅ *Terminé 03/01/2026*
+   - Configuration centralisée `config/moderation.php`
+   - Domaines whitelistés : `*.gouv.fr`, `insee.fr`, `assemblee-nationale.fr`, `senat.fr`, `europa.eu`
+   - Sanitization automatique des contenus (liens non autorisés remplacés)
+   - API `/api/content-moderation/whitelisted-domains` pour consulter la liste
+   - Intégration dans `ParticipationController::ideasStore()`
+3. [x] **Références internes** : Mentions automatiques ✅ *Terminé 03/01/2026*
+   - Parser `@loi:`, `@depute:`, `@senateur:`, `@maire:`, `@scrutin:`, `@amendement:`
+   - Résolution automatique vers les entités existantes
+   - Transformation en liens cliquables HTML
+   - API `/api/content-moderation/resolve-references`
+   - Validation des références existantes
+4. [ ] **À venir** :
+   - Affichage enrichi (card preview au hover)
    - Notifications aux élus mentionnés
+   - Interface utilisateur pour insérer des références
 
 ### 👔 Espace Élus (T1 2026) ✅ IMPLÉMENTÉ
 1. [x] **Authentification élu** : Vérification identité
