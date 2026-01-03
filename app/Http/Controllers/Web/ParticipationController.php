@@ -10,6 +10,7 @@ use App\Models\TopicVote;
 use App\Models\TerritoryRegion;
 use App\Models\TerritoryDepartment;
 use App\Services\ContentModerationService;
+use App\Services\EluNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -273,6 +274,34 @@ class ParticipationController extends Controller
                     'is_interpellation' => $validated['is_interpellation'] ?? false,
                 ]);
             }
+
+            // Envoyer les notifications aux élus interpellés
+            if ($validated['is_interpellation'] ?? false) {
+                try {
+                    $eluNotificationService = app(EluNotificationService::class);
+                    $topic->load('elus');
+                    $notifiedCount = $eluNotificationService->notifyAllElusForTopic($topic);
+                    
+                    if ($notifiedCount > 0) {
+                        $warnings[] = "{$notifiedCount} élu(s) ont été notifié(s) de votre interpellation.";
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Erreur notification élus', ['error' => $e->getMessage()]);
+                }
+            }
+        }
+
+        // Notifier les élus mentionnés dans le contenu (@depute:, @senateur:, etc.)
+        try {
+            $eluNotificationService = app(EluNotificationService::class);
+            $eluNotificationService->notifyMentionsInContent(
+                auth()->user(),
+                $description,
+                route('participation.ideas.show', $topic->slug ?? $topic->id),
+                $title
+            );
+        } catch (\Exception $e) {
+            \Log::warning('Erreur notification mentions', ['error' => $e->getMessage()]);
         }
 
         // Préparer le message de succès avec éventuels warnings

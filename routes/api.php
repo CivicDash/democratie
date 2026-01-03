@@ -489,6 +489,15 @@ Route::prefix('content-moderation')->name('content-moderation.')->group(function
     });
 });
 
+// ============================================================================
+// PREVIEWS DE RÉFÉRENCES - Pour le composant ReferencePreview.vue
+// ============================================================================
+
+Route::prefix('references')->name('references.')->group(function () {
+    Route::get('/preview/{type}/{identifier}', [App\Http\Controllers\Api\ReferencePreviewController::class, 'preview'])->name('preview');
+    Route::post('/resolve-multiple', [App\Http\Controllers\Api\ReferencePreviewController::class, 'resolveMultiple'])->name('resolve_multiple');
+});
+
 Route::fallback(function () {
     return response()->json([
         'message' => 'Endpoint introuvable. Vérifiez l\'URL et la méthode HTTP.',

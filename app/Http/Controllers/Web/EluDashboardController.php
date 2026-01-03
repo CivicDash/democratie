@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\TopicElu;
 use App\Models\Topic;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -213,7 +214,25 @@ class EluDashboardController extends Controller
             'answered_at' => now(),
         ]);
 
-        // TODO: Notifier l'auteur de l'interpellation
+        // Notifier l'auteur de l'interpellation
+        $topic = $interpellation->topic;
+        if ($topic && $topic->author) {
+            $eluName = $interpellation->elu_nom ?? 'Un élu';
+            app(NotificationService::class)->notify(
+                $topic->author,
+                'response',
+                "✅ Réponse à votre interpellation !",
+                "{$eluName} a répondu à votre interpellation \"{$topic->title}\"",
+                route('participation.ideas.show', $topic->slug ?? $topic->id),
+                '✅',
+                [
+                    'topic_id' => $topic->id,
+                    'topic_elu_id' => $interpellation->id,
+                    'elu_type' => $interpellation->elu_type,
+                    'elu_id' => $interpellation->elu_id,
+                ]
+            );
+        }
 
         return redirect()->route('elu.interpellations.show', $interpellation)
             ->with('success', 'Votre réponse a été publiée !');

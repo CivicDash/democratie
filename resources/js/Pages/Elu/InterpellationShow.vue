@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
@@ -12,6 +12,8 @@ const props = defineProps({
 });
 
 const showDeclineModal = ref(false);
+const showTemplates = ref(false);
+const showTips = ref(true);
 
 const responseForm = useForm({
     response_content: '',
@@ -19,6 +21,99 @@ const responseForm = useForm({
 
 const declineForm = useForm({
     reason: '',
+});
+
+// Templates de réponse
+const responseTemplates = [
+    {
+        id: 'acknowledgment',
+        name: 'Prise en compte',
+        icon: '✅',
+        template: `Madame, Monsieur,
+
+Je vous remercie pour votre interpellation concernant ${props.topic.title}.
+
+Votre préoccupation a bien été prise en compte. Je m'engage à examiner attentivement les points que vous soulevez et à y apporter une réponse dans les meilleurs délais.
+
+Bien cordialement,`,
+    },
+    {
+        id: 'detailed',
+        name: 'Réponse détaillée',
+        icon: '📝',
+        template: `Madame, Monsieur,
+
+Je vous remercie pour votre interpellation sur le sujet "${props.topic.title}".
+
+[Contexte et analyse de la situation]
+
+[Actions entreprises ou envisagées]
+
+[Calendrier et prochaines étapes]
+
+Je reste à votre disposition pour tout complément d'information.
+
+Bien cordialement,`,
+    },
+    {
+        id: 'redirect',
+        name: 'Orientation vers un autre interlocuteur',
+        icon: '🔄',
+        template: `Madame, Monsieur,
+
+Je vous remercie de m'avoir interpellé sur "${props.topic.title}".
+
+Après examen, il me semble que cette question relève principalement de la compétence de [organisme/élu compétent]. Je vous invite donc à vous rapprocher de [contact].
+
+Néanmoins, je reste attentif(ve) à ce dossier et me tiens disponible pour toute question complémentaire relevant de mes attributions.
+
+Bien cordialement,`,
+    },
+    {
+        id: 'legislative',
+        name: 'Action législative',
+        icon: '⚖️',
+        template: `Madame, Monsieur,
+
+Je vous remercie pour votre interpellation concernant "${props.topic.title}".
+
+Cette question fait l'objet de mes préoccupations et [j'ai déposé un amendement/une proposition de loi / je soutiens activement le texte en cours d'examen] afin d'apporter des réponses concrètes.
+
+[Détails de l'action législative]
+
+Je vous tiendrai informé(e) de l'évolution de ce dossier.
+
+Bien cordialement,`,
+    },
+];
+
+// Conseils de rédaction
+const writingTips = [
+    { icon: '👋', text: 'Commencez par remercier le citoyen pour son interpellation' },
+    { icon: '🎯', text: 'Répondez directement aux points soulevés dans la question' },
+    { icon: '📊', text: 'Citez des chiffres ou des faits concrets si possible' },
+    { icon: '🔗', text: 'Mentionnez les actions concrètes que vous avez entreprises ou comptez entreprendre' },
+    { icon: '⏱️', text: 'Si vous ne pouvez pas répondre immédiatement, donnez un délai' },
+    { icon: '🤝', text: 'Restez courtois et professionnel, même en cas de désaccord' },
+];
+
+function applyTemplate(template) {
+    responseForm.response_content = template.template;
+    showTemplates.value = false;
+}
+
+// Calcul du temps depuis la création
+const daysSinceCreation = computed(() => {
+    if (!props.interpellation.created_at) return 0;
+    const created = new Date(props.interpellation.created_at);
+    const now = new Date();
+    return Math.floor((now - created) / (1000 * 60 * 60 * 24));
+});
+
+const urgencyLevel = computed(() => {
+    if (daysSinceCreation.value >= 14) return { label: 'Urgente', color: 'rose', icon: '🚨' };
+    if (daysSinceCreation.value >= 7) return { label: 'À traiter', color: 'amber', icon: '⚠️' };
+    return { label: 'Récente', color: 'emerald', icon: '🟢' };
 });
 
 function submitResponse() {
@@ -176,9 +271,79 @@ const breadcrumbs = [
 
                     <!-- Formulaire de réponse -->
                     <Card v-else>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                            ✍️ Répondre à cette interpellation
-                        </h2>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                ✍️ Répondre à cette interpellation
+                            </h2>
+                            <!-- Indicateur d'urgence -->
+                            <span 
+                                class="px-3 py-1 rounded-full text-sm font-medium"
+                                :class="{
+                                    'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400': urgencyLevel.color === 'rose',
+                                    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': urgencyLevel.color === 'amber',
+                                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': urgencyLevel.color === 'emerald',
+                                }"
+                            >
+                                {{ urgencyLevel.icon }} {{ urgencyLevel.label }} · {{ daysSinceCreation }} jour(s)
+                            </span>
+                        </div>
+
+                        <!-- Conseils de rédaction -->
+                        <div v-if="showTips" class="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-semibold text-indigo-800 dark:text-indigo-300">
+                                    💡 Conseils pour une réponse efficace
+                                </h3>
+                                <button 
+                                    @click="showTips = false"
+                                    class="text-indigo-400 hover:text-indigo-600"
+                                >✕</button>
+                            </div>
+                            <ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <li 
+                                    v-for="tip in writingTips" 
+                                    :key="tip.text"
+                                    class="flex items-start gap-2 text-sm text-indigo-700 dark:text-indigo-400"
+                                >
+                                    <span class="shrink-0">{{ tip.icon }}</span>
+                                    <span>{{ tip.text }}</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Modèles de réponse -->
+                        <div class="mb-6">
+                            <button
+                                @click="showTemplates = !showTemplates"
+                                class="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition"
+                            >
+                                📋 {{ showTemplates ? 'Masquer les modèles' : 'Utiliser un modèle de réponse' }}
+                                <svg 
+                                    class="w-4 h-4 transition-transform" 
+                                    :class="{ 'rotate-180': showTemplates }"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <div v-if="showTemplates" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <button
+                                    v-for="template in responseTemplates"
+                                    :key="template.id"
+                                    @click="applyTemplate(template)"
+                                    class="flex items-start gap-3 p-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-500 dark:hover:border-indigo-400 transition text-left group"
+                                >
+                                    <span class="text-2xl group-hover:scale-110 transition-transform">{{ template.icon }}</span>
+                                    <div>
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ template.name }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Cliquez pour appliquer ce modèle
+                                        </p>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
                         
                         <form @submit.prevent="submitResponse" class="space-y-4">
                             <div>
@@ -187,9 +352,9 @@ const breadcrumbs = [
                                 </label>
                                 <textarea
                                     v-model="responseForm.response_content"
-                                    rows="8"
+                                    rows="12"
                                     placeholder="Rédigez votre réponse au citoyen... (minimum 50 caractères)"
-                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 resize-y font-sans text-base leading-relaxed"
                                     :class="{ 'border-red-500': responseForm.errors.response_content }"
                                 ></textarea>
                                 <div class="flex items-center justify-between mt-2">
@@ -205,14 +370,24 @@ const breadcrumbs = [
                                 </div>
                             </div>
 
+                            <!-- Prévisualisation -->
+                            <div v-if="responseForm.response_content.length > 50" class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                    👁️ Aperçu de votre réponse :
+                                </p>
+                                <div class="prose dark:prose-invert prose-sm max-w-none">
+                                    <p class="whitespace-pre-wrap text-gray-700 dark:text-gray-300">{{ responseForm.response_content }}</p>
+                                </div>
+                            </div>
+
                             <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                 <button
                                     type="submit"
                                     :disabled="responseForm.processing || responseForm.response_content.length < 50"
                                     :class="[
-                                        'px-6 py-3 rounded-xl font-medium transition-all',
+                                        'px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2',
                                         responseForm.response_content.length >= 50
-                                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/25 hover:shadow-xl hover:shadow-emerald-600/30'
                                             : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
                                     ]"
                                 >
@@ -223,11 +398,16 @@ const breadcrumbs = [
                                 <button
                                     type="button"
                                     @click="showDeclineModal = true"
-                                    class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition"
+                                    class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition flex items-center gap-2"
                                 >
                                     ❌ Décliner
                                 </button>
                             </div>
+
+                            <!-- Note informative -->
+                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                ⚠️ Votre réponse sera publique et visible par tous les citoyens. L'auteur sera notifié.
+                            </p>
                         </form>
                     </Card>
 

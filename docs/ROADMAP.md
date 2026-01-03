@@ -936,9 +936,24 @@ ALTER TABLE topics ADD COLUMN score INT DEFAULT 0;
 - [x] Recherche élus par département/région basée sur la portée géographique
 - [x] Mise à jour contraintes CHECK PostgreSQL (scope, status, type)
 - [x] Design full-width + filtres mobile redesignés
+- [x] **Interpellation : notification à l'élu (email)** ✅ *Terminé 03/01/2026*
+  - Mail `InterpellationNotificationMail` avec template Blade
+  - Service `EluNotificationService` centralisé
+  - Notification in-app + email aux élus ayant un compte
+  - Statuts de notification : `notified_at`, `email_sent_at`, `viewed_at`
+- [x] **Réponses d'élus (interface améliorée)** ✅ *Terminé 03/01/2026*
+  - Modèles de réponse pré-rédigés (prise en compte, détaillée, orientation, action législative)
+  - Conseils de rédaction affichables
+  - Indicateur d'urgence (récente, à traiter, urgente)
+  - Prévisualisation de la réponse
+  - Notification à l'auteur lors de la réponse
+- [x] **Références internes avec preview** ✅ *Terminé 03/01/2026*
+  - Composant `ReferencePreview.vue` : card au hover sur @depute:, @senateur:, etc.
+  - Composant `RichContent.vue` : parser et affichage avec références enrichies
+  - Composant `ReferenceInput.vue` : autocomplete lors de la saisie des mentions
+  - API `/api/references/preview/{type}/{identifier}` pour les données
+  - Notifications aux élus mentionnés dans le contenu
 - [ ] Suggestions IA pour tags (basé sur titre/description)
-- [ ] Interpellation : notification à l'élu (email)
-- [ ] Réponses d'élus (interface dédiée)
 - [ ] Modération admin améliorée
 - [ ] Gamification (badges participation)
 
@@ -1704,11 +1719,29 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
       - `POST /preview` : Aperçu après modération
       - `POST /resolve-references` : Résolution des références
     - Intégration dans le wizard de création d'idées
+35. ✅ **Notifications emails aux élus interpellés** :
+    - Mail `InterpellationNotificationMail` avec template Blade responsive
+    - Service `EluNotificationService` pour envoi coordonné in-app + email
+    - Colonnes `notified_at`, `email_sent_at`, `viewed_at` sur `topic_elus`
+    - Notification à l'auteur lorsque l'élu répond
+36. ✅ **Interface réponses élus améliorée** :
+    - 4 modèles de réponse pré-rédigés (prise en compte, détaillée, orientation, législatif)
+    - 6 conseils de rédaction affichables/masquables
+    - Indicateur d'urgence avec couleur (récente/à traiter/urgente)
+    - Prévisualisation live de la réponse
+    - Compteur de caractères et validation
+37. ✅ **Composants Vue pour références enrichies** :
+    - `ReferencePreview.vue` : Card preview au hover avec photo, groupe, lien
+    - `RichContent.vue` : Parser de contenu avec badges colorés pour @mentions
+    - `ReferenceInput.vue` : Textarea avec autocomplete intelligent
+    - API `/api/references/preview/{type}/{identifier}`
+    - Support : @depute:, @senateur:, @maire:, @loi:, @scrutin:, @amendement:
 
 ### 🔄 En cours
 1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
 2. ✅ Interpellation des élus → **TERMINÉ**
 3. ✅ Menu "État" restructuré → **TERMINÉ**
+4. ✅ Notifications élus & Interface réponses → **TERMINÉ**
 
 ### 🔴 Priorité T1 2026 - Données Gouvernementales
 1. [x] **Import Budget de l'État** (data.gouv.fr PLF) ✅ *Terminé 01/01/2026*

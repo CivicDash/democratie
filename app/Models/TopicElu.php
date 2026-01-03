@@ -23,6 +23,8 @@ class TopicElu extends Model
         'elu_id',
         'is_interpellation',
         'response_status',
+        'notified_at',
+        'email_sent_at',
         'viewed_at',
         'answered_at',
         'response_content',
@@ -30,6 +32,8 @@ class TopicElu extends Model
 
     protected $casts = [
         'is_interpellation' => 'boolean',
+        'notified_at' => 'datetime',
+        'email_sent_at' => 'datetime',
         'viewed_at' => 'datetime',
         'answered_at' => 'datetime',
     ];
