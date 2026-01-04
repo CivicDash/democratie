@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Topic;
 use App\Models\PropositionLoi;
 use App\Models\VotePropositionLoi;
+use App\Models\Loi;
+use App\Models\CitizenLawStats;
 use App\Models\UserAllocation;
 use App\Models\TopicBallot;
 use App\Models\GroupeParlementaire;
@@ -56,24 +58,83 @@ class DashboardController extends Controller
                 });
         });
 
-        // 🏛️ PROPOSITIONS DE LOI TENDANCES (par score de vote) - Cache 10 min
-        $propositionsLegislatives = Cache::remember('dashboard_propositions', 600, function () {
-            return PropositionLoi::orderByDesc('score_vote')
-                ->limit(5)
-                ->get()
-                ->map(function ($prop) {
-                    $stats = VotePropositionLoi::getPropositionStats($prop->id);
-                    return [
-                        'id' => $prop->id,
-                        'loicod' => $prop->loicod,
-                        'numero' => $prop->numero,
-                        'titre' => $prop->titre,
-                        'source' => $prop->source,
-                        'statut' => $prop->statut,
-                        'date_depot' => $prop->date_depot?->format('d/m/Y'),
-                        'votes_stats' => $stats,
-                    ];
-                });
+        // 🏛️ LOIS TENDANCES (vraies lois avec votes citoyens) - Cache 10 min
+        $propositionsLegislatives = Cache::remember('dashboard_lois_tendances', 600, function () {
+            // Récupérer les lois les plus votées par les citoyens
+            $loisStats = CitizenLawStats::orderByDesc('total_votes')
+                ->limit(10)
+                ->get();
+            
+            $loisCodes = $loisStats->pluck('loi_cod')->toArray();
+            
+            // Récupérer les détails des lois
+            $lois = Loi::whereIn('loicod', $loisCodes)->get()->keyBy('loicod');
+            
+            $result = $loisStats->take(5)->map(function ($stats) use ($lois) {
+                $loi = $lois[$stats->loi_cod] ?? null;
+                if (!$loi) return null;
+                
+                // Déterminer la source (AN ou Sénat) selon le code de la loi
+                $source = str_starts_with($stats->loi_cod, 'a') ? 'assemblee' : 'senat';
+                
+                return [
+                    'id' => $stats->id,
+                    'loicod' => $stats->loi_cod,
+                    'numero' => $loi->numero ?? substr($stats->loi_cod, -4),
+                    'titre' => $loi->loitit ?: $loi->loiint ?: 'Loi ' . $stats->loi_cod,
+                    'source' => $source,
+                    'statut' => $loi->etat?->etaloilib ?? 'En cours',
+                    'date_depot' => null,
+                    'votes_stats' => [
+                        'upvotes' => $stats->votes_pour,
+                        'downvotes' => $stats->votes_contre,
+                        'score' => $stats->score ?? ($stats->votes_pour - $stats->votes_contre),
+                        'pourcentage_pour' => $stats->total_votes > 0 
+                            ? round(($stats->votes_pour / $stats->total_votes) * 100) 
+                            : 50,
+                    ],
+                ];
+            })->filter()->values();
+            
+            // Si pas assez de lois votées, compléter avec des lois récentes importantes
+            if ($result->count() < 5) {
+                $existingCodes = $result->pluck('loicod')->toArray();
+                
+                $loisRecentes = Loi::whereNotNull('loitit')
+                    ->whereNotIn('loicod', $existingCodes)
+                    ->whereHas('etat', fn($q) => $q->whereIn('etaloicod', ['PROMULGUE', 'ADOPDEF', 'ENCOURS']))
+                    ->orderByDesc('date_loi')
+                    ->limit(5 - $result->count())
+                    ->get()
+                    ->map(function ($loi) {
+                        $source = str_starts_with($loi->loicod, 'a') ? 'assemblee' : 'senat';
+                        
+                        // Récupérer les stats de vote citoyen si elles existent
+                        $stats = CitizenLawStats::where('loi_cod', $loi->loicod)->first();
+                        
+                        return [
+                            'id' => $loi->loicod,
+                            'loicod' => $loi->loicod,
+                            'numero' => $loi->numero ?? substr($loi->loicod, -4),
+                            'titre' => $loi->loitit ?: $loi->loiint,
+                            'source' => $source,
+                            'statut' => $loi->etat?->etaloilib ?? 'En cours',
+                            'date_depot' => null,
+                            'votes_stats' => [
+                                'upvotes' => $stats?->votes_pour ?? 0,
+                                'downvotes' => $stats?->votes_contre ?? 0,
+                                'score' => $stats?->score ?? 0,
+                                'pourcentage_pour' => $stats && $stats->total_votes > 0 
+                                    ? round(($stats->votes_pour / $stats->total_votes) * 100) 
+                                    : 50,
+                            ],
+                        ];
+                    });
+                
+                $result = $result->concat($loisRecentes);
+            }
+            
+            return $result->take(5);
         });
 
         // 🗳️ VOTES EN COURS (topics avec scrutin actif)
