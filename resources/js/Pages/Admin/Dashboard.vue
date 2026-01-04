@@ -346,6 +346,13 @@ const getStatusClass = (status) => {
                             
                             <div class="p-4 grid grid-cols-2 gap-3">
                                 <Link
+                                    :href="route('admin.users.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition border border-indigo-200 dark:border-indigo-700"
+                                >
+                                    <span class="text-2xl">👤</span>
+                                    <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300">Utilisateurs</span>
+                                </Link>
+                                <Link
                                     :href="route('admin.gouvernement.index')"
                                     class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                                 >
@@ -374,6 +381,13 @@ const getStatusClass = (status) => {
                                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Modération</span>
                                 </Link>
                                 <Link
+                                    :href="route('admin.moderation.words')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition border border-amber-200 dark:border-amber-700"
+                                >
+                                    <span class="text-2xl">🚫</span>
+                                    <span class="text-sm font-medium text-amber-700 dark:text-amber-300">Mots bannis</span>
+                                </Link>
+                                <Link
                                     :href="route('admin.imports')"
                                     class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                                 >
@@ -393,6 +407,13 @@ const getStatusClass = (status) => {
                                 >
                                     <span class="text-2xl">🏠</span>
                                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Dashboard</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.budget.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition border border-green-200 dark:border-green-700"
+                                >
+                                    <span class="text-2xl">💰</span>
+                                    <span class="text-sm font-medium text-green-700 dark:text-green-300">Budget</span>
                                 </Link>
                             </div>
                         </div>
