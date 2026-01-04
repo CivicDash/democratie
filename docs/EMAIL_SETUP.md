@@ -1,14 +1,64 @@
-# 📧 Configuration Email CivicDash
+# 📧 Configuration Email Civis Consilium
 
 **Domaine :** `civis-consilium.eu`
 
 ---
 
-## 🚀 Configuration actuelle (Développement)
+## 🏗️ Architecture
 
-### Mailpit - Serveur mail local
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    civis-consilium.eu                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   mail.civis-consilium.eu          app.civis-consilium.eu   │
+│   ┌─────────────────────┐          ┌──────────────────────┐ │
+│   │     BlueMind        │          │     CivicDash        │ │
+│   │                     │◄─────────│                      │ │
+│   │  • Webmail          │   SMTP   │  • Notifications     │ │
+│   │  • Calendrier       │          │  • Interpellations   │ │
+│   │  • Contacts         │          │  • 2FA               │ │
+│   │                     │          │                      │ │
+│   │  Adresses:          │          │                      │ │
+│   │  • president@       │          │                      │ │
+│   │  • secretaire@      │          │                      │ │
+│   │  • tresorier@       │          │                      │ │
+│   │  • contact@         │          │                      │ │
+│   │  • noreply@         │          │                      │ │
+│   └─────────────────────┘          └──────────────────────┘ │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Mailpit capture tous les emails pour les visualiser sans les envoyer réellement.
+---
+
+## 📬 Adresses email prévues
+
+### Conseil d'Administration
+| Adresse | Usage |
+|---------|-------|
+| `president@civis-consilium.eu` | Président(e) |
+| `secretaire@civis-consilium.eu` | Secrétaire |
+| `tresorier@civis-consilium.eu` | Trésorier(ère) |
+| `bureau@civis-consilium.eu` | Bureau (alias groupe) |
+
+### Application
+| Adresse | Usage |
+|---------|-------|
+| `noreply@civis-consilium.eu` | Notifications automatiques |
+| `contact@civis-consilium.eu` | Support utilisateurs |
+| `moderation@civis-consilium.eu` | Signalements |
+
+### Membres (optionnel)
+| Format | Usage |
+|--------|-------|
+| `prenom.nom@civis-consilium.eu` | Membres actifs |
+
+---
+
+## 🚀 Configuration Développement (Mailpit)
+
+Mailpit capture les emails pour test sans les envoyer.
 
 **Configuration `.env` :**
 ```env
@@ -22,75 +72,62 @@ MAIL_FROM_ADDRESS=noreply@civis-consilium.eu
 MAIL_FROM_NAME="Civis Consilium"
 ```
 
-**Accès interface web :** http://localhost:8025
+**Interface :** http://localhost:8025
 
-Si `MAILPIT_AUTH` est configuré dans `.env`, une authentification sera requise.
-
-**Démarrer Mailpit :**
 ```bash
 docker compose up -d mailpit
 ```
 
 ---
 
-## 🏭 Configuration Production
+## 🏭 Configuration Production (BlueMind)
 
-### Option 1 : Brevo (ex-Sendinblue) 🇫🇷 - Recommandé
+### Configuration `.env` CivicDash
 
-Service français, 300 emails/jour gratuits, conforme RGPD.
-
-**Configuration `.env` :**
 ```env
 MAIL_MAILER=smtp
-MAIL_HOST=smtp-relay.brevo.com
+MAIL_HOST=mail.civis-consilium.eu
 MAIL_PORT=587
-MAIL_USERNAME=votre-email@civis-consilium.eu
-MAIL_PASSWORD=votre-clé-smtp-brevo
+MAIL_USERNAME=noreply@civis-consilium.eu
+MAIL_PASSWORD=MotDePasseDansEnvUniquement
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=noreply@civis-consilium.eu
 MAIL_FROM_NAME="Civis Consilium"
 ```
 
-### Option 2 : Mailjet 🇫🇷
-
-200 emails/jour gratuits.
-
-```env
-MAIL_MAILER=smtp
-MAIL_HOST=in-v3.mailjet.com
-MAIL_PORT=587
-MAIL_USERNAME=votre-api-key
-MAIL_PASSWORD=votre-api-secret
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=noreply@civis-consilium.eu
-MAIL_FROM_NAME="Civis Consilium"
-```
-
----
-
-## 🌐 DNS à configurer pour civis-consilium.eu
-
-### Enregistrements requis
+### DNS requis pour BlueMind
 
 ```dns
-# SPF - Autorise les serveurs à envoyer des emails
-civis-consilium.eu.  TXT  "v=spf1 include:sendinblue.com ~all"
+# MX - Réception des emails
+civis-consilium.eu.           MX     10 mail.civis-consilium.eu.
 
-# OU pour Mailjet :
-civis-consilium.eu.  TXT  "v=spf1 include:spf.mailjet.com ~all"
+# A - Serveur mail
+mail.civis-consilium.eu.      A      <IP_SERVEUR_BLUEMIND>
 
-# DKIM - Fourni par le service (Brevo/Mailjet)
-# Exemple Brevo :
-mail._domainkey.civis-consilium.eu.  TXT  "k=rsa; p=MIGf..."
+# SPF - Autorisation d'envoi
+civis-consilium.eu.           TXT    "v=spf1 mx a:mail.civis-consilium.eu ~all"
 
-# DMARC - Politique de gestion des échecs
-_dmarc.civis-consilium.eu.  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@civis-consilium.eu"
+# DKIM - Signature (généré par BlueMind)
+selector._domainkey.civis-consilium.eu.  TXT  "v=DKIM1; k=rsa; p=..."
+
+# DMARC - Politique
+_dmarc.civis-consilium.eu.    TXT    "v=DMARC1; p=quarantine; rua=mailto:dmarc@civis-consilium.eu"
+
+# Autodiscover (Outlook)
+autodiscover.civis-consilium.eu.  CNAME  mail.civis-consilium.eu.
+
+# Autoconfig (Thunderbird)
+autoconfig.civis-consilium.eu.    CNAME  mail.civis-consilium.eu.
 ```
 
-### MX (si réception d'emails nécessaire)
-```dns
-civis-consilium.eu.  MX  10 mail.civis-consilium.eu.
-```
+### Ports à ouvrir (BlueMind)
+
+| Port | Service | Usage |
+|------|---------|-------|
+| 25 | SMTP | Réception emails |
+| 587 | SMTP/TLS | Envoi authentifié |
+| 993 | IMAPS | Client mail (lecture) |
+| 443 | HTTPS | Webmail BlueMind |
 
 ---
 
