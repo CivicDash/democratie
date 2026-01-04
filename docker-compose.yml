@@ -152,12 +152,31 @@ services:
     networks:
       - civicdash
 
+  # Mailpit - Serveur mail local (dev/test)
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: civicdash_mail
+    restart: unless-stopped
+    ports:
+      - "8025:8025"   # Interface web
+      - "1025:1025"   # SMTP
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_UI_AUTH: ${MAILPIT_AUTH:-}
+    volumes:
+      - mailpit_data:/data
+    networks:
+      - civicdash
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
   meilisearch_data:
+    driver: local
+  mailpit_data:
     driver: local
 
 networks:
