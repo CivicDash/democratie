@@ -180,28 +180,29 @@ class RepresentantANController extends Controller
             ];
         }
 
-        // Déclarations HATVP avec détail des revenus
-        $declarationsHatvp = [];
-        $hatvpSummary = null;
-        try {
-            $declarations = \App\Models\HatvpDeclaration::with([
-                'mandatsElectifs.remunerations',
-                'activitesProfessionnelles.remunerations',
-                'activitesConsultant.remunerations',
-                'participationsDirigeantes.remunerations',
-                'collaborateurs',
-                'fonctionsBenevoles',
-            ])
-            ->where('parlementaire_type', 'depute')
-            ->where(function($q) use ($uid, $acteur) {
-                $q->where('parlementaire_id', $uid)
-                  ->orWhere(function($q2) use ($acteur) {
-                      $q2->where('nom', 'ILIKE', $acteur->nom)
-                         ->where('prenom', 'ILIKE', $acteur->prenom);
-                  });
-            })
-            ->orderBy('date_depot', 'desc')
-            ->get();
+        // Déclarations HATVP avec détail des revenus (cache 1h)
+        $hatvpData = Cache::remember("hatvp_depute_{$uid}", 3600, function () use ($uid, $acteur) {
+            $declarationsHatvp = [];
+            $hatvpSummary = null;
+            try {
+                $declarations = \App\Models\HatvpDeclaration::with([
+                    'mandatsElectifs.remunerations',
+                    'activitesProfessionnelles.remunerations',
+                    'activitesConsultant.remunerations',
+                    'participationsDirigeantes.remunerations',
+                    'collaborateurs',
+                    'fonctionsBenevoles',
+                ])
+                ->where('parlementaire_type', 'depute')
+                ->where(function($q) use ($uid, $acteur) {
+                    $q->where('parlementaire_id', $uid)
+                      ->orWhere(function($q2) use ($acteur) {
+                          $q2->where('nom', 'ILIKE', $acteur->nom)
+                             ->where('prenom', 'ILIKE', $acteur->prenom);
+                      });
+                })
+                ->orderBy('date_depot', 'desc')
+                ->get();
 
             $declarationsHatvp = $declarations->map(fn($d) => [
                 'uuid' => $d->uuid,
@@ -290,36 +291,42 @@ class RepresentantANController extends Controller
                     ])->toArray(),
                 ];
             }
-        } catch (\Exception $e) {
-            // Table peut ne pas exister encore
-        }
+            } catch (\Exception $e) {
+                // Table peut ne pas exister encore
+            }
+            return ['declarations' => $declarationsHatvp, 'summary' => $hatvpSummary];
+        });
+        $declarationsHatvp = $hatvpData['declarations'];
+        $hatvpSummary = $hatvpData['summary'];
 
-        // Récupérer les 10 derniers votes avec les scrutins
-        $derniersVotes = VoteIndividuelAN::where('acteur_ref', $uid)
-            ->whereHas('scrutin', fn($q) => $q->where('legislature', 17))
-            ->with(['scrutin'])
-            ->orderByDesc(
-                \App\Models\ScrutinAN::select('date_scrutin')
-                    ->whereColumn('scrutins_an.uid', 'votes_individuels_an.scrutin_ref')
-                    ->limit(1)
-            )
-            ->limit(10)
-            ->get()
-            ->map(function($vote) {
-                $scrutin = $vote->scrutin;
-                return [
-                    'id' => $vote->id,
-                    'position' => $vote->position,
-                    'date' => $scrutin->date_scrutin?->format('d/m/Y'),
-                    'scrutin' => [
-                        'uid' => $scrutin->uid,
-                        'titre' => $scrutin->titre,
-                        'resultat' => $scrutin->resultat_format,
-                        'pour' => $scrutin->pour_calcule,
-                        'contre' => $scrutin->contre_calcule,
-                    ],
-                ];
-            });
+        // Récupérer les 10 derniers votes avec les scrutins (cache 30 min)
+        $derniersVotes = Cache::remember("depute_votes_{$uid}", 1800, function () use ($uid) {
+            return VoteIndividuelAN::where('acteur_ref', $uid)
+                ->whereHas('scrutin', fn($q) => $q->where('legislature', 17))
+                ->with(['scrutin'])
+                ->orderByDesc(
+                    \App\Models\ScrutinAN::select('date_scrutin')
+                        ->whereColumn('scrutins_an.uid', 'votes_individuels_an.scrutin_ref')
+                        ->limit(1)
+                )
+                ->limit(10)
+                ->get()
+                ->map(function($vote) {
+                    $scrutin = $vote->scrutin;
+                    return [
+                        'id' => $vote->id,
+                        'position' => $vote->position,
+                        'date' => $scrutin->date_scrutin?->format('d/m/Y'),
+                        'scrutin' => [
+                            'uid' => $scrutin->uid,
+                            'titre' => $scrutin->titre,
+                            'resultat' => $scrutin->resultat_format,
+                            'pour' => $scrutin->pour_calcule,
+                            'contre' => $scrutin->contre_calcule,
+                        ],
+                    ];
+                });
+        });
 
         return Inertia::render('Representants/Deputes/Show', [
             'depute' => [
@@ -383,28 +390,30 @@ class RepresentantANController extends Controller
     }
 
     /**
-     * Statistiques des questions pour un député
+     * Statistiques des questions pour un député (cache 1h)
      */
     protected function getQuestionsStats(string $uid): array
     {
-        $total = QuestionAN::where('acteur_ref', $uid)->count();
-        $repondues = QuestionAN::where('acteur_ref', $uid)->whereNotNull('date_reponse')->count();
-        
-        $parRubrique = QuestionAN::where('acteur_ref', $uid)
-            ->selectRaw('rubrique, count(*) as nb')
-            ->groupBy('rubrique')
-            ->orderByDesc('nb')
-            ->limit(5)
-            ->get()
-            ->map(fn($r) => ['rubrique' => $r->rubrique, 'nb' => $r->nb])
-            ->toArray();
+        return Cache::remember("depute_questions_stats_{$uid}", 3600, function () use ($uid) {
+            $total = QuestionAN::where('acteur_ref', $uid)->count();
+            $repondues = QuestionAN::where('acteur_ref', $uid)->whereNotNull('date_reponse')->count();
+            
+            $parRubrique = QuestionAN::where('acteur_ref', $uid)
+                ->selectRaw('rubrique, count(*) as nb')
+                ->groupBy('rubrique')
+                ->orderByDesc('nb')
+                ->limit(5)
+                ->get()
+                ->map(fn($r) => ['rubrique' => $r->rubrique, 'nb' => $r->nb])
+                ->toArray();
 
-        return [
-            'total' => $total,
-            'repondues' => $repondues,
-            'en_attente' => $total - $repondues,
-            'par_rubrique' => $parRubrique,
-        ];
+            return [
+                'total' => $total,
+                'repondues' => $repondues,
+                'en_attente' => $total - $repondues,
+                'par_rubrique' => $parRubrique,
+            ];
+        });
     }
 
     /**
@@ -460,24 +469,34 @@ class RepresentantANController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        // Statistiques
-        $statsQuery = VoteIndividuelAN::where('acteur_ref', $uid)
-            ->whereHas('scrutin', fn($q) => $q->where('legislature', 17));
-        
-        $total = $statsQuery->count();
-        $pour = $statsQuery->clone()->where('position', 'pour')->count();
-        $contre = $statsQuery->clone()->where('position', 'contre')->count();
-        $abstention = $statsQuery->clone()->where('position', 'abstention')->count();
+        // Statistiques (cache 1h)
+        $statistiques = Cache::remember("depute_votes_stats_{$uid}_l17", 3600, function () use ($uid) {
+            // Récupérer les IDs de scrutins de la legislature 17
+            $scrutinIds = \App\Models\ScrutinAN::where('legislature', 17)->pluck('uid');
+            
+            // Requête optimisée avec un seul COUNT groupé
+            $positionCounts = VoteIndividuelAN::where('acteur_ref', $uid)
+                ->whereIn('scrutin_ref', $scrutinIds)
+                ->selectRaw('position, COUNT(*) as count')
+                ->groupBy('position')
+                ->pluck('count', 'position')
+                ->toArray();
+            
+            $pour = $positionCounts['pour'] ?? 0;
+            $contre = $positionCounts['contre'] ?? 0;
+            $abstention = $positionCounts['abstention'] ?? 0;
+            $total = array_sum($positionCounts);
 
-        $statistiques = [
-            'total' => $total,
-            'pour' => $pour,
-            'contre' => $contre,
-            'abstention' => $abstention,
-            'pour_percent' => $total > 0 ? round(($pour / $total) * 100, 1) : 0,
-            'contre_percent' => $total > 0 ? round(($contre / $total) * 100, 1) : 0,
-            'abstention_percent' => $total > 0 ? round(($abstention / $total) * 100, 1) : 0,
-        ];
+            return [
+                'total' => $total,
+                'pour' => $pour,
+                'contre' => $contre,
+                'abstention' => $abstention,
+                'pour_percent' => $total > 0 ? round(($pour / $total) * 100, 1) : 0,
+                'contre_percent' => $total > 0 ? round(($contre / $total) * 100, 1) : 0,
+                'abstention_percent' => $total > 0 ? round(($abstention / $total) * 100, 1) : 0,
+            ];
+        });
 
         // Transformer les votes
         $votesData = $votes->through(function($vote) {
@@ -905,25 +924,11 @@ class RepresentantANController extends Controller
             ];
         }
 
-        // Déclarations HATVP avec données enrichies
-        $declarationsHatvp = [];
-        $hatvpSummary = null;
-        try {
-            $declarations = \App\Models\HatvpDeclaration::with([
-                'mandatsElectifs.remunerations',
-                'activitesProfessionnelles.remunerations',
-                'activitesConsultant.remunerations',
-                'participationsDirigeantes.remunerations',
-                'collaborateurs',
-                'fonctionsBenevoles',
-            ])
-            ->where('parlementaire_type', 'senateur')
-            ->where('parlementaire_id', $matricule)
-            ->orderBy('date_depot', 'desc')
-            ->get();
-            
-            // Si pas de liaison directe, chercher par nom/prénom
-            if ($declarations->isEmpty()) {
+        // Déclarations HATVP avec données enrichies (cache 1h)
+        $hatvpData = Cache::remember("hatvp_senateur_{$matricule}", 3600, function () use ($matricule, $senateur) {
+            $declarationsHatvp = [];
+            $hatvpSummary = null;
+            try {
                 $declarations = \App\Models\HatvpDeclaration::with([
                     'mandatsElectifs.remunerations',
                     'activitesProfessionnelles.remunerations',
@@ -933,11 +938,26 @@ class RepresentantANController extends Controller
                     'fonctionsBenevoles',
                 ])
                 ->where('parlementaire_type', 'senateur')
-                ->where('nom', 'ILIKE', $senateur->nom_usuel)
-                ->where('prenom', 'ILIKE', $senateur->prenom_usuel)
+                ->where('parlementaire_id', $matricule)
                 ->orderBy('date_depot', 'desc')
                 ->get();
-            }
+                
+                // Si pas de liaison directe, chercher par nom/prénom
+                if ($declarations->isEmpty()) {
+                    $declarations = \App\Models\HatvpDeclaration::with([
+                        'mandatsElectifs.remunerations',
+                        'activitesProfessionnelles.remunerations',
+                        'activitesConsultant.remunerations',
+                        'participationsDirigeantes.remunerations',
+                        'collaborateurs',
+                        'fonctionsBenevoles',
+                    ])
+                    ->where('parlementaire_type', 'senateur')
+                    ->where('nom', 'ILIKE', $senateur->nom_usuel)
+                    ->where('prenom', 'ILIKE', $senateur->prenom_usuel)
+                    ->orderBy('date_depot', 'desc')
+                    ->get();
+                }
 
             // Mapper les déclarations
             $declarationsHatvp = $declarations->map(fn($d) => [
@@ -1034,30 +1054,36 @@ class RepresentantANController extends Controller
                     'collaborateurs' => $collaborateurs,
                 ];
             }
-        } catch (\Exception $e) {
-            // Table peut ne pas exister encore
-        }
+            } catch (\Exception $e) {
+                // Table peut ne pas exister encore
+            }
+            return ['declarations' => $declarationsHatvp, 'summary' => $hatvpSummary];
+        });
+        $declarationsHatvp = $hatvpData['declarations'];
+        $hatvpSummary = $hatvpData['summary'];
 
-        // Récupérer les 10 derniers votes du sénateur
-        $derniersVotes = VoteSenat::where('senateur_matricule', $matricule)
-            ->with('scrutin')
-            ->orderByDesc('date_vote')
-            ->limit(10)
-            ->get()
-            ->map(function($vote) {
-                return [
-                    'id' => $vote->id,
-                    'position' => $vote->position,
-                    'date' => $vote->date_vote?->format('d/m/Y'),
-                    'intitule' => $vote->intitule,
-                    'scrutin' => $vote->scrutin ? [
-                        'id' => $vote->scrutin->id,
-                        'resultat' => $vote->scrutin->resultat ?? 'Non déterminé',
-                        'pour' => $vote->scrutin->pour ?? 0,
-                        'contre' => $vote->scrutin->contre ?? 0,
-                    ] : null,
-                ];
-            });
+        // Récupérer les 10 derniers votes du sénateur (cache 30 min)
+        $derniersVotes = Cache::remember("senateur_votes_{$matricule}", 1800, function () use ($matricule) {
+            return VoteSenat::where('senateur_matricule', $matricule)
+                ->with('scrutin')
+                ->orderByDesc('date_vote')
+                ->limit(10)
+                ->get()
+                ->map(function($vote) {
+                    return [
+                        'id' => $vote->id,
+                        'position' => $vote->position,
+                        'date' => $vote->date_vote?->format('d/m/Y'),
+                        'intitule' => $vote->intitule,
+                        'scrutin' => $vote->scrutin ? [
+                            'id' => $vote->scrutin->id,
+                            'resultat' => $vote->scrutin->resultat ?? 'Non déterminé',
+                            'pour' => $vote->scrutin->pour ?? 0,
+                            'contre' => $vote->scrutin->contre ?? 0,
+                        ] : null,
+                    ];
+                });
+        });
 
         return Inertia::render('Representants/Senateurs/Show', [
             'senateur' => [
@@ -1158,23 +1184,30 @@ class RepresentantANController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        // Statistiques
-        $statsQuery = VoteSenat::where('senateur_matricule', $matricule);
-        
-        $total = $statsQuery->count();
-        $pour = $statsQuery->clone()->where('position', 'pour')->count();
-        $contre = $statsQuery->clone()->where('position', 'contre')->count();
-        $abstention = $statsQuery->clone()->where('position', 'abstention')->count();
+        // Statistiques (cache 1h)
+        $statistiques = Cache::remember("senateur_votes_stats_{$matricule}", 3600, function () use ($matricule) {
+            // Requête optimisée avec un seul COUNT groupé
+            $positionCounts = VoteSenat::where('senateur_matricule', $matricule)
+                ->selectRaw('position, COUNT(*) as count')
+                ->groupBy('position')
+                ->pluck('count', 'position')
+                ->toArray();
+            
+            $pour = $positionCounts['pour'] ?? 0;
+            $contre = $positionCounts['contre'] ?? 0;
+            $abstention = $positionCounts['abstention'] ?? 0;
+            $total = array_sum($positionCounts);
 
-        $statistiques = [
-            'total' => $total,
-            'pour' => $pour,
-            'contre' => $contre,
-            'abstention' => $abstention,
-            'pour_percent' => $total > 0 ? round(($pour / $total) * 100, 1) : 0,
-            'contre_percent' => $total > 0 ? round(($contre / $total) * 100, 1) : 0,
-            'abstention_percent' => $total > 0 ? round(($abstention / $total) * 100, 1) : 0,
-        ];
+            return [
+                'total' => $total,
+                'pour' => $pour,
+                'contre' => $contre,
+                'abstention' => $abstention,
+                'pour_percent' => $total > 0 ? round(($pour / $total) * 100, 1) : 0,
+                'contre_percent' => $total > 0 ? round(($contre / $total) * 100, 1) : 0,
+                'abstention_percent' => $total > 0 ? round(($abstention / $total) * 100, 1) : 0,
+            ];
+        });
 
         // Transformer les votes (utilise la relation scrutin déjà chargée)
         $votesData = $votes->through(function($vote) {

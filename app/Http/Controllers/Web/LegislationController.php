@@ -249,35 +249,46 @@ class LegislationController extends Controller
 
         $scrutins = $query->paginate(30)->withQueryString();
 
-        // Statistiques - calculer depuis les votes réels
-        $allScrutins = ScrutinAN::where('legislature', $legislature)->get();
-        $total = $allScrutins->count();
-        
-        // Compter adoptés/rejetés en calculant depuis pour/contre
-        $adoptes = 0;
-        $rejetes = 0;
-        
-        foreach ($allScrutins as $scrutin) {
-            // Si resultat_code existe, l'utiliser
-            if ($scrutin->resultat_code === 'adopté') {
-                $adoptes++;
-            } elseif ($scrutin->resultat_code === 'rejeté') {
-                $rejetes++;
-            } 
-            // Sinon, calculer depuis les votes (utiliser les accesseurs calculés)
-            elseif ($scrutin->pour_calcule > $scrutin->contre_calcule) {
-                $adoptes++;
-            } elseif ($scrutin->contre_calcule > $scrutin->pour_calcule) {
-                $rejetes++;
-            }
-        }
-
-        $stats = [
-            'total' => $total,
-            'adoptes' => $adoptes,
-            'rejetes' => $rejetes,
-            'taux_adoption' => $total > 0 ? round(($adoptes / $total) * 100, 1) : 0,
-        ];
+        // Statistiques - calculer depuis les votes réels (cache 30 min)
+        $stats = Cache::remember("scrutins_an_stats_l{$legislature}", 1800, function () use ($legislature) {
+            // Compter le total
+            $total = ScrutinAN::where('legislature', $legislature)->count();
+            
+            // Pour compter adoptés/rejetés, on doit utiliser les accesseurs pour_calcule/contre_calcule
+            // Comme ces valeurs viennent de ventilation_votes (JSON), on charge les scrutins par lots
+            $adoptes = 0;
+            $rejetes = 0;
+            
+            // Traiter par lots de 500 pour éviter les problèmes de mémoire
+            ScrutinAN::where('legislature', $legislature)
+                ->select('uid', 'resultat_code', 'pour', 'contre', 'ventilation_votes')
+                ->chunkById(500, function ($scrutins) use (&$adoptes, &$rejetes) {
+                    foreach ($scrutins as $s) {
+                        // Priorité au resultat_code s'il existe
+                        if ($s->resultat_code === 'adopté') {
+                            $adoptes++;
+                        } elseif ($s->resultat_code === 'rejeté') {
+                            $rejetes++;
+                        } else {
+                            // Sinon utiliser les accesseurs calculés
+                            $pour = $s->pour_calcule;
+                            $contre = $s->contre_calcule;
+                            if ($pour > $contre) {
+                                $adoptes++;
+                            } elseif ($contre > $pour) {
+                                $rejetes++;
+                            }
+                        }
+                    }
+                });
+            
+            return [
+                'total' => $total,
+                'adoptes' => $adoptes,
+                'rejetes' => $rejetes,
+                'taux_adoption' => $total > 0 ? round(($adoptes / $total) * 100, 1) : 0,
+            ];
+        });
 
         // Transformer les données - utiliser les accesseurs calculés
         $scrutinsData = $scrutins->through(function($s) {
