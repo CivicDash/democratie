@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { useGuidedTour } from '@/Composables/useGuidedTour';
 
-const { startTour, availableTours, isTourCompleted, resetTours, completedTours } = useGuidedTour();
+const { startTourWithRedirect, availableTours, isTourCompleted, resetTours, completedTours } = useGuidedTour();
 
 const isOpen = ref(false);
 
@@ -18,7 +18,7 @@ const totalTours = computed(() => toursList.value.length);
 
 const handleStartTour = (tourId) => {
     isOpen.value = false;
-    startTour(tourId);
+    startTourWithRedirect(tourId);
 };
 
 const handleClickOutside = (event) => {

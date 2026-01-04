@@ -1,11 +1,15 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 /**
  * Composable pour gérer les visites guidées de l'application
  * 
  * Usage:
- * const { startTour, nextStep, prevStep, endTour, currentStep, isActive, steps } = useGuidedTour('dashboard');
+ * const { startTour, startTourWithRedirect, nextStep, prevStep, endTour, currentStep, isActive, steps } = useGuidedTour('dashboard');
  */
+
+// Tour à démarrer après navigation (stocké globalement)
+const pendingTour = ref(null);
 
 // Tours disponibles avec leurs étapes
 const tours = {
@@ -14,6 +18,7 @@ const tours = {
         name: 'Découverte du tableau de bord',
         icon: '🏠',
         description: 'Apprenez à utiliser votre tableau de bord CivicDash',
+        route: 'dashboard', // Route Inertia pour redirection
         steps: [
             {
                 target: '[data-tour="dashboard-stats"]',
@@ -52,6 +57,7 @@ const tours = {
         name: 'Participer au débat citoyen',
         icon: '💬',
         description: 'Découvrez comment proposer des idées et interpeller vos élus',
+        route: 'participation.ideas.index',
         steps: [
             {
                 target: '[data-tour="participation-hub"]',
@@ -84,6 +90,7 @@ const tours = {
         name: 'Comprendre les lois',
         icon: '📜',
         description: 'Suivez le parcours d\'une loi de son dépôt à sa promulgation',
+        route: 'lois.index',
         steps: [
             {
                 target: '[data-tour="loi-header"]',
@@ -122,6 +129,7 @@ const tours = {
         name: 'Explorer les députés',
         icon: '🏛️',
         description: 'Découvrez les 577 députés de l\'Assemblée Nationale',
+        route: 'representants.deputes.index',
         steps: [
             {
                 target: '[data-tour="deputes-search"]',
@@ -148,6 +156,7 @@ const tours = {
         name: 'Explorer les sénateurs',
         icon: '🏛️',
         description: 'Découvrez les 348 sénateurs de la République',
+        route: 'representants.senateurs.index',
         steps: [
             {
                 target: '[data-tour="senateurs-search"]',
@@ -174,6 +183,7 @@ const tours = {
         name: 'Le Gouvernement',
         icon: '🏰',
         description: 'Explorez la composition du gouvernement actuel et l\'historique',
+        route: 'gouvernement.index',
         steps: [
             {
                 target: '[data-tour="gouv-president"]',
@@ -200,6 +210,7 @@ const tours = {
         name: 'Espace élu',
         icon: '👔',
         description: 'Guide pour les élus : gérez vos interpellations et votre profil',
+        route: 'elu.dashboard',
         steps: [
             {
                 target: '[data-tour="elu-stats"]',
@@ -232,6 +243,7 @@ const tours = {
         name: 'Bienvenue sur CivicDash',
         icon: '👋',
         description: 'Découvrez les fonctionnalités essentielles de la plateforme',
+        route: 'dashboard',
         steps: [
             {
                 target: '[data-tour="navigation"]',
@@ -325,6 +337,61 @@ export function useGuidedTour(tourId = null) {
         return true;
     };
     
+    /**
+     * Démarre un tour avec redirection vers la bonne page
+     * @param {string} id - ID du tour à démarrer
+     */
+    const startTourWithRedirect = (id = tourId) => {
+        if (!tours[id]) {
+            console.warn(`Tour "${id}" not found`);
+            return false;
+        }
+        
+        const tour = tours[id];
+        
+        // Vérifier si on doit rediriger
+        if (tour.route) {
+            try {
+                const targetUrl = route(tour.route);
+                const currentUrl = window.location.pathname;
+                
+                // Si on n'est pas sur la bonne page, rediriger
+                if (!currentUrl.startsWith(targetUrl) && currentUrl !== targetUrl) {
+                    // Sauvegarder le tour en attente
+                    pendingTour.value = id;
+                    localStorage.setItem('civicdash_pending_tour', id);
+                    
+                    // Rediriger vers la page
+                    router.visit(targetUrl, {
+                        onFinish: () => {
+                            // Le tour sera démarré au chargement de la page
+                        }
+                    });
+                    return true;
+                }
+            } catch (e) {
+                console.warn(`Route "${tour.route}" not found, starting tour anyway`);
+            }
+        }
+        
+        // Démarrer le tour directement
+        return startTour(id);
+    };
+    
+    /**
+     * Vérifie s'il y a un tour en attente à démarrer
+     */
+    const checkPendingTour = () => {
+        const pending = localStorage.getItem('civicdash_pending_tour');
+        if (pending) {
+            localStorage.removeItem('civicdash_pending_tour');
+            // Attendre un peu que la page soit chargée
+            setTimeout(() => {
+                startTour(pending);
+            }, 500);
+        }
+    };
+    
     const nextStep = () => {
         if (!currentTour.value) return;
         
@@ -364,6 +431,8 @@ export function useGuidedTour(tourId = null) {
     // Charger au montage
     onMounted(() => {
         loadCompletedTours();
+        // Vérifier s'il y a un tour en attente après navigation
+        checkPendingTour();
     });
     
     // Raccourci clavier pour fermer
@@ -395,6 +464,8 @@ export function useGuidedTour(tourId = null) {
         
         // Actions
         startTour,
+        startTourWithRedirect,
+        checkPendingTour,
         nextStep,
         prevStep,
         goToStep,
