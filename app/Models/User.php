@@ -333,11 +333,92 @@ class User extends Authenticatable
     }
 
     /**
-     * Vérifie si l'user peut poster
+     * Vérifie si l'user peut poster (bloqué pour démo)
      */
     public function canPost(): bool
     {
+        if ($this->isDemoAccount()) {
+            return false;
+        }
         return !$this->isMuted() && !$this->isBanned();
+    }
+
+    /**
+     * Vérifie si l'user peut voter (bloqué pour démo)
+     */
+    public function canVote(): bool
+    {
+        if ($this->isDemoAccount()) {
+            return false;
+        }
+        return !$this->isMuted() && !$this->isBanned();
+    }
+
+    /**
+     * Vérifie si l'user peut commenter (bloqué pour démo)
+     */
+    public function canComment(): bool
+    {
+        if ($this->isDemoAccount()) {
+            return false;
+        }
+        return !$this->isMuted() && !$this->isBanned();
+    }
+
+    /**
+     * Vérifie si l'user est en lecture seule
+     */
+    public function isReadOnly(): bool
+    {
+        return $this->isDemoAccount();
+    }
+
+    /**
+     * Retourne le rôle principal de l'utilisateur
+     */
+    public function getPrimaryRoleAttribute(): string
+    {
+        // Priorité : admin > moderator > legislator > citizen
+        if ($this->hasRole('admin') || $this->hasRole('super-admin')) {
+            return 'admin';
+        }
+        if ($this->hasRole('moderator')) {
+            return 'moderator';
+        }
+        if ($this->hasRole('legislator') || $this->is_verified_elu) {
+            return 'elu';
+        }
+        return 'citizen';
+    }
+
+    /**
+     * Retourne le label du rôle principal
+     */
+    public function getPrimaryRoleLabelAttribute(): string
+    {
+        return match ($this->primary_role) {
+            'admin' => 'Administrateur',
+            'moderator' => 'Modérateur',
+            'elu' => 'Élu',
+            'citizen' => 'Citoyen',
+            default => 'Citoyen',
+        };
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut modérer
+     */
+    public function canModerate(): bool
+    {
+        return $this->hasRole(['admin', 'super-admin', 'moderator']);
+    }
+
+    /**
+     * Vérifie si l'utilisateur est admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole(['admin', 'super-admin']);
     }
 
     /**

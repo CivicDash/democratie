@@ -254,8 +254,8 @@ Route::prefix('topics')->name('topics.')->group(function () {
         return redirect()->route('participation.ideas.show', $topic);
     })->name('show');
     
-    // Authenticated routes - Posts sur les topics
-    Route::middleware('auth')->group(function () {
+    // Authenticated routes - Posts sur les topics (bloqué pour comptes démo)
+    Route::middleware(['auth', 'not-readonly'])->group(function () {
         Route::post('/{topic}/posts', [PostController::class, 'store'])->name('posts.store');
         Route::put('/posts/{post}', [PostController::class, 'update'])->name('posts.update');
         Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
@@ -269,12 +269,12 @@ Route::prefix('topics')->name('topics.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('vote')->name('vote.')->middleware('auth')->group(function () {
-    // Public routes
+    // Public routes (lecture)
     Route::get('/topics/{topic}', [VoteController::class, 'show'])->name('show');
     Route::get('/topics/{topic}/results', [VoteController::class, 'results'])->name('results');
     
-    // Authenticated routes
-    Route::middleware('auth')->group(function () {
+    // Authenticated routes (écriture - bloqué pour comptes démo)
+    Route::middleware('not-readonly')->group(function () {
         Route::post('/topics/{topic}/token', [VoteController::class, 'requestToken'])->name('token');
         Route::post('/topics/{topic}/cast', [VoteController::class, 'cast'])->name('cast');
     });
@@ -333,9 +333,13 @@ Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('legislation/propositions')->middleware('auth:web')->group(function () {
-    Route::post('/{id}/vote', [\App\Http\Controllers\Api\LegislationController::class, 'voteProposition']);
-    Route::delete('/{id}/vote', [\App\Http\Controllers\Api\LegislationController::class, 'removeVoteProposition']);
     Route::get('/{id}/my-vote', [\App\Http\Controllers\Api\LegislationController::class, 'getMyVote']);
+    
+    // Écriture - bloqué pour comptes démo
+    Route::middleware('not-readonly')->group(function () {
+        Route::post('/{id}/vote', [\App\Http\Controllers\Api\LegislationController::class, 'voteProposition']);
+        Route::delete('/{id}/vote', [\App\Http\Controllers\Api\LegislationController::class, 'removeVoteProposition']);
+    });
 });
 
 /*
@@ -396,14 +400,18 @@ Route::prefix('documents')->name('documents.')->middleware('auth')->group(functi
 Route::prefix('participation')->name('participation.')->middleware('auth')->group(function () {
     Route::get('/', [\App\Http\Controllers\Web\ParticipationController::class, 'hub'])->name('hub');
     
-    // Idées citoyennes
+    // Idées citoyennes (lecture)
     Route::get('/idees', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasIndex'])->name('ideas.index');
     Route::get('/idees/nouvelle', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasCreate'])->name('ideas.create');
     Route::get('/idees/{topic:slug}', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasShow'])->name('ideas.show');
-    Route::post('/idees', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasStore'])->name('ideas.store');
-    Route::post('/idees/{topic}/vote', [\App\Http\Controllers\Web\ParticipationController::class, 'vote'])->name('ideas.vote');
-    Route::delete('/idees/{topic}/vote', [\App\Http\Controllers\Web\ParticipationController::class, 'unvote'])->name('ideas.unvote');
-    Route::post('/idees/{topic}/comment', [\App\Http\Controllers\Web\ParticipationController::class, 'addComment'])->name('ideas.comment');
+    
+    // Idées citoyennes (écriture - bloqué pour comptes démo)
+    Route::middleware('not-readonly')->group(function () {
+        Route::post('/idees', [\App\Http\Controllers\Web\ParticipationController::class, 'ideasStore'])->name('ideas.store');
+        Route::post('/idees/{topic}/vote', [\App\Http\Controllers\Web\ParticipationController::class, 'vote'])->name('ideas.vote');
+        Route::delete('/idees/{topic}/vote', [\App\Http\Controllers\Web\ParticipationController::class, 'unvote'])->name('ideas.unvote');
+        Route::post('/idees/{topic}/comment', [\App\Http\Controllers\Web\ParticipationController::class, 'addComment'])->name('ideas.comment');
+    });
 });
 
 /*
@@ -593,6 +601,20 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
         Route::post('/nice', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'storeNice'])->name('nice.store');
         Route::put('/nice/{niceWord}', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'updateNice'])->name('nice.update');
         Route::delete('/nice/{niceWord}', [App\Http\Controllers\Web\AdminModerationWordsController::class, 'destroyNice'])->name('nice.destroy');
+    });
+
+    // Gestion des Utilisateurs
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\UserManagementController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\UserManagementController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\UserManagementController::class, 'store'])->name('store');
+        Route::get('/{user}', [App\Http\Controllers\Admin\UserManagementController::class, 'show'])->name('show');
+        Route::get('/{user}/edit', [App\Http\Controllers\Admin\UserManagementController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [App\Http\Controllers\Admin\UserManagementController::class, 'update'])->name('update');
+        Route::delete('/{user}', [App\Http\Controllers\Admin\UserManagementController::class, 'destroy'])->name('destroy');
+        Route::post('/{user}/change-role', [App\Http\Controllers\Admin\UserManagementController::class, 'changeRole'])->name('change-role');
+        Route::post('/{user}/verify-elu', [App\Http\Controllers\Admin\UserManagementController::class, 'verifyElu'])->name('verify-elu');
+        Route::post('/{user}/revoke-elu', [App\Http\Controllers\Admin\UserManagementController::class, 'revokeElu'])->name('revoke-elu');
     });
 });
 

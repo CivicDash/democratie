@@ -205,30 +205,36 @@ Route::prefix('legislation')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     
     // ========================================================================
-    // TOPICS
+    // TOPICS (écriture - bloqué pour comptes démo)
     // ========================================================================
-    Route::post('/topics', [TopicController::class, 'store']);
-    Route::put('/topics/{topic}', [TopicController::class, 'update']);
-    Route::delete('/topics/{topic}', [TopicController::class, 'destroy']);
-    Route::post('/topics/{topic}/close', [TopicController::class, 'close']);
-    Route::post('/topics/{topic}/archive', [TopicController::class, 'archive']);
-    Route::post('/topics/{topic}/ballot', [TopicController::class, 'createBallot']);
+    Route::middleware('not-readonly')->group(function () {
+        Route::post('/topics', [TopicController::class, 'store']);
+        Route::put('/topics/{topic}', [TopicController::class, 'update']);
+        Route::delete('/topics/{topic}', [TopicController::class, 'destroy']);
+        Route::post('/topics/{topic}/close', [TopicController::class, 'close']);
+        Route::post('/topics/{topic}/archive', [TopicController::class, 'archive']);
+        Route::post('/topics/{topic}/ballot', [TopicController::class, 'createBallot']);
+    });
     
     // ========================================================================
-    // POSTS
+    // POSTS (écriture - bloqué pour comptes démo)
     // ========================================================================
-    Route::post('/topics/{topic}/posts', [PostController::class, 'store']);
-    Route::put('/posts/{post}', [PostController::class, 'update']);
-    Route::delete('/posts/{post}', [PostController::class, 'destroy']);
-    Route::post('/posts/{post}/vote', [PostController::class, 'vote']);
+    Route::middleware('not-readonly')->group(function () {
+        Route::post('/topics/{topic}/posts', [PostController::class, 'store']);
+        Route::put('/posts/{post}', [PostController::class, 'update']);
+        Route::delete('/posts/{post}', [PostController::class, 'destroy']);
+        Route::post('/posts/{post}/vote', [PostController::class, 'vote']);
+    });
     
     // ========================================================================
-    // VOTE ANONYME
+    // VOTE ANONYME (écriture - bloqué pour comptes démo)
     // ========================================================================
     Route::prefix('topics/{topic}/vote')->group(function () {
-        Route::post('/token', [VoteController::class, 'requestToken']);
-        Route::post('/cast', [VoteController::class, 'castVote']);
         Route::get('/has-voted', [VoteController::class, 'hasVoted']);
+        Route::middleware('not-readonly')->group(function () {
+            Route::post('/token', [VoteController::class, 'requestToken']);
+            Route::post('/cast', [VoteController::class, 'castVote']);
+        });
     });
     
     // Vote - routes admin
@@ -242,22 +248,24 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // ========================================================================
-    // VOTES CITOYENS SUR LES LOIS
+    // VOTES CITOYENS SUR LES LOIS (écriture - bloqué pour comptes démo)
     // ========================================================================
-    Route::prefix('lois/{loiCod}')->group(function () {
+    Route::get('/mes-votes', [\App\Http\Controllers\Api\CitizenVoteController::class, 'mesVotes']);
+    Route::prefix('lois/{loiCod}')->middleware('not-readonly')->group(function () {
         Route::post('/vote', [\App\Http\Controllers\Api\CitizenVoteController::class, 'voteLoi']);
         Route::delete('/vote', [\App\Http\Controllers\Api\CitizenVoteController::class, 'removeVoteLoi']);
     });
-    Route::get('/mes-votes', [\App\Http\Controllers\Api\CitizenVoteController::class, 'mesVotes']);
     
     // ========================================================================
-    // BUDGET PARTICIPATIF
+    // BUDGET PARTICIPATIF (écriture - bloqué pour comptes démo)
     // ========================================================================
     Route::prefix('budget')->group(function () {
         Route::get('/allocations', [BudgetController::class, 'index']);
-        Route::post('/allocate', [BudgetController::class, 'allocate']);
-        Route::post('/bulk-allocate', [BudgetController::class, 'bulkAllocate']);
-        Route::delete('/reset', [BudgetController::class, 'reset']);
+        Route::middleware('not-readonly')->group(function () {
+            Route::post('/allocate', [BudgetController::class, 'allocate']);
+            Route::post('/bulk-allocate', [BudgetController::class, 'bulkAllocate']);
+            Route::delete('/reset', [BudgetController::class, 'reset']);
+        });
     });
     
     // Budget - routes admin/state
