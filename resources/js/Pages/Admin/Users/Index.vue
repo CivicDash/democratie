@@ -100,8 +100,8 @@ const breadcrumbs = [
                             <div class="text-sm opacity-80">Admins</div>
                         </div>
                         <div class="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
-                            <div class="text-2xl font-bold">{{ stats.demo }}</div>
-                            <div class="text-sm opacity-80">Démo</div>
+                            <div class="text-2xl font-bold">{{ stats.members || 0 }}</div>
+                            <div class="text-sm opacity-80">Membres</div>
                         </div>
                     </div>
                 </div>
@@ -214,6 +214,14 @@ const breadcrumbs = [
                                         <div class="flex flex-col gap-1">
                                             <span v-if="user.is_demo" class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
                                                 🔒 Démo (lecture seule)
+                                            </span>
+                                            <span v-if="user.is_association_member" :class="[
+                                                'inline-flex items-center px-2 py-0.5 rounded text-xs',
+                                                user.is_active_member 
+                                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+                                            ]">
+                                                🏅 Membre {{ user.member_type }}
                                             </span>
                                             <span v-if="user.email_verified_at" class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                                                 ✓ Email vérifié

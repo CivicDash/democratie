@@ -65,6 +65,9 @@ class UserManagementController extends Controller
             'elu_type' => $user->elu_type,
             'is_demo' => $user->isDemoAccount(),
             'is_read_only' => $user->isReadOnly(),
+            'is_association_member' => $user->is_association_member,
+            'member_type' => $user->member_type,
+            'is_active_member' => $user->isActiveMember(),
             'topics_count' => $user->topics_count,
             'posts_count' => $user->posts_count,
             'created_at' => $user->created_at->format('d/m/Y H:i'),
@@ -78,6 +81,7 @@ class UserManagementController extends Controller
             'moderators' => User::role('moderator')->count(),
             'elus' => User::where('is_verified_elu', true)->count(),
             'citizens' => User::role('citizen')->count(),
+            'members' => User::where('is_association_member', true)->count(),
             'demo' => User::where('email', 'LIKE', '%demo%')->count(),
         ];
 
@@ -179,6 +183,15 @@ class UserManagementController extends Controller
                 'is_muted' => $user->isMuted(),
                 'is_banned' => $user->isBanned(),
                 'two_factor_enabled' => $user->hasTwoFactorEnabled(),
+                // Membre association
+                'is_association_member' => $user->is_association_member,
+                'member_type' => $user->member_type,
+                'member_type_label' => $user->member_type_label,
+                'member_since' => $user->member_since?->format('d/m/Y'),
+                'member_until' => $user->member_until?->format('d/m/Y'),
+                'member_number' => $user->member_number,
+                'is_active_member' => $user->isActiveMember(),
+                // Dates
                 'created_at' => $user->created_at->format('d/m/Y H:i'),
                 'email_verified_at' => $user->email_verified_at?->format('d/m/Y H:i'),
                 'verified_at' => $user->verified_at?->format('d/m/Y H:i'),
@@ -196,6 +209,7 @@ class UserManagementController extends Controller
                 'name' => $r->name,
                 'label' => $this->getRoleLabel($r->name),
             ]),
+            'member_types' => User::MEMBER_TYPES,
         ]);
     }
 
@@ -220,6 +234,12 @@ class UserManagementController extends Controller
             'elu_type' => 'nullable|string|in:depute,senateur,maire',
             'elu_ref' => 'nullable|string',
             'is_verified_elu' => 'boolean',
+            // Membre association
+            'is_association_member' => 'boolean',
+            'member_type' => 'nullable|string|in:adherent,bienfaiteur,fondateur,honneur',
+            'member_since' => 'nullable|date',
+            'member_until' => 'nullable|date',
+            'member_number' => 'nullable|string|max:50',
         ]);
 
         // Mise à jour des champs de base
@@ -242,6 +262,20 @@ class UserManagementController extends Controller
             $user->verified_at = now();
         }
 
+        // Mise à jour des champs membre association
+        $user->is_association_member = $validated['is_association_member'] ?? false;
+        if ($user->is_association_member) {
+            $user->member_type = $validated['member_type'] ?? 'adherent';
+            $user->member_since = $validated['member_since'] ?? now();
+            $user->member_until = $validated['member_until'] ?? null;
+            $user->member_number = $validated['member_number'] ?? $this->generateMemberNumber();
+        } else {
+            $user->member_type = null;
+            $user->member_since = null;
+            $user->member_until = null;
+            $user->member_number = null;
+        }
+
         $user->save();
 
         // Mise à jour des rôles
@@ -256,6 +290,26 @@ class UserManagementController extends Controller
 
         return redirect()->route('admin.users.show', $user)
             ->with('success', 'Utilisateur mis à jour avec succès.');
+    }
+
+    /**
+     * Générer un numéro de membre unique
+     */
+    private function generateMemberNumber(): string
+    {
+        $year = now()->format('Y');
+        $lastMember = User::whereNotNull('member_number')
+            ->where('member_number', 'LIKE', "CD{$year}%")
+            ->orderByDesc('member_number')
+            ->first();
+
+        if ($lastMember && preg_match('/CD\d{4}(\d+)/', $lastMember->member_number, $matches)) {
+            $nextNumber = (int) $matches[1] + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return sprintf('CD%s%04d', $year, $nextNumber);
     }
 
     /**

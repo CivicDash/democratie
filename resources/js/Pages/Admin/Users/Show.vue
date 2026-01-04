@@ -7,6 +7,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 const props = defineProps({
     user: Object,
     roles: Array,
+    member_types: Object,
 });
 
 const editMode = ref(false);
@@ -19,6 +20,12 @@ const form = useForm({
     elu_type: props.user.elu_type || '',
     elu_ref: props.user.elu_ref || '',
     is_verified_elu: props.user.is_verified_elu || false,
+    // Membre association
+    is_association_member: props.user.is_association_member || false,
+    member_type: props.user.member_type || 'adherent',
+    member_since: props.user.member_since || '',
+    member_until: props.user.member_until || '',
+    member_number: props.user.member_number || '',
 });
 
 const submit = () => {
@@ -91,6 +98,12 @@ const breadcrumbs = [
                                 <span v-if="user.is_verified_elu" class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
                                     ✓ Élu vérifié
                                 </span>
+                                <span v-if="user.is_association_member" :class="[
+                                    'inline-flex items-center px-3 py-1 rounded-full text-sm',
+                                    user.is_active_member ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
+                                ]">
+                                    {{ user.is_active_member ? '🏅' : '⏸' }} Membre {{ user.member_type_label }}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -151,6 +164,38 @@ const breadcrumbs = [
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Section Membre Association -->
+                                <div v-if="user.is_association_member" class="pt-4 border-t dark:border-gray-700">
+                                    <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                        🏅 Membre de l'Association
+                                    </h3>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">Type de membre</div>
+                                            <div class="font-medium text-gray-900 dark:text-white">{{ user.member_type_label }}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">N° adhérent</div>
+                                            <div class="font-medium text-gray-900 dark:text-white font-mono">{{ user.member_number }}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">Membre depuis</div>
+                                            <div class="font-medium text-gray-900 dark:text-white">{{ user.member_since }}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">Valide jusqu'au</div>
+                                            <div class="font-medium text-gray-900 dark:text-white">
+                                                {{ user.member_until || 'À vie' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div v-if="!user.is_active_member" class="mt-3 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                                        <p class="text-sm text-amber-800 dark:text-amber-200">
+                                            ⚠️ Cotisation expirée
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Mode édition -->
@@ -173,6 +218,50 @@ const breadcrumbs = [
                                         <select v-model="form.role" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                                             <option v-for="role in roles" :key="role.name" :value="role.name">{{ role.label }}</option>
                                         </select>
+                                    </div>
+                                </div>
+
+                                <!-- Section Membre Association -->
+                                <div class="pt-4 border-t dark:border-gray-700">
+                                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                        🏅 Membre de l'Association
+                                    </h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center gap-3">
+                                            <input 
+                                                type="checkbox" 
+                                                v-model="form.is_association_member" 
+                                                id="is_association_member"
+                                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <label for="is_association_member" class="text-sm text-gray-700 dark:text-gray-300">
+                                                Est membre de l'association
+                                            </label>
+                                        </div>
+
+                                        <div v-if="form.is_association_member" class="grid grid-cols-2 gap-4 pl-6">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de membre</label>
+                                                <select v-model="form.member_type" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                                    <option v-for="(label, value) in member_types" :key="value" :value="value">{{ label }}</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° adhérent</label>
+                                                <input v-model="form.member_number" type="text" placeholder="Auto-généré si vide" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white font-mono" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Membre depuis</label>
+                                                <input v-model="form.member_since" type="date" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    Valide jusqu'au
+                                                    <span class="text-gray-500 text-xs">(vide = à vie)</span>
+                                                </label>
+                                                <input v-model="form.member_until" type="date" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

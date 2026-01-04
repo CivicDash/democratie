@@ -38,6 +38,12 @@ class User extends Authenticatable
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
         'two_factor_enabled',
+        // Membre association
+        'is_association_member',
+        'member_type',
+        'member_since',
+        'member_until',
+        'member_number',
     ];
 
     /**
@@ -67,7 +73,45 @@ class User extends Authenticatable
             'verified_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
+            'is_association_member' => 'boolean',
+            'member_since' => 'date',
+            'member_until' => 'date',
         ];
+    }
+
+    /**
+     * Types de membres de l'association
+     */
+    public const MEMBER_TYPES = [
+        'adherent' => 'Adhérent',
+        'bienfaiteur' => 'Membre bienfaiteur',
+        'fondateur' => 'Membre fondateur',
+        'honneur' => 'Membre d\'honneur',
+    ];
+
+    /**
+     * Vérifie si le membre est actif (cotisation à jour)
+     */
+    public function isActiveMember(): bool
+    {
+        if (!$this->is_association_member) {
+            return false;
+        }
+
+        // Membre à vie (member_until = null)
+        if ($this->member_until === null) {
+            return true;
+        }
+
+        return $this->member_until->isFuture();
+    }
+
+    /**
+     * Label du type de membre
+     */
+    public function getMemberTypeLabelAttribute(): ?string
+    {
+        return self::MEMBER_TYPES[$this->member_type] ?? null;
     }
 
     /**
