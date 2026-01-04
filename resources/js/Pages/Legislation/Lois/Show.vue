@@ -1,9 +1,10 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import LawVoteWidget from '@/Components/LawVoteWidget.vue';
+import axios from 'axios';
 
 const props = defineProps({
     loi: Object,
@@ -21,6 +22,50 @@ const props = defineProps({
     parlementairesAssocies: Object,
     debatsLies: Array,
 });
+
+// État pour le lazy-loading des amendements
+const amendements = ref(props.amendementsLies?.amendements || []);
+const amendementsLoading = ref(false);
+const amendementsLoaded = ref(props.amendementsLies?.amendements?.length > 0);
+const amendementsPage = ref(1);
+const amendementsLastPage = ref(1);
+const amendementsError = ref(null);
+
+// Charger les amendements via API
+const loadAmendements = async (page = 1) => {
+    if (amendementsLoading.value) return;
+    
+    amendementsLoading.value = true;
+    amendementsError.value = null;
+    
+    try {
+        const response = await axios.get(`/lois/${props.loi.loicod}/amendements`, {
+            params: { page, per_page: 20 }
+        });
+        
+        if (page === 1) {
+            amendements.value = response.data.amendements;
+        } else {
+            amendements.value.push(...response.data.amendements);
+        }
+        
+        amendementsPage.value = response.data.page;
+        amendementsLastPage.value = response.data.last_page;
+        amendementsLoaded.value = true;
+    } catch (error) {
+        console.error('Erreur chargement amendements:', error);
+        amendementsError.value = 'Erreur lors du chargement des amendements';
+    } finally {
+        amendementsLoading.value = false;
+    }
+};
+
+// Charger plus d'amendements
+const loadMoreAmendements = () => {
+    if (amendementsPage.value < amendementsLastPage.value) {
+        loadAmendements(amendementsPage.value + 1);
+    }
+};
 
 // Couleur selon le sort de l'amendement
 const getSortColor = (sortCode) => {
@@ -398,8 +443,8 @@ const getChambreConfig = (code) => chambreConfig[code] || { icon: '📋', name: 
                             </div>
                         </div>
 
-                        <!-- Amendements Liés -->
-                        <div v-if="amendementsLies?.amendements?.length > 0" class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden mt-6">
+                        <!-- Amendements Liés - Lazy Loading -->
+                        <div v-if="amendementsLies?.total > 0" class="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden mt-6">
                             <!-- Section Header -->
                             <div class="px-6 py-4 border-b border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800/50">
                                 <div class="flex items-center justify-between">
@@ -431,10 +476,36 @@ const getChambreConfig = (code) => chambreConfig[code] || { icon: '📋', name: 
                                 </div>
                             </div>
 
-                            <!-- Amendements List -->
-                            <div class="divide-y divide-slate-100 dark:divide-gray-700 max-h-96 overflow-y-auto">
+                            <!-- Bouton pour charger les amendements (lazy loading) -->
+                            <div v-if="!amendementsLoaded && !amendementsLoading" class="p-6 text-center">
+                                <button 
+                                    @click="loadAmendements(1)"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Charger les {{ amendementsLies.total }} amendements
+                                </button>
+                                <p class="text-xs text-slate-500 mt-2">Cliquez pour afficher le détail des amendements</p>
+                            </div>
+
+                            <!-- Loading state -->
+                            <div v-if="amendementsLoading && !amendementsLoaded" class="p-6 text-center">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
+                                <p class="text-sm text-slate-500 mt-2">Chargement des amendements...</p>
+                            </div>
+
+                            <!-- Error state -->
+                            <div v-if="amendementsError" class="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-sm text-center">
+                                {{ amendementsError }}
+                                <button @click="loadAmendements(1)" class="underline ml-2">Réessayer</button>
+                            </div>
+
+                            <!-- Amendements List (une fois chargés) -->
+                            <div v-if="amendementsLoaded && amendements.length > 0" class="divide-y divide-slate-100 dark:divide-gray-700 max-h-96 overflow-y-auto">
                                 <a 
-                                    v-for="amd in amendementsLies.amendements" 
+                                    v-for="amd in amendements" 
                                     :key="amd.uid"
                                     :href="amd.url || (amd.chambre === 'AN' ? `https://www.assemblee-nationale.fr/dyn/17/amendements/${amd.texte_ref || ''}/${amd.numero}` : `https://www.senat.fr/amendements/${amd.session || '2024-2025'}/${amd.texte_ref || ''}/${amd.numero}.html`)"
                                     target="_blank"
@@ -472,6 +543,21 @@ const getChambreConfig = (code) => chambreConfig[code] || { icon: '📋', name: 
                                         </div>
                                     </div>
                                 </a>
+                            </div>
+
+                            <!-- Bouton "Charger plus" -->
+                            <div v-if="amendementsLoaded && amendementsPage < amendementsLastPage" class="p-4 text-center border-t border-slate-100 dark:border-gray-700">
+                                <button 
+                                    @click="loadMoreAmendements"
+                                    :disabled="amendementsLoading"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                    <svg v-if="amendementsLoading" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Charger plus d'amendements ({{ amendements.length }}/{{ amendementsLies.total }})
+                                </button>
                             </div>
 
                             <!-- Méthode de liaison -->

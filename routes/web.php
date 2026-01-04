@@ -217,6 +217,7 @@ Route::prefix('lois')->name('lois.')->middleware('auth')->group(function () {
     Route::get('/recherche', [\App\Http\Controllers\Web\LoiController::class, 'search'])->name('search');
     Route::get('/{loicod}', [\App\Http\Controllers\Web\LoiController::class, 'show'])->name('show');
     Route::get('/{loicod}/timeline', [\App\Http\Controllers\Web\LoiController::class, 'timeline'])->name('timeline');
+    Route::get('/{loicod}/amendements', [\App\Http\Controllers\Web\LoiController::class, 'amendementsApi'])->name('amendements');
 });
 
 /*

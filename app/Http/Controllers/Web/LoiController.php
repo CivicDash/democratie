@@ -142,27 +142,39 @@ class LoiController extends Controller
 
     /**
      * Détail d'une loi avec son parcours législatif
+     * 
+     * Optimisations appliquées:
+     * - Cache 1h sur données lourdes (dossier AN, amendements, parlementaires)
+     * - Lazy-loading des amendements via API séparée
+     * - Limite des requêtes ILIKE coûteuses
      */
     public function show(string $loicod): Response
     {
-        $loi = Loi::with([
-            'etat',
-            'typeLoi',
-            'thematiques',
-            'lectures.typeLecture',
-            'lectures.passages',
-            'lectures.seances',
-        ])->whereRaw("TRIM(loicod) = ?", [trim($loicod)])->firstOrFail();
+        $loicodTrim = trim($loicod);
+        $cacheKey = "loi_show_{$loicodTrim}";
+        
+        // Cache la loi avec ses relations (2 min)
+        $loi = Cache::remember("{$cacheKey}_base", 120, function () use ($loicodTrim) {
+            return Loi::with([
+                'etat',
+                'typeLoi',
+                'thematiques',
+                'lectures.typeLecture',
+                'lectures.passages',
+            ])->whereRaw("TRIM(loicod) = ?", [$loicodTrim])->firstOrFail();
+        });
 
-        // Construire le parcours législatif
-        $parcours = $loi->getParcours();
+        // Construire le parcours législatif (cache 5 min)
+        $parcours = Cache::remember("{$cacheKey}_parcours", 300, function () use ($loi) {
+            return $loi->getParcours();
+        });
 
         // Calculer les stats d'amendements depuis le parcours
         $totalAmendements = collect($parcours)->sum('nb_amendements');
         $amendementsAdoptes = collect($parcours)->sum('amendements_adoptes');
 
         // Statistiques pré-calculées (ou fallback)
-        $loiStats = LoiStats::forLoi(trim($loi->loicod));
+        $loiStats = LoiStats::forLoi($loicodTrim);
         $stats = $loiStats ? $loiStats->toViewArray() : [
             'etapes_total' => count($parcours),
             'etapes_an' => collect($parcours)->where('chambre', 'A')->count(),
@@ -261,12 +273,21 @@ class LoiController extends Controller
         // Extraire les positions des groupes politiques depuis le scrutin solennel
         $groupesPositions = $this->extractGroupesPositions($scrutinsSolennels->first());
 
-        // Rechercher les amendements liés via le dossier AN (liaison directe)
-        $dossierAN = $this->findDossierAN($loi);
-        $amendementsLies = $this->findAmendementsLies($loi, $dossierAN);
+        // Dossier AN (cache 1h - données rarement mises à jour)
+        $dossierAN = Cache::remember("{$cacheKey}_dossier", 3600, function () use ($loi) {
+            return $this->findDossierAN($loi);
+        });
 
-        // Trouver les parlementaires clés associés à cette loi
-        $parlementairesAssocies = $this->findParlementairesAssocies($loi, $dossierAN);
+        // Les amendements sont chargés via API séparée pour lazy-loading
+        // On ne charge que les stats légères ici
+        $amendementsLies = Cache::remember("{$cacheKey}_amendements_summary", 1800, function () use ($loi, $dossierAN) {
+            return $this->findAmendementsLiesLight($loi, $dossierAN);
+        });
+
+        // Parlementaires (cache 1h)
+        $parlementairesAssocies = Cache::remember("{$cacheKey}_parlementaires", 3600, function () use ($loi, $dossierAN) {
+            return $this->findParlementairesAssocies($loi, $dossierAN);
+        });
 
         // Débats citoyens liés à cette loi
         $debatsLies = Topic::forLoi(trim($loi->loicod))
@@ -529,7 +550,168 @@ class LoiController extends Controller
     }
 
     /**
-     * Rechercher les amendements liés à une loi
+     * Version légère : ne charge que les stats d'amendements (pas le détail)
+     * Pour le chargement initial de la page
+     */
+    private function findAmendementsLiesLight(Loi $loi, ?array $dossierAN): array
+    {
+        $totalAN = 0;
+        $totalSenat = 0;
+        $liaisonDirecte = false;
+        $numerosTextes = [];
+
+        // Compter les amendements AN via liaison directe
+        if ($dossierAN && !empty($dossierAN['textes'])) {
+            $numerosTextes = collect($dossierAN['textes'])
+                ->pluck('numero')
+                ->filter()
+                ->map(fn($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
+                ->toArray();
+
+            if (!empty($numerosTextes)) {
+                $totalAN = AmendementAN::query()
+                    ->where('legislature', 17)
+                    ->where(function ($q) use ($numerosTextes) {
+                        foreach ($numerosTextes as $num) {
+                            $q->orWhere('uid', 'LIKE', "%B{$num}%");
+                        }
+                    })
+                    ->count();
+                
+                $liaisonDirecte = $totalAN > 0;
+            }
+        }
+
+        // Stats par sort (limité à 1000 pour perf)
+        $parSort = [];
+        if ($liaisonDirecte && !empty($numerosTextes)) {
+            $parSort = AmendementAN::query()
+                ->where('legislature', 17)
+                ->where(function ($q) use ($numerosTextes) {
+                    foreach ($numerosTextes as $num) {
+                        $q->orWhere('uid', 'LIKE', "%B{$num}%");
+                    }
+                })
+                ->selectRaw('sort_libelle, COUNT(*) as count')
+                ->groupBy('sort_libelle')
+                ->limit(10)
+                ->pluck('count', 'sort_libelle')
+                ->toArray();
+        }
+
+        return [
+            'amendements' => [], // Chargés via API séparée
+            'total' => $totalAN + $totalSenat,
+            'total_an' => $totalAN,
+            'total_senat' => $totalSenat,
+            'par_sort' => $parSort,
+            'mots_cles' => [],
+            'liaison_directe' => $liaisonDirecte,
+            'numeros_textes' => $numerosTextes,
+        ];
+    }
+
+    /**
+     * API: Charger les amendements liés (lazy-loading paginé)
+     */
+    public function amendementsApi(Request $request, string $loicod)
+    {
+        $loicodTrim = trim($loicod);
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 20);
+        
+        $loi = Loi::with('thematiques')
+            ->whereRaw("TRIM(loicod) = ?", [$loicodTrim])
+            ->firstOrFail();
+        
+        $dossierAN = Cache::remember("loi_show_{$loicodTrim}_dossier", 3600, function () use ($loi) {
+            return $this->findDossierAN($loi);
+        });
+
+        $amendements = $this->findAmendementsLiesPaginated($loi, $dossierAN, $page, $perPage);
+        
+        return response()->json($amendements);
+    }
+
+    /**
+     * Version paginée des amendements pour API
+     */
+    private function findAmendementsLiesPaginated(Loi $loi, ?array $dossierAN, int $page = 1, int $perPage = 20): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $amendementsAN = collect();
+        $liaisonDirecte = false;
+
+        // MÉTHODE 1: Liaison directe via les numéros de textes du dossier AN
+        if ($dossierAN && !empty($dossierAN['textes'])) {
+            $numerosTextes = collect($dossierAN['textes'])
+                ->pluck('numero')
+                ->filter()
+                ->map(fn($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
+                ->toArray();
+
+            if (!empty($numerosTextes)) {
+                $query = AmendementAN::query()
+                    ->where('legislature', 17)
+                    ->where(function ($q) use ($numerosTextes) {
+                        foreach ($numerosTextes as $num) {
+                            $q->orWhere('uid', 'LIKE', "%B{$num}%");
+                        }
+                    })
+                    ->orderByDesc('date_depot');
+
+                $total = $query->count();
+                
+                $amendementsAN = $query
+                    ->offset($offset)
+                    ->limit($perPage)
+                    ->get()
+                    ->map(function($a) {
+                        $texteRef = null;
+                        if ($a->uid && preg_match('/B(\d+)P/', $a->uid, $matches)) {
+                            $texteRef = $matches[1];
+                        }
+                        
+                        return [
+                            'uid' => $a->uid,
+                            'numero' => $a->numero_long,
+                            'texte_ref' => $texteRef,
+                            'article' => $a->article_designation_courte ?? $a->division_titre,
+                            'auteur' => html_entity_decode($a->auteur_libelle ?? 'Inconnu'),
+                            'sort' => $a->sort_libelle,
+                            'sort_code' => $a->sort_code,
+                            'date_depot' => $a->date_depot?->format('d/m/Y'),
+                            'expose' => \Str::limit(strip_tags($a->expose ?? ''), 150),
+                            'chambre' => 'AN',
+                            'url' => $texteRef && $a->numero_long ? "https://www.assemblee-nationale.fr/dyn/17/amendements/{$texteRef}/{$a->numero_long}" : null,
+                        ];
+                    });
+
+                $liaisonDirecte = true;
+
+                return [
+                    'amendements' => $amendementsAN->toArray(),
+                    'total' => $total,
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'last_page' => ceil($total / $perPage),
+                    'liaison_directe' => $liaisonDirecte,
+                ];
+            }
+        }
+
+        return [
+            'amendements' => [],
+            'total' => 0,
+            'page' => $page,
+            'per_page' => $perPage,
+            'last_page' => 1,
+            'liaison_directe' => false,
+        ];
+    }
+
+    /**
+     * Rechercher les amendements liés à une loi (version complète, gardée pour référence)
      */
     private function findAmendementsLies(Loi $loi, ?array $dossierAN): array
     {
