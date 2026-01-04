@@ -474,18 +474,38 @@ class ParticipationController extends Controller
     /**
      * Ajouter un commentaire sur une idée
      */
-    public function addComment(Request $request, Topic $topic)
+    public function addComment(Request $request, Topic $topic, ContentModerationService $moderationService)
     {
         $validated = $request->validate([
             'content' => ['required', 'string', 'min:10', 'max:5000'],
             'parent_id' => ['nullable', 'exists:posts,id'],
         ]);
 
+        // Modérer le contenu
+        $moderation = $moderationService->fullModerate(
+            $validated['content'],
+            auth()->id(),
+            null,
+            ['moderate_words' => true, 'sanitize_links' => true, 'parse_references' => true]
+        );
+
+        // Si contenu bloqué
+        if ($moderation['blocked'] ?? false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Votre commentaire contient du contenu interdit.',
+            ], 422);
+        }
+
         $post = $topic->posts()->create([
             'user_id' => auth()->id(),
-            'content' => $validated['content'],
+            'content' => $moderation['content'],
             'parent_id' => $validated['parent_id'],
         ]);
+
+        // Traiter les mentions @utilisateur
+        $mentionService = app(\App\Services\MentionService::class);
+        $mentionService->processContent($moderation['content'], $post, auth()->user());
 
         $post->load('user:id,name');
 
@@ -493,7 +513,7 @@ class ParticipationController extends Controller
             'success' => true,
             'comment' => [
                 'id' => $post->id,
-                'content' => $post->content,
+                'content' => $mentionService->renderMentions($post->content),
                 'created_at' => $post->created_at->toIso8601String(),
                 'user' => [
                     'id' => $post->user->id,

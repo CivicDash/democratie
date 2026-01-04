@@ -506,6 +506,33 @@ Route::prefix('references')->name('references.')->group(function () {
     Route::post('/resolve-multiple', [App\Http\Controllers\Api\ReferencePreviewController::class, 'resolveMultiple'])->name('resolve_multiple');
 });
 
+// ============================================================================
+// MENTIONS @UTILISATEUR
+// ============================================================================
+
+Route::prefix('mentions')->name('mentions.')->group(function () {
+    // Public : suggestions pour autocomplete
+    Route::get('/suggest', [App\Http\Controllers\Api\MentionController::class, 'suggest'])->name('suggest');
+    Route::post('/preview', [App\Http\Controllers\Api\MentionController::class, 'preview'])->name('preview');
+    
+    // Authentifié : gestion des mentions
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/unread', [App\Http\Controllers\Api\MentionController::class, 'unread'])->name('unread');
+        Route::post('/{mention}/read', [App\Http\Controllers\Api\MentionController::class, 'markAsRead'])->name('read');
+        Route::post('/read-all', [App\Http\Controllers\Api\MentionController::class, 'markAllAsRead'])->name('read_all');
+    });
+});
+
+// ============================================================================
+// SIGNALEMENTS (API publique pour les utilisateurs)
+// ============================================================================
+
+Route::prefix('reports')->name('reports.')->middleware('auth:sanctum')->group(function () {
+    Route::get('/reasons', [App\Http\Controllers\Api\ReportController::class, 'reasons'])->name('reasons')->withoutMiddleware('auth:sanctum');
+    Route::post('/', [App\Http\Controllers\Api\ReportController::class, 'store'])->name('store')->middleware('not-readonly');
+    Route::get('/my-reports', [App\Http\Controllers\Api\ReportController::class, 'myReports'])->name('my');
+});
+
 Route::fallback(function () {
     return response()->json([
         'message' => 'Endpoint introuvable. Vérifiez l\'URL et la méthode HTTP.',
