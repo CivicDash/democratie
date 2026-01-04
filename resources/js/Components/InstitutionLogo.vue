@@ -42,18 +42,16 @@ const logos = {
         shortLabel: 'Sénat',
     },
     gouvernement: {
-        src: null, // Pas encore de logo
+        src: '/images/Logo_de_la_présidence_de_la_République_(2018).svg',
         alt: 'Gouvernement',
         label: 'Gouvernement',
         shortLabel: 'Gouv.',
-        fallback: '🏛️',
     },
     elysee: {
-        src: null, // Pas encore de logo
+        src: '/images/Logo_de_la_présidence_de_la_République_(2018).svg',
         alt: 'Élysée',
         label: 'Présidence de la République',
         shortLabel: 'Élysée',
-        fallback: '🏰',
     },
 };
 

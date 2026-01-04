@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useGuidedTour } from '@/Composables/useGuidedTour';
+import TourIcon from './TourIcon.vue';
 
 const { startTourWithRedirect, availableTours, isTourCompleted, resetTours, completedTours } = useGuidedTour();
 
@@ -94,7 +95,7 @@ onUnmounted(() => {
                         class="w-full px-4 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-left border-b border-slate-100 dark:border-slate-700/50 last:border-0"
                     >
                         <!-- Icône -->
-                        <span class="text-2xl mt-0.5">{{ tour.icon || '🎯' }}</span>
+                        <TourIcon :tour-id="tour.id" size="lg" class="mt-0.5" />
                         
                         <!-- Contenu -->
                         <div class="flex-1 min-w-0">

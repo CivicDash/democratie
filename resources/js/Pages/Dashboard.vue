@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import InstitutionLogo from '@/Components/InstitutionLogo.vue';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
@@ -154,10 +155,10 @@ const getScoreClass = (score) => {
                 <div data-tour="dashboard-quick-actions" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
                     <Link
                         :href="route('representants.deputes.index')"
-                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:shadow-lg transition-all flex items-center gap-3"
+                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:shadow-lg transition-all flex items-center gap-3"
                     >
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="text-lg">🏛️</span>
+                        <div class="w-10 h-10 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform p-1.5 border border-slate-200 dark:border-slate-600">
+                            <InstitutionLogo institution="an" size="md" />
                         </div>
                         <div>
                             <p class="font-semibold text-slate-900 dark:text-white text-sm">Députés</p>
@@ -167,10 +168,10 @@ const getScoreClass = (score) => {
                     
                     <Link
                         :href="route('representants.senateurs.index')"
-                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-red-500 hover:shadow-lg transition-all flex items-center gap-3"
+                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-rose-500 hover:shadow-lg transition-all flex items-center gap-3"
                     >
-                        <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="text-lg">🏛️</span>
+                        <div class="w-10 h-10 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform p-1.5 border border-slate-200 dark:border-slate-600">
+                            <InstitutionLogo institution="senat" size="md" />
                         </div>
                         <div>
                             <p class="font-semibold text-slate-900 dark:text-white text-sm">Sénateurs</p>
