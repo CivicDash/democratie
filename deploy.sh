@@ -43,17 +43,17 @@ fi
 
 # 1. Database Migrations & Seeds (optionnel)
 if [ "$1" == "--fresh-db" ]; then
-    log_step "1/5 - Fresh database migrations..."
+    log_step "1/6 - Fresh database migrations..."
     docker compose exec app php artisan migrate:fresh --seed --force
     log_success "Database refreshed"
 else
-    log_step "1/5 - Running pending migrations..."
+    log_step "1/6 - Running pending migrations..."
     docker compose exec app php artisan migrate --force
     log_success "Migrations executed"
 fi
 
 # 2. Build Frontend
-log_step "2/5 - Building frontend assets..."
+log_step "2/6 - Building frontend assets..."
 if docker compose exec -u root app npm run build; then
     log_success "Frontend built successfully"
 else
@@ -62,27 +62,33 @@ else
 fi
 
 # 3. Clear All Caches
-log_step "3/5 - Clearing Laravel caches..."
+log_step "3/6 - Clearing Laravel caches..."
 docker compose exec app php artisan config:clear
 docker compose exec app php artisan cache:clear
 docker compose exec app php artisan route:clear
 docker compose exec app php artisan view:clear
+docker compose exec app php artisan event:clear 2>/dev/null || true
 log_success "Caches cleared"
 
-# 4. Optimize (optionnel en prod)
+# 4. Reload Octane Workers (important pour recharger le manifeste Vite)
+log_step "4/6 - Reloading Octane workers..."
+docker compose exec app php artisan octane:reload 2>/dev/null || docker compose restart app
+log_success "Octane workers reloaded"
+
+# 5. Optimize (optionnel en prod)
 if [ "$1" == "--optimize" ] || [ "$2" == "--optimize" ]; then
-    log_step "4/5 - Optimizing application..."
+    log_step "5/6 - Optimizing application..."
     docker compose exec app php artisan config:cache
     docker compose exec app php artisan route:cache
     docker compose exec app php artisan view:cache
     log_success "Application optimized"
 else
-    log_step "4/5 - Skipping optimization (use --optimize flag)"
+    log_step "5/6 - Skipping optimization (use --optimize flag)"
 fi
 
-# 5. Restart Services
-log_step "5/5 - Restarting Docker services..."
-docker compose restart app nginx queue
+# 6. Restart remaining services
+log_step "6/6 - Restarting remaining services..."
+docker compose restart nginx queue 2>/dev/null || true
 log_success "Services restarted"
 
 echo ""

@@ -17,7 +17,53 @@ const props = defineProps({
     categories: Object,
     severities: Object,
     niceCategories: Object,
+    filters: Object,
 });
+
+// Filtres de recherche
+const searchBanned = ref(props.filters?.search_banned || '');
+const filterCategory = ref(props.filters?.category || '');
+const filterSeverity = ref(props.filters?.severity || '');
+const searchNice = ref(props.filters?.search_nice || '');
+const filterNiceCategory = ref(props.filters?.nice_category || '');
+
+// Debounce pour la recherche
+let searchTimeout = null;
+const applyFilters = () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(route('admin.moderation.words'), {
+            search_banned: searchBanned.value || undefined,
+            category: filterCategory.value || undefined,
+            severity: filterSeverity.value || undefined,
+            search_nice: searchNice.value || undefined,
+            nice_category: filterNiceCategory.value || undefined,
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    }, 300);
+};
+
+const clearBannedFilters = () => {
+    searchBanned.value = '';
+    filterCategory.value = '';
+    filterSeverity.value = '';
+    applyFilters();
+};
+
+const clearNiceFilters = () => {
+    searchNice.value = '';
+    filterNiceCategory.value = '';
+    applyFilters();
+};
+
+// Navigation de pagination
+const goToPage = (url) => {
+    if (url) {
+        router.get(url, {}, { preserveState: true, preserveScroll: true });
+    }
+};
 
 const activeTab = ref('banned'); // banned, nice, logs, test
 
@@ -224,7 +270,7 @@ const categoryColors = {
                     <div class="p-6">
                         <!-- Tab: Mots bannis -->
                         <div v-if="activeTab === 'banned'">
-                            <div class="flex justify-between items-center mb-4">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                                     Liste des mots bannis
                                 </h3>
@@ -234,6 +280,51 @@ const categoryColors = {
                                 >
                                     + Ajouter
                                 </button>
+                            </div>
+
+                            <!-- Barre de recherche et filtres -->
+                            <div class="flex flex-col md:flex-row gap-3 mb-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="flex-1">
+                                    <input
+                                        v-model="searchBanned"
+                                        @input="applyFilters"
+                                        type="text"
+                                        placeholder="🔍 Rechercher un mot..."
+                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500"
+                                    />
+                                </div>
+                                <select
+                                    v-model="filterCategory"
+                                    @change="applyFilters"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="">Toutes catégories</option>
+                                    <option v-for="(label, key) in categories" :key="key" :value="key">
+                                        {{ label }}
+                                    </option>
+                                </select>
+                                <select
+                                    v-model="filterSeverity"
+                                    @change="applyFilters"
+                                    class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="">Toutes sévérités</option>
+                                    <option v-for="(label, key) in severities" :key="key" :value="key">
+                                        {{ label }}
+                                    </option>
+                                </select>
+                                <button
+                                    v-if="searchBanned || filterCategory || filterSeverity"
+                                    @click="clearBannedFilters"
+                                    class="px-3 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    ✕ Effacer
+                                </button>
+                            </div>
+
+                            <!-- Infos pagination -->
+                            <div class="text-sm text-gray-500 mb-2">
+                                Affichage de {{ bannedWords.from || 0 }} à {{ bannedWords.to || 0 }} sur {{ bannedWords.total }} mots
                             </div>
 
                             <div class="overflow-x-auto">
@@ -277,11 +368,48 @@ const categoryColors = {
                                     </tbody>
                                 </table>
                             </div>
+
+                            <!-- Pagination -->
+                            <div v-if="bannedWords.last_page > 1" class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div class="text-sm text-gray-500">
+                                    Page {{ bannedWords.current_page }} sur {{ bannedWords.last_page }}
+                                </div>
+                                <div class="flex gap-2">
+                                    <button
+                                        @click="goToPage(bannedWords.first_page_url)"
+                                        :disabled="!bannedWords.prev_page_url"
+                                        class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    >
+                                        ⏮️
+                                    </button>
+                                    <button
+                                        @click="goToPage(bannedWords.prev_page_url)"
+                                        :disabled="!bannedWords.prev_page_url"
+                                        class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    >
+                                        ◀️ Précédent
+                                    </button>
+                                    <button
+                                        @click="goToPage(bannedWords.next_page_url)"
+                                        :disabled="!bannedWords.next_page_url"
+                                        class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    >
+                                        Suivant ▶️
+                                    </button>
+                                    <button
+                                        @click="goToPage(bannedWords.last_page_url)"
+                                        :disabled="!bannedWords.next_page_url"
+                                        class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    >
+                                        ⏭️
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Tab: Mots gentils -->
                         <div v-if="activeTab === 'nice'">
-                            <div class="flex justify-between items-center mb-4">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                                     Liste des mots gentils de remplacement
                                 </h3>
@@ -291,6 +419,41 @@ const categoryColors = {
                                 >
                                     + Ajouter 💖
                                 </button>
+                            </div>
+
+                            <!-- Barre de recherche et filtres -->
+                            <div class="flex flex-col md:flex-row gap-3 mb-4 p-4 bg-pink-50 dark:bg-pink-900/20 rounded-lg">
+                                <div class="flex-1">
+                                    <input
+                                        v-model="searchNice"
+                                        @input="applyFilters"
+                                        type="text"
+                                        placeholder="🔍 Rechercher un mot gentil..."
+                                        class="w-full px-4 py-2 border border-pink-300 dark:border-pink-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-pink-500"
+                                    />
+                                </div>
+                                <select
+                                    v-model="filterNiceCategory"
+                                    @change="applyFilters"
+                                    class="px-3 py-2 border border-pink-300 dark:border-pink-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="">Toutes catégories</option>
+                                    <option v-for="(label, key) in niceCategories" :key="key" :value="key">
+                                        {{ label }}
+                                    </option>
+                                </select>
+                                <button
+                                    v-if="searchNice || filterNiceCategory"
+                                    @click="clearNiceFilters"
+                                    class="px-3 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                                >
+                                    ✕ Effacer
+                                </button>
+                            </div>
+
+                            <!-- Infos pagination -->
+                            <div class="text-sm text-gray-500 mb-2">
+                                Affichage de {{ niceWords.from || 0 }} à {{ niceWords.to || 0 }} sur {{ niceWords.total }} mots
                             </div>
 
                             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -306,6 +469,43 @@ const categoryColors = {
                                         class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition"
                                     >
                                         ×
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div v-if="niceWords.last_page > 1" class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div class="text-sm text-gray-500">
+                                    Page {{ niceWords.current_page }} sur {{ niceWords.last_page }}
+                                </div>
+                                <div class="flex gap-2">
+                                    <button
+                                        @click="goToPage(niceWords.first_page_url)"
+                                        :disabled="!niceWords.prev_page_url"
+                                        class="px-3 py-1 rounded border border-pink-300 dark:border-pink-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-pink-100 dark:hover:bg-pink-900/30"
+                                    >
+                                        ⏮️
+                                    </button>
+                                    <button
+                                        @click="goToPage(niceWords.prev_page_url)"
+                                        :disabled="!niceWords.prev_page_url"
+                                        class="px-3 py-1 rounded border border-pink-300 dark:border-pink-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-pink-100 dark:hover:bg-pink-900/30"
+                                    >
+                                        ◀️ Précédent
+                                    </button>
+                                    <button
+                                        @click="goToPage(niceWords.next_page_url)"
+                                        :disabled="!niceWords.next_page_url"
+                                        class="px-3 py-1 rounded border border-pink-300 dark:border-pink-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-pink-100 dark:hover:bg-pink-900/30"
+                                    >
+                                        Suivant ▶️
+                                    </button>
+                                    <button
+                                        @click="goToPage(niceWords.last_page_url)"
+                                        :disabled="!niceWords.next_page_url"
+                                        class="px-3 py-1 rounded border border-pink-300 dark:border-pink-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-pink-100 dark:hover:bg-pink-900/30"
+                                    >
+                                        ⏭️
                                     </button>
                                 </div>
                             </div>

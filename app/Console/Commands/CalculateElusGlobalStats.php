@@ -237,22 +237,23 @@ class CalculateElusGlobalStats extends Command
 
     protected function calculateTrancheAges(array $ages): array
     {
+        // Clés compatibles avec le frontend Comparaison.vue
         $tranches = [
-            '18-30' => 0,
-            '31-40' => 0,
-            '41-50' => 0,
-            '51-60' => 0,
-            '61-70' => 0,
-            '71+' => 0,
+            '< 30 ans' => 0,
+            '30-39 ans' => 0,
+            '40-49 ans' => 0,
+            '50-59 ans' => 0,
+            '60-69 ans' => 0,
+            '70+ ans' => 0,
         ];
 
         foreach ($ages as $age) {
-            if ($age <= 30) $tranches['18-30']++;
-            elseif ($age <= 40) $tranches['31-40']++;
-            elseif ($age <= 50) $tranches['41-50']++;
-            elseif ($age <= 60) $tranches['51-60']++;
-            elseif ($age <= 70) $tranches['61-70']++;
-            else $tranches['71+']++;
+            if ($age < 30) $tranches['< 30 ans']++;
+            elseif ($age < 40) $tranches['30-39 ans']++;
+            elseif ($age < 50) $tranches['40-49 ans']++;
+            elseif ($age < 60) $tranches['50-59 ans']++;
+            elseif ($age < 70) $tranches['60-69 ans']++;
+            else $tranches['70+ ans']++;
         }
 
         return $tranches;

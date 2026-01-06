@@ -31,6 +31,23 @@ use Inertia\Inertia;
 |
 */
 
+// Pages de suspension/bannissement (sans auth)
+Route::get('/account/suspended', function () {
+    return Inertia::render('Auth/Suspended', [
+        'reason' => session('reason'),
+        'suspended_until' => session('suspended_until'),
+        'remaining' => session('remaining'),
+    ]);
+})->name('account.suspended');
+
+Route::get('/account/banned', function () {
+    return Inertia::render('Auth/Banned', [
+        'reason' => session('reason'),
+        'banned_at' => session('banned_at'),
+        'appeal_email' => 'bannissement@civis-consilium.eu',
+    ]);
+})->name('account.banned');
+
 // Page d'accueil - Redirection vers login ou dashboard
 Route::get('/', function () {
     // Si l'utilisateur est connecté, rediriger vers le dashboard
@@ -363,8 +380,8 @@ Route::prefix('moderation')->name('moderation.')->middleware(['auth', 'role:mode
     Route::get('/stats', [ModerationController::class, 'stats'])->name('stats');
 });
 
-// Public report submission
-Route::post('/reports', [ModerationController::class, 'store'])->middleware('auth')->name('reports.store');
+// Public report submission (API version in api.php handles this now)
+// Route::post('/reports', [ModerationController::class, 'store'])->middleware('auth')->name('report.submit');
 
 /*
 |--------------------------------------------------------------------------
@@ -414,18 +431,6 @@ Route::prefix('participation')->name('participation.')->middleware('auth')->grou
     });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Espace Élu (réservé aux élus vérifiés)
-|--------------------------------------------------------------------------
-*/
-Route::prefix('elu')->name('elu.')->middleware('auth')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Web\EluDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/interpellations', [\App\Http\Controllers\Web\EluDashboardController::class, 'interpellations'])->name('interpellations');
-    Route::get('/interpellations/{interpellation}', [\App\Http\Controllers\Web\EluDashboardController::class, 'showInterpellation'])->name('interpellations.show');
-    Route::post('/interpellations/{interpellation}/respond', [\App\Http\Controllers\Web\EluDashboardController::class, 'respond'])->name('interpellations.respond');
-    Route::post('/interpellations/{interpellation}/decline', [\App\Http\Controllers\Web\EluDashboardController::class, 'decline'])->name('interpellations.decline');
-});
 
 // Profil public des élus (accessible à tous les utilisateurs connectés)
 Route::get('/elus/{type}/{ref}', [\App\Http\Controllers\Web\EluDashboardController::class, 'publicProfile'])
@@ -449,6 +454,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/gamification', function () {
         return Inertia::render('Profile/Gamification');
     })->name('profile.gamification');
+    
+    // Élus suivis
+    Route::get('/profile/elus-suivis', [App\Http\Controllers\Web\ElusSuivisController::class, 'index'])->name('profile.elus-suivis');
     
     // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -476,6 +484,14 @@ Route::prefix('statistiques')->name('statistics.')->middleware('auth')->group(fu
     Route::get('/france', [FranceStatisticsController::class, 'index'])->name('france');
     Route::get('/france/region/{regionCode}', [FranceStatisticsController::class, 'getRegionData'])->name('france.region');
     Route::get('/france/department/{departmentCode}', [FranceStatisticsController::class, 'getDepartmentData'])->name('france.department');
+    
+    // Statistiques Villes
+    Route::get('/villes', [App\Http\Controllers\Web\StatistiquesVillesController::class, 'index'])->name('villes');
+    
+    // Statistiques Régions
+    Route::get('/regions', [App\Http\Controllers\Web\StatistiquesRegionsController::class, 'index'])->name('regions.index');
+    Route::get('/regions/{code}', [App\Http\Controllers\Web\StatistiquesRegionsController::class, 'show'])->name('regions.show');
+    
     Route::get('/france/compare', [FranceStatisticsController::class, 'compareYears'])->name('france.compare');
 });
 
@@ -615,6 +631,106 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
         Route::post('/{user}/change-role', [App\Http\Controllers\Admin\UserManagementController::class, 'changeRole'])->name('change-role');
         Route::post('/{user}/verify-elu', [App\Http\Controllers\Admin\UserManagementController::class, 'verifyElu'])->name('verify-elu');
         Route::post('/{user}/revoke-elu', [App\Http\Controllers\Admin\UserManagementController::class, 'revokeElu'])->name('revoke-elu');
+        
+        // Sanctions
+        Route::get('/{user}/sanctions', [App\Http\Controllers\Admin\UserSanctionController::class, 'history'])->name('sanctions');
+        Route::post('/{user}/suspend', [App\Http\Controllers\Admin\UserSanctionController::class, 'suspend'])->name('suspend')->middleware('not-readonly');
+        Route::post('/{user}/ban', [App\Http\Controllers\Admin\UserSanctionController::class, 'ban'])->name('ban')->middleware('not-readonly');
+        Route::post('/{user}/unban', [App\Http\Controllers\Admin\UserSanctionController::class, 'unban'])->name('unban')->middleware('not-readonly');
+        Route::delete('/{user}/force-delete', [App\Http\Controllers\Admin\UserSanctionController::class, 'forceDelete'])->name('force-delete')->middleware('not-readonly');
+        Route::post('/{user}/restore', [App\Http\Controllers\Admin\UserSanctionController::class, 'restore'])->name('restore')->middleware('not-readonly');
+    });
+
+    // Finances Publiques (Budget, URSSAF, Recettes consolidées)
+    Route::prefix('finances')->name('finances.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'index'])->name('index');
+        Route::post('/import', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'runImport'])->name('import');
+        
+        // Budget Annuel
+        Route::get('/budget-annuel/create', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'createBudgetAnnuel'])->name('budget-annuel.create');
+        Route::post('/budget-annuel', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'storeBudgetAnnuel'])->name('budget-annuel.store');
+        Route::get('/budget-annuel/{budgetAnnuel}/edit', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'editBudgetAnnuel'])->name('budget-annuel.edit');
+        Route::put('/budget-annuel/{budgetAnnuel}', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'updateBudgetAnnuel'])->name('budget-annuel.update');
+        
+        // Recettes consolidées
+        Route::get('/recettes/create', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'createRecettes'])->name('recettes.create');
+        Route::post('/recettes', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'storeRecettes'])->name('recettes.store');
+        Route::get('/recettes/{recette}/edit', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'editRecettes'])->name('recettes.edit');
+        Route::put('/recettes/{recette}', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'updateRecettes'])->name('recettes.update');
+        
+        // URSSAF
+        Route::get('/urssaf', [App\Http\Controllers\Admin\FinancesPubliquesController::class, 'urssafDetails'])->name('urssaf');
+    });
+
+    // Statistiques France (source unique)
+    Route::prefix('stats-france')->name('stats-france.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'index'])->name('index');
+        Route::post('/create-year', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'createYear'])->name('create-year');
+        
+        // Démographie
+        Route::get('/demographie', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'demographie'])->name('demographie');
+        Route::put('/demographie/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateDemographie'])->name('demographie.update');
+        
+        // Économie
+        Route::get('/economie', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'economie'])->name('economie');
+        Route::put('/economie/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateEconomie'])->name('economie.update');
+        
+        // Budget État
+        Route::get('/budget', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'budget'])->name('budget');
+        Route::put('/budget/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateBudget'])->name('budget.update');
+        
+        // Recettes consolidées
+        Route::get('/recettes', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'recettes'])->name('recettes');
+        Route::put('/recettes/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateRecettes'])->name('recettes.update');
+        
+        // Dépenses publiques
+        Route::get('/depenses', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'depenses'])->name('depenses');
+        Route::put('/depenses/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateDepenses'])->name('depenses.update');
+        
+        // Éducation
+        Route::get('/education', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'education'])->name('education');
+        Route::put('/education/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateEducation'])->name('education.update');
+        
+        // Santé
+        Route::get('/sante', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'sante'])->name('sante');
+        Route::put('/sante/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateSante'])->name('sante.update');
+        
+        // Environnement
+        Route::get('/environnement', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'environnement'])->name('environnement');
+        Route::put('/environnement/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateEnvironnement'])->name('environnement.update');
+        
+        // Sécurité
+        Route::get('/securite', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'securite'])->name('securite');
+        Route::put('/securite/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateSecurite'])->name('securite.update');
+        
+        // Emploi
+        Route::get('/emploi', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'emploi'])->name('emploi');
+        Route::put('/emploi/{annee}', [App\Http\Controllers\Admin\StatistiquesFranceController::class, 'updateEmploi'])->name('emploi.update');
+    });
+
+    // Test d'emails
+    Route::prefix('emails')->name('email.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\EmailTestController::class, 'index'])->name('index');
+        Route::post('/send', [App\Http\Controllers\Admin\EmailTestController::class, 'send'])->name('send');
+        Route::get('/preview/{template}', [App\Http\Controllers\Admin\EmailTestController::class, 'preview'])->name('preview');
+    });
+
+    // Modération des photos de profil
+    Route::prefix('moderation/photos')->name('moderation.photos.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\PhotoModerationController::class, 'index'])->name('index');
+        Route::post('/{user}/approve', [App\Http\Controllers\Admin\PhotoModerationController::class, 'approve'])->name('approve');
+        Route::post('/{user}/reject', [App\Http\Controllers\Admin\PhotoModerationController::class, 'reject'])->name('reject');
+        Route::get('/history', [App\Http\Controllers\Admin\PhotoModerationController::class, 'history'])->name('history');
+    });
+
+    // Membres de l'association Civis-Consilium
+    Route::prefix('association')->name('association.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\AssociationMembersController::class, 'index'])->name('index');
+        Route::post('/{user}/add-member', [App\Http\Controllers\Admin\AssociationMembersController::class, 'addMember'])->name('add-member');
+        Route::delete('/{user}/remove-member', [App\Http\Controllers\Admin\AssociationMembersController::class, 'removeMember'])->name('remove-member');
+        Route::put('/{user}/member-id', [App\Http\Controllers\Admin\AssociationMembersController::class, 'updateMemberId'])->name('update-member-id');
+        Route::get('/search-users', [App\Http\Controllers\Admin\AssociationMembersController::class, 'searchUsers'])->name('search-users');
+        Route::get('/export', [App\Http\Controllers\Admin\AssociationMembersController::class, 'export'])->name('export');
     });
 });
 
@@ -670,6 +786,24 @@ Route::middleware(['auth', 'two-factor'])->prefix('elu')->name('elu.')->group(fu
 
 // Profil public d'un élu
 Route::get('/elu/{type}/{ref}', [App\Http\Controllers\Web\EluDashboardController::class, 'publicProfile'])->name('elu.public');
+
+/*
+|--------------------------------------------------------------------------
+| Communes (Villes)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('communes')->name('communes.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Web\CommuneController::class, 'index'])->name('index');
+    Route::get('/search', [App\Http\Controllers\Web\CommuneController::class, 'search'])->name('search');
+    Route::get('/{inseeCode}', [App\Http\Controllers\Web\CommuneController::class, 'show'])->name('show');
+});
+
+// Villes (entité enrichie avec historique maires et stats)
+Route::prefix('villes')->name('villes.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Web\VilleController::class, 'index'])->name('index');
+    Route::get('/search', [App\Http\Controllers\Web\VilleController::class, 'search'])->name('search');
+    Route::get('/{slug}', [App\Http\Controllers\Web\VilleController::class, 'show'])->name('show');
+});
 
 /*
 |--------------------------------------------------------------------------

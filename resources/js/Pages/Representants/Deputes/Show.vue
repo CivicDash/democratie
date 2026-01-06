@@ -6,6 +6,7 @@ import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import HatvpDeclarationCard from '@/Components/HatvpDeclarationCard.vue';
+import EluFollowButton from '@/Components/EluFollowButton.vue';
 
 const props = defineProps({
   depute: Object,
@@ -131,12 +132,20 @@ const formatMontant = (montant) => {
                     <span v-if="depute.lieu_naissance"> • Né(e) à {{ depute.lieu_naissance }}</span>
                   </p>
                 </div>
-                <Badge
-                  v-if="depute.trigramme"
-                  class="text-lg px-4 py-2"
-                >
-                  {{ depute.trigramme }}
-                </Badge>
+                <div class="flex items-center gap-3">
+                  <Badge
+                    v-if="depute.trigramme"
+                    class="text-lg px-4 py-2"
+                  >
+                    {{ depute.trigramme }}
+                  </Badge>
+                  <EluFollowButton
+                    elu-type="depute"
+                    :elu-id="depute.uid"
+                    :elu-name="depute.nom_complet"
+                    :initial-following="depute.is_followed"
+                  />
+                </div>
               </div>
 
               <!-- Wikipedia Extract -->

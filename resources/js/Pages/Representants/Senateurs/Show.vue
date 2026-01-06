@@ -6,6 +6,7 @@ import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import HatvpDeclarationCard from '@/Components/HatvpDeclarationCard.vue';
+import EluFollowButton from '@/Components/EluFollowButton.vue';
 
 const props = defineProps({
   senateur: Object,
@@ -150,17 +151,25 @@ const getSegmentHeight = (value, total) => {
                     <span v-if="senateur.lieu_naissance"> • Né(e) à {{ senateur.lieu_naissance }}</span>
                   </p>
                 </div>
-                <Badge
-                  v-if="senateur.etat"
-                  :class="[
-                    senateur.etat === 'ACTIF' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                  ]"
-                  class="text-sm px-3 py-1"
-                >
-                  {{ senateur.etat }}
-                </Badge>
+                <div class="flex items-center gap-3">
+                  <Badge
+                    v-if="senateur.etat"
+                    :class="[
+                      senateur.etat === 'ACTIF' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                    ]"
+                    class="text-sm px-3 py-1"
+                  >
+                    {{ senateur.etat }}
+                  </Badge>
+                  <EluFollowButton
+                    elu-type="senateur"
+                    :elu-id="senateur.matricule"
+                    :elu-name="senateur.nom_complet"
+                    :initial-following="senateur.is_followed"
+                  />
+                </div>
               </div>
 
               <!-- Wikipedia Extract -->

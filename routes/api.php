@@ -62,6 +62,14 @@ Route::get('/postal-codes/{postalCode}', [PostalCodeController::class, 'show']);
 Route::get('/postal-codes/department/{departmentCode}', [PostalCodeController::class, 'byDepartment']);
 Route::get('/postal-codes/circonscription/{circonscription}', [PostalCodeController::class, 'byCirconscription']);
 
+// Localisation unifiée (recherche ville/CP + représentants)
+Route::prefix('localisation')->group(function () {
+    Route::get('/search', [App\Http\Controllers\Api\LocalisationController::class, 'search']);
+    Route::get('/suggest', [App\Http\Controllers\Api\LocalisationController::class, 'suggest']);
+    Route::get('/departements', [App\Http\Controllers\Api\LocalisationController::class, 'departements']);
+    Route::get('/representants/{inseeCode}', [App\Http\Controllers\Api\LocalisationController::class, 'representants']);
+});
+
 // Recherche de représentants (maire, député, sénateur) - routes publiques
 Route::get('/representants/search', [RepresentantsSearchController::class, 'search']);
 
@@ -382,7 +390,7 @@ Route::middleware(['auth:sanctum'])->prefix('thematiques')->name('thematiques.')
 // NOTIFICATIONS
 // ============================================================================
 
-Route::middleware(['auth:sanctum'])->prefix('notifications')->name('notifications.')->group(function () {
+Route::middleware(['auth:sanctum'])->prefix('notifications')->name('api.notifications.')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\NotificationsController::class, 'index'])->name('index');
     Route::get('/unread-count', [App\Http\Controllers\Api\NotificationsController::class, 'unreadCount'])->name('unread_count');
     Route::get('/stats', [App\Http\Controllers\Api\NotificationsController::class, 'stats'])->name('stats');
@@ -521,6 +529,19 @@ Route::prefix('mentions')->name('mentions.')->group(function () {
         Route::post('/{mention}/read', [App\Http\Controllers\Api\MentionController::class, 'markAsRead'])->name('read');
         Route::post('/read-all', [App\Http\Controllers\Api\MentionController::class, 'markAllAsRead'])->name('read_all');
     });
+});
+
+// ============================================================================
+// SUIVI D'ÉLUS
+// ============================================================================
+
+Route::middleware(['auth:sanctum'])->prefix('elu-follows')->name('elu-follows.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\EluFollowController::class, 'myFollowing'])->name('index');
+    Route::post('/follow', [App\Http\Controllers\Api\EluFollowController::class, 'follow'])->name('follow')->middleware('not-readonly');
+    Route::post('/unfollow', [App\Http\Controllers\Api\EluFollowController::class, 'unfollow'])->name('unfollow')->middleware('not-readonly');
+    Route::post('/preferences', [App\Http\Controllers\Api\EluFollowController::class, 'updatePreferences'])->name('preferences')->middleware('not-readonly');
+    Route::get('/check', [App\Http\Controllers\Api\EluFollowController::class, 'checkStatus'])->name('check');
+    Route::get('/stats', [App\Http\Controllers\Api\EluFollowController::class, 'eluStats'])->name('stats');
 });
 
 // ============================================================================

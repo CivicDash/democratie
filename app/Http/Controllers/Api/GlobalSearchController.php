@@ -9,6 +9,7 @@ use App\Models\Maire;
 use App\Models\PersonnePolitique;
 use App\Models\Senateur;
 use App\Models\Topic;
+use App\Models\Ville;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -43,6 +44,7 @@ class GlobalSearchController extends Controller
             $this->searchLois($query, $limit),
             $this->searchIdees($query, $limit),
             $this->searchMaires($query, $limit),
+            $this->searchVilles($query, $limit),
         );
 
         // Trier par pertinence (score de matching)
@@ -65,7 +67,7 @@ class GlobalSearchController extends Controller
     {
         $validated = $request->validate([
             'q' => ['required', 'string', 'min:2', 'max:200'],
-            'category' => ['nullable', 'in:all,deputes,senateurs,ministres,presidents,lois,idees,maires'],
+            'category' => ['nullable', 'in:all,deputes,senateurs,ministres,presidents,lois,idees,maires,villes'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -97,6 +99,9 @@ class GlobalSearchController extends Controller
         }
         if ($category === 'all' || $category === 'maires') {
             $results['maires'] = $this->searchMaires($query, $category === 'all' ? 5 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'villes') {
+            $results['villes'] = $this->searchVilles($query, $category === 'all' ? 5 : $limit, true);
         }
 
         return response()->json([
@@ -295,14 +300,28 @@ class GlobalSearchController extends Controller
                 $score += 20;
             }
             
+            // Récupérer la ville associée pour l'URL
+            $villeUrl = '#';
+            if ($m->ville_id) {
+                $ville = Ville::find($m->ville_id);
+                if ($ville) {
+                    $villeUrl = $ville->url;
+                }
+            } elseif ($m->code_commune) {
+                $ville = Ville::where('code_insee', $m->code_commune)->first();
+                if ($ville) {
+                    $villeUrl = $ville->url;
+                }
+            }
+            
             $result = [
                 'id' => $m->id,
                 'type' => 'maire',
                 'category' => 'Maire',
-                'icon' => '🏘️',
+                'icon' => '👔',
                 'title' => $nomComplet,
                 'subtitle' => $m->nom_commune ?? 'Maire',
-                'url' => "#", // Pas de page dédiée pour les maires
+                'url' => $villeUrl,
                 'photo_url' => $m->photo_url,
                 'score' => $score,
             ];
@@ -310,6 +329,69 @@ class GlobalSearchController extends Controller
             if ($detailed) {
                 $result['commune'] = $m->nom_commune;
                 $result['departement'] = $m->nom_departement;
+            }
+
+            return $result;
+        })->toArray();
+    }
+
+    private function searchVilles(string $query, int $limit, bool $detailed = false): array
+    {
+        // Recherche par nom de ville ou code postal
+        $isPostalCode = preg_match('/^\d{2,5}$/', $query);
+        
+        $villes = Ville::where('arrondissement_municipal', false)
+            ->where(function ($q) use ($query, $isPostalCode) {
+                $q->where('nom', 'ilike', "%{$query}%");
+                
+                if ($isPostalCode) {
+                    $q->orWhere('code_postal_principal', 'like', "{$query}%")
+                      ->orWhere('code_insee', 'like', "{$query}%");
+                }
+            })
+            ->whereNotNull('population')
+            ->orderByDesc('population')
+            ->limit($limit)
+            ->with('maireActuel:id,nom,prenom,civilite')
+            ->get();
+
+        return $villes->map(function ($v) use ($query, $detailed, $isPostalCode) {
+            $score = $this->calculateScore($v->nom, $query);
+            
+            // Boost si code postal match
+            if ($isPostalCode && str_starts_with($v->code_postal_principal ?? '', $query)) {
+                $score += 30;
+            }
+            
+            // Boost grandes villes
+            if ($v->population >= 100000) {
+                $score += 15;
+            } elseif ($v->population >= 50000) {
+                $score += 10;
+            }
+            
+            $result = [
+                'id' => $v->id,
+                'type' => 'ville',
+                'category' => 'Ville',
+                'icon' => '🏘️',
+                'title' => $v->nom,
+                'subtitle' => $v->code_postal_principal . ' • ' . ($v->departement_nom ?? $v->departement_code),
+                'url' => $v->url,
+                'photo_url' => null,
+                'score' => $score,
+            ];
+
+            if ($detailed) {
+                $result['code_postal'] = $v->code_postal_principal;
+                $result['code_insee'] = $v->code_insee;
+                $result['population'] = $v->population;
+                $result['population_formate'] = $v->population_formate;
+                $result['departement'] = $v->departement_nom;
+                $result['region'] = $v->region_nom;
+                $result['maire'] = $v->maireActuel 
+                    ? trim($v->maireActuel->prenom . ' ' . $v->maireActuel->nom)
+                    : null;
             }
 
             return $result;
@@ -509,7 +591,8 @@ class GlobalSearchController extends Controller
             ['key' => 'presidents', 'label' => 'Présidents', 'icon' => '🇫🇷'],
             ['key' => 'lois', 'label' => 'Lois', 'icon' => '📜'],
             ['key' => 'idees', 'label' => 'Idées', 'icon' => '💡'],
-            ['key' => 'maires', 'label' => 'Maires', 'icon' => '🏘️'],
+            ['key' => 'maires', 'label' => 'Maires', 'icon' => '👔'],
+            ['key' => 'villes', 'label' => 'Villes', 'icon' => '🏘️'],
         ];
     }
 }

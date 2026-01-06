@@ -1,0 +1,135 @@
+# Mailu - Serveur mail pour civis-consilium.eu
+# Documentation: https://mailu.io/
+#
+# Installation:
+#   1. sudo mkdir -p /opt/mailu
+#   2. sudo cp -r /opt/civicdash/docker/mailu/* /opt/mailu/
+#   3. cd /opt/mailu && sudo docker compose up -d
+#
+# Ports utilisés (internes, derrière nginx):
+#   - 8080: Webmail Roundcube
+#   - 8443: Admin Mailu
+#   - 25, 587, 465, 993, 143, 110, 995: Mail standard
+
+services:
+  # Reverse proxy interne Mailu
+  front:
+    image: ghcr.io/mailu/nginx:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    logging:
+      driver: journald
+      options:
+        tag: mailu-front
+    ports:
+      - "127.0.0.1:8180:80"      # Webmail (reverse proxy nginx externe)
+      - "127.0.0.1:8443:443"     # Admin (reverse proxy nginx externe)
+      - "25:25"                   # SMTP
+      - "465:465"                 # SMTPS
+      - "587:587"                 # Submission
+      - "110:110"                 # POP3
+      - "995:995"                 # POP3S
+      - "143:143"                 # IMAP
+      - "993:993"                 # IMAPS
+    volumes:
+      - "/opt/mailu/certs:/certs"
+      - "/opt/mailu/overrides/nginx:/overrides:ro"
+    depends_on:
+      - resolver
+    networks:
+      - default
+
+  # Résolveur DNS interne
+  resolver:
+    image: ghcr.io/mailu/unbound:2024.06
+    env_file: mailu.env
+    restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 192.168.203.254
+
+  # Serveur SMTP
+  smtp:
+    image: ghcr.io/mailu/postfix:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - "/opt/mailu/mailqueue:/queue"
+      - "/opt/mailu/overrides/postfix:/overrides:ro"
+    depends_on:
+      - front
+      - resolver
+    networks:
+      - default
+
+  # Serveur IMAP/POP3
+  imap:
+    image: ghcr.io/mailu/dovecot:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - "/opt/mailu/mail:/mail"
+      - "/opt/mailu/overrides/dovecot:/overrides:ro"
+    depends_on:
+      - front
+      - resolver
+    networks:
+      - default
+
+  # Anti-spam
+  antispam:
+    image: ghcr.io/mailu/rspamd:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - "/opt/mailu/filter:/var/lib/rspamd"
+      - "/opt/mailu/overrides/rspamd:/overrides:ro"
+    depends_on:
+      - front
+      - resolver
+    networks:
+      - default
+
+  # Interface d'administration
+  admin:
+    image: ghcr.io/mailu/admin:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - "/opt/mailu/data:/data"
+      - "/opt/mailu/dkim:/dkim"
+    depends_on:
+      - redis
+      - resolver
+    networks:
+      - default
+
+  # Webmail Roundcube
+  webmail:
+    image: ghcr.io/mailu/webmail:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - "/opt/mailu/webmail:/data"
+      - "/opt/mailu/overrides/roundcube:/overrides:ro"
+    depends_on:
+      - front
+    networks:
+      - default
+
+  # Redis (cache)
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    volumes:
+      - "/opt/mailu/redis:/data"
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.203.0/24

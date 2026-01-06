@@ -388,35 +388,47 @@ onUnmounted(() => {
                                     <template #content>
                                         <div class="p-3 space-y-1">
                                             <MegaMenuLink
-                                                :href="route('parlement.comparaison')"
-                                                icon="📈"
-                                                title="Stats Élus"
-                                                description="Députés, Sénateurs"
-                                            />
-                                            <MegaMenuLink
                                                 :href="route('statistics.france')"
                                                 icon="🗺️"
-                                                title="Statistiques France"
-                                                description="Carte interactive"
+                                                title="Statistiques Pays"
+                                                description="Démographie, économie, société"
                                             />
+                                            <MegaMenuLink
+                                                :href="route('statistics.villes')"
+                                                icon="🏘️"
+                                                title="Statistiques Villes"
+                                                description="Communes, populations, budgets"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('statistics.regions.index')"
+                                                icon="🗺️"
+                                                title="Statistiques Régions"
+                                                description="18 régions, départements, indicateurs"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('budget-etat.index')"
+                                                icon="💰"
+                                                title="Statistiques État"
+                                                description="Budget, recettes, dépenses"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('donnees.gouvernements')"
+                                                icon="🏛️"
+                                                title="Statistiques Gouvernement"
+                                                description="Ministres, ministères"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('parlement.comparaison')"
+                                                icon="👔"
+                                                title="Statistiques Élus"
+                                                description="Députés, sénateurs, maires"
+                                            />
+                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
                                             <MegaMenuLink
                                                 :href="route('documents.index')"
                                                 icon="📄"
                                                 title="Documents Publics"
                                                 description="Officiels vérifiés"
-                                            />
-                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
-                                            <MegaMenuLink
-                                                :href="route('budget-etat.index')"
-                                                icon="💰"
-                                                title="Budget de l'État"
-                                                description="PLF & dépenses par mission"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('donnees.gouvernements')"
-                                                icon="🏛️"
-                                                title="Stats Gouvernements"
-                                                description="Ve République"
                                             />
                                         </div>
                                     </template>
@@ -495,6 +507,9 @@ onUnmounted(() => {
                                 <template #content>
                                     <DropdownLink :href="route('profile.edit')">
                                         👤 Mon Profil
+                                    </DropdownLink>
+                                    <DropdownLink :href="route('profile.elus-suivis')">
+                                        🔔 Élus suivis
                                     </DropdownLink>
                                     <DropdownLink :href="route('profile.gamification')">
                                         🏆 Mes Succès
@@ -696,11 +711,13 @@ onUnmounted(() => {
                                 </svg>
                             </button>
                             <div v-show="expandedSection === 'donnees'" class="pl-4 space-y-1 mt-1">
-                                <ResponsiveNavLink :href="route('parlement.comparaison')">📈 Stats Élus</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('donnees.gouvernements')">🏛️ Stats Gouvernements</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('statistics.france')">🗺️ Statistiques France</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('statistics.france')">🗺️ Statistiques Pays</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('budget-etat.index')">💰 Statistiques État</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('donnees.gouvernements')">🏛️ Statistiques Gouvernement</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('parlement.comparaison')">👔 Statistiques Élus</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('statistics.villes')">🏘️ Statistiques Villes</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('statistics.regions.index')">🗺️ Statistiques Régions</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('documents.index')">📄 Documents Publics</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('budget-etat.index')">💰 Budget de l'État</ResponsiveNavLink>
                             </div>
                         </div>
                         
@@ -755,6 +772,7 @@ onUnmounted(() => {
 
                         <div class="space-y-1">
                             <ResponsiveNavLink :href="route('profile.edit')">👤 Mon Profil</ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('profile.elus-suivis')">🔔 Élus suivis</ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('profile.gamification')">🏆 Mes Succès</ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('logout')" method="post" as="button">
                                 🚪 Déconnexion

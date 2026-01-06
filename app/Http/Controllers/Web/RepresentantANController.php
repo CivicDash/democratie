@@ -15,7 +15,9 @@ use App\Models\ParlementaireStats;
 use App\Models\QuestionAN;
 use App\Services\GroupeParlementaireService;
 use App\Services\DisciplineGroupeService;
+use App\Models\EluFollower;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -385,6 +387,10 @@ class RepresentantANController extends Controller
                 'derniers_votes' => $derniersVotes,
                 'questions_stats' => $this->getQuestionsStats($uid),
                 'dernieres_questions' => $this->getDernieresQuestions($uid),
+                'is_followed' => Auth::check() && EluFollower::where('user_id', Auth::id())
+                    ->where('elu_type', 'depute')
+                    ->where('elu_id', $uid)
+                    ->exists(),
             ],
         ]);
     }
@@ -1152,6 +1158,10 @@ class RepresentantANController extends Controller
                 'declarations_hatvp' => $declarationsHatvp,
                 'hatvp_summary' => $hatvpSummary,
                 'derniers_votes' => $derniersVotes,
+                'is_followed' => Auth::check() && EluFollower::where('user_id', Auth::id())
+                    ->where('elu_type', 'senateur')
+                    ->where('elu_id', $matricule)
+                    ->exists(),
             ],
         ]);
     }

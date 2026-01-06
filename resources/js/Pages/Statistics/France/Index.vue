@@ -675,7 +675,7 @@ const recyclingChartData = computed(() => {
 </script>
 
 <template>
-    <Head title="Statistiques France" />
+    <Head title="Statistiques Pays" />
 
     <AuthenticatedLayout>
         <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -703,7 +703,7 @@ const recyclingChartData = computed(() => {
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div class="flex-1 min-w-0">
                             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 truncate">
-                                📊 Statistiques France
+                                🗺️ Statistiques Pays
                             </h1>
                             <p class="mt-1 text-sm sm:text-base text-gray-600 dark:text-gray-400 line-clamp-2">
                                 Vue d'ensemble des données publiques - INSEE, Ministères, Cour des Comptes

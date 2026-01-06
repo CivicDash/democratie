@@ -2,229 +2,136 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Modèle pour les budgets des communes françaises
- * 
- * @property int $id
- * @property string $code_insee
- * @property string $nom_commune
- * @property int $annee
- * @property int $population
- * @property int $budget_total Montant en centimes
- * @property int $recettes_fonctionnement Montant en centimes
- * @property int $depenses_fonctionnement Montant en centimes
- * @property int $recettes_investissement Montant en centimes
- * @property int $depenses_investissement Montant en centimes
- * @property int $dette Montant en centimes
- * @property float $depenses_par_habitant Montant en euros
- * @property array|null $sections
- * @property string $source
- * @property \Carbon\Carbon|null $fetched_at
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * Budget annuel d'une commune (données OFGL)
+ * Lié à french_postal_codes via insee_code
  */
 class CommuneBudget extends Model
 {
-    use HasFactory;
-
-    protected $table = 'commune_budgets';
-
     protected $fillable = [
-        'code_insee',
-        'nom_commune',
+        'insee_code',
         'annee',
-        'population',
-        'budget_total',
+        // Fonctionnement
         'recettes_fonctionnement',
         'depenses_fonctionnement',
+        // Investissement
         'recettes_investissement',
         'depenses_investissement',
-        'dette',
-        'depenses_par_habitant',
-        'sections',
+        // Dette
+        'encours_dette',
+        'annuite_dette',
+        // Ratios
+        'capacite_autofinancement',
+        'euros_par_habitant',
+        // Détails recettes
+        'impots_locaux',
+        'dotations_subventions',
+        // Détails dépenses
+        'charges_personnel',
+        'achats_services',
+        // Soldes
+        'epargne_brute',
+        // Population
+        'population',
         'source',
-        'fetched_at',
     ];
 
     protected $casts = [
         'annee' => 'integer',
+        'recettes_fonctionnement' => 'decimal:2',
+        'depenses_fonctionnement' => 'decimal:2',
+        'recettes_investissement' => 'decimal:2',
+        'depenses_investissement' => 'decimal:2',
+        'encours_dette' => 'decimal:2',
+        'annuite_dette' => 'decimal:2',
+        'capacite_autofinancement' => 'decimal:2',
+        'euros_par_habitant' => 'decimal:2',
+        'impots_locaux' => 'decimal:2',
+        'dotations_subventions' => 'decimal:2',
+        'charges_personnel' => 'decimal:2',
+        'achats_services' => 'decimal:2',
+        'epargne_brute' => 'decimal:2',
         'population' => 'integer',
-        'budget_total' => 'integer',
-        'recettes_fonctionnement' => 'integer',
-        'depenses_fonctionnement' => 'integer',
-        'recettes_investissement' => 'integer',
-        'depenses_investissement' => 'integer',
-        'dette' => 'integer',
-        'depenses_par_habitant' => 'decimal:2',
-        'sections' => 'array',
-        'fetched_at' => 'datetime',
     ];
 
     /**
-     * Accesseurs pour convertir les centimes en euros
+     * La commune associée (via insee_code)
      */
-    public function getBudgetTotalEurosAttribute(): float
+    public function commune(): BelongsTo
     {
-        return $this->budget_total / 100;
-    }
-
-    public function getRecettesFonctionnementEurosAttribute(): float
-    {
-        return $this->recettes_fonctionnement / 100;
-    }
-
-    public function getDepensesFonctionnementEurosAttribute(): float
-    {
-        return $this->depenses_fonctionnement / 100;
-    }
-
-    public function getRecettesInvestissementEurosAttribute(): float
-    {
-        return $this->recettes_investissement / 100;
-    }
-
-    public function getDepensesInvestissementEurosAttribute(): float
-    {
-        return $this->depenses_investissement / 100;
-    }
-
-    public function getDetteEurosAttribute(): float
-    {
-        return $this->dette / 100;
+        return $this->belongsTo(FrenchPostalCode::class, 'insee_code', 'insee_code');
     }
 
     /**
-     * Calcule le taux d'endettement
+     * Total des recettes
      */
-    public function getTauxEndettementAttribute(): float
+    public function getTotalRecettesAttribute(): float
     {
-        if ($this->budget_total === 0) {
-            return 0;
+        return ($this->recettes_fonctionnement ?? 0) + ($this->recettes_investissement ?? 0);
+    }
+
+    /**
+     * Total des dépenses
+     */
+    public function getTotalDepensesAttribute(): float
+    {
+        return ($this->depenses_fonctionnement ?? 0) + ($this->depenses_investissement ?? 0);
+    }
+
+    /**
+     * Solde budgétaire
+     */
+    public function getSoldeAttribute(): float
+    {
+        return $this->total_recettes - $this->total_depenses;
+    }
+
+    /**
+     * Taux d'endettement (dette / recettes)
+     */
+    public function getTauxEndettementAttribute(): ?float
+    {
+        if (!$this->encours_dette || !$this->recettes_fonctionnement) {
+            return null;
         }
-
-        return round(($this->dette / $this->budget_total) * 100, 2);
+        return round(($this->encours_dette / $this->recettes_fonctionnement) * 100, 1);
     }
 
     /**
-     * Calcule l'épargne brute
+     * Scope par année
      */
-    public function getEpargneBruteAttribute(): int
-    {
-        return $this->recettes_fonctionnement - $this->depenses_fonctionnement;
-    }
-
-    /**
-     * Calcule l'épargne nette
-     */
-    public function getEpargneNetteAttribute(): int
-    {
-        return $this->epargne_brute - ($this->dette > 0 ? (int)($this->dette * 0.05) : 0); // Approximation
-    }
-
-    /**
-     * Scope pour filtrer par code INSEE
-     */
-    public function scopeForCommune($query, string $codeInsee)
-    {
-        return $query->where('code_insee', $codeInsee);
-    }
-
-    /**
-     * Scope pour filtrer par année
-     */
-    public function scopeForYear($query, int $annee)
+    public function scopeAnnee($query, int $annee)
     {
         return $query->where('annee', $annee);
     }
 
     /**
-     * Scope pour les communes récentes (données de moins de X jours)
+     * Scope dernière année disponible
      */
-    public function scopeRecent($query, int $days = 30)
+    public function scopeDerniereAnnee($query)
     {
-        return $query->where('fetched_at', '>=', now()->subDays($days));
+        return $query->orderByDesc('annee')->limit(1);
     }
 
     /**
-     * Scope pour les grandes villes (>= X habitants)
+     * Formater un montant en euros
      */
-    public function scopeBigCities($query, int $minPopulation = 100000)
+    public static function formatMontant(?float $montant): string
     {
-        return $query->where('population', '>=', $minPopulation);
-    }
-
-    /**
-     * Scope pour trier par budget décroissant
-     */
-    public function scopeOrderByBudget($query, string $direction = 'desc')
-    {
-        return $query->orderBy('budget_total', $direction);
-    }
-
-    /**
-     * Scope pour trier par population décroissante
-     */
-    public function scopeOrderByPopulation($query, string $direction = 'desc')
-    {
-        return $query->orderBy('population', $direction);
-    }
-
-    /**
-     * Récupère le budget le plus récent pour une commune
-     */
-    public static function getLatestForCommune(string $codeInsee): ?self
-    {
-        return static::forCommune($codeInsee)
-            ->orderBy('annee', 'desc')
-            ->first();
-    }
-
-    /**
-     * Compare avec une autre commune
-     */
-    public function compareWith(CommuneBudget $other): array
-    {
-        return [
-            'population' => [
-                'this' => $this->population,
-                'other' => $other->population,
-                'ratio' => $other->population > 0 ? round($this->population / $other->population, 2) : 0,
-            ],
-            'budget_total' => [
-                'this' => $this->budget_total,
-                'other' => $other->budget_total,
-                'ratio' => $other->budget_total > 0 ? round($this->budget_total / $other->budget_total, 2) : 0,
-            ],
-            'depenses_par_habitant' => [
-                'this' => $this->depenses_par_habitant,
-                'other' => $other->depenses_par_habitant,
-                'difference' => round($this->depenses_par_habitant - $other->depenses_par_habitant, 2),
-            ],
-            'taux_endettement' => [
-                'this' => $this->taux_endettement,
-                'other' => $other->taux_endettement,
-                'difference' => round($this->taux_endettement - $other->taux_endettement, 2),
-            ],
-        ];
-    }
-
-    /**
-     * Formate un montant en euros lisible
-     */
-    public static function formatMontant(int $centimes): string
-    {
-        $euros = $centimes / 100;
+        if ($montant === null) return 'N/A';
         
-        if ($euros >= 1000000) {
-            return number_format($euros / 1000000, 2, ',', ' ') . ' M€';
-        } elseif ($euros >= 1000) {
-            return number_format($euros / 1000, 0, ',', ' ') . ' k€';
-        } else {
-            return number_format($euros, 2, ',', ' ') . ' €';
+        if (abs($montant) >= 1_000_000_000) {
+            return number_format($montant / 1_000_000_000, 2, ',', ' ') . ' Md€';
         }
+        if (abs($montant) >= 1_000_000) {
+            return number_format($montant / 1_000_000, 2, ',', ' ') . ' M€';
+        }
+        if (abs($montant) >= 1_000) {
+            return number_format($montant / 1_000, 1, ',', ' ') . ' k€';
+        }
+        return number_format($montant, 0, ',', ' ') . ' €';
     }
 }
-

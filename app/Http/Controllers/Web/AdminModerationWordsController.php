@@ -20,18 +20,48 @@ class AdminModerationWordsController extends Controller
     /**
      * Dashboard modération
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $stats = $this->moderationService->getStats();
 
-        $bannedWords = BannedWord::orderBy('category')
+        // Filtres pour mots bannis
+        $bannedQuery = BannedWord::query();
+        
+        if ($search = $request->get('search_banned')) {
+            $bannedQuery->where('word', 'ilike', "%{$search}%");
+        }
+        
+        if ($category = $request->get('category')) {
+            $bannedQuery->where('category', $category);
+        }
+        
+        if ($severity = $request->get('severity')) {
+            $bannedQuery->where('severity', $severity);
+        }
+
+        $bannedWords = $bannedQuery
+            ->orderBy('category')
             ->orderBy('severity', 'desc')
             ->orderBy('word')
-            ->paginate(50);
+            ->paginate(50, ['*'], 'banned_page')
+            ->withQueryString();
 
-        $niceWords = NiceWord::orderBy('category')
+        // Filtres pour mots gentils
+        $niceQuery = NiceWord::query();
+        
+        if ($searchNice = $request->get('search_nice')) {
+            $niceQuery->where('word', 'ilike', "%{$searchNice}%");
+        }
+        
+        if ($niceCategory = $request->get('nice_category')) {
+            $niceQuery->where('category', $niceCategory);
+        }
+
+        $niceWords = $niceQuery
+            ->orderBy('category')
             ->orderBy('word')
-            ->paginate(50);
+            ->paginate(50, ['*'], 'nice_page')
+            ->withQueryString();
 
         $recentLogs = ModerationLog::with('user')
             ->orderByDesc('created_at')
@@ -46,6 +76,13 @@ class AdminModerationWordsController extends Controller
             'categories' => BannedWord::CATEGORIES,
             'severities' => BannedWord::SEVERITIES,
             'niceCategories' => NiceWord::CATEGORIES,
+            'filters' => [
+                'search_banned' => $request->get('search_banned', ''),
+                'category' => $request->get('category', ''),
+                'severity' => $request->get('severity', ''),
+                'search_nice' => $request->get('search_nice', ''),
+                'nice_category' => $request->get('nice_category', ''),
+            ],
         ]);
     }
 

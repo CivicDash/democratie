@@ -20,6 +20,7 @@ defineProps({
 
 const page = usePage();
 const profile = computed(() => page.props.auth?.user?.profile);
+const user = computed(() => page.props.auth?.user);
 const bannerDismissed = ref(false);
 </script>
 
@@ -37,6 +38,27 @@ const bannerDismissed = ref(false);
 
         <div class="py-12">
             <div class="mx-auto max-w-full space-y-6 sm:px-6 lg:px-8">
+                <!-- Badge Membre Civis-Consilium -->
+                <div
+                    v-if="user?.is_association_member"
+                    class="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 shadow sm:rounded-lg text-white"
+                >
+                    <div class="flex items-center gap-4">
+                        <span class="text-4xl">🎖️</span>
+                        <div>
+                            <h3 class="text-lg font-bold">Membre Civis-Consilium</h3>
+                            <p class="text-blue-100 text-sm">
+                                Vous êtes membre de l'association depuis le {{ user.association_member_since || 'récemment' }}
+                            </p>
+                        </div>
+                        <div class="ml-auto text-right">
+                            <span v-if="user.association_member_id" class="px-3 py-1 bg-white/20 rounded-full text-sm">
+                                ID: {{ user.association_member_id }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Bandeau de sécurité 2FA -->
                 <TwoFactorSecurityBanner 
                     v-if="!bannerDismissed"

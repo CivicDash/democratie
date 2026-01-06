@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -13,7 +14,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +25,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'profile_photo_path',
         'franceconnect_sub',
         'elu_type',
         'elu_ref',
@@ -38,12 +40,24 @@ class User extends Authenticatable
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
         'two_factor_enabled',
-        // Membre association
+        // Membre association Civis-Consilium
         'is_association_member',
-        'member_type',
-        'member_since',
-        'member_until',
-        'member_number',
+        'association_member_since',
+        'association_member_id',
+        'email_visible_to_admin',
+        // Modération photo de profil
+        'profile_photo_status',
+        'profile_photo_rejection_reason',
+        'profile_photo_submitted_at',
+        'profile_photo_moderated_at',
+        'profile_photo_moderated_by',
+        // Suspension / Bannissement
+        'account_status',
+        'suspended_at',
+        'suspended_until',
+        'suspension_reason',
+        'suspended_by',
+        'suspension_count',
     ];
 
     /**
@@ -74,9 +88,27 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
             'is_association_member' => 'boolean',
-            'member_since' => 'date',
-            'member_until' => 'date',
+            'association_member_since' => 'datetime',
+            'email_visible_to_admin' => 'boolean',
+            'profile_photo_submitted_at' => 'datetime',
+            'profile_photo_moderated_at' => 'datetime',
+            'suspended_at' => 'datetime',
+            'suspended_until' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the URL of the user's profile photo.
+     */
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        if ($this->profile_photo_path) {
+            return asset('storage/' . $this->profile_photo_path);
+        }
+
+        // Gravatar fallback
+        $hash = md5(strtolower(trim($this->email)));
+        return "https://www.gravatar.com/avatar/{$hash}?d=mp&s=200";
     }
 
     /**

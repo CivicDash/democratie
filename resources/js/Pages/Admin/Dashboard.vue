@@ -388,11 +388,46 @@ const getStatusClass = (status) => {
                                     <span class="text-sm font-medium text-amber-700 dark:text-amber-300">Mots bannis</span>
                                 </Link>
                                 <Link
+                                    :href="route('admin.finances.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition border border-emerald-200 dark:border-emerald-700"
+                                >
+                                    <span class="text-2xl">💰</span>
+                                    <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">Finances</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.stats-france.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition border border-blue-200 dark:border-blue-700"
+                                >
+                                    <span class="text-2xl">📊</span>
+                                    <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Stats France</span>
+                                </Link>
+                                <Link
                                     :href="route('admin.imports')"
                                     class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                                 >
                                     <span class="text-2xl">📥</span>
                                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Imports</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.email.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-cyan-50 dark:bg-cyan-900/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition border border-cyan-200 dark:border-cyan-700"
+                                >
+                                    <span class="text-2xl">📧</span>
+                                    <span class="text-sm font-medium text-cyan-700 dark:text-cyan-300">Test Emails</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.moderation.photos.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition border border-yellow-200 dark:border-yellow-700"
+                                >
+                                    <span class="text-2xl">📸</span>
+                                    <span class="text-sm font-medium text-yellow-700 dark:text-yellow-300">Photos</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.association.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition border border-indigo-200 dark:border-indigo-700"
+                                >
+                                    <span class="text-2xl">🎖️</span>
+                                    <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300">Membres</span>
                                 </Link>
                                 <Link
                                     :href="route('parlement.calendrier.index')"
