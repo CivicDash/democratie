@@ -40,3 +40,24 @@ Schedule::command('calculate:elus-global-stats --force')
 // Schedule::command('sync:all --quick')
 //     ->dailyAt('05:00')
 //     ->description('Synchronisation quotidienne des données AN/Sénat');
+
+/*
+|--------------------------------------------------------------------------
+| Notifications Élus Suivis
+|--------------------------------------------------------------------------
+*/
+
+// Traitement des nouvelles activités toutes les heures
+Schedule::command('elu:process-activities')
+    ->hourly()
+    ->description('Détection et notification des nouvelles activités des élus suivis');
+
+// Digest quotidien à 8h du matin
+Schedule::command('elu:process-activities --digest=daily')
+    ->dailyAt('08:00')
+    ->description('Envoi des digests quotidiens des activités élus');
+
+// Digest hebdomadaire le lundi à 8h
+Schedule::command('elu:process-activities --digest=weekly')
+    ->weeklyOn(1, '08:00')
+    ->description('Envoi des digests hebdomadaires des activités élus');

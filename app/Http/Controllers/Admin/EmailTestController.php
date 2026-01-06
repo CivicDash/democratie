@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\DigestMail;
+use App\Mail\EluActivityDigestMail;
 use App\Mail\EluResponseMail;
 use App\Mail\InvitationAssociationMail;
 use App\Mail\InvitationEluMail;
@@ -64,6 +65,11 @@ class EmailTestController extends Controller
             'name' => 'Digest',
             'description' => 'Récapitulatif quotidien ou hebdomadaire',
             'icon' => '📰',
+        ],
+        'elu-activity' => [
+            'name' => 'Activité Élu Suivi',
+            'description' => 'Notification d\'activité d\'un élu suivi',
+            'icon' => '🔔',
         ],
     ];
 
@@ -237,6 +243,50 @@ class EmailTestController extends Controller
                         ['title' => 'Réforme des retraites', 'votes' => 234, 'comments' => 89],
                     ],
                     totalNotifications: 12
+                );
+
+            case 'elu-activity':
+                return new EluActivityDigestMail(
+                    user: $testUser,
+                    activities: collect([
+                        [
+                            'elu_type' => 'depute',
+                            'elu_id' => 'PA12345',
+                            'elu_nom' => 'Marie Martin',
+                            'activity_type' => 'votes',
+                            'activity_id' => 1234,
+                            'activity_date' => now()->subHours(2),
+                            'activity_title' => 'Projet de loi relatif à la transition énergétique',
+                            'activity_detail' => '✅ A voté Pour',
+                            'activity_icon' => '🗳️',
+                            'activity_url' => url('/parlement/assemblee/scrutins/1234'),
+                        ],
+                        [
+                            'elu_type' => 'depute',
+                            'elu_id' => 'PA12345',
+                            'elu_nom' => 'Marie Martin',
+                            'activity_type' => 'votes',
+                            'activity_id' => 1235,
+                            'activity_date' => now()->subHours(3),
+                            'activity_title' => 'Motion de censure',
+                            'activity_detail' => '❌ A voté Contre',
+                            'activity_icon' => '🗳️',
+                            'activity_url' => url('/parlement/assemblee/scrutins/1235'),
+                        ],
+                        [
+                            'elu_type' => 'depute',
+                            'elu_id' => 'PA67890',
+                            'elu_nom' => 'Jean Dupont',
+                            'activity_type' => 'votes',
+                            'activity_id' => 1234,
+                            'activity_date' => now()->subHours(2),
+                            'activity_title' => 'Projet de loi relatif à la transition énergétique',
+                            'activity_detail' => '⚪ S\'est abstenu',
+                            'activity_icon' => '🗳️',
+                            'activity_url' => url('/parlement/assemblee/scrutins/1234'),
+                        ],
+                    ]),
+                    frequency: 'daily'
                 );
 
             default:
