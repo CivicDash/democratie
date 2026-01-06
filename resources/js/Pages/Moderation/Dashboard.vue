@@ -274,7 +274,7 @@ const getActionBadge = (action) => {
                             <span class="text-sm font-medium text-cyan-700 dark:text-cyan-300">Test Email</span>
                         </Link>
                         <Link
-                            :href="route('admin.index')"
+                            :href="route('admin.dashboard')"
                             class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition border border-slate-200 dark:border-slate-600"
                         >
                             <span class="text-2xl">⚙️</span>

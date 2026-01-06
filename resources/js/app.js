@@ -21,12 +21,6 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
         
-        // ✅ GLOBAL ERROR HANDLER - Log uniquement en console (pas d'affichage écran)
-        app.config.errorHandler = (err, instance, info) => {
-            console.error('🔴 VUE ERROR:', err.message);
-            console.error('📊 Stack:', err.stack);
-        };
-        
         return app
             .use(plugin)
             .use(ZiggyVue)

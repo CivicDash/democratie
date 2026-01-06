@@ -365,7 +365,8 @@ Route::prefix('legislation/propositions')->middleware('auth:web')->group(functio
 |--------------------------------------------------------------------------
 */
 Route::prefix('moderation')->name('moderation.')->middleware(['auth', 'role:moderator|admin', 'two-factor'])->group(function () {
-    Route::get('/dashboard', [ModerationController::class, 'dashboard'])->name('dashboard');
+    // Dashboard utilise le controller avec les bonnes props (photoStats, etc.)
+    Route::get('/dashboard', [\App\Http\Controllers\ModerationController::class, 'dashboard'])->name('dashboard');
     Route::get('/reports', [ModerationController::class, 'reports'])->name('reports.index');
     Route::get('/reports/priority', [ModerationController::class, 'priorityReports'])->name('reports.priority');
     Route::get('/reports/{report}', [ModerationController::class, 'showReport'])->name('reports.show');

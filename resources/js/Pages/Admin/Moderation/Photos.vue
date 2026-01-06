@@ -86,7 +86,7 @@ const rejectionReasons = [
                 <!-- Stats -->
                 <div class="grid grid-cols-3 gap-4 mb-6">
                     <Link
-                        :href="route('admin.moderation.photos', { status: 'pending' })"
+                        :href="route('admin.moderation.photos.index', { status: 'pending' })"
                         :class="[
                             'p-4 rounded-xl text-center transition border-2',
                             currentStatus === 'pending' ? 'bg-yellow-50 border-yellow-400 dark:bg-yellow-900/30' : 'bg-white dark:bg-gray-800 border-transparent'
@@ -97,7 +97,7 @@ const rejectionReasons = [
                         <p class="text-sm text-gray-500">En attente</p>
                     </Link>
                     <Link
-                        :href="route('admin.moderation.photos', { status: 'approved' })"
+                        :href="route('admin.moderation.photos.index', { status: 'approved' })"
                         :class="[
                             'p-4 rounded-xl text-center transition border-2',
                             currentStatus === 'approved' ? 'bg-green-50 border-green-400 dark:bg-green-900/30' : 'bg-white dark:bg-gray-800 border-transparent'
@@ -108,7 +108,7 @@ const rejectionReasons = [
                         <p class="text-sm text-gray-500">Approuvées</p>
                     </Link>
                     <Link
-                        :href="route('admin.moderation.photos', { status: 'rejected' })"
+                        :href="route('admin.moderation.photos.index', { status: 'rejected' })"
                         :class="[
                             'p-4 rounded-xl text-center transition border-2',
                             currentStatus === 'rejected' ? 'bg-red-50 border-red-400 dark:bg-red-900/30' : 'bg-white dark:bg-gray-800 border-transparent'
