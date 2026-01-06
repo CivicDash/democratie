@@ -52,10 +52,10 @@ class ModerationController extends Controller
         $pendingPhotos = User::where('profile_photo_status', 'pending')
             ->orderBy('profile_photo_submitted_at', 'desc')
             ->take(5)
-            ->get(['id', 'name', 'username', 'profile_photo_path', 'profile_photo_submitted_at']);
+            ->get(['id', 'name', 'email', 'profile_photo_path', 'profile_photo_submitted_at']);
 
         // Actions récentes de modération
-        $recentModerations = ProfilePhotoModeration::with(['user:id,name,username', 'moderator:id,name'])
+        $recentModerations = ProfilePhotoModeration::with(['user:id,name,email', 'moderator:id,name'])
             ->orderBy('created_at', 'desc')
             ->take(10)
             ->get();
@@ -68,7 +68,7 @@ class ModerationController extends Controller
             'pendingPhotos' => $pendingPhotos->map(fn($u) => [
                 'id' => $u->id,
                 'name' => $u->name,
-                'username' => $u->username,
+                'email' => $u->email,
                 'photo_url' => $u->profile_photo_url,
                 'submitted_at' => $u->profile_photo_submitted_at?->diffForHumans(),
             ]),

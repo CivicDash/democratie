@@ -148,7 +148,7 @@ const getActionBadge = (action) => {
                                 />
                                 <div class="flex-1 min-w-0">
                                     <p class="font-semibold text-slate-900 dark:text-white">{{ photo.name }}</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">@{{ photo.username }} • {{ photo.submitted_at }}</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ photo.email }} • {{ photo.submitted_at }}</p>
                                 </div>
                                 <Link 
                                     :href="route('admin.moderation.photos.index') + '?user=' + photo.id"

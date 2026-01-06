@@ -35,7 +35,6 @@ class PhotoModerationController extends Controller
             ->through(fn($user) => [
                 'id' => $user->id,
                 'name' => $user->name,
-                'username' => $user->username,
                 'email' => $user->email,
                 'photo_url' => $user->profile_photo_url,
                 'photo_path' => $user->profile_photo_path,
@@ -119,7 +118,7 @@ class PhotoModerationController extends Controller
      */
     public function history(Request $request)
     {
-        $history = ProfilePhotoModeration::with(['user:id,name,username', 'moderator:id,name'])
+        $history = ProfilePhotoModeration::with(['user:id,name,email', 'moderator:id,name'])
             ->orderBy('created_at', 'desc')
             ->paginate(50)
             ->through(fn($mod) => [
@@ -127,7 +126,7 @@ class PhotoModerationController extends Controller
                 'user' => [
                     'id' => $mod->user->id,
                     'name' => $mod->user->name,
-                    'username' => $mod->user->username,
+                    'email' => $mod->user->email,
                 ],
                 'moderator' => $mod->moderator ? [
                     'id' => $mod->moderator->id,
