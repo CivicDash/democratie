@@ -1,0 +1,198 @@
+# =============================================================================
+# 🛠️ CivicDash - Docker Compose DÉVELOPPEMENT
+# =============================================================================
+#
+# Environnement de développement avec :
+# • Debug activé
+# • Telescope accessible
+# • Mailpit pour les emails
+# • Hot-reload possible
+# • Données de test
+#
+# Usage :
+#   docker compose -f docker/dev/docker-compose.dev.yml up -d
+#
+# URL : https://dev.objectif2027.fr (ou http://localhost:8080)
+#
+# =============================================================================
+
+services:
+  # =========================================================================
+  # 🚀 APPLICATION
+  # =========================================================================
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.frankenphp
+    container_name: civicdash_dev_app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      # Code source monté pour hot-reload
+      - ../../:/app
+      # Exclure node_modules et vendor du volume
+      - /app/node_modules
+      - /app/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_URL=${APP_URL:-http://localhost:8080}
+      - LOG_CHANNEL=daily
+      - LOG_LEVEL=debug
+      # Database
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-civicdash_dev}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD:-dev_password}
+      # Redis
+      - REDIS_HOST=redis
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=file
+      - QUEUE_CONNECTION=redis
+      # Meilisearch
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=${MEILISEARCH_KEY:-dev_master_key}
+      # Telescope activé
+      - TELESCOPE_ENABLED=true
+      # Email (Mailpit)
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=mailpit
+      - MAIL_PORT=1025
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - civicdash_dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =========================================================================
+  # 🔄 QUEUE WORKER
+  # =========================================================================
+  queue:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.frankenphp
+    container_name: civicdash_dev_queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3
+    volumes:
+      - ../../:/app
+      - /app/node_modules
+      - /app/vendor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=postgres
+      - DB_DATABASE=${DB_DATABASE:-civicdash_dev}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD:-dev_password}
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - civicdash_dev
+
+  # =========================================================================
+  # 🐘 POSTGRESQL
+  # =========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: civicdash_dev_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-civicdash_dev}
+      POSTGRES_USER: ${DB_USERNAME:-civicdash}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - civicdash_dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-civicdash}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 🔴 REDIS
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: civicdash_dev_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - civicdash_dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 🔍 MEILISEARCH
+  # =========================================================================
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: civicdash_dev_search
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-dev_master_key}
+      MEILI_NO_ANALYTICS: true
+      MEILI_ENV: development
+    volumes:
+      - meilisearch_dev_data:/meili_data
+    ports:
+      - "7700:7700"
+    networks:
+      - civicdash_dev
+
+  # =========================================================================
+  # 📧 MAILPIT (Capture emails)
+  # =========================================================================
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: civicdash_dev_mail
+    restart: unless-stopped
+    ports:
+      - "8025:8025"   # Interface web
+      - "1025:1025"   # SMTP
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - civicdash_dev
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  meilisearch_dev_data:
+    driver: local
+
+# =============================================================================
+# RÉSEAU
+# =============================================================================
+networks:
+  civicdash_dev:
+    driver: bridge

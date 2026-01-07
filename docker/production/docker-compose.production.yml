@@ -1,0 +1,539 @@
+# =============================================================================
+# 🚀 CivicDash - Docker Compose Production
+# =============================================================================
+#
+# Architecture haute performance avec :
+# - FrankenPHP + Laravel Octane (workers persistants)
+# - PostgreSQL 15 avec réplication streaming optionnelle
+# - PgBouncer (connection pooling)
+# - Redis (cache + sessions + queues)
+# - Meilisearch (recherche full-text)
+# - Traefik (reverse proxy + SSL automatique)
+#
+# Usage :
+#   docker compose -f docker/production/docker-compose.production.yml up -d
+#
+# =============================================================================
+#
+#                        ARCHITECTURE DOCKER PRODUCTION
+#
+#                              ┌─────────────────┐
+#                              │    INTERNET     │
+#                              └────────┬────────┘
+#                                       │
+#                                       ▼
+#                          ┌────────────────────────┐
+#                          │       TRAEFIK          │
+#                          │   (Reverse Proxy)      │
+#                          │   • SSL Let's Encrypt  │
+#                          │   • Load Balancing     │
+#                          │   • Rate Limiting      │
+#                          └───────────┬────────────┘
+#                                      │
+#              ┌───────────────────────┼───────────────────────┐
+#              │                       │                       │
+#              ▼                       ▼                       ▼
+#     ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+#     │   APP NODE 1    │    │   APP NODE 2    │    │   APP NODE N    │
+#     │  (FrankenPHP)   │    │  (FrankenPHP)   │    │  (FrankenPHP)   │
+#     │  Laravel Octane │    │  Laravel Octane │    │  Laravel Octane │
+#     └────────┬────────┘    └────────┬────────┘    └────────┬────────┘
+#              │                      │                      │
+#              └──────────────────────┼──────────────────────┘
+#                                     │
+#              ┌──────────────────────┼──────────────────────┐
+#              │                      │                      │
+#              ▼                      ▼                      ▼
+#     ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+#     │   PGBOUNCER     │    │     REDIS       │    │  MEILISEARCH    │
+#     │  (Pool Conn.)   │    │   (Cache/Queue) │    │  (Full-text)    │
+#     └────────┬────────┘    └─────────────────┘    └─────────────────┘
+#              │
+#              ▼
+#     ┌─────────────────────────────────────────────────────────────┐
+#     │                    POSTGRESQL CLUSTER                       │
+#     │  ┌─────────────────┐              ┌─────────────────┐       │
+#     │  │    PRIMARY      │    ──────▶   │    REPLICA      │       │
+#     │  │  (Read/Write)   │  Streaming   │   (Read Only)   │       │
+#     │  └─────────────────┘              └─────────────────┘       │
+#     └─────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+services:
+  # =========================================================================
+  # 🌐 TRAEFIK - Reverse Proxy & Load Balancer
+  # =========================================================================
+  traefik:
+    image: traefik:v3.0
+    container_name: civicdash_traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command:
+      # API & Dashboard
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      # Entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http3"
+      # Redirection HTTP → HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      # Let's Encrypt
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@civicdash.fr}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=civicdash_production"
+      # Logs
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 QUIC
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+      - traefik_logs:/var/log/traefik
+    networks:
+      - civicdash_production
+    labels:
+      # Dashboard Traefik (optionnel, protégé par auth)
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN:-demo.objectif2027.fr}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=auth-dashboard"
+      - "traefik.http.middlewares.auth-dashboard.basicauth.users=${TRAEFIK_DASHBOARD_AUTH:-admin:$$apr1$$xyz}"
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =========================================================================
+  # 🚀 APPLICATION - FrankenPHP + Laravel Octane (Multi-instance)
+  # =========================================================================
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.frankenphp
+    container_name: civicdash_app
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+    volumes:
+      - ../../storage/app:/app/storage/app
+      - ../../storage/logs:/app/storage/logs
+      - ../../storage/framework/sessions:/app/storage/framework/sessions
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=https://${DOMAIN:-demo.objectif2027.fr}
+      - LOG_CHANNEL=stderr
+      # Base de données via PgBouncer
+      - DB_CONNECTION=pgsql
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      # Meilisearch
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=${MEILISEARCH_KEY}
+      - SCOUT_DRIVER=meilisearch
+      # Octane
+      - OCTANE_SERVER=frankenphp
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    networks:
+      - civicdash_production
+    labels:
+      - "traefik.enable=true"
+      # Router principal
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN:-demo.objectif2027.fr}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app.middlewares=security-headers,rate-limit,compress"
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+      # Middlewares de sécurité
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.security-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.security-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+      # Rate limiting
+      - "traefik.http.middlewares.rate-limit.ratelimit.average=100"
+      - "traefik.http.middlewares.rate-limit.ratelimit.burst=200"
+      - "traefik.http.middlewares.rate-limit.ratelimit.period=1s"
+      # Compression
+      - "traefik.http.middlewares.compress.compress=true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # =========================================================================
+  # 🔄 HORIZON - Queue Worker (Laravel Horizon)
+  # =========================================================================
+  horizon:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.frankenphp
+    container_name: civicdash_horizon
+    restart: unless-stopped
+    command: php artisan horizon
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    volumes:
+      - ../../storage/app:/app/storage/app
+      - ../../storage/logs:/app/storage/logs
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=${MEILISEARCH_KEY}
+    depends_on:
+      - pgbouncer
+      - redis
+    networks:
+      - civicdash_production
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+
+  # =========================================================================
+  # ⏰ SCHEDULER - Laravel Cron Scheduler
+  # =========================================================================
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.frankenphp
+    container_name: civicdash_scheduler
+    restart: unless-stopped
+    command: >
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction;
+        sleep 60;
+      done"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    volumes:
+      - ../../storage/app:/app/storage/app
+      - ../../storage/logs:/app/storage/logs
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    depends_on:
+      - pgbouncer
+      - redis
+    networks:
+      - civicdash_production
+
+  # =========================================================================
+  # 🐘 POSTGRESQL PRIMARY - Base de données principale
+  # =========================================================================
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: civicdash_db_primary
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-civicdash}
+      POSTGRES_USER: ${DB_USERNAME:-civicdash}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # Configuration pour réplication (préparation)
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - postgres_primary_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - postgres_backups:/backups
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    networks:
+      - civicdash_production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-civicdash} -d ${DB_DATABASE:-civicdash}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 🔀 PGBOUNCER - Connection Pooling
+  # =========================================================================
+  #
+  #   Pourquoi PgBouncer ?
+  #   ────────────────────
+  #   • PostgreSQL crée un processus par connexion (~10 MB RAM)
+  #   • Laravel Octane maintient des workers persistants
+  #   • Sans pooling : 100 workers = 100 connexions = 1 GB RAM perdu
+  #   • Avec PgBouncer : 100 workers → 20 connexions réelles (pool)
+  #
+  #   Modes de pooling :
+  #   ────────────────────
+  #   • session   : 1 connexion par session client (peu d'économie)
+  #   • transaction: connexion libérée après chaque transaction ✅ (recommandé)
+  #   • statement : connexion libérée après chaque requête (pas pour Laravel)
+  #
+  pgbouncer:
+    image: edoburu/pgbouncer:1.21.0
+    container_name: civicdash_pgbouncer
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+    environment:
+      DATABASE_URL: "postgres://${DB_USERNAME:-civicdash}:${DB_PASSWORD}@postgres-primary:5432/${DB_DATABASE:-civicdash}"
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 50
+      MIN_POOL_SIZE: 10
+      RESERVE_POOL_SIZE: 10
+      RESERVE_POOL_TIMEOUT: 5
+      MAX_DB_CONNECTIONS: 100
+      MAX_USER_CONNECTIONS: 100
+      SERVER_RESET_QUERY: "DISCARD ALL"
+      SERVER_CHECK_QUERY: "SELECT 1"
+      SERVER_CHECK_DELAY: 30
+      QUERY_TIMEOUT: 60
+      CLIENT_IDLE_TIMEOUT: 600
+      IGNORE_STARTUP_PARAMETERS: "extra_float_digits"
+      # Authentification
+      AUTH_TYPE: scram-sha-256
+      ADMIN_USERS: ${DB_USERNAME:-civicdash}
+      STATS_USERS: ${DB_USERNAME:-civicdash}
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    networks:
+      - civicdash_production
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6432", "-U", "${DB_USERNAME:-civicdash}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 🔴 REDIS - Cache, Sessions & Queues
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: civicdash_redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 1536mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --tcp-keepalive 300
+      --timeout 0
+      ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
+    volumes:
+      - redis_data:/data
+    networks:
+      - civicdash_production
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 🔍 MEILISEARCH - Moteur de recherche Full-text
+  # =========================================================================
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: civicdash_search
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY}
+      MEILI_NO_ANALYTICS: true
+      MEILI_ENV: production
+      MEILI_MAX_INDEXING_MEMORY: 1Gi
+      MEILI_MAX_INDEXING_THREADS: 2
+      MEILI_LOG_LEVEL: WARN
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - civicdash_production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # =========================================================================
+  # 📊 MONITORING - Prometheus + Grafana (Optionnel)
+  # =========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: civicdash_prometheus
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - civicdash_production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN:-demo.objectif2027.fr}`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.prometheus.middlewares=auth-dashboard"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: civicdash_grafana
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://grafana.${DOMAIN:-demo.objectif2027.fr}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - civicdash_production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN:-demo.objectif2027.fr}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+# =============================================================================
+# 💾 VOLUMES PERSISTANTS
+# =============================================================================
+volumes:
+  postgres_primary_data:
+    driver: local
+  postgres_backups:
+    driver: local
+  redis_data:
+    driver: local
+  meilisearch_data:
+    driver: local
+  traefik_letsencrypt:
+    driver: local
+  traefik_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# =============================================================================
+# 🌐 RÉSEAU
+# =============================================================================
+networks:
+  civicdash_production:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

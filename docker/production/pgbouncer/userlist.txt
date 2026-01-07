@@ -1,0 +1,23 @@
+;; =============================================================================
+;; PgBouncer User List
+;; =============================================================================
+;; Format : "username" "password_hash"
+;;
+;; Pour générer un hash SCRAM-SHA-256, utiliser :
+;;   psql -c "SELECT 'md5' || md5('password' || 'username')"
+;;
+;; Ou pour SCRAM-SHA-256 (recommandé) :
+;;   psql -c "SELECT rolpassword FROM pg_authid WHERE rolname='civicdash'"
+;;
+;; IMPORTANT : Ce fichier doit être généré dynamiquement lors du déploiement
+;;             avec le vrai mot de passe hashé !
+;;
+;; Exemple temporaire (À REMPLACER !) :
+;; =============================================================================
+
+;; Utilisateur principal de l'application
+;; Le hash sera généré par le script d'initialisation
+"civicdash" "SCRAM-SHA-256$4096:..."
+
+;; Utilisateur pour les statistiques (lecture seule)
+"stats" "SCRAM-SHA-256$4096:..."

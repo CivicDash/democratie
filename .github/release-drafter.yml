@@ -1,0 +1,57 @@
+# Configuration pour Release Drafter (optionnel)
+# https://github.com/release-drafter/release-drafter
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '✨ Nouvelles fonctionnalités'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Corrections de bugs'
+    labels:
+      - 'bug'
+      - 'fix'
+  - title: '🔧 Améliorations'
+    labels:
+      - 'improvement'
+      - 'refactor'
+  - title: '📝 Documentation'
+    labels:
+      - 'documentation'
+      - 'docs'
+  - title: '🏗️ Infrastructure'
+    labels:
+      - 'devops'
+      - 'ci'
+      - 'infrastructure'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+  minor:
+    labels:
+      - 'feature'
+      - 'enhancement'
+  patch:
+    labels:
+      - 'bug'
+      - 'fix'
+      - 'patch'
+  default: patch
+
+template: |
+  ## Changements
+
+  $CHANGES
+
+  ## Contributeurs
+
+  $CONTRIBUTORS

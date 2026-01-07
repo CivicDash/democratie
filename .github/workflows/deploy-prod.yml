@@ -1,0 +1,87 @@
+name: Deploy to PROD
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy (e.g., v1.2.0)'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to PROD Server
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: production
+      url: https://${{ secrets.PROD_DOMAIN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get tag to deploy
+        id: get-tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate tag format
+        run: |
+          TAG="${{ steps.get-tag.outputs.tag }}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Format de tag invalide: $TAG"
+            echo "   Format attendu: vX.Y.Z (ex: v1.2.0)"
+            exit 1
+          fi
+          echo "✅ Tag valide: $TAG"
+
+      - name: Deploy to PROD server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SERVER_SSH_KEY }}
+          port: ${{ secrets.PROD_SERVER_PORT || 22 }}
+          script: |
+            set -e
+            
+            TAG="${{ steps.get-tag.outputs.tag }}"
+            echo "🚀 Déploiement PRODUCTION: $TAG"
+            
+            cd /opt/civicdash
+            
+            # Utiliser le script de déploiement par tag
+            ./docker/production/scripts/deploy-tag.sh "$TAG"
+            
+            echo "✅ Déployé : $TAG"
+            echo "📅 Date : $(date)"
+
+      - name: Create deployment summary
+        if: success()
+        run: |
+          echo "## 🚀 Déploiement Production Réussi" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: ${{ steps.get-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Déclenché par**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Vérifications post-déploiement" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Site accessible" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Login fonctionnel" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] Pas d'erreurs dans les logs" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "## ❌ Échec du Déploiement Production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tag: ${{ steps.get-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Vérifier les logs pour plus de détails." >> $GITHUB_STEP_SUMMARY

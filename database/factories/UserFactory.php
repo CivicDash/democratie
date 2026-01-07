@@ -111,9 +111,9 @@ class UserFactory extends Factory
     }
 
     /**
-     * User état
+     * User état (gouvernement)
      */
-    public function state(): static
+    public function stateRole(): static
     {
         return $this->afterCreating(function (User $user) {
             $user->assignRole('state');
