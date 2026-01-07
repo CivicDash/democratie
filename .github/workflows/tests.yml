@@ -73,8 +73,9 @@ jobs:
         run: php artisan key:generate
 
       - name: Create test database schema
-        run: php artisan migrate --force
+        run: php artisan migrate --force --seed
         env:
+          APP_ENV: testing
           DB_CONNECTION: pgsql
           DB_HOST: localhost
           DB_PORT: 5432
@@ -82,10 +83,12 @@ jobs:
           DB_USERNAME: civicdash
           DB_PASSWORD: password
           REDIS_HOST: localhost
+          CACHE_DRIVER: array
 
       - name: Run tests
-        run: php artisan test --parallel
+        run: php artisan test
         env:
+          APP_ENV: testing
           DB_CONNECTION: pgsql
           DB_HOST: localhost
           DB_PORT: 5432
@@ -93,6 +96,9 @@ jobs:
           DB_USERNAME: civicdash
           DB_PASSWORD: password
           REDIS_HOST: localhost
+          CACHE_DRIVER: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
 
   lint:
     name: Code Style (Pint)
