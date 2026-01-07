@@ -582,7 +582,7 @@ onUnmounted(() => {
                 <!-- Responsive Navigation Menu (Accordion Style) -->
                 <div
                     :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }"
-                    class="lg:hidden border-t border-gray-200 dark:border-gray-700"
+                    class="lg:hidden border-t border-gray-200 dark:border-gray-700 max-h-[calc(100vh-64px)] overflow-y-auto"
                 >
                     <div class="space-y-1 pb-3 pt-2 px-3">
                         <!-- 🏠 Accueil -->
