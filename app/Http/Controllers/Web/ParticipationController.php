@@ -167,7 +167,7 @@ class ParticipationController extends Controller
     public function ideasStore(Request $request, ContentModerationService $moderationService)
     {
         $validated = $request->validate([
-            'idea_type' => ['required', 'in:discussion,proposal,question,debate,petition,interpellation'],
+            'idea_type' => ['required', 'in:discussion,proposal,question,debate,petition,interpellation,poll'],
             'title' => ['required', 'string', 'min:10', 'max:255'],
             'description' => ['required', 'string', 'min:50'],
             'scope' => ['required', 'in:national,regional,departemental,communal'],
@@ -180,7 +180,24 @@ class ParticipationController extends Controller
             'elus.*.type' => ['required', 'in:depute,senateur,maire'],
             'elus.*.id' => ['required', 'string'],
             'is_interpellation' => ['boolean'],
+            // Sondages - validation min:2 faite conditionnellement après
+            'poll_options' => ['nullable', 'array', 'max:6'],
+            'poll_options.*.label' => ['nullable', 'string', 'max:255'],
+            'poll_options.*.icon' => ['nullable', 'string', 'max:10'],
+            'poll_type' => ['nullable', 'in:single,multiple'],
+            'poll_ends_at' => ['nullable', 'date', 'after:today'],
+            // Débat
+            'debate_mode' => ['boolean'],
         ]);
+
+        // Validation spécifique pour les sondages
+        if ($validated['idea_type'] === 'poll') {
+            if (empty($validated['poll_options']) || count($validated['poll_options']) < 2) {
+                return back()->withErrors([
+                    'poll_options' => 'Un sondage doit avoir au moins 2 options de réponse.',
+                ])->withInput();
+            }
+        }
 
         // =====================================================================
         // MODÉRATION DU CONTENU
@@ -191,7 +208,12 @@ class ParticipationController extends Controller
             $validated['title'],
             auth()->id(),
             null,
-            ['moderate_words' => true, 'sanitize_links' => true, 'parse_references' => false]
+            [
+                'moderate_words' => true, 
+                'sanitize_images' => true, 
+                'sanitize_links' => true, 
+                'parse_references' => false
+            ]
         );
         
         // Si le titre contient du contenu bloqué (racisme, violence grave)
@@ -206,7 +228,12 @@ class ParticipationController extends Controller
             $validated['description'],
             auth()->id(),
             null,
-            ['moderate_words' => true, 'sanitize_links' => true, 'parse_references' => false]
+            [
+                'moderate_words' => true, 
+                'sanitize_images' => true,  // Supprimer TOUTES les images
+                'sanitize_links' => true,   // Garder seulement liens officiels
+                'parse_references' => false
+            ]
         );
         
         if ($descModeration['blocked']) {
@@ -257,7 +284,26 @@ class ParticipationController extends Controller
             'author_id' => auth()->id(),
             'status' => 'published', // Auto-publish pour l'instant
             'published_at' => now(),
+            // Sondage
+            'poll_type' => $validated['poll_type'] ?? null,
+            'poll_ends_at' => $validated['poll_ends_at'] ?? null,
+            // Débat
+            'debate_mode' => $validated['idea_type'] === 'debate' || ($validated['debate_mode'] ?? false),
         ]);
+
+        // Créer les options de sondage
+        if ($validated['idea_type'] === 'poll' && !empty($validated['poll_options'])) {
+            foreach ($validated['poll_options'] as $index => $optionData) {
+                if (!empty(trim($optionData['label']))) {
+                    \App\Models\PollOption::create([
+                        'topic_id' => $topic->id,
+                        'label' => trim($optionData['label']),
+                        'icon' => $optionData['icon'] ?? null,
+                        'position' => $index,
+                    ]);
+                }
+            }
+        }
 
         // Attacher les tags
         if (!empty($validated['tag_ids'])) {
@@ -310,12 +356,7 @@ class ParticipationController extends Controller
             $successMessage .= ' Note : ' . implode(' ', $warnings);
         }
 
-        // Redirection
-        if ($topic->loi_cod) {
-            return redirect()->route('lois.show', trim($topic->loi_cod))
-                ->with('success', $successMessage);
-        }
-
+        // Toujours rediriger vers la page de détail de l'idée
         return redirect()->route('participation.ideas.show', $topic->slug ?: $topic->id)
             ->with('success', $successMessage);
     }
@@ -464,8 +505,22 @@ class ParticipationController extends Controller
                     'etat' => $topic->loi->etaloicod,
                 ] : null,
                 'elus' => $elusDetails,
+                // Mode débat
+                'debate_mode' => $topic->debate_mode || $topic->idea_type === 'debate',
+                'poll_type' => $topic->poll_type,
+                'poll_ends_at' => $topic->poll_ends_at?->toIso8601String(),
             ],
-            'comments' => $comments,
+            'comments' => $comments->through(fn($post) => [
+                'id' => $post->id,
+                'content' => $post->content,
+                'debate_position' => $post->debate_position,
+                'created_at' => $post->created_at->toIso8601String(),
+                'user' => $post->user ? [
+                    'id' => $post->user->id,
+                    'name' => $post->user->name,
+                ] : null,
+                'votes_count' => $post->votes_count ?? 0,
+            ]),
             'userVote' => $userVote,
             'similar' => $similar,
         ]);
@@ -479,6 +534,7 @@ class ParticipationController extends Controller
         $validated = $request->validate([
             'content' => ['required', 'string', 'min:10', 'max:5000'],
             'parent_id' => ['nullable', 'exists:posts,id'],
+            'debate_position' => ['nullable', 'in:for,against,neutral'],
         ]);
 
         // Modérer le contenu
@@ -486,7 +542,12 @@ class ParticipationController extends Controller
             $validated['content'],
             auth()->id(),
             null,
-            ['moderate_words' => true, 'sanitize_links' => true, 'parse_references' => true]
+            [
+                'moderate_words' => true, 
+                'sanitize_images' => true,  // Supprimer les images
+                'sanitize_links' => true,   // Garder seulement liens officiels
+                'parse_references' => true
+            ]
         );
 
         // Si contenu bloqué
@@ -497,10 +558,17 @@ class ParticipationController extends Controller
             ], 422);
         }
 
+        // Déterminer la position pour le mode débat
+        $debatePosition = null;
+        if ($topic->debate_mode || $topic->idea_type === 'debate') {
+            $debatePosition = $validated['debate_position'] ?? null;
+        }
+
         $post = $topic->posts()->create([
             'user_id' => auth()->id(),
             'content' => $moderation['content'],
-            'parent_id' => $validated['parent_id'],
+            'parent_id' => $validated['parent_id'] ?? null,
+            'debate_position' => $debatePosition,
         ]);
 
         // Traiter les mentions @utilisateur
@@ -514,6 +582,7 @@ class ParticipationController extends Controller
             'comment' => [
                 'id' => $post->id,
                 'content' => $mentionService->renderMentions($post->content),
+                'debate_position' => $post->debate_position,
                 'created_at' => $post->created_at->toIso8601String(),
                 'user' => [
                     'id' => $post->user->id,

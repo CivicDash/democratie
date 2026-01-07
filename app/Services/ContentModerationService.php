@@ -421,6 +421,87 @@ class ContentModerationService
     }
 
     /**
+     * Supprimer toutes les images (HTML, Markdown, URLs directes)
+     * Les images externes ne sont PAS autorisées dans le contenu utilisateur.
+     */
+    public function sanitizeImages(string $content): array
+    {
+        $removedImages = [];
+        $originalContent = $content;
+        
+        // 1. Images Markdown : ![alt](url)
+        $content = preg_replace_callback(
+            '/!\[([^\]]*)\]\(([^)]+)\)/i',
+            function ($match) use (&$removedImages) {
+                $removedImages[] = [
+                    'type' => 'markdown',
+                    'alt' => $match[1],
+                    'url' => $match[2],
+                ];
+                return '[📷 image supprimée]';
+            },
+            $content
+        );
+        
+        // 2. Balises <img> HTML
+        $content = preg_replace_callback(
+            '/<img[^>]*src\s*=\s*["\']([^"\']+)["\'][^>]*\/?>/i',
+            function ($match) use (&$removedImages) {
+                $removedImages[] = [
+                    'type' => 'html',
+                    'url' => $match[1],
+                ];
+                return '[📷 image supprimée]';
+            },
+            $content
+        );
+        
+        // 3. URLs directes d'images (jpg, png, gif, webp, svg)
+        $content = preg_replace_callback(
+            '/(https?:\/\/[^\s<>"\']+\.(jpg|jpeg|png|gif|webp|svg|bmp|ico))(\s|$|[<"\'])/i',
+            function ($match) use (&$removedImages) {
+                $removedImages[] = [
+                    'type' => 'url',
+                    'url' => $match[1],
+                ];
+                return '[📷 lien image supprimé]' . $match[3];
+            },
+            $content
+        );
+        
+        // 4. Data URLs (base64)
+        $content = preg_replace_callback(
+            '/data:image\/[^;]+;base64,[a-zA-Z0-9+\/=]+/i',
+            function ($match) use (&$removedImages) {
+                $removedImages[] = [
+                    'type' => 'data_url',
+                    'url' => substr($match[0], 0, 50) . '...',
+                ];
+                return '[📷 image encodée supprimée]';
+            },
+            $content
+        );
+        
+        // 5. Balises <picture> et <source>
+        $content = preg_replace('/<picture[^>]*>.*?<\/picture>/is', '[📷 image supprimée]', $content);
+        $content = preg_replace('/<source[^>]*srcset[^>]*>/is', '', $content);
+        
+        // 6. Attributs style avec background-image
+        $content = preg_replace(
+            '/style\s*=\s*["\'][^"\']*background(-image)?\s*:\s*url\([^)]+\)[^"\']*["\']/i',
+            '',
+            $content
+        );
+        
+        return [
+            'content' => $content,
+            'removed_images' => $removedImages,
+            'images_removed_count' => count($removedImages),
+            'modified' => $content !== $originalContent,
+        ];
+    }
+
+    /**
      * Vérifie si un domaine est whitelisté
      */
     public function isDomainWhitelisted(string $host): bool
@@ -711,7 +792,18 @@ class ContentModerationService
             return $result;
         }
         
-        // 2. Sanitization des liens
+        // 2. Suppression des images (TOUJOURS activé pour sécurité)
+        if ($options['sanitize_images'] ?? true) {
+            $imageResult = $this->sanitizeImages($result['content']);
+            $result['content'] = $imageResult['content'];
+            $result['removed_images'] = $imageResult['removed_images'];
+            
+            if (!empty($imageResult['removed_images'])) {
+                $result['modifications'][] = 'images';
+            }
+        }
+        
+        // 3. Sanitization des liens
         if ($options['sanitize_links'] ?? true) {
             $linkResult = $this->sanitizeLinks($result['content']);
             $result['content'] = $linkResult['content'];
@@ -723,7 +815,7 @@ class ContentModerationService
             }
         }
         
-        // 3. Parsing des références internes (optionnel, pour l'affichage)
+        // 4. Parsing des références internes (optionnel, pour l'affichage)
         if ($options['parse_references'] ?? false) {
             $refResult = $this->parseInternalReferences($result['content']);
             $result['content_html'] = $refResult['content'];
@@ -753,6 +845,12 @@ class ContentModerationService
             $issues['banned_words'] = $wordCheck['found'];
         }
         
+        // Vérifier les images (non autorisées)
+        $imageResult = $this->sanitizeImages($content);
+        if (!empty($imageResult['removed_images'])) {
+            $issues['images'] = $imageResult['removed_images'];
+        }
+        
         // Vérifier les liens non autorisés
         $linkResult = $this->sanitizeLinks($content);
         if (!empty($linkResult['removed_links'])) {
@@ -771,9 +869,43 @@ class ContentModerationService
             'issues' => $issues,
             'summary' => [
                 'banned_words' => count($issues['banned_words'] ?? []),
+                'images' => count($issues['images'] ?? []),
                 'external_links' => count($issues['external_links'] ?? []),
                 'invalid_references' => count($issues['invalid_references'] ?? []),
             ],
+        ];
+    }
+
+    /**
+     * Sanitize complet pour le contenu (texte brut)
+     * Utilisé avant de sauvegarder en base de données
+     */
+    public function sanitize(string $content, ?int $userId = null): string
+    {
+        $result = $this->fullModerate($content, $userId, null, [
+            'moderate_words' => true,
+            'sanitize_images' => true,
+            'sanitize_links' => true,
+            'parse_references' => false,
+        ]);
+        
+        return $result['content'];
+    }
+
+    /**
+     * Obtenir les formats de mise en forme autorisés
+     */
+    public function getAllowedFormats(): array
+    {
+        return [
+            'bold' => ['syntax' => '**texte**', 'description' => 'Texte en gras'],
+            'italic' => ['syntax' => '*texte*', 'description' => 'Texte en italique'],
+            'underline' => ['syntax' => '__texte__', 'description' => 'Texte souligné'],
+            'strike' => ['syntax' => '~~texte~~', 'description' => 'Texte barré'],
+            'quote' => ['syntax' => '> texte', 'description' => 'Citation'],
+            'list' => ['syntax' => '- item', 'description' => 'Liste à puces'],
+            'link' => ['syntax' => '[texte](url)', 'description' => 'Lien (domaines officiels uniquement)'],
+            'mention' => ['syntax' => '@type:id', 'description' => 'Mention (@depute:, @loi:, etc.)'],
         ];
     }
 }

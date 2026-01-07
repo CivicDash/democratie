@@ -25,6 +25,67 @@ const breadcrumbItems = [
 const filtreSource = ref(props.filtres?.source || null);
 const filtreType = ref(props.filtres?.type || null);
 
+// Export iCal
+const showExportMenu = ref(false);
+
+const sourceLabel = computed(() => {
+    const labels = { an: 'Assemblée nationale', senat: 'Sénat', elysee: 'Élysée' };
+    return labels[filtreSource.value] || '';
+});
+
+const exportUrl = (mode, range = 'month') => {
+    const baseUrl = '/api/calendar';
+    const params = new URLSearchParams();
+    
+    if (filtreSource.value) params.set('source', filtreSource.value);
+    if (filtreType.value) params.set('type', filtreType.value);
+    
+    if (range === 'month') {
+        // Premier et dernier jour du mois affiché
+        const firstDay = new Date(props.annee, props.mois - 1, 1);
+        const lastDay = new Date(props.annee, props.mois, 0);
+        params.set('from', firstDay.toISOString().split('T')[0]);
+        params.set('to', lastDay.toISOString().split('T')[0]);
+    }
+    // Pour 'all', on laisse les valeurs par défaut du backend (3 mois)
+    
+    const endpoint = mode === 'download' ? 'export.ics' : 'feed.ics';
+    const queryString = params.toString();
+    return `${baseUrl}/${endpoint}${queryString ? '?' + queryString : ''}`;
+};
+
+const copyFeedUrl = async (source) => {
+    const baseUrl = window.location.origin + '/api/calendar/feed.ics';
+    const params = new URLSearchParams();
+    
+    if (source !== 'all') {
+        params.set('source', source);
+    }
+    if (filtreType.value) {
+        params.set('type', filtreType.value);
+    }
+    
+    const url = baseUrl + (params.toString() ? '?' + params.toString() : '');
+    
+    try {
+        await navigator.clipboard.writeText(url);
+        alert('✅ URL copiée dans le presse-papier !\n\nCollez cette URL dans votre application de calendrier pour vous abonner.');
+        showExportMenu.value = false;
+    } catch (err) {
+        // Fallback pour les navigateurs sans clipboard API
+        prompt('Copiez cette URL :', url);
+    }
+};
+
+// Fermer le menu au clic extérieur
+if (typeof document !== 'undefined') {
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.relative')) {
+            showExportMenu.value = false;
+        }
+    });
+}
+
 // Noms des mois
 const nomsMois = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -256,10 +317,80 @@ const formatHeure = (dateIso) => {
                         <button
                             v-if="filtreSource || filtreType"
                             @click="reinitialiserFiltres()"
-                            class="ml-auto text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                            class="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                         >
                             ✕ Réinitialiser
                         </button>
+                        
+                        <!-- Export iCal -->
+                        <div class="ml-auto relative">
+                            <button
+                                @click="showExportMenu = !showExportMenu"
+                                class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition text-sm font-medium"
+                            >
+                                📅 Exporter
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            
+                            <!-- Dropdown menu -->
+                            <div 
+                                v-if="showExportMenu"
+                                class="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50"
+                            >
+                                <div class="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
+                                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                                        Télécharger (.ics)
+                                    </span>
+                                </div>
+                                
+                                <a 
+                                    :href="exportUrl('download')"
+                                    class="flex items-center gap-3 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-300"
+                                >
+                                    <span>📥</span>
+                                    <span>Télécharger ce mois</span>
+                                </a>
+                                
+                                <a 
+                                    :href="exportUrl('download', 'all')"
+                                    class="flex items-center gap-3 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-300"
+                                >
+                                    <span>📅</span>
+                                    <span>Télécharger 3 prochains mois</span>
+                                </a>
+                                
+                                <div class="px-4 py-2 border-t border-b border-slate-200 dark:border-slate-700 mt-2">
+                                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                                        S'abonner (flux dynamique)
+                                    </span>
+                                </div>
+                                
+                                <button 
+                                    @click="copyFeedUrl('all')"
+                                    class="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-300 text-left"
+                                >
+                                    <span>🔗</span>
+                                    <span>Copier URL du flux complet</span>
+                                </button>
+                                
+                                <button 
+                                    v-if="filtreSource"
+                                    @click="copyFeedUrl(filtreSource)"
+                                    class="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-300 text-left"
+                                >
+                                    <span>🔗</span>
+                                    <span>Copier URL flux {{ sourceLabel }}</span>
+                                </button>
+                                
+                                <div class="px-4 py-2 border-t border-slate-200 dark:border-slate-700 mt-2">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        💡 Collez l'URL dans Google Calendar, Apple Calendar ou Outlook pour un abonnement qui se met à jour automatiquement.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 

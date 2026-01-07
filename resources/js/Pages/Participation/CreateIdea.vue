@@ -4,6 +4,8 @@ import { ref, computed, watch } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Card from '@/Components/Card.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
+import PollOptionsCreator from '@/Components/PollOptionsCreator.vue';
 
 // Simple debounce function
 function debounce(fn, delay) {
@@ -27,16 +29,48 @@ const props = defineProps({
 // WIZARD STEPS
 // ============================================================================
 const currentStep = ref(1);
-const totalSteps = 6;
 
+// Toutes les étapes (certaines seront masquées selon le type)
 const steps = [
-    { id: 1, title: 'Type', icon: '💡', description: 'Quel type de contribution ?' },
-    { id: 2, title: 'Contenu', icon: '✍️', description: 'Rédigez votre idée' },
-    { id: 3, title: 'Échelle', icon: '🗺️', description: 'Portée géographique' },
-    { id: 4, title: 'Thèmes', icon: '🏷️', description: 'Catégorisez votre idée' },
-    { id: 5, title: 'Loi liée', icon: '📜', description: 'Rattacher à une loi (optionnel)' },
-    { id: 6, title: 'Élus', icon: '👤', description: 'Liez des élus (optionnel)' },
+    { id: 1, key: 'type', title: 'Type', icon: '💡', description: 'Quel type de contribution ?' },
+    { id: 2, key: 'content', title: 'Contenu', icon: '✍️', description: 'Rédigez votre idée' },
+    { id: 3, key: 'scope', title: 'Échelle', icon: '🗺️', description: 'Portée géographique' },
+    { id: 4, key: 'themes', title: 'Thèmes', icon: '🏷️', description: 'Catégorisez votre idée' },
 ];
+
+// Étapes visibles selon le type
+const visibleSteps = computed(() => {
+    const baseSteps = [...steps];
+    
+    // Ajouter l'étape Loi pour certains types
+    if (['proposal', 'question', 'petition'].includes(form.idea_type)) {
+        baseSteps.push({ id: 5, key: 'loi', title: 'Loi liée', icon: '📜', description: 'Rattacher à une loi (optionnel)' });
+    }
+    
+    // Ajouter l'étape Élus seulement pour les interpellations
+    if (form.idea_type === 'interpellation') {
+        baseSteps.push({ id: baseSteps.length + 1, key: 'elus', title: 'Élus', icon: '👤', description: 'Choisissez les élus à interpeller' });
+    }
+    
+    return baseSteps.map((step, index) => ({ ...step, id: index + 1 }));
+});
+
+const totalSteps = computed(() => visibleSteps.value.length);
+
+// Clé de l'étape courante
+const currentStepKey = computed(() => {
+    const step = visibleSteps.value.find(s => s.id === currentStep.value);
+    return step?.key || visibleSteps.value[visibleSteps.value.length - 1]?.key || 'type';
+});
+
+// Réajuster currentStep si on dépasse le nombre d'étapes visibles
+watch(() => form.idea_type, () => {
+    // Quand on change de type, on reste sur l'étape courante si elle existe,
+    // sinon on va à la dernière étape disponible
+    if (currentStep.value > totalSteps.value) {
+        currentStep.value = totalSteps.value;
+    }
+});
 
 // ============================================================================
 // FORM DATA
@@ -52,6 +86,12 @@ const form = useForm({
     tag_ids: [],
     elus: [],
     is_interpellation: false,
+    // Sondage
+    poll_options: [],
+    poll_type: 'single', // single ou multiple
+    poll_ends_at: null,
+    // Débat
+    debate_mode: false,
 });
 
 // ============================================================================
@@ -109,52 +149,67 @@ function removeLoi() {
 // ============================================================================
 const ideaTypes = [
     { 
+        value: 'question', 
+        label: 'Question', 
+        icon: '❓', 
+        color: 'sky',
+        description: 'Posez une question à la communauté pour obtenir des réponses',
+        restricted: false,
+        requires: ['category'],
+    },
+    { 
+        value: 'poll', 
+        label: 'Sondage', 
+        icon: '📊', 
+        color: 'indigo',
+        description: 'Mesurez l\'opinion avec des choix de réponse prédéfinis',
+        restricted: false,
+        requires: ['category', 'poll_options'],
+    },
+    { 
         value: 'discussion', 
         label: 'Discussion', 
         icon: '💬', 
         color: 'slate',
-        description: 'Échangez librement sur un sujet (texte uniquement, pas de liens externes ni images)',
+        description: 'Ouvrez un sujet pour échanger librement (texte uniquement)',
         restricted: true,
+        requires: ['category'],
     },
     { 
         value: 'proposal', 
         label: 'Proposition', 
         icon: '💡', 
         color: 'emerald',
-        description: 'Proposez une idée, une amélioration ou un projet',
+        description: 'Proposez une idée concrète : "Il faudrait que..."',
         restricted: false,
-    },
-    { 
-        value: 'question', 
-        label: 'Question', 
-        icon: '❓', 
-        color: 'sky',
-        description: 'Posez une question sur un sujet politique',
-        restricted: false,
+        requires: ['category'],
     },
     { 
         value: 'debate', 
         label: 'Débat', 
-        icon: '🎯', 
+        icon: '⚔️', 
         color: 'amber',
-        description: 'Lancez un débat structuré sur un sujet de société',
+        description: 'Lancez un débat Pour/Contre sur un sujet de société',
         restricted: false,
-    },
-    { 
-        value: 'petition', 
-        label: 'Pétition', 
-        icon: '📜', 
-        color: 'violet',
-        description: 'Créez une pétition pour rassembler des signatures',
-        restricted: false,
+        requires: ['category'],
     },
     { 
         value: 'interpellation', 
         label: 'Interpellation', 
         icon: '📣', 
         color: 'rose',
-        description: 'Interpellez directement un élu sur un sujet',
+        description: 'Posez une question directe à un élu (réponse attendue)',
         restricted: false,
+        requires: ['category', 'elus'],
+    },
+    { 
+        value: 'petition', 
+        label: 'Pétition', 
+        icon: '✍️', 
+        color: 'violet',
+        description: 'Mobilisez et collectez des signatures pour une cause',
+        restricted: false,
+        requires: ['category'],
     },
 ];
 
@@ -195,29 +250,51 @@ const selectedElus = computed(() => {
 });
 
 const canProceed = computed(() => {
-    switch (currentStep.value) {
-        case 1: return !!form.idea_type;
-        case 2: return form.title.length >= 10 && form.description.length >= 50;
-        case 3: return !!form.scope;
-        case 4: 
+    switch (currentStepKey.value) {
+        case 'type': 
+            return !!form.idea_type;
+            
+        case 'content': 
+            // Validation de base
+            const baseValid = form.title.length >= 10 && form.description.length >= 50;
+            
+            // Pour les sondages, il faut aussi des options valides
+            if (form.idea_type === 'poll') {
+                const validOptions = form.poll_options.filter(o => o.label && o.label.trim() !== '');
+                return baseValid && validOptions.length >= 2;
+            }
+            
+            return baseValid;
+            
+        case 'scope': 
+            return !!form.scope;
+            
+        case 'themes': 
             // Tags obligatoires pour les discussions (au moins 1)
             if (form.idea_type === 'discussion') {
                 return form.tag_ids.length >= 1;
             }
             return true; // Tags optionnels pour les autres types
-        case 5: return true; // Loi optionnelle
-        case 6: return true; // Élus optionnels
-        default: return true;
+            
+        case 'loi': 
+            return true; // Loi optionnelle
+            
+        case 'elus': 
+            // Pour les interpellations, il faut au moins un élu
+            return form.elus.length >= 1;
+            
+        default: 
+            return true;
     }
 });
 
-const progress = computed(() => (currentStep.value / totalSteps) * 100);
+const progress = computed(() => (currentStep.value / totalSteps.value) * 100);
 
 // ============================================================================
 // METHODS
 // ============================================================================
 function nextStep() {
-    if (currentStep.value < totalSteps && canProceed.value) {
+    if (currentStep.value < totalSteps.value && canProceed.value) {
         currentStep.value++;
     }
 }
@@ -357,6 +434,15 @@ function submit() {
         onSuccess: () => {
             // Redirigé automatiquement par le controller
         },
+        onError: (errors) => {
+            console.error('Erreurs de validation:', errors);
+            // Retourner à l'étape correspondante s'il y a une erreur
+            if (errors.title || errors.description) {
+                currentStep.value = visibleSteps.value.find(s => s.key === 'content')?.id || 2;
+            } else if (errors.poll_options || errors.poll_type) {
+                currentStep.value = visibleSteps.value.find(s => s.key === 'content')?.id || 2;
+            }
+        },
     });
 }
 
@@ -429,7 +515,7 @@ const breadcrumbs = [
                 <!-- Steps Navigation -->
                 <div class="flex justify-between mb-8 overflow-x-auto pb-2">
                     <button
-                        v-for="step in steps"
+                        v-for="step in visibleSteps"
                         :key="step.id"
                         @click="goToStep(step.id)"
                         :class="[
@@ -451,7 +537,7 @@ const breadcrumbs = [
                 <Card class="p-8">
                     
                     <!-- STEP 1: Type -->
-                    <div v-if="currentStep === 1" class="space-y-6">
+                    <div v-if="currentStepKey === 'type'" class="space-y-6">
                         <div class="text-center mb-8">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                 💡 Quel type de contribution ?
@@ -491,7 +577,7 @@ const breadcrumbs = [
                     </div>
 
                     <!-- STEP 2: Content -->
-                    <div v-if="currentStep === 2" class="space-y-6">
+                    <div v-if="currentStepKey === 'content'" class="space-y-6">
                         <div class="text-center mb-8">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                 ✍️ Rédigez votre {{ ideaTypes.find(t => t.value === form.idea_type)?.label.toLowerCase() }}
@@ -521,15 +607,76 @@ const breadcrumbs = [
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Description <span class="text-rose-500">*</span>
                             </label>
-                            <textarea
+                            <RichTextEditor
                                 v-model="form.description"
-                                rows="8"
-                                class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white px-4 py-3 resize-y"
-                                placeholder="Décrivez votre idée en détail. Expliquez le contexte, les enjeux et ce que vous proposez concrètement..."
-                            ></textarea>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                {{ form.description.length }} caractères (minimum 50)
-                            </p>
+                                :rows="8"
+                                :min-length="50"
+                                :max-length="5000"
+                                placeholder="Décrivez votre idée en détail. Utilisez la mise en forme pour structurer votre texte..."
+                                :allowed-formats="['bold', 'italic', 'list', 'quote', 'link', 'mention']"
+                            />
+                        </div>
+
+                        <!-- Options de sondage (si type = poll) -->
+                        <div v-if="form.idea_type === 'poll'" class="mt-6">
+                            <PollOptionsCreator
+                                v-model="form.poll_options"
+                                :min-options="2"
+                                :max-options="6"
+                            />
+                            
+                            <!-- Options supplémentaires du sondage -->
+                            <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Type de vote
+                                        </span>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            L'utilisateur peut-il sélectionner plusieurs réponses ?
+                                        </p>
+                                    </div>
+                                    <select
+                                        v-model="form.poll_type"
+                                        class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                                    >
+                                        <option value="single">Choix unique</option>
+                                        <option value="multiple">Choix multiple</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Date de fin (optionnel)
+                                        </span>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            Le sondage se fermera automatiquement à cette date
+                                        </p>
+                                    </div>
+                                    <input
+                                        v-model="form.poll_ends_at"
+                                        type="date"
+                                        class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                                        :min="new Date().toISOString().split('T')[0]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mode débat (si type = debate) -->
+                        <div v-if="form.idea_type === 'debate'" class="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+                            <div class="flex items-start gap-3">
+                                <span class="text-2xl">⚔️</span>
+                                <div>
+                                    <p class="font-medium text-amber-800 dark:text-amber-200">
+                                        Mode Débat activé
+                                    </p>
+                                    <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                        Les participants pourront se positionner "Pour" ou "Contre" et les arguments seront classés automatiquement.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Loi liée -->
@@ -558,7 +705,7 @@ const breadcrumbs = [
                     </div>
 
                     <!-- STEP 3: Scope -->
-                    <div v-if="currentStep === 3" class="space-y-6">
+                    <div v-if="currentStepKey === 'scope'" class="space-y-6">
                         <div class="text-center mb-8">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                 🗺️ Quelle portée géographique ?
@@ -620,7 +767,7 @@ const breadcrumbs = [
                     </div>
 
                     <!-- STEP 4: Tags -->
-                    <div v-if="currentStep === 4" class="space-y-6">
+                    <div v-if="currentStepKey === 'themes'" class="space-y-6">
                         <div class="text-center mb-8">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                 🏷️ Choisissez des thématiques
@@ -670,7 +817,7 @@ const breadcrumbs = [
                     </div>
 
                     <!-- STEP 5: Loi liée -->
-                    <div v-if="currentStep === 5" class="space-y-6">
+                    <div v-if="currentStepKey === 'loi'" class="space-y-6">
                         <div class="text-center mb-8">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                 📜 Rattacher à une loi (optionnel)
@@ -775,7 +922,7 @@ const breadcrumbs = [
                     </div>
 
                     <!-- STEP 6: Élus -->
-                    <div v-if="currentStep === 6" class="space-y-6">
+                    <div v-if="currentStepKey === 'elus'" class="space-y-6">
                         <div class="text-center mb-8">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                 👤 Liez des élus (optionnel)
@@ -987,6 +1134,16 @@ const breadcrumbs = [
                             <span v-if="form.processing">⏳ Publication...</span>
                             <span v-else>🚀 Publier mon idée</span>
                         </button>
+                    </div>
+                    
+                    <!-- Affichage des erreurs de validation -->
+                    <div v-if="Object.keys(form.errors).length > 0" class="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
+                        <h4 class="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">⚠️ Erreurs de validation</h4>
+                        <ul class="list-disc list-inside text-sm text-red-600 dark:text-red-300 space-y-1">
+                            <li v-for="(error, field) in form.errors" :key="field">
+                                {{ error }}
+                            </li>
+                        </ul>
                     </div>
                 </Card>
 

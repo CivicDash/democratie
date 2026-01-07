@@ -1,56 +1,44 @@
 <x-mail::message>
-# 💬 {{ $eluName }} a répondu !
+# Bonne nouvelle, {{ $citizen->name }} !
 
-Bonne nouvelle, **{{ $citizen->name }}** ! Un élu a répondu à votre interpellation.
+**{{ $eluName }}** ({{ $eluTypeLabel }}) a répondu à votre interpellation.
 
 ---
 
-## 🏛️ Votre interpellation
+## 📢 Votre interpellation
 
 **{{ $topic->title }}**
 
 ---
 
-## 📢 Réponse de {{ $eluName }}
+## 💬 Réponse de {{ $eluName }}
 
 <x-mail::panel>
-**{{ $eluFunction }}**
-
 {{ Str::limit($responseExcerpt, 400) }}
 </x-mail::panel>
 
 ---
 
-<x-mail::button :url="$topicUrl" color="primary">
+<x-mail::button :url="$topicUrl" color="success">
 📖 Lire la réponse complète
 </x-mail::button>
 
 ---
 
-## ✨ Et maintenant ?
+### 🗣️ Continuez le dialogue
 
-- **Répondez** à l'élu pour approfondir le débat
-- **Partagez** cette réponse avec d'autres citoyens
-- **Suivez** l'élu pour être informé de ses prochaines interventions
+Vous pouvez répondre à {{ $eluName }} directement sur la plateforme pour approfondir la discussion.
 
 ---
 
-### 📊 Statut de l'interpellation
+### 📊 Partagez cette réponse
 
-<x-mail::table>
-| Statut | Date |
-|:-------|:-----|
-| 📢 Créée | {{ $topic->created_at->format('d/m/Y') }} |
-| 💬 Répondue | {{ now()->format('d/m/Y') }} |
-</x-mail::table>
+Cette réponse officielle d'un élu peut intéresser d'autres citoyens. N'hésitez pas à la partager !
 
----
-
-Cordialement,  
+Merci de participer à la vie démocratique,  
 **L'équipe CivicDash**
 
 <x-mail::subcopy>
-Vous recevez cet email car vous avez interpellé {{ $eluName }} sur CivicDash.  
-Gérez vos notifications depuis votre profil.
+Pour gérer vos notifications, rendez-vous dans [Préférences]({{ config('app.url') }}/profile/notification-preferences).
 </x-mail::subcopy>
 </x-mail::message>

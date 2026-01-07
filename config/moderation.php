@@ -47,9 +47,29 @@ return [
         'data.senat.fr',
         'data.assemblee-nationale.fr',
         
+        //ONG
+        'www.msf.fr/',
+        'www.amnesty.fr/',
+        'www.croix-rouge.fr/',
+        'rsf.org',
+        'hrw.org',
+        'oxfamfrance.org',
+        'actioncontrelafaim.org',
+        'wwf.fr',
+        'wwf.org',
+        'greenpeace.fr',
+        'greenpeace.org',
+        'emmaus-france.org/',
+        'carefrance.org',
+        'fne.asso.fr',
+        'handicap-international.fr',
+        'acted.org',
+
         // Références internes CivicDash
-        'civicdash.fr',
-        '*.civicdash.fr',
+        '*.objectif2027.fr',
+        'objectif2027.fr',
+        '*.civis-consilium.eu',
+        'civis-consilium.eu',
         'localhost',
     ],
 
@@ -108,9 +128,38 @@ return [
     */
     'defaults' => [
         'moderate_words' => true,      // Remplacer les mots bannis
+        'sanitize_images' => true,     // Supprimer TOUTES les images (sécurité)
         'sanitize_links' => true,      // Supprimer les liens non autorisés
         'parse_references' => true,    // Parser les références internes
         'log_actions' => true,         // Logger les actions de modération
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Formats de Mise en Forme Autorisés
+    |--------------------------------------------------------------------------
+    |
+    | Syntaxe Markdown simplifiée autorisée dans les contenus utilisateur.
+    |
+    */
+    'allowed_formats' => [
+        'bold' => true,       // **gras**
+        'italic' => true,     // *italique*
+        'underline' => true,  // __souligné__
+        'strike' => true,     // ~~barré~~
+        'quote' => true,      // > citation
+        'list' => true,       // - liste
+        'link' => true,       // [texte](url) - domaines autorisés uniquement
+        'mention' => true,    // @type:id
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Extensions d'Images Bloquées
+    |--------------------------------------------------------------------------
+    */
+    'blocked_image_extensions' => [
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'heic',
     ],
 
     /*

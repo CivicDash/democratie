@@ -1,17 +1,53 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import ReportButton from '@/Components/ReportButton.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
 
 const props = defineProps({
     idea: { type: Object, required: true },
     comments: { type: Object, required: true },
     userVote: { type: Number, default: null },
     similar: { type: Array, default: () => [] },
+});
+
+// ============================================================================
+// DEBATE MODE
+// ============================================================================
+const isDebateMode = computed(() => props.idea.debate_mode || props.idea.idea_type === 'debate');
+const debatePosition = ref(null); // 'for', 'against', 'neutral'
+
+// Statistiques débat
+const debateStats = computed(() => {
+    if (!isDebateMode.value) return null;
+    
+    const forCount = localComments.value.filter(c => c.debate_position === 'for').length;
+    const againstCount = localComments.value.filter(c => c.debate_position === 'against').length;
+    const neutralCount = localComments.value.filter(c => c.debate_position === 'neutral').length;
+    const total = forCount + againstCount + neutralCount || 1;
+    
+    return {
+        for: forCount,
+        against: againstCount,
+        neutral: neutralCount,
+        forPercent: Math.round((forCount / total) * 100),
+        againstPercent: Math.round((againstCount / total) * 100),
+        neutralPercent: Math.round((neutralCount / total) * 100),
+    };
+});
+
+// Filtrage des arguments
+const debateFilter = ref('all'); // 'all', 'for', 'against', 'neutral'
+const filteredComments = computed(() => {
+    if (!isDebateMode.value || debateFilter.value === 'all') {
+        return localComments.value;
+    }
+    return localComments.value.filter(c => c.debate_position === debateFilter.value);
 });
 
 const page = usePage();
@@ -35,26 +71,11 @@ async function vote(value) {
     try {
         // Si même vote, on retire
         if (localVote.value === value) {
-            const response = await fetch(route('participation.ideas.unvote', props.idea.id), {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': page.props.csrf_token || document.querySelector('meta[name="csrf-token"]')?.content,
-                },
-            });
-            const data = await response.json();
+            const { data } = await axios.delete(route('participation.ideas.unvote', props.idea.id));
             localVote.value = null;
             localStats.value = data.stats;
         } else {
-            const response = await fetch(route('participation.ideas.vote', props.idea.id), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': page.props.csrf_token || document.querySelector('meta[name="csrf-token"]')?.content,
-                },
-                body: JSON.stringify({ vote: value }),
-            });
-            const data = await response.json();
+            const { data } = await axios.post(route('participation.ideas.vote', props.idea.id), { vote: value });
             localVote.value = value;
             localStats.value = data.stats;
         }
@@ -79,25 +100,36 @@ async function submitComment() {
         return;
     }
     
+    // En mode débat, une position est requise
+    if (isDebateMode.value && !debatePosition.value) {
+        alert('Veuillez choisir une position : Pour, Contre ou Neutre');
+        return;
+    }
+    
     isSubmitting.value = true;
 
     try {
-        const response = await fetch(route('participation.ideas.comment', props.idea.id), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': page.props.csrf_token || document.querySelector('meta[name="csrf-token"]')?.content,
-            },
-            body: JSON.stringify({ content: newComment.value }),
-        });
-        const data = await response.json();
+        const payload = { 
+            content: newComment.value,
+        };
+        
+        // Ajouter la position si mode débat
+        if (isDebateMode.value && debatePosition.value) {
+            payload.debate_position = debatePosition.value;
+        }
+        
+        const { data } = await axios.post(route('participation.ideas.comment', props.idea.id), payload);
         
         if (data.success) {
             localComments.value.unshift(data.comment);
             newComment.value = '';
+            debatePosition.value = null; // Reset la position
         }
     } catch (error) {
         console.error('Erreur commentaire:', error);
+        if (error.response?.data?.message) {
+            alert(error.response.data.message);
+        }
     } finally {
         isSubmitting.value = false;
     }
@@ -395,55 +427,210 @@ const breadcrumbs = computed(() => [
                             </div>
                         </Card>
 
-                        <!-- Commentaires -->
+                        <!-- Commentaires / Débat -->
                         <Card>
                             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                                💬 Commentaires ({{ idea.posts_count }})
+                                <span v-if="isDebateMode">⚔️ Arguments du débat</span>
+                                <span v-else>💬 Commentaires</span>
+                                ({{ idea.posts_count }})
                             </h2>
 
-                            <!-- Formulaire nouveau commentaire -->
+                            <!-- Barre de score du débat -->
+                            <div v-if="isDebateMode && debateStats" class="mb-6">
+                                <div class="flex rounded-xl overflow-hidden h-8 bg-gray-200 dark:bg-gray-700">
+                                    <div 
+                                        v-if="debateStats.forPercent > 0"
+                                        :style="{ width: debateStats.forPercent + '%' }" 
+                                        class="bg-emerald-500 flex items-center justify-center text-white text-sm font-bold transition-all duration-500"
+                                    >
+                                        <span v-if="debateStats.forPercent >= 15">{{ debateStats.forPercent }}% Pour</span>
+                                    </div>
+                                    <div 
+                                        v-if="debateStats.neutralPercent > 0"
+                                        :style="{ width: debateStats.neutralPercent + '%' }" 
+                                        class="bg-blue-400 flex items-center justify-center text-white text-sm font-bold transition-all duration-500"
+                                    >
+                                        <span v-if="debateStats.neutralPercent >= 15">{{ debateStats.neutralPercent }}%</span>
+                                    </div>
+                                    <div 
+                                        v-if="debateStats.againstPercent > 0"
+                                        :style="{ width: debateStats.againstPercent + '%' }" 
+                                        class="bg-rose-500 flex items-center justify-center text-white text-sm font-bold transition-all duration-500"
+                                    >
+                                        <span v-if="debateStats.againstPercent >= 15">{{ debateStats.againstPercent }}% Contre</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between text-sm mt-2 text-gray-600 dark:text-gray-400">
+                                    <span class="text-emerald-600 dark:text-emerald-400 font-medium">👍 {{ debateStats.for }} pour</span>
+                                    <span class="text-blue-500 font-medium">🤔 {{ debateStats.neutral }} neutre</span>
+                                    <span class="text-rose-600 dark:text-rose-400 font-medium">👎 {{ debateStats.against }} contre</span>
+                                </div>
+                            </div>
+
+                            <!-- Filtres du débat -->
+                            <div v-if="isDebateMode" class="flex flex-wrap gap-2 mb-6">
+                                <button 
+                                    @click="debateFilter = 'all'"
+                                    :class="[
+                                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                        debateFilter === 'all' 
+                                            ? 'bg-gray-800 dark:bg-white text-white dark:text-gray-900' 
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    ]"
+                                >
+                                    Tous ({{ localComments.length }})
+                                </button>
+                                <button 
+                                    @click="debateFilter = 'for'"
+                                    :class="[
+                                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                        debateFilter === 'for' 
+                                            ? 'bg-emerald-500 text-white' 
+                                            : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+                                    ]"
+                                >
+                                    👍 Pour ({{ debateStats?.for || 0 }})
+                                </button>
+                                <button 
+                                    @click="debateFilter = 'neutral'"
+                                    :class="[
+                                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                        debateFilter === 'neutral' 
+                                            ? 'bg-blue-500 text-white' 
+                                            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                                    ]"
+                                >
+                                    🤔 Neutre ({{ debateStats?.neutral || 0 }})
+                                </button>
+                                <button 
+                                    @click="debateFilter = 'against'"
+                                    :class="[
+                                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                        debateFilter === 'against' 
+                                            ? 'bg-rose-500 text-white' 
+                                            : 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/30'
+                                    ]"
+                                >
+                                    👎 Contre ({{ debateStats?.against || 0 }})
+                                </button>
+                            </div>
+
+                            <!-- Formulaire nouveau commentaire/argument -->
                             <div class="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-                                <textarea
+                                <!-- Sélecteur de position pour le débat -->
+                                <div v-if="isDebateMode" class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Votre position sur ce débat :
+                                    </label>
+                                    <div class="flex gap-3">
+                                        <button
+                                            type="button"
+                                            @click="debatePosition = 'for'"
+                                            :class="[
+                                                'flex-1 py-3 rounded-xl font-semibold transition-all border-2',
+                                                debatePosition === 'for'
+                                                    ? 'bg-emerald-500 text-white border-emerald-500'
+                                                    : 'bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                                            ]"
+                                        >
+                                            👍 Pour
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="debatePosition = 'neutral'"
+                                            :class="[
+                                                'flex-1 py-3 rounded-xl font-semibold transition-all border-2',
+                                                debatePosition === 'neutral'
+                                                    ? 'bg-blue-500 text-white border-blue-500'
+                                                    : 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                            ]"
+                                        >
+                                            🤔 Neutre
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="debatePosition = 'against'"
+                                            :class="[
+                                                'flex-1 py-3 rounded-xl font-semibold transition-all border-2',
+                                                debatePosition === 'against'
+                                                    ? 'bg-rose-500 text-white border-rose-500'
+                                                    : 'bg-white dark:bg-gray-800 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-900/20'
+                                            ]"
+                                        >
+                                            👎 Contre
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <RichTextEditor
                                     v-model="newComment"
-                                    rows="3"
-                                    placeholder="Partagez votre avis sur cette idée..."
-                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white resize-y"
-                                ></textarea>
-                                <div class="flex items-center justify-between mt-2">
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">
-                                        {{ newComment.length }} / 5000 caractères (min. 10)
-                                    </span>
+                                    :rows="4"
+                                    :min-length="10"
+                                    :max-length="5000"
+                                    :placeholder="isDebateMode ? 'Exposez votre argument...' : 'Partagez votre avis sur cette idée...'"
+                                    :allowed-formats="['bold', 'italic', 'list', 'quote', 'mention']"
+                                    :show-preview="false"
+                                />
+                                <div class="flex items-center justify-end mt-2">
                                     <button
                                         @click="submitComment"
-                                        :disabled="isSubmitting || newComment.length < 10"
+                                        :disabled="isSubmitting || newComment.length < 10 || (isDebateMode && !debatePosition)"
                                         :class="[
                                             'px-4 py-2 rounded-lg font-medium transition-colors',
-                                            newComment.length >= 10
+                                            (newComment.length >= 10 && (!isDebateMode || debatePosition))
                                                 ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                                                 : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
                                         ]"
                                     >
-                                        {{ isSubmitting ? '⏳' : '📤' }} Publier
+                                        {{ isSubmitting ? '⏳' : '📤' }} {{ isDebateMode ? 'Publier mon argument' : 'Publier' }}
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Liste des commentaires -->
+                            <!-- Liste des commentaires/arguments -->
                             <div class="space-y-4">
                                 <div 
-                                    v-for="comment in localComments" 
+                                    v-for="comment in filteredComments" 
                                     :key="comment.id"
-                                    class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl group"
+                                    class="p-4 rounded-xl group transition-all"
+                                    :class="[
+                                        comment.debate_position === 'for' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-l-4 border-emerald-400' :
+                                        comment.debate_position === 'against' ? 'bg-rose-50 dark:bg-rose-900/20 border-l-4 border-rose-400' :
+                                        comment.debate_position === 'neutral' ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400' :
+                                        'bg-gray-50 dark:bg-gray-800'
+                                    ]"
                                 >
                                     <div class="flex items-start gap-3">
-                                        <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-lg flex-shrink-0">
-                                            👤
+                                        <div 
+                                            class="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+                                            :class="[
+                                                comment.debate_position === 'for' ? 'bg-emerald-100 dark:bg-emerald-900/50' :
+                                                comment.debate_position === 'against' ? 'bg-rose-100 dark:bg-rose-900/50' :
+                                                comment.debate_position === 'neutral' ? 'bg-blue-100 dark:bg-blue-900/50' :
+                                                'bg-emerald-100 dark:bg-emerald-900/30'
+                                            ]"
+                                        >
+                                            <span v-if="comment.debate_position === 'for'">👍</span>
+                                            <span v-else-if="comment.debate_position === 'against'">👎</span>
+                                            <span v-else-if="comment.debate_position === 'neutral'">🤔</span>
+                                            <span v-else>👤</span>
                                         </div>
                                         <div class="flex-1">
                                             <div class="flex items-center justify-between mb-1">
                                                 <div class="flex items-center gap-2">
                                                     <span class="font-medium text-gray-900 dark:text-white">
                                                         {{ comment.user?.name || 'Anonyme' }}
+                                                    </span>
+                                                    <span 
+                                                        v-if="comment.debate_position"
+                                                        :class="[
+                                                            'text-xs px-2 py-0.5 rounded-full font-medium',
+                                                            comment.debate_position === 'for' ? 'bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200' :
+                                                            comment.debate_position === 'against' ? 'bg-rose-200 dark:bg-rose-800 text-rose-800 dark:text-rose-200' :
+                                                            'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                                                        ]"
+                                                    >
+                                                        {{ comment.debate_position === 'for' ? 'Pour' : comment.debate_position === 'against' ? 'Contre' : 'Neutre' }}
                                                     </span>
                                                     <span class="text-xs text-gray-500 dark:text-gray-400">
                                                         {{ formatRelativeDate(comment.created_at) }}
@@ -463,9 +650,10 @@ const breadcrumbs = computed(() => [
                                     </div>
                                 </div>
 
-                                <div v-if="localComments.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
-                                    <div class="text-4xl mb-2">💬</div>
-                                    <p>Aucun commentaire pour le moment. Soyez le premier à réagir !</p>
+                                <div v-if="filteredComments.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <div class="text-4xl mb-2">{{ isDebateMode ? '⚔️' : '💬' }}</div>
+                                    <p v-if="debateFilter !== 'all'">Aucun argument dans cette catégorie.</p>
+                                    <p v-else>{{ isDebateMode ? 'Aucun argument pour le moment. Soyez le premier à débattre !' : 'Aucun commentaire pour le moment. Soyez le premier à réagir !' }}</p>
                                 </div>
                             </div>
 

@@ -1,69 +1,58 @@
 <x-mail::message>
 # 🎉 Bienvenue sur CivicDash, {{ $user->name }} !
 
-Vous faites maintenant partie de la communauté citoyenne de transparence démocratique.
+Votre compte a été créé avec succès. Vous faites maintenant partie de la communauté citoyenne !
 
 ---
 
-## 🚀 Par où commencer ?
+## 🚀 Premiers pas sur CivicDash
 
-### 1. Complétez votre profil
+Voici ce que vous pouvez faire dès maintenant :
 
-Ajoutez une photo et personnalisez vos préférences de notification.
+### 1️⃣ Complétez votre profil
+Ajoutez une photo, une bio et vos centres d'intérêt pour vous faire connaître.
 
 <x-mail::button :url="$profileUrl" color="primary">
-👤 Mon profil
+👤 Compléter mon profil
 </x-mail::button>
 
----
-
-### 2. Découvrez les fonctionnalités
-
-<x-mail::table>
-| Fonctionnalité | Description |
-|:---------------|:------------|
-| 🏛️ **Parlement** | Suivez les votes et activités parlementaires |
-| 📢 **Interpellations** | Posez vos questions aux élus |
-| 💬 **Débats** | Participez aux discussions citoyennes |
-| 🗳️ **Propositions** | Votez pour les idées de la communauté |
-| 📊 **Statistiques** | Explorez les données publiques |
-</x-mail::table>
-
----
-
-### 3. Explorez les débats en cours
+### 2️⃣ Découvrez les idées citoyennes
+Parcourez les propositions de la communauté et votez pour celles qui vous tiennent à cœur.
 
 <x-mail::button :url="$discoverUrl" color="success">
-🔍 Découvrir les propositions
+💡 Découvrir les idées
 </x-mail::button>
 
 ---
 
-## 📱 Restez informé
+## 📊 Ce que vous pouvez faire sur CivicDash
 
-Configurez vos préférences de notification pour ne rien manquer :
-- **Réponses des élus** à vos interpellations
-- **Résultats des votes** parlementaires
-- **Mentions** dans les débats
-
----
-
-## 🏆 Gagnez des badges !
-
-CivicDash récompense votre participation avec des badges et de l'XP :
-- 🏅 **Premier pas** : Créez votre premier sujet
-- 💬 **Contributeur** : Participez aux débats
-- 🗳️ **Citoyen actif** : Votez régulièrement
+| Fonctionnalité | Description |
+|:---------------|:------------|
+| 🗳️ **Voter** | Soutenez ou opposez-vous aux propositions |
+| 📢 **Interpeller** | Posez vos questions directement aux élus |
+| 💬 **Débattre** | Participez aux discussions citoyennes |
+| 📈 **Suivre** | Surveillez l'activité de vos élus |
+| 🏆 **Progresser** | Gagnez des badges et de l'XP |
 
 ---
 
-**Une question ?** Contactez-nous à support@civis-consilium.eu
+## 🔔 Notifications
 
-Bonne découverte !  
+Par défaut, vous recevrez des notifications sur le site. Vous pouvez activer les notifications par email dans vos préférences.
+
+---
+
+## ❓ Besoin d'aide ?
+
+Notre [guide de démarrage]({{ config('app.url') }}/aide) vous accompagne pas à pas.
+
+Vous pouvez aussi nous contacter à [contact@civis-consilium.eu](mailto:contact@civis-consilium.eu).
+
+À très bientôt sur CivicDash !  
 **L'équipe CivicDash**
 
 <x-mail::subcopy>
-Vous recevez cet email car vous venez de créer un compte sur CivicDash.  
-Gérez vos notifications depuis votre profil.
+Cet email confirme la création de votre compte le {{ now()->format('d/m/Y à H:i') }}.
 </x-mail::subcopy>
 </x-mail::message>

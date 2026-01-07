@@ -38,12 +38,20 @@ class Post extends Model
         'user_id',
         'parent_id',
         'content',
+        'debate_position', // 'for', 'against', 'neutral' pour le mode débat
         'is_official',
         'upvotes',
         'downvotes',
         'is_pinned',
         'is_hidden',
         'hidden_reason',
+    ];
+
+    // Positions de débat valides
+    public const DEBATE_POSITIONS = [
+        'for' => ['label' => 'Pour', 'icon' => '👍', 'color' => 'emerald'],
+        'against' => ['label' => 'Contre', 'icon' => '👎', 'color' => 'rose'],
+        'neutral' => ['label' => 'Neutre', 'icon' => '🤔', 'color' => 'slate'],
     ];
 
     protected $casts = [
@@ -60,6 +68,34 @@ class Post extends Model
     public function topic(): BelongsTo
     {
         return $this->belongsTo(Topic::class);
+    }
+
+    /**
+     * Info sur la position de débat
+     */
+    public function getDebatePositionInfoAttribute(): ?array
+    {
+        if (!$this->debate_position) {
+            return null;
+        }
+        
+        return self::DEBATE_POSITIONS[$this->debate_position] ?? null;
+    }
+
+    /**
+     * Vérifie si c'est un argument "Pour"
+     */
+    public function isForPosition(): bool
+    {
+        return $this->debate_position === 'for';
+    }
+
+    /**
+     * Vérifie si c'est un argument "Contre"
+     */
+    public function isAgainstPosition(): bool
+    {
+        return $this->debate_position === 'against';
     }
 
     /**

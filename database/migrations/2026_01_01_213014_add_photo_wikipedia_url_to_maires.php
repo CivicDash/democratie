@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('maires', function (Blueprint $table) {
-            //
+            $table->text('photo_wikipedia_url')->nullable()->after('photo_url');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('maires', function (Blueprint $table) {
-            //
+            $table->dropColumn('photo_wikipedia_url');
         });
     }
 };
