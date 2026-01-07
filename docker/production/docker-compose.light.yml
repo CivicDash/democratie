@@ -1,0 +1,334 @@
+# =============================================================================
+# 🪶 CivicDash - Docker Compose LIGHT (Serveur Limité)
+# =============================================================================
+#
+# Configuration optimisée pour serveur avec peu d'espace disque
+# Recommandé : 8 CPU, 32 GB RAM, < 100 GB disque
+#
+# Différences avec docker-compose.production.yml :
+# • Pas de Traefik (utiliser Nginx externe ou Caddy)
+# • Pas de monitoring intégré (Prometheus/Grafana)
+# • Limites de ressources adaptées
+# • Logs avec rotation
+# • Une seule instance app
+#
+# Usage :
+#   docker compose -f docker/production/docker-compose.light.yml up -d
+#
+# =============================================================================
+#
+#                    ARCHITECTURE SIMPLIFIÉE
+#
+#                         ┌─────────────────┐
+#                         │  NGINX/CADDY    │ (externe, sur l'hôte)
+#                         │  + Let's Encrypt│
+#                         └────────┬────────┘
+#                                  │
+#                                  ▼
+#                         ┌─────────────────┐
+#                         │   APPLICATION   │
+#                         │  (FrankenPHP)   │
+#                         │   Port 8080     │
+#                         └────────┬────────┘
+#                                  │
+#              ┌───────────────────┼───────────────────┐
+#              │                   │                   │
+#              ▼                   ▼                   ▼
+#       ┌───────────┐       ┌───────────┐       ┌───────────┐
+#       │ POSTGRES  │       │   REDIS   │       │MEILISEARCH│
+#       │ + PgBouncer       │           │       │           │
+#       └───────────┘       └───────────┘       └───────────┘
+#
+# =============================================================================
+
+services:
+  # =========================================================================
+  # 🚀 APPLICATION - FrankenPHP + Laravel Octane
+  # =========================================================================
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.frankenphp
+    container_name: civicdash_app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+    volumes:
+      - app_storage:/app/storage/app
+      - app_logs:/app/storage/logs
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=${APP_URL:-https://demo.objectif2027.fr}
+      - LOG_CHANNEL=daily
+      - LOG_LEVEL=warning
+      # Base de données
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      # Meilisearch
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=${MEILISEARCH_KEY}
+      - SCOUT_DRIVER=meilisearch
+      # Octane
+      - OCTANE_SERVER=frankenphp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - civicdash
+    # Logging avec rotation pour économiser l'espace
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # =========================================================================
+  # 🔄 HORIZON - Queue Worker
+  # =========================================================================
+  horizon:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.frankenphp
+    container_name: civicdash_horizon
+    restart: unless-stopped
+    command: php artisan horizon
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+    volumes:
+      - app_storage:/app/storage/app
+      - app_logs:/app/storage/logs
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=postgres
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=${MEILISEARCH_KEY}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - civicdash
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # =========================================================================
+  # ⏰ SCHEDULER - Laravel Cron
+  # =========================================================================
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.frankenphp
+    container_name: civicdash_scheduler
+    restart: unless-stopped
+    command: >
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction;
+        sleep 60;
+      done"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    volumes:
+      - app_storage:/app/storage/app
+      - app_logs:/app/storage/logs
+    environment:
+      - APP_ENV=production
+      - DB_HOST=postgres
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - civicdash
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # =========================================================================
+  # 🐘 POSTGRESQL - Base de données
+  # =========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: civicdash_db
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-civicdash}
+      POSTGRES_USER: ${DB_USERNAME:-civicdash}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Configuration optimisée pour 8GB RAM dédié
+      - ./postgres/postgresql-light.conf:/etc/postgresql/postgresql.conf:ro
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c max_connections=100
+      -c shared_buffers=2GB
+      -c effective_cache_size=6GB
+      -c work_mem=32MB
+      -c maintenance_work_mem=512MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c wal_buffers=64MB
+      -c max_wal_size=1GB
+      -c checkpoint_completion_target=0.9
+      -c log_min_duration_statement=1000
+    networks:
+      - civicdash
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-civicdash}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 🔴 REDIS - Cache & Queue (Configuration légère)
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: civicdash_redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    # Configuration légère pour économiser RAM
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 768mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --tcp-keepalive 300
+    volumes:
+      - redis_data:/data
+    networks:
+      - civicdash
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # 🔍 MEILISEARCH - Recherche (Configuration légère)
+  # =========================================================================
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: civicdash_search
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY}
+      MEILI_NO_ANALYTICS: true
+      MEILI_ENV: production
+      # Limiter l'utilisation mémoire
+      MEILI_MAX_INDEXING_MEMORY: 512Mb
+      MEILI_MAX_INDEXING_THREADS: 2
+      MEILI_LOG_LEVEL: WARN
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - civicdash
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+# =============================================================================
+# 💾 VOLUMES
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  meilisearch_data:
+    driver: local
+  app_storage:
+    driver: local
+  app_logs:
+    driver: local
+
+# =============================================================================
+# 🌐 RÉSEAU
+# =============================================================================
+networks:
+  civicdash:
+    driver: bridge

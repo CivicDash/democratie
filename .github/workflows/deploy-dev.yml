@@ -1,0 +1,62 @@
+name: Deploy to DEV
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:  # Permet le déclenchement manuel
+
+jobs:
+  deploy:
+    name: Deploy to DEV Server
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    
+    environment:
+      name: development
+      url: https://demo.objectif2027.fr
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to DEV server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          port: ${{ secrets.DEV_SERVER_PORT || 22 }}
+          script: |
+            set -e
+            
+            echo "🚀 Déploiement sur DEV..."
+            cd /opt/civicdash
+            
+            # Récupérer les derniers changements
+            git fetch origin dev
+            git checkout dev
+            git pull origin dev
+            
+            # Redémarrer les conteneurs
+            docker compose -f docker-compose.yml restart app || docker compose restart app
+            
+            # Attendre que l'app soit prête
+            sleep 10
+            
+            # Migrations
+            docker exec civicdash_app php artisan migrate --force || true
+            
+            # Optimisation
+            docker exec civicdash_app php artisan optimize:clear
+            docker exec civicdash_app php artisan optimize
+            
+            # Afficher le commit déployé
+            echo "✅ Déployé : $(git rev-parse --short HEAD)"
+            echo "📅 Date : $(date)"
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Déploiement DEV réussi !"
+          echo "Commit: ${{ github.sha }}"
+          echo "URL: https://demo.objectif2027.fr"
