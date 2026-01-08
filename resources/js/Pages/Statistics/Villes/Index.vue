@@ -91,11 +91,30 @@ const tabs = [
                                 </p>
                             </div>
                             
-                            <!-- Badge France -->
-                            <div class="flex-shrink-0">
+                            <!-- Sélecteur année + Badge France -->
+                            <div class="flex items-center gap-3 flex-shrink-0">
+                                <!-- Sélecteur d'année -->
+                                <div v-if="anneesDisponibles?.length > 0" class="relative">
+                                    <select 
+                                        v-model="selectedAnnee"
+                                        @change="changeAnnee"
+                                        class="appearance-none bg-white/10 backdrop-blur-sm text-white border border-white/20 rounded-xl px-4 py-2 pr-10 font-medium cursor-pointer hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/30"
+                                    >
+                                        <option v-for="a in anneesDisponibles" :key="a" :value="a" class="text-slate-900">
+                                            {{ a }}
+                                        </option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                
+                                <!-- Badge France -->
                                 <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
                                     <span class="text-xl">🇫🇷</span>
-                                    <span class="font-medium">France</span>
+                                    <span class="font-medium hidden sm:inline">France</span>
                                 </div>
                             </div>
                         </div>
@@ -432,19 +451,14 @@ const tabs = [
                             </div>
 
                             <div v-else>
-                                <!-- Sélecteur année -->
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-                                        Budgets communaux {{ statsBudget.annee }}
+                                <!-- Titre avec année -->
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span>💰</span> Budgets communaux {{ statsBudget.annee }}
                                     </h3>
-                                    <select 
-                                        v-if="anneesDisponibles?.length > 0"
-                                        v-model="selectedAnnee"
-                                        @change="changeAnnee"
-                                        class="px-4 py-2 rounded-lg border-slate-200 dark:border-slate-600 dark:bg-slate-700 text-sm"
-                                    >
-                                        <option v-for="a in anneesDisponibles" :key="a" :value="a">{{ a }}</option>
-                                    </select>
+                                    <span class="text-sm text-slate-500 dark:text-slate-400">
+                                        Sélectionnez l'année dans le header ↑
+                                    </span>
                                 </div>
 
                                 <!-- Stats budget -->
