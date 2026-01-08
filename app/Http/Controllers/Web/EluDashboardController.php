@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TopicElu;
 use App\Models\Topic;
 use App\Services\NotificationService;
+use App\Services\ContentModerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -191,7 +192,7 @@ class EluDashboardController extends Controller
     /**
      * Répondre à une interpellation
      */
-    public function respond(Request $request, TopicElu $interpellation)
+    public function respond(Request $request, TopicElu $interpellation, ContentModerationService $moderationService)
     {
         $user = Auth::user();
         
@@ -208,8 +209,27 @@ class EluDashboardController extends Controller
             'response_content' => ['required', 'string', 'min:50', 'max:10000'],
         ]);
 
+        // Modération du contenu de la réponse
+        $moderation = $moderationService->fullModerate(
+            $validated['response_content'],
+            $user->id,
+            $interpellation,
+            [
+                'moderate_words' => true,
+                'sanitize_images' => true,
+                'sanitize_links' => true,
+                'parse_references' => false,
+            ]
+        );
+
+        if ($moderation['blocked']) {
+            return back()->withErrors([
+                'response_content' => 'Le contenu contient des propos interdits. Merci de reformuler.',
+            ])->withInput();
+        }
+
         $interpellation->update([
-            'response_content' => $validated['response_content'],
+            'response_content' => $moderation['content'],
             'response_status' => 'answered',
             'answered_at' => now(),
         ]);

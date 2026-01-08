@@ -69,64 +69,86 @@
                         </p>
 
                         <!-- Types d'activités -->
-                        <div class="space-y-3">
-                            <label
+                        <div class="space-y-1">
+                            <div
                                 v-for="(activity, key) in activityTypes"
                                 :key="key"
-                                class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition"
+                                class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition border-b border-gray-100 dark:border-gray-700 last:border-0"
                             >
-                                <input
-                                    type="checkbox"
-                                    v-model="localPreferences[`notify_${key}`]"
-                                    class="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2">
-                                        <span>{{ activity.icon }}</span>
-                                        <span class="font-medium text-gray-800 dark:text-gray-200">{{ activity.label }}</span>
+                                <!-- Toggle compact -->
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    @click="localPreferences[`notify_${key}`] = !localPreferences[`notify_${key}`]"
+                                    class="relative inline-flex flex-shrink-0 w-8 h-[18px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    :class="localPreferences[`notify_${key}`] ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'"
+                                >
+                                    <span
+                                        class="pointer-events-none inline-block w-3.5 h-3.5 mt-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200"
+                                        :class="localPreferences[`notify_${key}`] ? 'translate-x-[14px]' : 'translate-x-0.5'"
+                                    />
+                                </button>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-sm">{{ activity.icon }}</span>
+                                        <span class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ activity.label }}</span>
                                     </div>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ activity.description }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ activity.description }}</p>
                                 </div>
-                            </label>
+                            </div>
                         </div>
 
                         <!-- Séparateur -->
                         <hr class="border-gray-200 dark:border-gray-700" />
 
                         <!-- Canaux de notification -->
-                        <div class="space-y-3">
-                            <h4 class="font-medium text-gray-800 dark:text-gray-200">📨 Canaux de notification</h4>
+                        <div class="space-y-2">
+                            <h4 class="font-medium text-gray-800 dark:text-gray-200 text-sm">📨 Canaux de notification</h4>
                             
-                            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    v-model="localPreferences.notify_site"
-                                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
+                            <div class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    @click="localPreferences.notify_site = !localPreferences.notify_site"
+                                    class="relative inline-flex flex-shrink-0 w-8 h-[18px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                    :class="localPreferences.notify_site ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'"
+                                >
+                                    <span
+                                        class="pointer-events-none inline-block w-3.5 h-3.5 mt-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200"
+                                        :class="localPreferences.notify_site ? 'translate-x-[14px]' : 'translate-x-0.5'"
+                                    />
+                                </button>
                                 <div>
-                                    <span class="font-medium text-gray-800 dark:text-gray-200">🔔 Sur le site</span>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Notification dans le centre de notifications</p>
+                                    <span class="font-medium text-gray-800 dark:text-gray-200 text-sm">🔔 Sur le site</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Centre de notifications</p>
                                 </div>
-                            </label>
+                            </div>
 
-                            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    v-model="localPreferences.notify_email"
-                                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
+                            <div class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    @click="localPreferences.notify_email = !localPreferences.notify_email"
+                                    class="relative inline-flex flex-shrink-0 w-8 h-[18px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                    :class="localPreferences.notify_email ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'"
+                                >
+                                    <span
+                                        class="pointer-events-none inline-block w-3.5 h-3.5 mt-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200"
+                                        :class="localPreferences.notify_email ? 'translate-x-[14px]' : 'translate-x-0.5'"
+                                    />
+                                </button>
                                 <div>
-                                    <span class="font-medium text-gray-800 dark:text-gray-200">📧 Par email</span>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Recevoir un email pour chaque notification</p>
+                                    <span class="font-medium text-gray-800 dark:text-gray-200 text-sm">📧 Par email</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Recevoir un email</p>
                                 </div>
-                            </label>
+                            </div>
 
                             <!-- Fréquence email -->
-                            <div v-if="localPreferences.notify_email" class="ml-7 space-y-2">
-                                <label class="text-sm text-gray-600 dark:text-gray-400">Fréquence :</label>
+                            <div v-if="localPreferences.notify_email" class="ml-11 mt-2">
+                                <label class="text-xs text-gray-600 dark:text-gray-400 block mb-1">Fréquence :</label>
                                 <select
                                     v-model="localPreferences.email_frequency"
-                                    class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                    class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                                 >
                                     <option value="instant">Immédiat</option>
                                     <option value="daily">Résumé quotidien</option>

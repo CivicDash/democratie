@@ -3,8 +3,9 @@
         <Head title="Politique de Confidentialité" />
 
         <div class="max-w-4xl mx-auto px-4 py-8">
-            <!-- Header -->
-            <div class="mb-8">
+            <!-- Header avec Logo -->
+            <div class="mb-8 text-center">
+                <img src="/images/logo.png" alt="CivicDash" class="h-16 mx-auto mb-4" />
                 <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
                     Politique de Confidentialité
                 </h1>
@@ -28,12 +29,16 @@
                     <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
                         1. Responsable du traitement des données
                     </h2>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        <strong>Démocratos</strong><br>
-                        Plateforme citoyenne de démocratie participative<br>
-                        Email : <a href="mailto:contact@demoscratos.fr" class="text-indigo-600 hover:text-indigo-800">contact@demoscratos.fr</a><br>
-                        DPO (Délégué à la Protection des Données) : <a href="mailto:dpo@demoscratos.fr" class="text-indigo-600 hover:text-indigo-800">dpo@demoscratos.fr</a>
-                    </p>
+                    <div class="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                        <p class="font-semibold text-lg mb-2">Association Civis-Consilium</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Association Française Loi 1901</p>
+                        <p>
+                            <strong>Plateforme :</strong> CivicDash - Objectif 2027<br>
+                            <strong>Site web :</strong> <a href="https://objectif2027.fr" target="_blank" class="text-indigo-600 hover:text-indigo-800">objectif2027.fr</a><br>
+                            <strong>Email général :</strong> <a href="mailto:contact@civis-consilium.eu" class="text-indigo-600 hover:text-indigo-800">contact@civis-consilium.eu</a><br>
+                            <strong>DPO (Délégué à la Protection des Données) :</strong> <a href="mailto:dpo@civis-consilium.eu" class="text-indigo-600 hover:text-indigo-800">dpo@civis-consilium.eu</a>
+                        </p>
+                    </div>
                 </section>
 
                 <!-- Section 2 : Données collectées -->
@@ -99,7 +104,7 @@
                     </h2>
                     <div class="space-y-4 text-blue-800 dark:text-blue-200">
                         <p>
-                            <strong>Par défaut, votre identité reste anonyme</strong> sur la plateforme :
+                            <strong>Par défaut, votre identité reste anonyme</strong> sur la plateforme CivicDash :
                         </p>
                         <ul class="list-disc pl-6 space-y-2">
                             <li>Votre <strong>pseudonyme aléatoire</strong> (ex: Citoyen1234) est affiché publiquement</li>
@@ -146,15 +151,17 @@
                             <li><strong>Droit d'opposition</strong> (Art. 21) : Refuser certains traitements</li>
                             <li><strong>Droit de retrait du consentement</strong> (Art. 7.3) : À tout moment</li>
                         </ul>
-                        <p class="mt-4 font-semibold">
-                            Pour exercer vos droits : 
-                            <a href="mailto:dpo@demoscratos.fr" class="text-indigo-600 hover:text-indigo-800 underline">
-                                dpo@demoscratos.fr
-                            </a>
-                        </p>
-                        <p class="text-sm">
-                            Délai de réponse : 30 jours maximum (RGPD Art. 12.3)
-                        </p>
+                        <div class="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                            <p class="font-semibold">
+                                Pour exercer vos droits : 
+                                <a href="mailto:dpo@civis-consilium.eu" class="text-indigo-600 hover:text-indigo-800 underline">
+                                    dpo@civis-consilium.eu
+                                </a>
+                            </p>
+                            <p class="text-sm mt-2">
+                                Délai de réponse : 30 jours maximum (RGPD Art. 12.3)
+                            </p>
+                        </div>
                     </div>
                 </section>
 
@@ -213,6 +220,14 @@
                         </Link>
                     </div>
                 </div>
+                
+                <!-- Association info -->
+                <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <p>
+                        © {{ new Date().getFullYear() }} Association Civis-Consilium • 
+                        <a href="https://civis-consilium.eu" target="_blank" class="hover:text-indigo-600">civis-consilium.eu</a>
+                    </p>
+                </div>
             </div>
         </div>
     </GuestLayout>
@@ -229,4 +244,3 @@ defineProps({
     },
 });
 </script>
-

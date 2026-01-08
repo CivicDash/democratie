@@ -49,59 +49,78 @@
             </div>
 
             <!-- Types de notifications -->
-            <div class="space-y-4">
-                <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Types de notifications</h3>
+            <div class="space-y-2">
+                <h3 class="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Types de notifications</h3>
                 
-                <div v-for="(item, key) in notificationTypes" :key="key" class="flex items-start gap-4 p-4 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div class="flex items-center h-6">
-                        <input
-                            :id="`notify-${key}`"
-                            type="checkbox"
-                            v-model="preferences.notifications[key]"
-                            @change="savePreferences"
-                            class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                <div v-for="(item, key) in notificationTypes" :key="key" class="flex items-center gap-4 py-3 px-4 hover:bg-gray-50 rounded-lg transition-colors border-b border-gray-100 last:border-0">
+                    <!-- Toggle Switch compact -->
+                    <button
+                        type="button"
+                        role="switch"
+                        :aria-checked="preferences.notifications[key]"
+                        @click="preferences.notifications[key] = !preferences.notifications[key]; savePreferences()"
+                        class="relative inline-flex flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        :class="preferences.notifications[key] ? 'bg-blue-600' : 'bg-gray-300'"
+                    >
+                        <span
+                            class="pointer-events-none inline-block w-4 h-4 mt-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out"
+                            :class="preferences.notifications[key] ? 'translate-x-[18px]' : 'translate-x-0.5'"
                         />
-                    </div>
-                    <div class="flex-1">
-                        <label :for="`notify-${key}`" class="flex items-center gap-2 font-medium text-gray-900 cursor-pointer">
-                            <span class="text-2xl">{{ item.icon }}</span>
-                            <span>{{ item.label }}</span>
-                        </label>
-                        <p class="text-sm text-gray-600 mt-1 ml-10">{{ item.description }}</p>
+                    </button>
+                    
+                    <!-- Contenu -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">{{ item.icon }}</span>
+                            <span class="font-medium text-gray-900 text-sm">{{ item.label }}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5 ml-7">{{ item.description }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Canaux de notification -->
-            <div class="space-y-4">
-                <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Canaux</h3>
+            <div class="space-y-2">
+                <h3 class="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Canaux</h3>
                 
-                <div class="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-lg">
-                    <input
-                        id="channel-in-app"
-                        type="checkbox"
-                        v-model="preferences.channels.in_app"
-                        @change="savePreferences"
-                        class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <label for="channel-in-app" class="flex-1 cursor-pointer">
-                        <span class="font-medium text-gray-900">🔔 Notifications in-app</span>
-                        <p class="text-sm text-gray-600">Recevoir des notifications dans l'application</p>
-                    </label>
+                <div class="flex items-center gap-4 py-3 px-4 hover:bg-gray-50 rounded-lg">
+                    <button
+                        type="button"
+                        role="switch"
+                        :aria-checked="preferences.channels.in_app"
+                        @click="preferences.channels.in_app = !preferences.channels.in_app; savePreferences()"
+                        class="relative inline-flex flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        :class="preferences.channels.in_app ? 'bg-green-600' : 'bg-gray-300'"
+                    >
+                        <span
+                            class="pointer-events-none inline-block w-4 h-4 mt-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out"
+                            :class="preferences.channels.in_app ? 'translate-x-[18px]' : 'translate-x-0.5'"
+                        />
+                    </button>
+                    <div class="flex-1">
+                        <span class="font-medium text-gray-900 text-sm">🔔 Notifications in-app</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Recevoir des notifications dans l'application</p>
+                    </div>
                 </div>
 
-                <div class="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-lg">
-                    <input
-                        id="channel-email"
-                        type="checkbox"
-                        v-model="preferences.channels.email"
-                        @change="savePreferences"
-                        class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <label for="channel-email" class="flex-1 cursor-pointer">
-                        <span class="font-medium text-gray-900">📧 Notifications par email</span>
-                        <p class="text-sm text-gray-600">Recevoir des emails de notification</p>
-                    </label>
+                <div class="flex items-center gap-4 py-3 px-4 hover:bg-gray-50 rounded-lg">
+                    <button
+                        type="button"
+                        role="switch"
+                        :aria-checked="preferences.channels.email"
+                        @click="preferences.channels.email = !preferences.channels.email; savePreferences()"
+                        class="relative inline-flex flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        :class="preferences.channels.email ? 'bg-green-600' : 'bg-gray-300'"
+                    >
+                        <span
+                            class="pointer-events-none inline-block w-4 h-4 mt-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out"
+                            :class="preferences.channels.email ? 'translate-x-[18px]' : 'translate-x-0.5'"
+                        />
+                    </button>
+                    <div class="flex-1">
+                        <span class="font-medium text-gray-900 text-sm">📧 Notifications par email</span>
+                        <p class="text-xs text-gray-500 mt-0.5">Recevoir des emails de notification</p>
+                    </div>
                 </div>
             </div>
 
@@ -158,18 +177,24 @@
             </div>
 
             <!-- Groupement -->
-            <div class="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <input
-                    id="group-similar"
-                    type="checkbox"
-                    v-model="preferences.group_similar"
-                    @change="savePreferences"
-                    class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label for="group-similar" class="flex-1 cursor-pointer">
-                    <span class="font-medium text-blue-900">Grouper les notifications similaires</span>
-                    <p class="text-sm text-blue-700">Éviter le spam en regroupant les notifications du même type</p>
-                </label>
+            <div class="flex items-center gap-4 py-3 px-4 bg-blue-50 rounded-lg border border-blue-200">
+                <button
+                    type="button"
+                    role="switch"
+                    :aria-checked="preferences.group_similar"
+                    @click="preferences.group_similar = !preferences.group_similar; savePreferences()"
+                    class="relative inline-flex flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    :class="preferences.group_similar ? 'bg-blue-600' : 'bg-gray-300'"
+                >
+                    <span
+                        class="pointer-events-none inline-block w-4 h-4 mt-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out"
+                        :class="preferences.group_similar ? 'translate-x-[18px]' : 'translate-x-0.5'"
+                    />
+                </button>
+                <div class="flex-1">
+                    <span class="font-medium text-blue-900 text-sm">Grouper les notifications similaires</span>
+                    <p class="text-xs text-blue-700 mt-0.5">Éviter le spam en regroupant les notifications du même type</p>
+                </div>
             </div>
 
             <!-- Message de sauvegarde -->

@@ -1,110 +1,61 @@
 <x-mail::message>
-@php
-$periodLabel = $period === 'daily' ? 'quotidien' : 'hebdomadaire';
-$periodTitle = $period === 'daily' ? 'Aujourd''hui' : 'Cette semaine';
-@endphp
+# 📬 Votre résumé {{ $periodLabel }}, {{ $user->name }}
 
-# 📰 Votre récap {{ $periodLabel }}
-
-Bonjour **{{ $user->name }}**,
-
-Voici ce qui s'est passé sur CivicDash du **{{ $startDate->format('d/m') }}** au **{{ $endDate->format('d/m/Y') }}**.
+Voici ce qui s'est passé sur CivicDash {{ $period === 'daily' ? 'aujourd\'hui' : 'cette semaine' }}.
 
 ---
 
-## 📊 En résumé
+## 🔔 {{ $notifications->count() }} notification(s)
 
-<table style="width: 100%; text-align: center; margin: 20px 0;">
-<tr>
-<td style="background: #f0f9ff; border-radius: 8px; padding: 20px;">
-<span style="font-size: 28px; color: #1e40af; font-weight: bold;">{{ count($newVotes) }}</span><br>
-<span style="color: #6b7280; font-size: 13px;">Nouveaux votes</span>
-</td>
-<td style="width: 10px;"></td>
-<td style="background: #f0fdf4; border-radius: 8px; padding: 20px;">
-<span style="font-size: 28px; color: #059669; font-weight: bold;">{{ count($eluResponses) }}</span><br>
-<span style="color: #6b7280; font-size: 13px;">Réponses d'élus</span>
-</td>
-<td style="width: 10px;"></td>
-<td style="background: #fef3c7; border-radius: 8px; padding: 20px;">
-<span style="font-size: 28px; color: #d97706; font-weight: bold;">{{ $totalNotifications }}</span><br>
-<span style="color: #6b7280; font-size: 13px;">Notifications</span>
-</td>
-</tr>
-</table>
+@foreach($groupedNotifications as $group)
+### {{ $group['icon'] }} {{ $group['label'] }} ({{ $group['count'] }})
 
----
-
-@if(count($newVotes) > 0)
-## 🗳️ Votes récents
-
-<x-mail::table>
-| Vote | Résultat | Date |
-|:-----|:---------|:-----|
-@foreach(array_slice($newVotes, 0, 5) as $vote)
-| {{ Str::limit($vote['title'], 40) }} | {{ $vote['result'] }} | {{ $vote['date'] }} |
-@endforeach
-</x-mail::table>
-
-@if(count($newVotes) > 5)
-<p style="color: #6b7280; font-size: 13px;">Et {{ count($newVotes) - 5 }} autres votes...</p>
-@endif
-
----
-@endif
-
-@if(count($eluResponses) > 0)
-## 💬 Réponses d'élus
-
-@foreach(array_slice($eluResponses, 0, 3) as $response)
-<x-mail::panel>
-**{{ $response['elu_name'] }}** a répondu à « {{ Str::limit($response['topic_title'], 50) }} »
-</x-mail::panel>
+@foreach($group['items'] as $notification)
+- **{{ $notification->title }}**  
+  {{ Str::limit($notification->message, 100) }}
 @endforeach
 
-@if(count($eluResponses) > 3)
-<p style="color: #6b7280; font-size: 13px;">Et {{ count($eluResponses) - 3 }} autres réponses...</p>
+@if($group['count'] > 5)
+_... et {{ $group['count'] - 5 }} autres_
 @endif
 
 ---
-@endif
-
-@if(count($popularTopics) > 0)
-## 🔥 Sujets populaires
-
-<x-mail::table>
-| Sujet | Votes | Commentaires |
-|:------|------:|-------------:|
-@foreach(array_slice($popularTopics, 0, 5) as $topic)
-| {{ Str::limit($topic['title'], 35) }} | {{ $topic['votes'] }} | {{ $topic['comments'] }} |
 @endforeach
-</x-mail::table>
-
----
-@endif
 
 <x-mail::button :url="$dashboardUrl" color="primary">
-🏠 Accéder à mon tableau de bord
+📊 Voir tout sur mon tableau de bord
 </x-mail::button>
 
 ---
 
-### ⚙️ Fréquence des récaps
+@if(!empty($stats))
+## 📈 Statistiques de la période
 
-Vous recevez ce récap **{{ $periodLabel }}**. 
-Pour changer la fréquence ou désactiver ces emails :
+<x-mail::table>
+| Métrique | Valeur |
+|:---------|-------:|
+@foreach($stats as $label => $value)
+| {{ $label }} | **{{ $value }}** |
+@endforeach
+</x-mail::table>
 
-<x-mail::button url="{{ config('app.url') }}/profile/notification-preferences" color="success">
-⚙️ Gérer mes préférences
+---
+@endif
+
+## ⚙️ Gérer mes notifications
+
+Vous recevez ce résumé **{{ $periodLabel }}**. Vous pouvez modifier la fréquence ou désactiver ces emails.
+
+<x-mail::button :url="$preferencesUrl" color="success">
+⚙️ Préférences de notification
 </x-mail::button>
 
 ---
 
-Bonne lecture !  
+Merci de faire vivre la démocratie !  
 **L'équipe CivicDash**
 
 <x-mail::subcopy>
-Ce récap couvre la période du {{ $startDate->format('d/m/Y') }} au {{ $endDate->format('d/m/Y') }}.  
-Vous pouvez modifier la fréquence ou vous désabonner depuis vos préférences.
+Ce résumé couvre la période du {{ $period === 'daily' ? now()->subDay()->format('d/m/Y') : now()->subWeek()->format('d/m/Y') }} au {{ now()->format('d/m/Y') }}.
 </x-mail::subcopy>
 </x-mail::message>

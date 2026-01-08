@@ -63,7 +63,7 @@ const getEtatColor = (etat) => {
 
               <div v-if="dossier.has_dossier_senat" class="flex items-center gap-2 mb-3">
                 <Badge class="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                  🏰 Dossier bicaméral (AN + Sénat)
+                  🔵🔴 Dossier bicaméral (AN + Sénat)
                 </Badge>
                 <a 
                   v-if="dossierSenat?.url" 

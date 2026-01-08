@@ -1,70 +1,58 @@
 <x-mail::message>
-# Bonjour {{ $memberName }},
+# Bonjour {{ $recipientName }},
 
-Vous êtes invité(e) à rejoindre **CivicDash** en tant que membre de **{{ $associationName }}**.
-
----
-
-## 🤝 Pourquoi rejoindre CivicDash ?
-
-En tant que **membre d'association**, CivicDash vous permet de :
-
-- **📢 Interpeller vos élus** sur les sujets qui vous tiennent à cœur
-- **📊 Suivre l'activité parlementaire** en toute transparence
-- **💬 Participer aux débats** citoyens sur les politiques publiques
-- **🗳️ Proposer des idées** et voter pour celles des autres citoyens
-- **👥 Représenter votre association** dans les discussions
+**{{ $inviterName }}** vous invite à rejoindre **{{ $associationName }}** sur CivicDash !
 
 ---
+
+## 🤝 À propos de CivicDash
+
+CivicDash est une plateforme citoyenne qui permet aux associations et à leurs membres de :
+
+- **📊 Suivre l'actualité politique** (votes, lois, élus)
+- **📢 Participer aux débats citoyens** et proposer des idées
+- **🗳️ Voter sur les propositions** de la communauté
+- **💬 Interpeller les élus** sur des sujets qui vous concernent
 
 @if($personalMessage)
-## 💬 Message de {{ $inviterName }} :
+---
 
-<x-mail::panel>
-{{ $personalMessage }}
-</x-mail::panel>
+### 💬 Message de {{ $inviterName }} :
+
+> {{ $personalMessage }}
+
 @endif
 
 ---
 
-## 🚀 Rejoindre la communauté
+## 🚀 Rejoignez {{ $associationName }}
 
-<x-mail::button :url="$registerUrl" color="success">
-🤝 Créer mon compte membre
+<x-mail::button :url="$registerUrl" color="primary">
+🤝 Rejoindre l'association
 </x-mail::button>
 
 ---
 
-### ✨ Fonctionnalités disponibles
+### 👤 Votre rôle
 
-<x-mail::table>
-| Fonctionnalité | Description |
-|:---------------|:------------|
-| 📢 Interpellations | Posez vos questions aux élus |
-| 🗳️ Votes citoyens | Votez pour les propositions |
-| 💬 Commentaires | Partagez votre expertise |
-| 📊 Statistiques | Accédez aux données publiques |
-| 🏷️ Badge association | Identifiez-vous comme membre |
-</x-mail::table>
+Vous serez inscrit en tant que : **{{ ucfirst($role) }}**
+
+Une fois inscrit, vous pourrez :
+- Accéder aux discussions du groupe
+- Participer aux votes internes
+- Représenter votre association dans les débats publics
 
 ---
 
-### 🏷️ Statut « Membre d'association »
+### ❓ Des questions ?
 
-Votre compte sera lié à **{{ $associationName }}**, ce qui vous permet :
-- D'afficher votre appartenance dans vos contributions
-- De représenter votre organisation dans les débats
-- D'accéder aux fonctionnalités réservées aux associations
+Contactez {{ $inviterName }} ou notre équipe à [contact@civis-consilium.eu](mailto:contact@civis-consilium.eu)
 
----
-
-**Une question ?** Contactez-nous à support@civis-consilium.eu
-
-Cordialement,  
+À bientôt sur CivicDash !  
 **L'équipe CivicDash**
 
 <x-mail::subcopy>
 Cette invitation a été envoyée par {{ $inviterName }} au nom de {{ $associationName }}.  
-Si vous n'êtes pas concerné(e), vous pouvez ignorer ce message.
+Si vous ne souhaitez pas rejoindre cette association, vous pouvez ignorer cet email.
 </x-mail::subcopy>
 </x-mail::message>

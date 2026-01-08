@@ -171,7 +171,7 @@ const isActive = (pattern) => {
                                             <div class="relative group/senat">
                                                 <div class="flex items-center justify-between px-4 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer border-l-2 border-transparent hover:border-rose-500">
                                                     <div class="flex items-center gap-3">
-                                                        <span class="text-lg">🏰</span>
+                                                        <span class="text-lg">🔴</span>
                                                         <span class="font-medium text-slate-900 dark:text-white">Sénat</span>
                                                     </div>
                                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

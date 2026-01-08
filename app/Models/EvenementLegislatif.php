@@ -309,5 +309,129 @@ class EvenementLegislatif extends Model
             'statut' => $this->statut,
         ];
     }
+
+    /**
+     * Convertir en format iCalendar (VEVENT)
+     */
+    public function toIcalEvent(): string
+    {
+        $uid = $this->ical_uid ?: "civicdash-{$this->source}-{$this->uid}@civicdash.fr";
+        $dtstamp = now()->format('Ymd\THis\Z');
+        $created = $this->created_at->format('Ymd\THis\Z');
+        $lastModified = ($this->ical_last_modified ?? $this->updated_at)->format('Ymd\THis\Z');
+        
+        // Format des dates
+        if ($this->journee_entiere) {
+            $dtstart = 'VALUE=DATE:' . $this->date_debut->format('Ymd');
+            $dtend = $this->date_fin 
+                ? 'VALUE=DATE:' . $this->date_fin->addDay()->format('Ymd')  // iCal exclut la date de fin
+                : '';
+        } else {
+            $dtstart = $this->date_debut->format('Ymd\THis');
+            $dtend = $this->date_fin ? $this->date_fin->format('Ymd\THis') : '';
+        }
+        
+        // Nettoyer et échapper le texte
+        $summary = $this->escapeIcalText($this->icone . ' ' . $this->titre);
+        $description = $this->escapeIcalText($this->buildIcalDescription());
+        $location = $this->escapeIcalText($this->lieu ?? '');
+        $url = $this->url_source ?? '';
+        
+        // Catégories
+        $categories = strtoupper($this->source) . ',' . strtoupper($this->type);
+        
+        // Couleur (non standard mais supporté par certains clients)
+        $color = ltrim($this->couleur, '#');
+        
+        $lines = [
+            'BEGIN:VEVENT',
+            "UID:{$uid}",
+            "DTSTAMP:{$dtstamp}",
+            "DTSTART;{$dtstart}",
+        ];
+        
+        if ($dtend) {
+            $lines[] = "DTEND;{$dtend}";
+        }
+        
+        $lines[] = "CREATED:{$created}";
+        $lines[] = "LAST-MODIFIED:{$lastModified}";
+        $lines[] = "SUMMARY:{$summary}";
+        
+        if ($description) {
+            $lines[] = "DESCRIPTION:{$description}";
+        }
+        
+        if ($location) {
+            $lines[] = "LOCATION:{$location}";
+        }
+        
+        if ($url) {
+            $lines[] = "URL:{$url}";
+        }
+        
+        $lines[] = "CATEGORIES:{$categories}";
+        $lines[] = "X-APPLE-CALENDAR-COLOR:#{$color}";
+        $lines[] = "X-MICROSOFT-CDO-BUSYSTATUS:BUSY";
+        $lines[] = "TRANSP:OPAQUE";
+        $lines[] = "STATUS:" . ($this->statut === self::STATUT_ANNULE ? 'CANCELLED' : 'CONFIRMED');
+        $lines[] = 'END:VEVENT';
+        
+        return implode("\r\n", $lines);
+    }
+
+    /**
+     * Construire la description iCal enrichie
+     */
+    protected function buildIcalDescription(): string
+    {
+        $parts = [];
+        
+        $parts[] = "📍 Source : {$this->source_label}";
+        $parts[] = "📋 Type : {$this->type_label}";
+        
+        if ($this->instance_nom) {
+            $parts[] = "🏛️ Instance : {$this->instance_nom}";
+        }
+        
+        if ($this->description) {
+            $parts[] = "";
+            $parts[] = $this->description;
+        }
+        
+        if ($this->url_source) {
+            $parts[] = "";
+            $parts[] = "🔗 Plus d'infos : {$this->url_source}";
+        }
+        
+        if ($this->url_video) {
+            $parts[] = "📺 Vidéo : {$this->url_video}";
+        }
+        
+        $parts[] = "";
+        $parts[] = "---";
+        $parts[] = "Exporté depuis CivicDash - civicdash.fr";
+        
+        return implode("\\n", $parts);
+    }
+
+    /**
+     * Échapper le texte pour iCalendar
+     */
+    protected function escapeIcalText(?string $text): string
+    {
+        if (!$text) {
+            return '';
+        }
+        
+        // Échapper les caractères spéciaux iCal
+        $text = str_replace('\\', '\\\\', $text);
+        $text = str_replace("\n", '\\n', $text);
+        $text = str_replace("\r", '', $text);
+        $text = str_replace(',', '\\,', $text);
+        $text = str_replace(';', '\\;', $text);
+        
+        return $text;
+    }
 }
 

@@ -18,6 +18,7 @@ const props = defineProps({
     recettesConsolidees: Object,
     perimetres: Array,
     urssafData: Object,
+    salairesFrance: Object,
 });
 
 const selectedVue = ref(props.vue);
@@ -640,9 +641,103 @@ const formatMd = (montant) => {
                         <Card class="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
                             <div class="text-3xl font-bold">{{ urssafData.salaire_moyen_mensuel }}</div>
                             <div class="text-blue-100">Salaire moyen brut</div>
-                            <div class="text-sm text-blue-200 mt-1">Par salarié / mois</div>
+                            <div class="text-sm text-blue-200 mt-1">Calculé: masse / effectifs</div>
                         </Card>
                     </div>
+
+                    <!-- Encadré salaires INSEE (médian vs moyen) -->
+                    <Card v-if="salairesFrance" class="border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                    <span>💡</span> Salaires nets en France ({{ salairesFrance.annee }})
+                                </h2>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    Source : {{ salairesFrance.source }}
+                                </p>
+                            </div>
+                            <span class="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium">
+                                INSEE
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Salaire médian -->
+                            <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border-2 border-green-200 dark:border-green-800">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-2xl">📊</span>
+                                    <span class="text-sm font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded">
+                                        Plus représentatif
+                                    </span>
+                                </div>
+                                <div class="text-3xl font-bold text-green-600 dark:text-green-400">
+                                    {{ salairesFrance.salaire_median_formate }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    Salaire <strong>médian</strong> net mensuel
+                                </div>
+                                <p class="text-xs text-gray-500 mt-3 leading-relaxed">
+                                    {{ salairesFrance.info }}
+                                </p>
+                            </div>
+
+                            <!-- Salaire moyen -->
+                            <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-2xl">📈</span>
+                                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                        Tiré par les hauts salaires
+                                    </span>
+                                </div>
+                                <div class="text-3xl font-bold text-gray-700 dark:text-gray-300">
+                                    {{ salairesFrance.salaire_moyen_formate }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    Salaire <strong>moyen</strong> net mensuel
+                                </div>
+                                <p class="text-xs text-gray-500 mt-3">
+                                    +{{ salairesFrance.ecart_moyen_median_pct }}% au-dessus du médian
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Distribution déciles -->
+                        <div v-if="salairesFrance.d1 && salairesFrance.d9" class="bg-white dark:bg-slate-800 rounded-xl p-4 mb-6">
+                            <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-3">📉 Distribution des salaires</h3>
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="text-center">
+                                    <div class="text-lg font-bold text-red-600">{{ salairesFrance.d1_formate }}</div>
+                                    <div class="text-xs text-gray-500">10% gagnent moins (D1)</div>
+                                </div>
+                                <div class="flex-1 h-4 bg-gradient-to-r from-red-200 via-amber-200 via-green-200 to-blue-200 rounded-full relative">
+                                    <div class="absolute left-1/2 -translate-x-1/2 -top-1 w-0.5 h-6 bg-green-600"></div>
+                                    <div class="absolute left-1/2 -translate-x-1/2 top-6 text-xs font-medium text-green-600">Médian</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-lg font-bold text-blue-600">{{ salairesFrance.d9_formate }}</div>
+                                    <div class="text-xs text-gray-500">10% gagnent plus (D9)</div>
+                                </div>
+                            </div>
+                            <div class="text-center mt-4 text-sm text-gray-500">
+                                Rapport interdécile D9/D1 : <strong>{{ salairesFrance.rapport_interdecile }}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Par catégorie -->
+                        <div v-if="salairesFrance.par_categorie?.length" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div 
+                                v-for="cat in salairesFrance.par_categorie" 
+                                :key="cat.categorie"
+                                class="bg-white dark:bg-slate-800 rounded-lg p-3 text-center"
+                            >
+                                <div class="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                    {{ cat.salaire_median_formate }}
+                                </div>
+                                <div class="text-xs text-gray-500">{{ cat.categorie }}</div>
+                                <div class="text-xs text-gray-400">(médian)</div>
+                            </div>
+                        </div>
+                    </Card>
 
                     <!-- Top secteurs -->
                     <Card>

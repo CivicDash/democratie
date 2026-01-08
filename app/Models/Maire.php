@@ -49,6 +49,7 @@ class Maire extends Model
         'nom_complet',
         'civilite',
         'date_naissance',
+        'lieu_naissance',
         'code_commune',
         'nom_commune',
         'code_departement',
@@ -56,6 +57,7 @@ class Maire extends Model
         'code_region',
         'nom_region',
         'profession',
+        'formation',
         'categorie_socio_pro',
         'debut_mandat',
         'debut_fonction',
@@ -63,6 +65,11 @@ class Maire extends Model
         'en_exercice',
         'photo_url',
         'photo_wikipedia_url',
+        'wikipedia_url',
+        'wikidata_id',
+        'wikipedia_extract',
+        'wikipedia_last_sync',
+        'mandats_precedents',
         'email',
         'telephone',
         'site_web',
@@ -83,6 +90,8 @@ class Maire extends Model
         'population_commune' => 'integer',
         'latitude' => 'float',
         'longitude' => 'float',
+        'mandats_precedents' => 'array',
+        'wikipedia_last_sync' => 'datetime',
     ];
 
     // ========================================================================

@@ -39,7 +39,7 @@ const applyFilters = () => {
 const breadcrumbs = [
     { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
     { label: 'Parlement', href: route('representants.mes-representants'), icon: '🏛️' },
-    { label: 'Sénat', current: true, icon: '🏰' },
+    { label: 'Sénat', current: true, icon: '🔴' },
 ];
 </script>
 

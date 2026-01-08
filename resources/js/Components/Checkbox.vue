@@ -11,16 +11,33 @@ const props = defineProps({
     value: {
         default: null,
     },
+    size: {
+        type: String,
+        default: 'md',
+        validator: (v) => ['sm', 'md', 'lg'].includes(v),
+    },
+    disabled: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const proxyChecked = computed({
     get() {
         return props.checked;
     },
-
     set(val) {
         emit('update:checked', val);
     },
+});
+
+const sizeClasses = computed(() => {
+    const sizes = {
+        sm: 'w-4 h-4',
+        md: 'w-[18px] h-[18px]',
+        lg: 'w-5 h-5',
+    };
+    return sizes[props.size];
 });
 </script>
 
@@ -29,6 +46,15 @@ const proxyChecked = computed({
         type="checkbox"
         :value="value"
         v-model="proxyChecked"
-        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800"
+        :disabled="disabled"
+        :class="[
+            sizeClasses,
+            'rounded border-2 border-gray-300 text-blue-600 shadow-sm',
+            'focus:ring-2 focus:ring-blue-500 focus:ring-offset-1',
+            'dark:border-gray-600 dark:bg-gray-800 dark:focus:ring-blue-500 dark:focus:ring-offset-gray-900',
+            'transition-colors duration-150 cursor-pointer',
+            'checked:bg-blue-600 checked:border-blue-600',
+            { 'opacity-50 cursor-not-allowed': disabled }
+        ]"
     />
 </template>

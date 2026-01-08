@@ -62,12 +62,62 @@ class Topic extends Model
 
     // Types d'idées citoyennes
     public const IDEA_TYPES = [
-        'discussion' => ['label' => 'Discussion', 'icon' => '💬', 'color' => 'slate', 'restricted' => true],
-        'proposal' => ['label' => 'Proposition', 'icon' => '💡', 'color' => 'emerald', 'restricted' => false],
-        'question' => ['label' => 'Question', 'icon' => '❓', 'color' => 'sky', 'restricted' => false],
-        'debate' => ['label' => 'Débat', 'icon' => '🎯', 'color' => 'amber', 'restricted' => false],
-        'petition' => ['label' => 'Pétition', 'icon' => '📜', 'color' => 'violet', 'restricted' => false],
-        'interpellation' => ['label' => 'Interpellation', 'icon' => '📣', 'color' => 'rose', 'restricted' => false],
+        'question' => [
+            'label' => 'Question', 
+            'icon' => '❓', 
+            'color' => 'sky', 
+            'restricted' => false,
+            'description' => 'Posez une question à la communauté',
+            'requires' => ['category'],
+        ],
+        'poll' => [
+            'label' => 'Sondage', 
+            'icon' => '📊', 
+            'color' => 'indigo', 
+            'restricted' => false,
+            'description' => 'Mesurez l\'opinion avec des choix de réponse',
+            'requires' => ['category', 'poll_options'],
+        ],
+        'discussion' => [
+            'label' => 'Discussion', 
+            'icon' => '💬', 
+            'color' => 'slate', 
+            'restricted' => true,
+            'description' => 'Ouvrez un sujet de société pour échanger',
+            'requires' => ['category'],
+        ],
+        'proposal' => [
+            'label' => 'Proposition', 
+            'icon' => '💡', 
+            'color' => 'emerald', 
+            'restricted' => false,
+            'description' => 'Proposez une idée concrète',
+            'requires' => ['category'],
+        ],
+        'debate' => [
+            'label' => 'Débat', 
+            'icon' => '⚔️', 
+            'color' => 'amber', 
+            'restricted' => false,
+            'description' => 'Lancez un débat Pour/Contre structuré',
+            'requires' => ['category'],
+        ],
+        'interpellation' => [
+            'label' => 'Interpellation', 
+            'icon' => '📣', 
+            'color' => 'rose', 
+            'restricted' => false,
+            'description' => 'Posez une question directe à un élu',
+            'requires' => ['category', 'elus'],
+        ],
+        'petition' => [
+            'label' => 'Pétition', 
+            'icon' => '✍️', 
+            'color' => 'violet', 
+            'restricted' => false,
+            'description' => 'Mobilisez pour une cause, collectez des signatures',
+            'requires' => ['category'],
+        ],
     ];
 
     // Types avec restrictions (pas de liens externes, pas d'images)
@@ -112,8 +162,15 @@ class Topic extends Model
         'score',
         'published_at',
         'views_count',
-        'published_at',
         'rejection_reason',
+        // Sondages
+        'poll_type',
+        'poll_max_choices',
+        'poll_show_results_before_vote',
+        'poll_allow_change_vote',
+        'poll_ends_at',
+        // Débat
+        'debate_mode',
     ];
 
     protected $casts = [
@@ -126,6 +183,12 @@ class Topic extends Model
         'votes_contre' => 'integer',
         'score' => 'integer',
         'views_count' => 'integer',
+        // Sondages
+        'poll_max_choices' => 'integer',
+        'poll_show_results_before_vote' => 'boolean',
+        'poll_allow_change_vote' => 'boolean',
+        'poll_ends_at' => 'datetime',
+        'debate_mode' => 'boolean',
     ];
 
     protected $appends = ['idea_type_info', 'scope_info', 'url'];
@@ -192,6 +255,115 @@ class Topic extends Model
     public function ballotTokens(): HasMany
     {
         return $this->hasMany(BallotToken::class);
+    }
+
+    /**
+     * Options de sondage (pour les topics de type 'poll')
+     */
+    public function pollOptions(): HasMany
+    {
+        return $this->hasMany(PollOption::class)->orderBy('position');
+    }
+
+    /**
+     * Vérifie si c'est un sondage
+     */
+    public function isPoll(): bool
+    {
+        return $this->idea_type === 'poll';
+    }
+
+    /**
+     * Vérifie si le sondage est actif (pas encore terminé)
+     */
+    public function isPollActive(): bool
+    {
+        if (!$this->isPoll()) {
+            return false;
+        }
+
+        if ($this->poll_ends_at && $this->poll_ends_at->isPast()) {
+            return false;
+        }
+
+        return $this->status === 'open';
+    }
+
+    /**
+     * Total des votes du sondage
+     */
+    public function totalPollVotes(): int
+    {
+        return $this->pollOptions()->sum('votes_count');
+    }
+
+    /**
+     * Vérifie si un utilisateur a déjà voté dans ce sondage
+     */
+    public function hasUserVotedInPoll(?int $userId): bool
+    {
+        if (!$userId) {
+            return false;
+        }
+
+        return PollVote::whereIn('poll_option_id', $this->pollOptions()->pluck('id'))
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
+    /**
+     * Obtenir les votes d'un utilisateur dans ce sondage
+     */
+    public function getUserPollVotes(int $userId): array
+    {
+        return PollVote::whereIn('poll_option_id', $this->pollOptions()->pluck('id'))
+            ->where('user_id', $userId)
+            ->pluck('poll_option_id')
+            ->toArray();
+    }
+
+    /**
+     * Vérifie si le mode débat est activé
+     */
+    public function isDebateMode(): bool
+    {
+        return $this->debate_mode || $this->idea_type === 'debate';
+    }
+
+    /**
+     * Compter les arguments par position (pour le mode débat)
+     */
+    public function getDebateCounts(): array
+    {
+        $counts = $this->posts()
+            ->whereNotNull('debate_position')
+            ->selectRaw('debate_position, count(*) as count')
+            ->groupBy('debate_position')
+            ->pluck('count', 'debate_position')
+            ->toArray();
+
+        return [
+            'for' => $counts['for'] ?? 0,
+            'against' => $counts['against'] ?? 0,
+            'neutral' => $counts['neutral'] ?? 0,
+            'total' => array_sum($counts),
+        ];
+    }
+
+    /**
+     * Arguments "Pour"
+     */
+    public function forArguments()
+    {
+        return $this->posts()->where('debate_position', 'for');
+    }
+
+    /**
+     * Arguments "Contre"
+     */
+    public function againstArguments()
+    {
+        return $this->posts()->where('debate_position', 'against');
     }
 
     /**

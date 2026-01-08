@@ -301,7 +301,7 @@ const breadcrumbs = [
             :href="route('representants.senateurs.index')"
             class="inline-flex items-center gap-2 px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white text-sm rounded-lg transition-colors"
           >
-            🏰 Sénat
+            🔴 Sénat
           </Link>
           <Link 
             :href="route('parlement.comparaison')"

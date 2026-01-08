@@ -52,7 +52,7 @@ const hasActiveFilters = computed(() => search.value || resultat.value || sessio
 
 const breadcrumbs = [
     { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
-    { label: 'Sénat', href: route('representants.senateurs.index'), icon: '🏰' },
+    { label: 'Sénat', href: route('representants.senateurs.index'), icon: '🔴' },
     { label: 'Scrutins', current: true, icon: '🗳️' },
 ];
 </script>

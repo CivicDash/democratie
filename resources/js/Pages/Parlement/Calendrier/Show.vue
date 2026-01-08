@@ -204,6 +204,15 @@ const getStatutLabel = (statut) => {
                             <h3 class="font-bold text-slate-900 dark:text-white mb-4">Actions</h3>
                             
                             <div class="space-y-3">
+                                <!-- Lien vers les comptes-rendus internes (débats Sénat) -->
+                                <Link
+                                    v-if="evt.urlDossier && evt.urlDossier.startsWith('/debats')"
+                                    :href="evt.urlDossier"
+                                    class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition font-semibold"
+                                >
+                                    📜 Voir le compte-rendu
+                                </Link>
+                                
                                 <Link
                                     :href="route('parlement.calendrier.index')"
                                     class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
@@ -217,7 +226,7 @@ const getStatutLabel = (statut) => {
                                     target="_blank"
                                     class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
                                 >
-                                    🌐 Page officielle
+                                    🌐 Compte-rendu officiel
                                 </a>
                                 
                                 <a

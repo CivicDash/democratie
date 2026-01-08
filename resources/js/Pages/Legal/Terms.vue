@@ -3,13 +3,25 @@
         <Head title="Conditions d'Utilisation" />
 
         <div class="max-w-4xl mx-auto px-4 py-8">
-            <!-- Header -->
-            <div class="mb-8">
+            <!-- Header avec Logo -->
+            <div class="mb-8 text-center">
+                <img src="/images/logo.png" alt="CivicDash" class="h-16 mx-auto mb-4" />
                 <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
                     Conditions Générales d'Utilisation
                 </h1>
                 <p v-if="policy" class="text-sm text-gray-600 dark:text-gray-400">
                     Version {{ policy.version }} • En vigueur depuis le {{ policy.effective_at }}
+                </p>
+            </div>
+
+            <!-- Éditeur légal -->
+            <div class="mb-8 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Éditeur de la plateforme</h3>
+                <p class="text-gray-700 dark:text-gray-300">
+                    <strong>Association Civis-Consilium</strong><br>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Association Française Loi 1901</span><br>
+                    Site web : <a href="https://civis-consilium.eu" target="_blank" class="text-indigo-600 hover:text-indigo-800">civis-consilium.eu</a><br>
+                    Plateforme : <a href="https://objectif2027.fr" target="_blank" class="text-indigo-600 hover:text-indigo-800">objectif2027.fr</a> (CivicDash)
                 </p>
             </div>
 
@@ -20,13 +32,15 @@
                         1. Objet de la plateforme
                     </h2>
                     <p class="text-gray-700 dark:text-gray-300">
-                        Démocratos est une plateforme citoyenne de démocratie participative permettant aux citoyens français de :
+                        <strong>CivicDash</strong> (accessible via objectif2027.fr) est une plateforme citoyenne de démocratie participative 
+                        développée par l'Association Civis-Consilium, permettant aux citoyens français de :
                     </p>
                     <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
                         <li>Participer à des débats publics sur des sujets de société</li>
                         <li>Voter sur des propositions citoyennes via scrutins anonymes</li>
                         <li>Suivre l'activité législative (Assemblée nationale & Sénat)</li>
-                        <li>Consulter le contexte juridique des propositions de loi</li>
+                        <li>Consulter les profils et votes des élus de la République</li>
+                        <li>Interpeller leurs représentants élus</li>
                         <li>Allouer symboliquement un budget participatif</li>
                     </ul>
                 </section>
@@ -78,6 +92,7 @@
                             <li><strong>Ne pas usurper d'identité</strong> : Un seul compte par citoyen</li>
                             <li><strong>Ne pas spammer</strong> : Pas de publicité, contenu répétitif ou hors-sujet</li>
                             <li><strong>Respecter la vie privée</strong> : Pas de doxxing ou divulgation d'informations personnelles</li>
+                            <li><strong>Ne pas partager d'images externes</strong> : Les images et liens externes non autorisés sont filtrés</li>
                         </ul>
                     </div>
                 </section>
@@ -88,8 +103,8 @@
                     </h2>
                     <div class="space-y-4 text-gray-700 dark:text-gray-300">
                         <p>
-                            Les modérateurs peuvent masquer, supprimer ou sanctionner tout contenu ou utilisateur
-                            ne respectant pas les présentes conditions.
+                            Les modérateurs bénévoles et l'équipe de l'Association Civis-Consilium peuvent masquer, supprimer ou sanctionner 
+                            tout contenu ou utilisateur ne respectant pas les présentes conditions.
                         </p>
                         <p class="font-semibold">Sanctions possibles :</p>
                         <ul class="list-disc pl-6 space-y-2">
@@ -97,6 +112,10 @@
                             <li><strong>Mute temporaire</strong> : Interdiction de poster (7-30 jours)</li>
                             <li><strong>Bannissement</strong> : Exclusion définitive pour violations graves</li>
                         </ul>
+                        <p class="mt-4">
+                            En cas de désaccord avec une sanction, vous pouvez contacter : 
+                            <a href="mailto:moderation@civis-consilium.eu" class="text-indigo-600 hover:text-indigo-800">moderation@civis-consilium.eu</a>
+                        </p>
                     </div>
                 </section>
 
@@ -104,10 +123,16 @@
                     <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
                         6. Propriété intellectuelle
                     </h2>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        Le contenu que vous publiez vous appartient. En publiant sur la plateforme, vous accordez à Démocratos
-                        une licence non-exclusive pour afficher, reproduire et distribuer votre contenu dans le cadre du service.
-                    </p>
+                    <div class="text-gray-700 dark:text-gray-300 space-y-3">
+                        <p>
+                            Le contenu que vous publiez vous appartient. En publiant sur la plateforme, vous accordez à l'Association Civis-Consilium
+                            une licence non-exclusive pour afficher, reproduire et distribuer votre contenu dans le cadre du service.
+                        </p>
+                        <p>
+                            Le code source de CivicDash est <strong>open source</strong> et disponible sur 
+                            <a href="https://github.com/CivicDash/democratie" target="_blank" class="text-indigo-600 hover:text-indigo-800">GitHub</a>.
+                        </p>
+                    </div>
                 </section>
 
                 <section class="mb-8">
@@ -116,19 +141,30 @@
                     </h2>
                     <div class="space-y-4 text-gray-700 dark:text-gray-300">
                         <p>
-                            <strong>Démocratos est un facilitateur</strong> de débat démocratique. La plateforme :
+                            <strong>L'Association Civis-Consilium est un facilitateur</strong> de débat démocratique. La plateforme :
                         </p>
                         <ul class="list-disc pl-6 space-y-2">
                             <li>N'est pas responsable du contenu publié par les utilisateurs</li>
                             <li>Ne garantit pas l'exactitude des informations législatives (sources officielles recommandées)</li>
                             <li>Ne s'engage pas sur la disponibilité 24/7 du service (maintenance possible)</li>
+                            <li>Agrège des données publiques de l'Assemblée nationale, du Sénat et du Gouvernement</li>
                         </ul>
                     </div>
                 </section>
 
                 <section class="mb-8">
                     <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-                        8. Modification des CGU
+                        8. Hébergement
+                    </h2>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        La plateforme est hébergée sur des serveurs situés en Union Européenne, 
+                        conformément aux exigences du RGPD.
+                    </p>
+                </section>
+
+                <section class="mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                        9. Modification des CGU
                     </h2>
                     <p class="text-gray-700 dark:text-gray-300">
                         Nous nous réservons le droit de modifier ces conditions à tout moment. Vous serez notifié
@@ -139,7 +175,7 @@
 
                 <section class="mb-8">
                     <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-                        9. Loi applicable
+                        10. Loi applicable
                     </h2>
                     <p class="text-gray-700 dark:text-gray-300">
                         Les présentes conditions sont régies par le droit français. Tout litige sera soumis aux tribunaux
@@ -149,14 +185,25 @@
 
                 <section class="mb-8">
                     <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-                        10. Contact
+                        11. Contact
                     </h2>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        Pour toute question sur ces conditions : 
-                        <a href="mailto:legal@demoscratos.fr" class="text-indigo-600 hover:text-indigo-800 underline">
-                            legal@demoscratos.fr
-                        </a>
-                    </p>
+                    <div class="text-gray-700 dark:text-gray-300 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+                        <p class="mb-2">Pour toute question sur ces conditions :</p>
+                        <ul class="space-y-1">
+                            <li>
+                                <strong>Questions générales :</strong> 
+                                <a href="mailto:contact@civis-consilium.eu" class="text-indigo-600 hover:text-indigo-800">contact@civis-consilium.eu</a>
+                            </li>
+                            <li>
+                                <strong>Protection des données :</strong> 
+                                <a href="mailto:dpo@civis-consilium.eu" class="text-indigo-600 hover:text-indigo-800">dpo@civis-consilium.eu</a>
+                            </li>
+                            <li>
+                                <strong>Modération :</strong> 
+                                <a href="mailto:moderation@civis-consilium.eu" class="text-indigo-600 hover:text-indigo-800">moderation@civis-consilium.eu</a>
+                            </li>
+                        </ul>
+                    </div>
                 </section>
             </div>
 
@@ -178,6 +225,14 @@
                         </Link>
                     </div>
                 </div>
+                
+                <!-- Association info -->
+                <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <p>
+                        © {{ new Date().getFullYear() }} Association Civis-Consilium • 
+                        <a href="https://civis-consilium.eu" target="_blank" class="hover:text-indigo-600">civis-consilium.eu</a>
+                    </p>
+                </div>
             </div>
         </div>
     </GuestLayout>
@@ -194,4 +249,3 @@ defineProps({
     },
 });
 </script>
-

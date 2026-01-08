@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+
 // ============================================================================
 // ROUTES PUBLIQUES (sans authentification)
 // ============================================================================
@@ -242,6 +243,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('not-readonly')->group(function () {
             Route::post('/token', [VoteController::class, 'requestToken']);
             Route::post('/cast', [VoteController::class, 'castVote']);
+        });
+    });
+    
+    // ========================================================================
+    // SONDAGES (POLLS)
+    // ========================================================================
+    Route::prefix('topics/{topic}/poll')->group(function () {
+        Route::get('/results', [App\Http\Controllers\Api\PollController::class, 'results']);
+        Route::middleware('not-readonly')->group(function () {
+            Route::post('/vote', [App\Http\Controllers\Api\PollController::class, 'vote']);
         });
     });
     
@@ -534,8 +545,9 @@ Route::prefix('mentions')->name('mentions.')->group(function () {
 // ============================================================================
 // SUIVI D'ÉLUS
 // ============================================================================
+// Utilise le middleware 'web' pour avoir accès aux sessions (SPA Inertia)
 
-Route::middleware(['auth:sanctum'])->prefix('elu-follows')->name('elu-follows.')->group(function () {
+Route::middleware(['web', 'auth'])->prefix('elu-follows')->name('elu-follows.')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\EluFollowController::class, 'myFollowing'])->name('index');
     Route::post('/follow', [App\Http\Controllers\Api\EluFollowController::class, 'follow'])->name('follow')->middleware('not-readonly');
     Route::post('/unfollow', [App\Http\Controllers\Api\EluFollowController::class, 'unfollow'])->name('unfollow')->middleware('not-readonly');
@@ -552,6 +564,24 @@ Route::prefix('reports')->name('reports.')->middleware('auth:sanctum')->group(fu
     Route::get('/reasons', [App\Http\Controllers\Api\ReportController::class, 'reasons'])->name('reasons')->withoutMiddleware('auth:sanctum');
     Route::post('/', [App\Http\Controllers\Api\ReportController::class, 'store'])->name('store')->middleware('not-readonly');
     Route::get('/my-reports', [App\Http\Controllers\Api\ReportController::class, 'myReports'])->name('my');
+});
+
+// ============================================================================
+// EXPORT CALENDRIER iCAL
+// ============================================================================
+
+Route::prefix('calendar')->name('calendar.')->group(function () {
+    // Export ponctuel (téléchargement)
+    Route::get('/export.ics', [App\Http\Controllers\Api\CalendarExportController::class, 'export'])->name('export');
+    
+    // Flux d'abonnement (pour Google Calendar, Apple Calendar, etc.)
+    Route::get('/feed.ics', [App\Http\Controllers\Api\CalendarExportController::class, 'feed'])->name('feed');
+    
+    // Export d'un événement unique
+    Route::get('/event/{evenement}.ics', [App\Http\Controllers\Api\CalendarExportController::class, 'single'])->name('single');
+    
+    // Liste des flux disponibles (documentation API)
+    Route::get('/feeds', [App\Http\Controllers\Api\CalendarExportController::class, 'availableFeeds'])->name('feeds');
 });
 
 Route::fallback(function () {

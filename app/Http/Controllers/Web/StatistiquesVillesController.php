@@ -18,7 +18,10 @@ class StatistiquesVillesController extends Controller
      */
     public function index(Request $request): Response
     {
-        $annee = $request->input('annee', date('Y'));
+        // Utiliser la dernière année disponible par défaut
+        $anneesDisponibles = $this->getAnneesDisponibles();
+        $anneeDefaut = !empty($anneesDisponibles) ? $anneesDisponibles[0] : date('Y');
+        $annee = $request->input('annee', $anneeDefaut);
 
         // Stats globales (cache 1h)
         $statsGlobales = Cache::remember('stats_villes_globales', 3600, function () {
@@ -94,6 +97,53 @@ class StatistiquesVillesController extends Controller
         $plus50000 = Ville::where('arrondissement_municipal', false)
             ->where('population', '>=', 50000)->count();
 
+        // Ville la plus densément peuplée (avec superficie > 0)
+        $villePlusDense = Ville::where('arrondissement_municipal', false)
+            ->whereNotNull('superficie_km2')
+            ->where('superficie_km2', '>', 0)
+            ->whereNotNull('population')
+            ->where('population', '>', 0)
+            ->orderByRaw('population / superficie_km2 DESC')
+            ->first();
+        
+        $villePlusDenseInfo = null;
+        if ($villePlusDense) {
+            $villePlusDenseInfo = [
+                'nom' => $villePlusDense->nom,
+                'departement' => $villePlusDense->departement_nom,
+                'url' => $villePlusDense->url,
+                'densite' => $villePlusDense->superficie_km2 > 0 
+                    ? round($villePlusDense->population / $villePlusDense->superficie_km2) 
+                    : 0,
+                'population' => $villePlusDense->population,
+                'population_formate' => $villePlusDense->population_formate,
+            ];
+        }
+
+        // Ville la moins densément peuplée (avec population > 0 et superficie > 0)
+        $villeMoinsDense = Ville::where('arrondissement_municipal', false)
+            ->whereNotNull('superficie_km2')
+            ->where('superficie_km2', '>', 0)
+            ->whereNotNull('population')
+            ->where('population', '>', 0)
+            ->orderByRaw('population / superficie_km2 ASC')
+            ->first();
+        
+        $villeMoinsDenseInfo = null;
+        if ($villeMoinsDense) {
+            $villeMoinsDenseInfo = [
+                'nom' => $villeMoinsDense->nom,
+                'departement' => $villeMoinsDense->departement_nom,
+                'url' => $villeMoinsDense->url,
+                'densite' => $villeMoinsDense->superficie_km2 > 0 
+                    ? round($villeMoinsDense->population / $villeMoinsDense->superficie_km2, 2) 
+                    : 0,
+                'population' => $villeMoinsDense->population,
+                'population_formate' => $villeMoinsDense->population_formate,
+                'superficie' => round($villeMoinsDense->superficie_km2, 1),
+            ];
+        }
+
         return [
             'total_villes' => $totalVilles,
             'total_villes_formate' => number_format($totalVilles, 0, ',', ' '),
@@ -114,6 +164,9 @@ class StatistiquesVillesController extends Controller
                 ['label' => '10 000 - 50 000', 'count' => $entre10000et50000, 'pct' => round($entre10000et50000 / $totalVilles * 100, 1)],
                 ['label' => '> 50 000 hab.', 'count' => $plus50000, 'pct' => round($plus50000 / $totalVilles * 100, 1)],
             ],
+            // Extrêmes de densité
+            'ville_plus_dense' => $villePlusDenseInfo,
+            'ville_moins_dense' => $villeMoinsDenseInfo,
         ];
     }
 
@@ -245,6 +298,57 @@ class StatistiquesVillesController extends Controller
         $populationCouverte = Ville::whereIn('code_insee', $budgets->pluck('insee_code'))
             ->sum('population');
 
+        // % de villes endettées (dette > 0)
+        $villesEndettees = $budgets->filter(fn($b) => ($b->encours_dette ?? 0) > 0)->count();
+        $pctVillesEndettees = $budgets->count() > 0 
+            ? round(($villesEndettees / $budgets->count()) * 100, 1) 
+            : 0;
+
+        // Ville avec le plus gros budget (dépenses fonctionnement)
+        $villeMaxBudget = CommuneBudget::where('annee', $annee)
+            ->whereNotNull('depenses_fonctionnement')
+            ->orderByDesc('depenses_fonctionnement')
+            ->first();
+        $villeMaxBudgetInfo = null;
+        if ($villeMaxBudget) {
+            $villeMax = Ville::where('code_insee', $villeMaxBudget->insee_code)->first();
+            $villeMaxBudgetInfo = [
+                'nom' => $villeMax?->nom ?? 'Inconnue',
+                'code_insee' => $villeMaxBudget->insee_code,
+                'url' => $villeMax?->url,
+                'montant' => $villeMaxBudget->depenses_fonctionnement,
+                'montant_formate' => CommuneBudget::formatMontant($villeMaxBudget->depenses_fonctionnement),
+            ];
+        }
+
+        // Ville avec le plus petit budget (dépenses fonctionnement > 0)
+        $villeMinBudget = CommuneBudget::where('annee', $annee)
+            ->whereNotNull('depenses_fonctionnement')
+            ->where('depenses_fonctionnement', '>', 0)
+            ->orderBy('depenses_fonctionnement')
+            ->first();
+        $villeMinBudgetInfo = null;
+        if ($villeMinBudget) {
+            $villeMin = Ville::where('code_insee', $villeMinBudget->insee_code)->first();
+            $villeMinBudgetInfo = [
+                'nom' => $villeMin?->nom ?? 'Inconnue',
+                'code_insee' => $villeMinBudget->insee_code,
+                'url' => $villeMin?->url,
+                'montant' => $villeMinBudget->depenses_fonctionnement,
+                'montant_formate' => CommuneBudget::formatMontant($villeMinBudget->depenses_fonctionnement),
+            ];
+        }
+
+        // Moyenne de budget par ville
+        $moyenneBudget = $budgets->count() > 0 
+            ? $totalDepensesFonct / $budgets->count() 
+            : 0;
+
+        // Moyenne d'endettement par habitant
+        $moyenneDetteParHab = $populationCouverte > 0 
+            ? round($totalDette / $populationCouverte) 
+            : 0;
+
         return [
             'annee' => $annee,
             'nb_communes' => $budgets->count(),
@@ -261,11 +365,17 @@ class StatistiquesVillesController extends Controller
             'depenses_investissement_md' => round($totalDepensesInvest / 1_000_000_000, 1),
             'dette_totale' => $totalDette,
             'dette_totale_md' => round($totalDette / 1_000_000_000, 1),
-            'dette_par_habitant' => $populationCouverte > 0 
-                ? round($totalDette / $populationCouverte) 
-                : 0,
+            'dette_par_habitant' => $moyenneDetteParHab,
             'solde_fonctionnement' => $totalRecettesFonct - $totalDepensesFonct,
             'solde_fonctionnement_md' => round(($totalRecettesFonct - $totalDepensesFonct) / 1_000_000_000, 1),
+            // Nouvelles stats
+            'pct_villes_endettees' => $pctVillesEndettees,
+            'nb_villes_endettees' => $villesEndettees,
+            'ville_max_budget' => $villeMaxBudgetInfo,
+            'ville_min_budget' => $villeMinBudgetInfo,
+            'moyenne_budget' => $moyenneBudget,
+            'moyenne_budget_formate' => CommuneBudget::formatMontant($moyenneBudget),
+            'moyenne_dette_par_habitant' => $moyenneDetteParHab,
         ];
     }
 

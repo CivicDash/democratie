@@ -929,6 +929,18 @@ class RepresentantANController extends Controller
                 'calculated_at' => null, // Indique que c'est un calcul à la volée
             ];
         }
+        
+        // Ajouter le nombre d'interventions en séance (via senat_dosleg_auteur)
+        $auteur = \Illuminate\Support\Facades\DB::table('senat_dosleg_auteur')
+            ->where('nomuse', 'ILIKE', $senateur->nom)
+            ->where('prenom', 'ILIKE', $senateur->prenom)
+            ->first();
+        
+        $stats['interventions_total'] = $auteur
+            ? \Illuminate\Support\Facades\DB::table('senat_interventions_legislatives')
+                ->where('auteur_code', $auteur->autcod)
+                ->count()
+            : 0;
 
         // Déclarations HATVP avec données enrichies (cache 1h)
         $hatvpData = Cache::remember("hatvp_senateur_{$matricule}", 3600, function () use ($matricule, $senateur) {

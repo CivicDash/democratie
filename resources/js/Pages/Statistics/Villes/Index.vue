@@ -91,11 +91,30 @@ const tabs = [
                                 </p>
                             </div>
                             
-                            <!-- Badge France -->
-                            <div class="flex-shrink-0">
+                            <!-- Sélecteur année + Badge France -->
+                            <div class="flex items-center gap-3 flex-shrink-0">
+                                <!-- Sélecteur d'année -->
+                                <div v-if="anneesDisponibles?.length > 0" class="relative">
+                                    <select 
+                                        v-model="selectedAnnee"
+                                        @change="changeAnnee"
+                                        class="appearance-none bg-white/10 backdrop-blur-sm text-white border border-white/20 rounded-xl px-4 py-2 pr-10 font-medium cursor-pointer hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/30"
+                                    >
+                                        <option v-for="a in anneesDisponibles" :key="a" :value="a" class="text-slate-900">
+                                            {{ a }}
+                                        </option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                
+                                <!-- Badge France -->
                                 <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
                                     <span class="text-xl">🇫🇷</span>
-                                    <span class="font-medium">France</span>
+                                    <span class="font-medium hidden sm:inline">France</span>
                                 </div>
                             </div>
                         </div>
@@ -208,6 +227,72 @@ const tabs = [
                                             {{ tranche.population_formate }} hab.
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Extrêmes de densité -->
+                            <div v-if="statsGlobales.ville_plus_dense || statsGlobales.ville_moins_dense">
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <span>🏙️</span> Extrêmes de densité
+                                </h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <!-- Ville la plus dense -->
+                                    <Link 
+                                        v-if="statsGlobales.ville_plus_dense"
+                                        :href="statsGlobales.ville_plus_dense.url"
+                                        class="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl p-5 border border-orange-200/50 dark:border-orange-800/50 hover:shadow-lg transition-all group"
+                                    >
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-3xl">🏢</span>
+                                            <span class="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/40 px-2 py-1 rounded-full">
+                                                Plus dense
+                                            </span>
+                                        </div>
+                                        <h4 class="font-bold text-lg text-slate-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                                            {{ statsGlobales.ville_plus_dense.nom }}
+                                        </h4>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                                            {{ statsGlobales.ville_plus_dense.departement }}
+                                        </p>
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                                                {{ formatNumber(statsGlobales.ville_plus_dense.densite) }}
+                                            </span>
+                                            <span class="text-sm text-slate-500">hab/km²</span>
+                                        </div>
+                                        <p class="text-xs text-slate-400 mt-1">
+                                            {{ statsGlobales.ville_plus_dense.population_formate }} habitants
+                                        </p>
+                                    </Link>
+
+                                    <!-- Ville la moins dense -->
+                                    <Link 
+                                        v-if="statsGlobales.ville_moins_dense"
+                                        :href="statsGlobales.ville_moins_dense.url"
+                                        class="bg-gradient-to-br from-teal-50 to-green-50 dark:from-teal-900/20 dark:to-green-900/20 rounded-xl p-5 border border-teal-200/50 dark:border-teal-800/50 hover:shadow-lg transition-all group"
+                                    >
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-3xl">🌲</span>
+                                            <span class="text-xs font-medium text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/40 px-2 py-1 rounded-full">
+                                                Moins dense
+                                            </span>
+                                        </div>
+                                        <h4 class="font-bold text-lg text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                                            {{ statsGlobales.ville_moins_dense.nom }}
+                                        </h4>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                                            {{ statsGlobales.ville_moins_dense.departement }}
+                                        </p>
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-2xl font-bold text-teal-600 dark:text-teal-400">
+                                                {{ statsGlobales.ville_moins_dense.densite }}
+                                            </span>
+                                            <span class="text-sm text-slate-500">hab/km²</span>
+                                        </div>
+                                        <p class="text-xs text-slate-400 mt-1">
+                                            {{ statsGlobales.ville_moins_dense.population_formate }} habitants • {{ statsGlobales.ville_moins_dense.superficie }} km²
+                                        </p>
+                                    </Link>
                                 </div>
                             </div>
 
@@ -366,23 +451,18 @@ const tabs = [
                             </div>
 
                             <div v-else>
-                                <!-- Sélecteur année -->
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-                                        Budgets communaux {{ statsBudget.annee }}
+                                <!-- Titre avec année -->
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span>💰</span> Budgets communaux {{ statsBudget.annee }}
                                     </h3>
-                                    <select 
-                                        v-if="anneesDisponibles?.length > 0"
-                                        v-model="selectedAnnee"
-                                        @change="changeAnnee"
-                                        class="px-4 py-2 rounded-lg border-slate-200 dark:border-slate-600 dark:bg-slate-700 text-sm"
-                                    >
-                                        <option v-for="a in anneesDisponibles" :key="a" :value="a">{{ a }}</option>
-                                    </select>
+                                    <span class="text-sm text-slate-500 dark:text-slate-400">
+                                        Sélectionnez l'année dans le header ↑
+                                    </span>
                                 </div>
 
                                 <!-- Stats budget -->
-                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                                     <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 text-center border border-green-200/50 dark:border-green-800/50">
                                         <div class="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-400">
                                             {{ statsBudget.recettes_fonctionnement_md }} Md€
@@ -412,9 +492,96 @@ const tabs = [
                                             {{ formatNumber(statsBudget.dette_par_habitant) }} €
                                         </div>
                                         <div class="text-xs sm:text-sm text-blue-600 dark:text-blue-500">
-                                            Dette/habitant
+                                            Dette/habitant moy.
                                         </div>
                                     </div>
+                                </div>
+
+                                <!-- Stats détaillées budget -->
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-4 text-center border border-purple-200/50 dark:border-purple-800/50">
+                                        <div class="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-400">
+                                            {{ statsBudget.pct_villes_endettees }}%
+                                        </div>
+                                        <div class="text-xs sm:text-sm text-purple-600 dark:text-purple-500">
+                                            Villes endettées
+                                        </div>
+                                        <div class="text-xs text-slate-400 mt-1">
+                                            {{ formatNumber(statsBudget.nb_villes_endettees) }} / {{ formatNumber(statsBudget.nb_communes) }}
+                                        </div>
+                                    </div>
+                                    <div class="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-900/20 dark:to-gray-900/20 rounded-xl p-4 text-center border border-slate-200/50 dark:border-slate-600/50">
+                                        <div class="text-lg sm:text-xl font-bold text-slate-700 dark:text-slate-300">
+                                            {{ statsBudget.moyenne_budget_formate }}
+                                        </div>
+                                        <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                                            Budget moyen/commune
+                                        </div>
+                                    </div>
+                                    <div class="bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-900/20 dark:to-sky-900/20 rounded-xl p-4 text-center border border-cyan-200/50 dark:border-cyan-800/50">
+                                        <div :class="[
+                                            'text-xl sm:text-2xl font-bold',
+                                            statsBudget.solde_fonctionnement >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
+                                        ]">
+                                            {{ statsBudget.solde_fonctionnement >= 0 ? '+' : '' }}{{ statsBudget.solde_fonctionnement_md }} Md€
+                                        </div>
+                                        <div class="text-xs sm:text-sm text-cyan-600 dark:text-cyan-500">
+                                            Solde fonctionnement
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Villes extrêmes -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                                    <!-- Plus gros budget -->
+                                    <Link 
+                                        v-if="statsBudget.ville_max_budget"
+                                        :href="statsBudget.ville_max_budget.url"
+                                        class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-5 border border-emerald-200/50 dark:border-emerald-800/50 hover:shadow-lg transition-all group"
+                                    >
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-3xl">🏆</span>
+                                            <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-1 rounded-full">
+                                                Plus gros budget
+                                            </span>
+                                        </div>
+                                        <h4 class="font-bold text-lg text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                                            {{ statsBudget.ville_max_budget.nom }}
+                                        </h4>
+                                        <div class="flex items-baseline gap-1 mt-2">
+                                            <span class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                                                {{ statsBudget.ville_max_budget.montant_formate }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-slate-400 mt-1">
+                                            Dépenses de fonctionnement
+                                        </p>
+                                    </Link>
+
+                                    <!-- Plus petit budget -->
+                                    <Link 
+                                        v-if="statsBudget.ville_min_budget"
+                                        :href="statsBudget.ville_min_budget.url"
+                                        class="bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl p-5 border border-rose-200/50 dark:border-rose-800/50 hover:shadow-lg transition-all group"
+                                    >
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-3xl">🏘️</span>
+                                            <span class="text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40 px-2 py-1 rounded-full">
+                                                Plus petit budget
+                                            </span>
+                                        </div>
+                                        <h4 class="font-bold text-lg text-slate-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
+                                            {{ statsBudget.ville_min_budget.nom }}
+                                        </h4>
+                                        <div class="flex items-baseline gap-1 mt-2">
+                                            <span class="text-2xl font-bold text-rose-600 dark:text-rose-400">
+                                                {{ statsBudget.ville_min_budget.montant_formate }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-slate-400 mt-1">
+                                            Dépenses de fonctionnement
+                                        </p>
+                                    </Link>
                                 </div>
 
                                 <!-- Couverture -->

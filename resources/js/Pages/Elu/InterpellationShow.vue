@@ -4,6 +4,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 import Card from '@/Components/Card.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
 
 const props = defineProps({
     interpellation: { type: Object, required: true },
@@ -350,34 +351,18 @@ const breadcrumbs = [
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Votre réponse
                                 </label>
-                                <textarea
+                                <RichTextEditor
                                     v-model="responseForm.response_content"
-                                    rows="12"
-                                    placeholder="Rédigez votre réponse au citoyen... (minimum 50 caractères)"
-                                    class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 resize-y font-sans text-base leading-relaxed"
-                                    :class="{ 'border-red-500': responseForm.errors.response_content }"
-                                ></textarea>
-                                <div class="flex items-center justify-between mt-2">
-                                    <span 
-                                        class="text-xs"
-                                        :class="responseForm.response_content.length >= 50 ? 'text-emerald-600' : 'text-gray-500'"
-                                    >
-                                        {{ responseForm.response_content.length }} / 10000 caractères (min. 50)
-                                    </span>
-                                    <span v-if="responseForm.errors.response_content" class="text-xs text-red-500">
-                                        {{ responseForm.errors.response_content }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- Prévisualisation -->
-                            <div v-if="responseForm.response_content.length > 50" class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                                    👁️ Aperçu de votre réponse :
-                                </p>
-                                <div class="prose dark:prose-invert prose-sm max-w-none">
-                                    <p class="whitespace-pre-wrap text-gray-700 dark:text-gray-300">{{ responseForm.response_content }}</p>
-                                </div>
+                                    :rows="10"
+                                    :min-length="50"
+                                    :max-length="10000"
+                                    placeholder="Rédigez votre réponse au citoyen..."
+                                    :allowed-formats="['bold', 'italic', 'list', 'quote', 'link', 'mention']"
+                                    :show-preview="true"
+                                />
+                                <span v-if="responseForm.errors.response_content" class="text-xs text-red-500 mt-1 block">
+                                    {{ responseForm.errors.response_content }}
+                                </span>
                             </div>
 
                             <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

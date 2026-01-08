@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust all proxies (Nginx reverse proxy)
         $middleware->trustProxies(at: '*');
 
+        // Activer les sessions pour les routes API (Sanctum SPA)
+        $middleware->statefulApi();
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,

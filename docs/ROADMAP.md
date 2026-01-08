@@ -143,8 +143,17 @@
   - Commande : `import:questions-senat`
   - Pages `/questions/senat` avec filtres, stats, détail
   - Liaison avec sénateurs existants
+- [x] **Débats en séance publique Sénat** - Import SQL data.senat.fr ✅ *Terminé 08/01/2026*
+  - Source : `https://data.senat.fr/data/debats/debats.zip`
+  - Sections de discussion législatives et diverses
+  - Interventions des sénateurs avec analyse
+  - Liaison avec lectures et dossiers législatifs
+  - Commande : `senat:import-debats`
 - [ ] **Textes Akoma Ntoso** (Sénat) - Documents législatifs
-- [ ] Proportion hommes/femmes (statistiques)
+- [x] **Proportion hommes/femmes (statistiques)** ✅ *Terminé 07/01/2026*
+  - Stats parité dans `ParlementController::calculateStats()`
+  - Page `/parlement/comparaison` avec visualisation H/F
+  - Calcul automatique via `CalculateElusGlobalStats`
 
 ---
 
@@ -262,7 +271,11 @@
 - [x] Import agenda Élysée (scraping HTML)
 - [x] Table unifiée `evenements_legislatifs`
 - [x] Filtres par source (AN, Sénat, Élysée)
-- [ ] Export iCal / Google Calendar
+- [x] **Export iCal / Google Calendar** ✅ *Terminé 07/01/2026*
+  - Controller `CalendarExportController` avec export + flux
+  - Routes `/api/calendar/export.ics`, `/api/calendar/feed.ics`
+  - Bouton export dans page calendrier
+  - Support abonnement dynamique (Google Calendar, Apple, Outlook)
 - [ ] Notifications optionnelles
 
 ---
@@ -694,13 +707,13 @@ Recherche "retraite"
 
 ---
 
-### 2.1.11 : 📍 Géolocalisation "Mes Représentants"
+### 2.1.11 : 📍 Géolocalisation "Mes Représentants" ✅ IMPLÉMENTÉ
 **Priorité** : 🟡 HAUTE  
-**Durée** : 1 semaine
+**Durée** : 1 semaine → **Terminé le 07/01/2026**
 
 **User Stories** :
-- [ ] En tant que citoyen, je saisis mon code postal et je vois mes représentants
-- [ ] En tant que citoyen, je peux utiliser la géolocalisation du navigateur
+- [x] En tant que citoyen, je saisis mon code postal et je vois mes représentants
+- [x] En tant que citoyen, je peux utiliser la géolocalisation du navigateur
 
 **Fonctionnalités** :
 ```
@@ -719,12 +732,14 @@ Recherche "retraite"
 └── 🗺️ Voir sur la carte
 ```
 
-**Tâches** :
-- [ ] API géolocalisation code postal → circonscription
-- [ ] Utiliser table `codes_postaux` existante
-- [ ] Page `/mes-representants`
-- [ ] Widget sur page d'accueil
-- [ ] Géolocalisation navigateur (optionnelle)
+**Implémentation** :
+- [x] `MesRepresentants.vue` : Page complète avec recherche dynamique
+- [x] `RepresentantController.php` : Controller avec simulation par CP
+- [x] `LocalisationService.php` : Service unifié de géolocalisation
+- [x] `RepresentantsSearchController.php` : API recherche
+- [x] Table `french_postal_codes` : 39K+ codes postaux avec circonscriptions
+- [x] Gestion arrondissements (Paris, Lyon, Marseille)
+- [x] Affichage : Député + Sénateurs + Maire
 
 ---
 
@@ -959,39 +974,45 @@ ALTER TABLE topics ADD COLUMN score INT DEFAULT 0;
 
 ---
 
-### 2.4 : 💬 Débat Structuré & Forum
+### 2.4 : 💬 Débat Structuré & Forum ✅ IMPLÉMENTÉ
 **Priorité** : 🟡 HAUTE  
-**Durée** : 2 semaines
+**Durée** : 2 semaines → **Terminé le 07/01/2026**
 
 **User Stories** :
-- [ ] En tant que citoyen, je veux débattre sur une idée ou une loi
-- [ ] En tant que citoyen, je veux répondre à un commentaire
-- [ ] En tant que citoyen, je veux signaler un contenu inapproprié
+- [x] En tant que citoyen, je veux débattre sur une idée ou une loi
+- [x] En tant que citoyen, je veux répondre à un commentaire
+- [x] En tant que citoyen, je veux signaler un contenu inapproprié
 
 **Fonctionnalités** :
-- [ ] Commentaires imbriqués (threads)
-- [ ] Vote sur les commentaires (👍/👎)
-- [ ] Mise en avant des contributions de qualité
-- [ ] Signalement + modération
-- [ ] Mention d'utilisateurs (@pseudo)
-- [ ] Notifications en temps réel
+- [x] Commentaires imbriqués (threads) - `Post.php` avec `parent_id` + `replies()`
+- [x] Vote sur les commentaires (👍/👎) - `upvotes`/`downvotes` + `PostVote`
+- [x] Mise en avant des contributions de qualité - Score net, tri par score
+- [x] Signalement + modération - `Report` polymorphique
+- [x] Mention d'utilisateurs (@pseudo) - `ReferenceInput.vue`
+- [x] Notifications en temps réel - `NotificationService`
+
+**Modèles implémentés** :
+- [x] `Post.php` : Threading complet (parent/replies), votes, signalements
+- [x] `CitizenIdeaComment.php` : Commentaires idées citoyennes avec threads
+- [x] `PostVote.php` : Votes up/down sur posts
+- [x] `CitizenCommentVote.php` : Votes sur commentaires idées
 
 **Règles de modération** :
 ```yaml
 Création:
-  - Authentification requise
-  - Contenu: 10-5000 caractères
-  - Rate limit: 10 commentaires/heure
+  - Authentification requise ✅
+  - Contenu: 10-5000 caractères ✅
+  - Rate limit: 10 commentaires/heure ✅
 
 Anti-manipulation:
-  - Détection multi-comptes
-  - Captcha après actions suspectes
-  - Bannissement progressif
+  - Détection multi-comptes (à améliorer)
+  - Captcha après actions suspectes (à implémenter)
+  - Bannissement progressif ✅
 
 Modération:
-  - File de signalements
-  - Actions: avertir, masquer, supprimer, bannir
-  - Historique des actions
+  - File de signalements ✅
+  - Actions: avertir, masquer, supprimer, bannir ✅
+  - Historique des actions ✅ (moderation_logs)
 ```
 
 ---
@@ -1301,13 +1322,18 @@ ALTER TABLE postes_ministeriels
 ### 2.7.5 : 💰 Import Finances Communales OFGL
 **Priorité** : 🟡 HAUTE  
 **Durée** : 1-2 semaines  
-**Statut** : 📋 Planifié
+**Statut** : ✅ Script prêt - Import par département recommandé
 
 **Source** : [OFGL - Observatoire des Finances et de la Gestion publique Locale](https://data.ofgl.fr/)
 - API : `https://data.ofgl.fr/api/explore/v2.1/`
 - Dataset : `ofgl-base-communes-consolidee`
 - Période : 2017-2024
 - Format : JSON/CSV via API
+
+**⚠️ Note volume de données** :
+- ~35 000 communes × 8 années = ~280 000 records potentiels
+- **Recommandation** : Import progressif par département (101 imports séparés)
+- Rate limiting intégré (50ms entre chaque requête)
 
 **Données disponibles** :
 - 📊 **Comptes consolidés des communes** (BP + BA)
@@ -1381,11 +1407,15 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
 ```
 
 **Tâches** :
-- [ ] Modèles Laravel (`CommuneFinances`, `CommuneDotation`)
-- [ ] Commande `import:ofgl-communes` avec options :
-  - `--year=2024` : Année spécifique
+- [x] Modèles Laravel (`CommuneBudget`) ✅
+- [x] Commande `import:ofgl-budgets` ✅ avec options :
+  - `--annee=2024` : Année spécifique
   - `--departement=39` : Filtrer par département
-  - `--all-years` : Import 2017-2024
+  - `--commune=75056` : Une commune spécifique (test)
+  - `--force` : Forcer mise à jour
+- [x] Rate limiting intégré (50ms entre requêtes) ✅
+- [x] Mapping agrégats OFGL vers colonnes DB ✅
+- [ ] Lancer imports par département (à planifier)
 - [ ] Migration tables finances communales
 - [ ] Page `/collectivites/commune/{code}` enrichie avec onglet Finances
 - [ ] Graphiques : évolution recettes/dépenses, comparaison moyenne départementale
@@ -1777,28 +1807,69 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
     - Badges secrets pour les accomplissements exceptionnels
     - Seeder `AchievementSeeder` enrichi
 
+### ✅ Accompli semaine 6 (7 janvier 2026)
+40. ✅ **Infrastructure CI/CD professionnelle** :
+    - Workflow Git : `feature` → `dev` → `main` → `tag`
+    - GitHub Actions : Tests automatiques, Deploy DEV/PROD
+    - Release v1.0.0 publiée 🎉
+    - Documentation complète (ARCHITECTURE_DOCKER, GIT_WORKFLOW, GITHUB_SETUP)
+41. ✅ **Vérification fonctionnalités existantes** :
+    - "Mes Représentants" (`MesRepresentants.vue`) → CONFIRMÉ FONCTIONNEL
+    - Statistiques H/F parité → CONFIRMÉ FONCTIONNEL
+    - Débat structuré (threads, votes, signalements) → CONFIRMÉ FONCTIONNEL
+    - Import OFGL → SCRIPT PRÊT (`import:ofgl-budgets`)
+
+### ✅ Accompli semaine 7 (8 janvier 2026)
+42. ✅ **Import Débats Sénat** : Comptes-rendus des séances publiques
+    - Source : `https://data.senat.fr/data/debats/debats.zip` (31 Mo)
+    - Tables : `senat_debats`, `senat_sections_discussion`, `senat_sections_diverses`
+    - Tables : `senat_interventions_legislatives`, `senat_interventions_diverses`
+    - Tables : `senat_types_section`, `senat_lectures_debats`
+    - Migration complète `2026_01_08_140000_create_debats_senat_tables.php`
+    - Commande `senat:import-debats` avec options :
+      - `--fresh` : Vider les tables avant import
+      - `--download` : Télécharger le fichier avant import
+      - `--since=YYYY-MM-DD` : Importer depuis une date
+      - `--year=YYYY` : Année spécifique
+    - Modèles Laravel : `SenatDebat`, `SenatSectionDiscussion`, `SenatSectionDiverse`
+    - Modèles Laravel : `SenatInterventionLegislative`, `SenatInterventionDiverse`
+    - Modèles Laravel : `SenatTypeSection`, `SenatLectureDebat`
+    - Liaison interventions ↔ sénateurs via matricule
+43. ✅ **Amélioration contextualisation amendements** :
+    - Champs `dispositif` et `expose` déjà présents sur `AmendementAN`
+    - Relations vers textes législatifs et dossiers
+44. ✅ **Améliorations UI/UX** :
+    - Composant `Toggle.vue` compact et élégant
+    - Composant `Checkbox.vue` avec tailles configurables (sm/md/lg)
+    - Meilleur espacement sur Login, NotificationSettings, EluFollowButton
+45. ✅ **Fix Suivi d'élus** : Correction requêtes SQL et middleware CSRF
+
 ### 🔄 En cours
-1. 🔄 Refonte système Idées/Propositions citoyennes (wizard de création)
+1. ✅ Refonte système Idées/Propositions citoyennes → **TERMINÉ**
 2. ✅ Interpellation des élus → **TERMINÉ**
 3. ✅ Menu "État" restructuré → **TERMINÉ**
 4. ✅ Notifications élus & Interface réponses → **TERMINÉ**
 5. ✅ Visite guidée enrichie → **TERMINÉ 03/01/2026**
 6. ✅ Gamification (38 badges) → **TERMINÉ 03/01/2026**
+7. 📝 Import OFGL communes → **Script prêt, import progressif recommandé**
+8. 🔄 Export iCal calendrier → **À développer**
 
 ### 🔴 Priorité T1 2026 - Données Gouvernementales
 1. [x] **Import Budget de l'État** (data.gouv.fr PLF) ✅ *Terminé 01/01/2026*
 2. [x] **Import INSEE complet** (démographie, économie) ✅ *Terminé 01/01/2026*
 3. [x] **Import Gouvernement** (ministres, ministères) ✅ *Terminé 01/01/2026*
 4. [x] Menu "État" unifié (Parlement, Gouvernement, Élysée) ✅ *Terminé 31/12/2025*
-5. [ ] Pages hub par institution
+5. [x] Pages hub par institution ✅
 
 ### Prochaines étapes (Janvier-Février 2026)
-1. [ ] Wizard création idée (5 étapes)
-2. [ ] Liaison idées ↔ élus (interpellation)
+1. [x] Wizard création idée (5 étapes) ✅
+2. [x] Liaison idées ↔ élus (interpellation) ✅
 3. [ ] Suggestions IA pour catégories/tags
 4. [x] Questions Écrites Sénat (import base SQL) ✅
 5. [ ] Recherche globale Meilisearch multi-modèles
 6. [ ] Résultats électoraux historiques
+7. [ ] **Export iCal calendrier** (AN + Sénat + Élysée) → 🔴 Priorité
+8. [ ] Import OFGL par département (progressif)
 
 ### 🔐 Sécurité & Authentification (T1 2026) ✅ IMPLÉMENTÉ
 1. [x] **Double Authentification (2FA OTP)** : Pour utilisateurs non-FranceConnect
@@ -1931,6 +2002,6 @@ CivicDash vise à devenir **la référence citoyenne** pour comprendre et partic
 ---
 
 **Maintenu par** : CivicDash Core Team / Civis Consilium  
-**Version** : 2.5  
-**Dernière mise à jour** : 3 janvier 2026  
+**Version** : 2.7  
+**Dernière mise à jour** : 8 janvier 2026  
 **Licence** : AGPL-3.0 Open Source

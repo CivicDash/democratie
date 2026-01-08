@@ -31,7 +31,7 @@ const apiResults = ref([]);
 const quickLinks = [
     { icon: "🏠", label: "Accueil", description: "Retour au dashboard", href: "/dashboard", keywords: ["home", "dashboard", "accueil"], type: "navigation" },
     { icon: "👥", label: "Députés", description: "577 députés de l'Assemblée Nationale", href: "/representants/deputes", keywords: ["depute", "assemblee", "an"], type: "navigation" },
-    { icon: "🏰", label: "Sénateurs", description: "348 sénateurs du Sénat", href: "/representants/senateurs", keywords: ["senateur", "senat"], type: "navigation" },
+    { icon: "🔴", label: "Sénateurs", description: "348 sénateurs du Sénat", href: "/representants/senateurs", keywords: ["senateur", "senat"], type: "navigation" },
     { icon: "⚖️", label: "Lois", description: "Parcours législatif complet", href: "/lois", keywords: ["loi", "législation", "vote", "amendement"], type: "navigation" },
     { icon: "🗳️", label: "Scrutins", description: "Votes publics AN & Sénat", href: "/legislation/scrutins", keywords: ["vote", "scrutin", "ballot"], type: "navigation" },
     { icon: "💡", label: "Idées Citoyennes", description: "Propositions et discussions", href: "/participation/idees", keywords: ["idee", "proposition", "participation", "debat"], type: "navigation" },
