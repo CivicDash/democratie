@@ -133,6 +133,7 @@ class Senateur extends Model
         return "https://www.senat.fr/senimg/{$nom}_{$prenom}{$matricule}_carre.jpg";
     }
 
+
     /**
      * Photo URL avec fallback : officielle > Wikipedia > null
      */

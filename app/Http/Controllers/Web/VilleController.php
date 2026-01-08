@@ -305,18 +305,41 @@ class VilleController extends Controller
                 ->select('matricule', 'nom', 'prenom', 'photo_wikipedia_url')
                 ->get();
 
-            $elus['senateurs'] = $senateurs->map(fn($s) => [
-                'matricule' => $s->matricule,
-                'nom' => trim($s->prenom . ' ' . $s->nom),
-                // Priorité : photo Sénat > photo Wikipedia
-                'photo_url' => $s->matricule 
-                    ? "https://www.senat.fr/senimg/senateur_{$s->matricule}.jpg"
-                    : $s->photo_wikipedia_url,
-                'url' => route('representants.senateurs.show', $s->matricule),
-            ])->toArray();
+            $elus['senateurs'] = $senateurs->map(function($s) {
+                // Construire l'URL photo avec le format correct du Sénat
+                $photoUrl = null;
+                if ($s->matricule && $s->nom && $s->prenom) {
+                    $nom = $this->normalizeForSenatUrl($s->nom);
+                    $prenom = $this->normalizeForSenatUrl($s->prenom);
+                    $matricule = strtolower($s->matricule);
+                    $photoUrl = "https://www.senat.fr/senimg/{$nom}_{$prenom}{$matricule}_carre.jpg";
+                }
+                
+                return [
+                    'matricule' => $s->matricule,
+                    'nom' => trim($s->prenom . ' ' . $s->nom),
+                    'photo_url' => $photoUrl ?? $s->photo_wikipedia_url,
+                    'url' => route('representants.senateurs.show', $s->matricule),
+                ];
+            })->toArray();
         }
 
         return $elus;
+    }
+
+    /**
+     * Normalise une chaîne pour une URL de photo Sénat
+     */
+    private function normalizeForSenatUrl(string $text): string
+    {
+        $text = strtolower(trim($text));
+        // Translittération des accents
+        $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+        // Remplacer les tirets par des underscores
+        $text = str_replace('-', '_', $text);
+        // Supprimer tout ce qui n'est pas alphanumérique ou underscore
+        $text = preg_replace('/[^a-z0-9_]/', '', $text);
+        return $text;
     }
 
     private function formatVilleCard(Ville $ville): array
