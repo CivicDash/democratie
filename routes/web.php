@@ -762,6 +762,18 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
 
 /*
 |--------------------------------------------------------------------------
+| Débats Sénat (Comptes-rendus des séances publiques)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('debats/senat')->name('debats.senat.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Web\DebatSenatController::class, 'index'])->name('index');
+    Route::get('/section/{id}', [App\Http\Controllers\Web\DebatSenatController::class, 'section'])->name('section');
+    Route::get('/senateur/{matricule}', [App\Http\Controllers\Web\DebatSenatController::class, 'parSenateur'])->name('senateur');
+    Route::get('/{dateSeance}', [App\Http\Controllers\Web\DebatSenatController::class, 'show'])->name('show');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Parlement (Comparaisons & Stats globales)
 |--------------------------------------------------------------------------
 */

@@ -292,6 +292,12 @@ onUnmounted(() => {
                                                 title="Scrutins"
                                                 description="Votes publics"
                                             />
+                                            <MegaMenuLink
+                                                :href="route('debats.senat.index')"
+                                                icon="💬"
+                                                title="Débats en séance"
+                                                description="Comptes-rendus"
+                                            />
                                         </div>
                                     </template>
                                 </Dropdown>
@@ -652,6 +658,7 @@ onUnmounted(() => {
                             <div v-show="expandedSection === 'senat'" class="pl-4 space-y-1 mt-1">
                                 <ResponsiveNavLink :href="route('representants.senateurs.index')">👥 Sénateurs (348)</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('legislation.scrutins-senat.index')">🗳️ Scrutins</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('debats.senat.index')">💬 Débats en séance</ResponsiveNavLink>
                             </div>
                         </div>
                         
