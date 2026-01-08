@@ -9,6 +9,7 @@ use App\Models\BudgetMinistere;
 use App\Models\BudgetAnnuel;
 use App\Models\FranceBudgetRevenue;
 use App\Models\FranceBudgetSpending;
+use App\Models\InseeSalaire;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -219,6 +220,8 @@ class BudgetEtatController extends Controller
             'fonctionPubliqueData' => $this->getFonctionPubliqueData($annee),
             // Synthèse emploi total
             'emploiTotal' => $this->getEmploiTotal($annee),
+            // Données salaires INSEE (médian + moyen)
+            'salairesFrance' => $this->getSalairesInsee($annee),
             // Explication des périmètres
             'perimetres' => [
                 [
@@ -584,6 +587,92 @@ class BudgetEtatController extends Controller
             'part_public_pct' => $total > 0 ? round(($effectifsPublics / $total) * 100, 1) : 0,
             'part_prive_pct' => $total > 0 ? round(($effectifsPrives / $total) * 100, 1) : 0,
             'note' => 'Hors agricoles (MSA ~1,2M) et travailleurs indépendants',
+        ];
+    }
+
+    /**
+     * Récupère les données de salaires INSEE (médian, moyen, distribution)
+     */
+    private function getSalairesInsee(int $annee): ?array
+    {
+        // Récupérer les données pour l'année demandée ou la plus proche
+        $global = InseeSalaire::where('type', 'global')
+            ->where('annee', '<=', $annee)
+            ->orderByDesc('annee')
+            ->first();
+
+        if (!$global) {
+            // Fallback sur les dernières données disponibles
+            $global = InseeSalaire::where('type', 'global')
+                ->orderByDesc('annee')
+                ->first();
+        }
+
+        if (!$global) {
+            return null;
+        }
+
+        // Données par catégorie socio-professionnelle
+        $parCategorie = InseeSalaire::where('type', 'prive')
+            ->where('annee', $global->annee)
+            ->whereNotNull('categorie')
+            ->get()
+            ->map(fn($s) => [
+                'categorie' => match($s->categorie) {
+                    'cadres' => 'Cadres',
+                    'professions_intermediaires' => 'Professions intermédiaires',
+                    'employes' => 'Employés',
+                    'ouvriers' => 'Ouvriers',
+                    default => ucfirst(str_replace('_', ' ', $s->categorie)),
+                },
+                'salaire_median' => $s->salaire_median,
+                'salaire_median_formate' => $s->salaire_median_formate,
+                'salaire_moyen' => $s->salaire_moyen,
+                'salaire_moyen_formate' => $s->salaire_moyen_formate,
+            ])
+            ->values();
+
+        // Données fonction publique
+        $parFonctionPublique = InseeSalaire::where('type', 'public')
+            ->where('annee', $global->annee)
+            ->whereNotNull('categorie')
+            ->get()
+            ->map(fn($s) => [
+                'categorie' => match($s->categorie) {
+                    'fonction_publique_etat' => 'État (FPE)',
+                    'fonction_publique_territoriale' => 'Territoriale (FPT)',
+                    'fonction_publique_hospitaliere' => 'Hospitalière (FPH)',
+                    default => ucfirst(str_replace('_', ' ', $s->categorie)),
+                },
+                'salaire_median' => $s->salaire_median,
+                'salaire_median_formate' => $s->salaire_median_formate,
+                'salaire_moyen' => $s->salaire_moyen,
+                'salaire_moyen_formate' => $s->salaire_moyen_formate,
+            ])
+            ->values();
+
+        return [
+            'annee' => $global->annee,
+            'source' => $global->source,
+            // Salaires globaux
+            'salaire_median' => $global->salaire_median,
+            'salaire_median_formate' => $global->salaire_median_formate,
+            'salaire_moyen' => $global->salaire_moyen,
+            'salaire_moyen_formate' => $global->salaire_moyen_formate,
+            'ecart_moyen_median_pct' => $global->ecart_moyen_median,
+            // Distribution (déciles)
+            'd1' => $global->d1,
+            'd1_formate' => $global->d1 ? number_format($global->d1, 0, ',', ' ') . ' €' : null,
+            'd5' => $global->d5, // = médiane
+            'd9' => $global->d9,
+            'd9_formate' => $global->d9 ? number_format($global->d9, 0, ',', ' ') . ' €' : null,
+            'rapport_interdecile' => $global->rapport_interdecile,
+            // Détail par catégorie
+            'par_categorie' => $parCategorie->toArray(),
+            'par_fonction_publique' => $parFonctionPublique->toArray(),
+            // Notes
+            'notes' => $global->notes,
+            'info' => 'Le salaire médian divise les salariés en deux : 50% gagnent moins, 50% gagnent plus. Plus représentatif que la moyenne.',
         ];
     }
 }
