@@ -137,10 +137,10 @@ const fillDemoEluAccount = () => {
                 <InputError class="mt-2" :message="form.errors.password" />
             </div>
 
-            <div class="mt-4 block">
-                <label class="flex items-center">
+            <div class="mt-5 block">
+                <label class="inline-flex items-center gap-3 cursor-pointer select-none group">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
                         Se souvenir de moi
                     </span>
                 </label>
