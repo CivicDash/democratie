@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+
 // ============================================================================
 // ROUTES PUBLIQUES (sans authentification)
 // ============================================================================
@@ -544,8 +545,9 @@ Route::prefix('mentions')->name('mentions.')->group(function () {
 // ============================================================================
 // SUIVI D'ÉLUS
 // ============================================================================
+// Utilise le middleware 'web' pour avoir accès aux sessions (SPA Inertia)
 
-Route::middleware(['auth:sanctum'])->prefix('elu-follows')->name('elu-follows.')->group(function () {
+Route::middleware(['web', 'auth'])->prefix('elu-follows')->name('elu-follows.')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\EluFollowController::class, 'myFollowing'])->name('index');
     Route::post('/follow', [App\Http\Controllers\Api\EluFollowController::class, 'follow'])->name('follow')->middleware('not-readonly');
     Route::post('/unfollow', [App\Http\Controllers\Api\EluFollowController::class, 'unfollow'])->name('unfollow')->middleware('not-readonly');

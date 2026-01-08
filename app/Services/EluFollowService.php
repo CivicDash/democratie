@@ -214,27 +214,41 @@ class EluFollowService
         $depute = ActeurAN::find($uid);
         if (!$depute) return null;
 
-        // Récupérer le groupe politique
-        $groupe = DB::table('membres_organes')
-            ->join('organes_an', 'membres_organes.organe_uid', '=', 'organes_an.uid')
-            ->where('membres_organes.acteur_uid', $uid)
-            ->where('organes_an.code_type', 'GP')
-            ->whereNull('membres_organes.date_fin')
-            ->select('organes_an.libelle_abrege')
-            ->first();
+        // Récupérer le groupe politique via mandats_an
+        $groupeLibelle = null;
+        try {
+            $groupe = DB::table('mandats_an')
+                ->join('organes_an', 'mandats_an.organe_ref', '=', 'organes_an.uid')
+                ->where('mandats_an.acteur_ref', $uid)
+                ->where('organes_an.code_type', 'GP')
+                ->whereNull('mandats_an.date_fin')
+                ->select('organes_an.libelle_abrege')
+                ->first();
+            $groupeLibelle = $groupe?->libelle_abrege;
+        } catch (\Exception $e) {
+            // Ignorer les erreurs SQL, on continue sans le groupe
+        }
 
         // Récupérer la circonscription
-        $circo = DB::table('deputes_circonscriptions')
-            ->where('acteur_uid', $uid)
-            ->whereNull('date_fin')
-            ->select('libelle_circonscription')
-            ->first();
+        $circonscription = null;
+        try {
+            $mandat = DB::table('mandats_an')
+                ->join('organes_an', 'mandats_an.organe_ref', '=', 'organes_an.uid')
+                ->where('mandats_an.acteur_ref', $uid)
+                ->where('organes_an.code_type', 'CIRCO')
+                ->whereNull('mandats_an.date_fin')
+                ->select('organes_an.libelle')
+                ->first();
+            $circonscription = $mandat?->libelle;
+        } catch (\Exception $e) {
+            // Ignorer les erreurs SQL
+        }
 
         return [
             'nom' => trim($depute->prenom . ' ' . $depute->nom),
             'photo_url' => $depute->photo_wikipedia_url ?? "https://www.assemblee-nationale.fr/dyn/deputes/{$uid}/image",
-            'groupe' => $groupe?->libelle_abrege,
-            'circonscription' => $circo?->libelle_circonscription,
+            'groupe' => $groupeLibelle,
+            'circonscription' => $circonscription,
         ];
     }
 
