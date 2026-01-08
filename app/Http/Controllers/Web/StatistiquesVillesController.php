@@ -18,7 +18,10 @@ class StatistiquesVillesController extends Controller
      */
     public function index(Request $request): Response
     {
-        $annee = $request->input('annee', date('Y'));
+        // Utiliser la dernière année disponible par défaut
+        $anneesDisponibles = $this->getAnneesDisponibles();
+        $anneeDefaut = !empty($anneesDisponibles) ? $anneesDisponibles[0] : date('Y');
+        $annee = $request->input('annee', $anneeDefaut);
 
         // Stats globales (cache 1h)
         $statsGlobales = Cache::remember('stats_villes_globales', 3600, function () {
