@@ -66,7 +66,13 @@ const getTypeIcon = (type) => {
                     </div>
                     
                     <!-- Actions -->
-                    <div class="flex gap-3">
+                    <div class="flex flex-wrap gap-3">
+                        <Link 
+                            :href="route('parlement.calendrier.index', { mois: new Date(debat.date_seance).getMonth() + 1, annee: new Date(debat.date_seance).getFullYear(), source: 'senat' })"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition"
+                        >
+                            📅 Voir dans le calendrier
+                        </Link>
                         <a 
                             :href="debat.url_compte_rendu"
                             target="_blank"
