@@ -263,33 +263,36 @@ const getSegmentHeight = (value, total) => {
                 </div>
               </div>
 
-              <!-- Navigation vers pages détaillées -->
-              <div v-if="senateur?.matricule" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Link
-                  :href="route('representants.senateurs.votes', senateur.matricule)"
-                  class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  🗳️ Votes
-                </Link>
-                <Link
-                  :href="route('representants.senateurs.amendements', senateur.matricule)"
-                  class="text-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                >
-                  📝 Amendements
-                </Link>
-                <Link
-                  :href="route('debats.senat.senateur', senateur.matricule)"
-                  class="text-center px-4 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition"
-                >
-                  🎤 Interventions
-                </Link>
-                <Link
-                  :href="route('representants.senateurs.activite', senateur.matricule)"
-                  class="text-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-                >
-                  📊 Activité
-                </Link>
-              </div>
+            </div>
+          </div>
+          
+          <!-- Navigation vers pages détaillées (pleine largeur) -->
+          <div v-if="senateur?.matricule" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Link
+                :href="route('representants.senateurs.votes', senateur.matricule)"
+                class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+              >
+                🗳️ Votes
+              </Link>
+              <Link
+                :href="route('representants.senateurs.amendements', senateur.matricule)"
+                class="text-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              >
+                📝 Amendements
+              </Link>
+              <Link
+                :href="route('debats.senat.senateur', senateur.matricule)"
+                class="text-center px-4 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition font-medium"
+              >
+                🎤 Interventions
+              </Link>
+              <Link
+                :href="route('representants.senateurs.activite', senateur.matricule)"
+                class="text-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
+              >
+                📊 Activité
+              </Link>
             </div>
           </div>
         </Card>

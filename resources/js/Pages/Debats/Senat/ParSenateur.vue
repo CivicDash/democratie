@@ -14,7 +14,7 @@ const props = defineProps({
 const breadcrumbItems = [
     { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
     { label: 'Sénateurs', href: route('representants.senateurs.index'), icon: '🏛️' },
-    { label: `${props.senateur.prenom} ${props.senateur.nom}`, href: route('representants.senateurs.show', props.senateur.id), icon: '👤' },
+    { label: `${props.senateur.prenom} ${props.senateur.nom}`, href: route('representants.senateurs.show', props.senateur.matricule), icon: '👤' },
     { label: 'Interventions en séance', current: true, icon: '🎤' },
 ];
 
@@ -142,19 +142,19 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
                         </h3>
                         <div class="space-y-2">
                             <Link 
-                                :href="route('representants.senateurs.show', senateur.id)"
+                                :href="route('representants.senateurs.show', senateur.matricule)"
                                 class="flex items-center gap-2 text-sm text-rose-700 dark:text-rose-400 hover:underline"
                             >
                                 👤 Fiche complète
                             </Link>
                             <Link 
-                                :href="route('representants.senateurs.votes', senateur.id)"
+                                :href="route('representants.senateurs.votes', senateur.matricule)"
                                 class="flex items-center gap-2 text-sm text-rose-700 dark:text-rose-400 hover:underline"
                             >
                                 🗳️ Votes
                             </Link>
                             <Link 
-                                :href="route('representants.senateurs.amendements', senateur.id)"
+                                :href="route('representants.senateurs.amendements', senateur.matricule)"
                                 class="flex items-center gap-2 text-sm text-rose-700 dark:text-rose-400 hover:underline"
                             >
                                 📝 Amendements
