@@ -43,9 +43,14 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
     
     <AuthenticatedLayout>
         <!-- Hero Banner -->
-        <div class="bg-gradient-to-br from-rose-600 via-pink-600 to-fuchsia-700 text-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-4" />
+        <section class="relative overflow-hidden bg-gradient-to-br from-rose-900 via-rose-800 to-pink-900">
+            <!-- Background Pattern -->
+            <div class="absolute inset-0 opacity-10">
+                <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+            </div>
+            
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 text-white">
+                <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-6" />
                 
                 <div class="flex items-center gap-6">
                     <!-- Photo -->
@@ -53,29 +58,30 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
                         v-if="senateur.photo_url"
                         :src="senateur.photo_url"
                         :alt="senateur.nom"
-                        class="w-20 h-20 rounded-full object-cover ring-4 ring-white/30"
+                        class="w-24 h-24 rounded-full object-cover ring-4 ring-white/30 shadow-xl"
                     />
                     <div 
                         v-else
-                        class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold"
+                        class="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-4xl font-bold"
                     >
                         {{ senateur.prenom?.[0] }}{{ senateur.nom?.[0] }}
                     </div>
                     
                     <div>
-                        <h1 class="text-2xl md:text-3xl font-bold">
-                            🎤 Interventions en séance
+                        <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight flex items-center gap-3">
+                            <span class="text-3xl">🎤</span>
+                            Interventions en séance
                         </h1>
-                        <p class="mt-1 text-rose-100 text-lg">
+                        <p class="mt-2 text-rose-100 text-xl">
                             {{ senateur.prenom }} {{ senateur.nom }}
                         </p>
-                        <p v-if="senateur.groupe" class="text-rose-200 text-sm">
+                        <p v-if="senateur.groupe" class="text-rose-200">
                             {{ senateur.groupe }}
                         </p>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="grid lg:grid-cols-4 gap-8">

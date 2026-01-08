@@ -61,38 +61,44 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
     
     <AuthenticatedLayout>
         <!-- Hero Banner -->
-        <div class="bg-gradient-to-br from-rose-600 via-pink-600 to-fuchsia-700 text-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-4" />
+        <section class="relative overflow-hidden bg-gradient-to-br from-rose-900 via-rose-800 to-pink-900">
+            <!-- Background Pattern -->
+            <div class="absolute inset-0 opacity-10">
+                <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+            </div>
+            
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 text-white">
+                <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-6" />
                 
-                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
                     <div>
-                        <h1 class="text-3xl md:text-4xl font-bold flex items-center gap-3">
-                            💬 Débats en séance publique
+                        <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold flex items-center gap-4 tracking-tight">
+                            <span class="text-4xl">💬</span>
+                            Débats en séance
                         </h1>
-                        <p class="mt-2 text-rose-100 text-lg">
-                            Comptes-rendus des séances du Sénat
+                        <p class="mt-3 text-rose-200 text-lg max-w-xl">
+                            Comptes-rendus intégraux des séances publiques du Sénat
                         </p>
                     </div>
                     
                     <!-- Stats -->
                     <div class="grid grid-cols-3 gap-4">
-                        <div class="text-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl">
-                            <p class="text-2xl font-bold">{{ formatNumber(stats.total_seances) }}</p>
-                            <p class="text-xs text-rose-200">Séances</p>
+                        <div class="text-center px-4 py-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                            <p class="text-3xl font-bold">{{ formatNumber(stats.total_seances) }}</p>
+                            <p class="text-xs text-rose-200 mt-1">Séances</p>
                         </div>
-                        <div class="text-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl">
-                            <p class="text-2xl font-bold">{{ formatNumber(stats.total_sections) }}</p>
-                            <p class="text-xs text-rose-200">Sections</p>
+                        <div class="text-center px-4 py-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                            <p class="text-3xl font-bold">{{ formatNumber(stats.total_sections) }}</p>
+                            <p class="text-xs text-rose-200 mt-1">Sections</p>
                         </div>
-                        <div class="text-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl">
-                            <p class="text-2xl font-bold">{{ formatNumber(stats.total_interventions) }}</p>
-                            <p class="text-xs text-rose-200">Interventions</p>
+                        <div class="text-center px-4 py-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                            <p class="text-3xl font-bold">{{ formatNumber(stats.total_interventions) }}</p>
+                            <p class="text-xs text-rose-200 mt-1">Interventions</p>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="grid lg:grid-cols-4 gap-8">

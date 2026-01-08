@@ -45,22 +45,28 @@ const getTypeIcon = (type) => {
     
     <AuthenticatedLayout>
         <!-- Hero Banner -->
-        <div class="bg-gradient-to-br from-rose-600 via-pink-600 to-fuchsia-700 text-white">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-4" />
+        <section class="relative overflow-hidden bg-gradient-to-br from-rose-900 via-rose-800 to-pink-900">
+            <!-- Background Pattern -->
+            <div class="absolute inset-0 opacity-10">
+                <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+            </div>
+            
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 text-white">
+                <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-6" />
                 
-                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
                     <div>
-                        <h1 class="text-3xl md:text-4xl font-bold">
-                            📅 {{ debat.date_formatee }}
+                        <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold flex items-center gap-4 tracking-tight">
+                            <span class="text-4xl">📅</span>
+                            {{ debat.date_formatee }}
                         </h1>
-                        <p class="mt-2 text-rose-100 text-lg">
+                        <p class="mt-3 text-rose-200 text-lg">
                             Séance n°{{ debat.numero || '?' }}
-                            <span v-if="debat.est_congres" class="ml-2 px-2 py-1 bg-amber-500 rounded text-sm">
+                            <span v-if="debat.est_congres" class="ml-2 px-2 py-1 bg-amber-500 rounded text-sm font-semibold">
                                 🏛️ Congrès
                             </span>
                         </p>
-                        <p v-if="debat.libelle_special" class="mt-1 text-rose-200">
+                        <p v-if="debat.libelle_special" class="mt-2 text-rose-300">
                             {{ debat.libelle_special }}
                         </p>
                     </div>
@@ -69,7 +75,7 @@ const getTypeIcon = (type) => {
                     <div class="flex flex-wrap gap-3">
                         <Link 
                             :href="route('parlement.calendrier.index', { mois: new Date(debat.date_seance).getMonth() + 1, annee: new Date(debat.date_seance).getFullYear(), source: 'senat' })"
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-lg hover:bg-white/20 transition border border-white/20"
                         >
                             📅 Voir dans le calendrier
                         </Link>
@@ -77,7 +83,7 @@ const getTypeIcon = (type) => {
                             :href="debat.url_compte_rendu"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-lg hover:bg-white/20 transition border border-white/20"
                         >
                             📖 Compte-rendu officiel
                             <span class="text-xs">↗</span>
@@ -85,7 +91,7 @@ const getTypeIcon = (type) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="grid lg:grid-cols-4 gap-8">
