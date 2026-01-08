@@ -10,40 +10,213 @@ Artisan::command('inspire', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Tâches Planifiées
+| Tâches Planifiées - Import Données
 |--------------------------------------------------------------------------
 | Ces commandes s'exécutent automatiquement via le scheduler Laravel.
 | Ajouter au crontab : * * * * * php /var/www/artisan schedule:run >> /dev/null 2>&1
+|
+| ORDRE D'EXÉCUTION (important pour les dépendances) :
+| 1. 01h00-02h00 : Données de base (acteurs, organes)
+| 2. 02h00-03h00 : Dossiers législatifs et textes
+| 3. 03h00-03h30 : Amendements
+| 4. 03h30-04h00 : Scrutins et votes
+| 5. 04h00-04h30 : Recalcul des statistiques
+| 6. 05h00-06h00 : Agenda et calendrier
+| 7. 06h00-07h00 : Questions gouvernement
 */
 
-// Recalcul des statistiques du dashboard tous les jours à 4h du matin
+/*
+|--------------------------------------------------------------------------
+| 1. DONNÉES DE BASE (01h00 - 02h00)
+|--------------------------------------------------------------------------
+*/
+
+// Acteurs et organes AN (base pour tout le reste)
+// Note: Ces imports sont incrémentaux par défaut (nouveaux fichiers uniquement)
+Schedule::command('import:acteurs-an')
+    ->dailyAt('01:00')
+    ->description('Import quotidien des acteurs AN')
+    ->withoutOverlapping();
+
+Schedule::command('import:organes-an')
+    ->dailyAt('01:15')
+    ->description('Import quotidien des organes AN')
+    ->withoutOverlapping();
+
+// Sénateurs (données complémentaires)
+Schedule::command('senat:sync')
+    ->dailyAt('01:30')
+    ->description('Synchronisation données Sénat')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| 2. DOSSIERS LÉGISLATIFS ET TEXTES (02h00 - 03h00)
+|--------------------------------------------------------------------------
+*/
+
+// Dossiers législatifs AN (projets/propositions de loi)
+// Legislature 17 par défaut, import incrémental
+Schedule::command('import:dossiers-textes-an')
+    ->dailyAt('02:00')
+    ->description('Import quotidien des dossiers législatifs AN')
+    ->withoutOverlapping();
+
+// Dossiers législatifs Sénat
+Schedule::command('import:dossiers-senat')
+    ->dailyAt('02:20')
+    ->description('Import quotidien des dossiers législatifs Sénat')
+    ->withoutOverlapping();
+
+// Journal Officiel (nouvelles lois publiées)
+Schedule::command('import:jorf')
+    ->dailyAt('02:40')
+    ->description('Import des publications JORF')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| 3. AMENDEMENTS (03h00 - 03h30)
+|--------------------------------------------------------------------------
+*/
+
+// Amendements AN (legislature 17 par défaut)
+Schedule::command('import:amendements-an')
+    ->dailyAt('03:00')
+    ->description('Import quotidien des amendements AN')
+    ->withoutOverlapping();
+
+// Amendements Sénat
+Schedule::command('import:amendements-senat')
+    ->dailyAt('03:15')
+    ->description('Import quotidien des amendements Sénat')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| 4. SCRUTINS ET VOTES (03h30 - 04h00)
+|--------------------------------------------------------------------------
+*/
+
+// Scrutins AN (votes en séance) - legislature 17 par défaut
+Schedule::command('import:scrutins-an')
+    ->dailyAt('03:30')
+    ->description('Import quotidien des scrutins AN')
+    ->withoutOverlapping();
+
+// Extraction des votes individuels AN
+Schedule::command('extract:votes-individuels-an')
+    ->dailyAt('03:45')
+    ->description('Extraction des votes individuels députés')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| 5. RECALCUL DES STATISTIQUES (04h00 - 05h00)
+|--------------------------------------------------------------------------
+*/
+
+// Recalcul des statistiques du dashboard
 Schedule::command('dashboard:calculate-stats --force')
     ->dailyAt('04:00')
     ->description('Recalcul quotidien des statistiques dashboard');
 
 // Recalcul des statistiques parlementaires (taux présence, amendements, etc.)
 Schedule::command('calculate:parlementaires-stats --force')
-    ->dailyAt('04:30')
+    ->dailyAt('04:15')
     ->description('Recalcul quotidien des statistiques parlementaires pré-calculées');
 
 // Recalcul des statistiques des lois (amendements, scrutins, durée, etc.)
 Schedule::command('calculate:lois-stats --force')
-    ->dailyAt('04:45')
+    ->dailyAt('04:30')
     ->description('Recalcul quotidien des statistiques lois pré-calculées');
 
 // Recalcul des statistiques globales des élus (page comparaison)
 Schedule::command('calculate:elus-global-stats --force')
-    ->dailyAt('05:00')
-    ->description('Recalcul quotidien des statistiques globales élus (députés/sénateurs/maires)');
-
-// Synchronisation des données parlementaires (si activée)
-// Schedule::command('sync:all --quick')
-//     ->dailyAt('05:00')
-//     ->description('Synchronisation quotidienne des données AN/Sénat');
+    ->dailyAt('04:45')
+    ->description('Recalcul quotidien des statistiques globales élus');
 
 /*
 |--------------------------------------------------------------------------
-| Notifications Élus Suivis
+| 6. AGENDA ET CALENDRIER (05h00 - 06h00)
+|--------------------------------------------------------------------------
+*/
+
+// Agenda AN (réunions, commissions)
+Schedule::command('import:reunions-an')
+    ->dailyAt('05:00')
+    ->description('Import des réunions AN')
+    ->withoutOverlapping();
+
+// Agenda Sénat (séances, commissions)
+Schedule::command('import:agenda-senat')
+    ->dailyAt('05:15')
+    ->description('Import de l\'agenda Sénat')
+    ->withoutOverlapping();
+
+// Agenda Élysée
+Schedule::command('import:agenda-elysee')
+    ->dailyAt('05:30')
+    ->description('Import de l\'agenda Élysée')
+    ->withoutOverlapping();
+
+// Synchronisation des débats Sénat vers le calendrier
+Schedule::command('sync:debats-calendar')
+    ->dailyAt('05:45')
+    ->description('Synchronisation débats Sénat → calendrier unifié')
+    ->withoutOverlapping();
+
+// Synchronisation globale événements → calendrier unifié
+Schedule::command('sync:evenements-an')
+    ->dailyAt('05:50')
+    ->description('Synchronisation événements AN → calendrier unifié')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| 7. QUESTIONS AU GOUVERNEMENT (06h00 - 07h00)
+|--------------------------------------------------------------------------
+*/
+
+// Questions écrites/orales AN
+Schedule::command('import:questions-an')
+    ->dailyAt('06:00')
+    ->description('Import quotidien des questions AN')
+    ->withoutOverlapping();
+
+// Questions Sénat
+Schedule::command('import:questions-senat')
+    ->dailyAt('06:15')
+    ->description('Import quotidien des questions Sénat')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| 8. ENRICHISSEMENT (07h00 - 08h00)
+|--------------------------------------------------------------------------
+*/
+
+// Enrichissement Wikipedia (photos, bios)
+Schedule::command('sync:wikipedia-personnes --limit=50')
+    ->dailyAt('07:00')
+    ->description('Enrichissement Wikipedia (50 personnes/jour)')
+    ->withoutOverlapping();
+
+// Enrichissement votes députés
+Schedule::command('enrich:deputes-votes')
+    ->dailyAt('07:15')
+    ->description('Enrichissement votes députés')
+    ->withoutOverlapping();
+
+// Enrichissement votes sénateurs  
+Schedule::command('enrich:senateurs-votes')
+    ->dailyAt('07:30')
+    ->description('Enrichissement votes sénateurs')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| NOTIFICATIONS ÉLUS SUIVIS
 |--------------------------------------------------------------------------
 */
 
@@ -61,3 +234,27 @@ Schedule::command('elu:process-activities --digest=daily')
 Schedule::command('elu:process-activities --digest=weekly')
     ->weeklyOn(1, '08:00')
     ->description('Envoi des digests hebdomadaires des activités élus');
+
+/*
+|--------------------------------------------------------------------------
+| MAINTENANCE HEBDOMADAIRE (Dimanche nuit)
+|--------------------------------------------------------------------------
+*/
+
+// Import complet hebdomadaire (au cas où des données auraient été manquées)
+Schedule::command('sync:all')
+    ->weeklyOn(0, '02:00') // Dimanche 2h
+    ->description('Synchronisation complète hebdomadaire de toutes les sources')
+    ->withoutOverlapping();
+
+// Recalcul complet des scrutins
+Schedule::command('scrutins:recalculate-totals')
+    ->weeklyOn(0, '03:30')
+    ->description('Recalcul hebdomadaire des totaux scrutins')
+    ->withoutOverlapping();
+
+// Import des débats Sénat (historique complet)
+Schedule::command('senat:import-debats --download')
+    ->weeklyOn(0, '04:00')
+    ->description('Mise à jour hebdomadaire des débats Sénat')
+    ->withoutOverlapping();
