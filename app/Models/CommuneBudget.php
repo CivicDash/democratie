@@ -101,6 +101,30 @@ class CommuneBudget extends Model
     }
 
     /**
+     * Accesseur : recettes_fonctionnement formatées
+     */
+    public function getRecettesFonctionnementFormateAttribute(): string
+    {
+        return self::formatMontant($this->recettes_fonctionnement);
+    }
+
+    /**
+     * Accesseur : dépenses_fonctionnement formatées
+     */
+    public function getDepensesFonctionnementFormateAttribute(): string
+    {
+        return self::formatMontant($this->depenses_fonctionnement);
+    }
+
+    /**
+     * Accesseur : encours_dette formaté
+     */
+    public function getEncoursDetteFormateAttribute(): string
+    {
+        return self::formatMontant($this->encours_dette);
+    }
+
+    /**
      * Scope par année
      */
     public function scopeAnnee($query, int $annee)

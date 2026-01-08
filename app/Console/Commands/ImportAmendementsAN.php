@@ -256,10 +256,18 @@ class ImportAmendementsAN extends Command
                 'division_titre' => $pointeurFragmentTexte['division']['titre'] ?? null,
                 'division_type' => $pointeurFragmentTexte['division']['type'] ?? null,
                 
-                // Contenu
+                // Contenu - Le texte est dans contenuAuteur (nouvelle structure AN)
                 'cartouche_informatif' => $this->extractText($corps['cartoucheInformatif'] ?? null),
-                'dispositif' => $this->extractText($corps['dispositif'] ?? null),
-                'expose' => $this->extractText($corps['exposeSommaire'] ?? null),
+                'dispositif' => $this->extractText(
+                    $corps['contenuAuteur']['dispositif'] 
+                    ?? $corps['dispositif'] 
+                    ?? null
+                ),
+                'expose' => $this->extractText(
+                    $corps['contenuAuteur']['exposeSommaire'] 
+                    ?? $corps['exposeSommaire'] 
+                    ?? null
+                ),
                 
                 // Cycle de vie
                 'date_depot' => $this->parseDate($cycleDeVie['dateDepot'] ?? null),

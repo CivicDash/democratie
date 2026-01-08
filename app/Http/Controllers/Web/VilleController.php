@@ -218,8 +218,9 @@ class VilleController extends Controller
                 'nom' => $ville->maireActuel->nom_complet ?? trim($ville->maireActuel->prenom . ' ' . $ville->maireActuel->nom),
                 'civilite' => $ville->maireActuel->civilite,
                 'photo_url' => $ville->maireActuel->photo_url,
-                'debut_mandat' => $ville->maireActuel->debut_mandat,
+                'debut_mandat' => $ville->maireActuel->debut_mandat?->locale('fr')->isoFormat('D MMMM YYYY'),
                 'nuance_politique' => $ville->maireActuel->nuance_politique,
+                'url' => $ville->maireActuel->url ?? null,
             ] : null,
             'mandatsMaires' => $mandatsMaires,
             'evolutionPopulation' => $evolutionPopulation,
@@ -307,7 +308,10 @@ class VilleController extends Controller
             $elus['senateurs'] = $senateurs->map(fn($s) => [
                 'matricule' => $s->matricule,
                 'nom' => trim($s->prenom . ' ' . $s->nom),
-                'photo_url' => $s->photo_wikipedia_url,
+                // Priorité : photo Sénat > photo Wikipedia
+                'photo_url' => $s->matricule 
+                    ? "https://www.senat.fr/senimg/senateur_{$s->matricule}.jpg"
+                    : $s->photo_wikipedia_url,
                 'url' => route('representants.senateurs.show', $s->matricule),
             ])->toArray();
         }
