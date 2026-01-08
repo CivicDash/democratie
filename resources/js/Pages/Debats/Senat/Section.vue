@@ -69,47 +69,44 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
                         <div class="flex gap-4">
                             <!-- Avatar -->
                             <div class="flex-shrink-0">
-                                <template v-if="intervention.senateur?.id">
-                                    <Link :href="route('representants.senateurs.show', intervention.senateur.id)">
+                                <template v-if="intervention.auteur?.matricule">
+                                    <Link :href="route('representants.senateurs.show', intervention.auteur.matricule)">
                                         <img 
-                                            v-if="intervention.senateur.photo_url"
-                                            :src="intervention.senateur.photo_url"
-                                            :alt="intervention.senateur.nom"
+                                            v-if="intervention.auteur.photo_url"
+                                            :src="intervention.auteur.photo_url"
+                                            :alt="intervention.auteur.nom"
                                             class="w-12 h-12 rounded-full object-cover ring-2 ring-rose-200 dark:ring-rose-800"
                                         />
                                         <div 
                                             v-else
                                             class="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold"
                                         >
-                                            {{ intervention.senateur.prenom?.[0] }}{{ intervention.senateur.nom?.[0] }}
+                                            {{ intervention.auteur.prenom?.[0] }}{{ intervention.auteur.nom?.[0] }}
                                         </div>
                                     </Link>
                                 </template>
                                 <div 
                                     v-else
-                                    class="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300"
+                                    class="w-12 h-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold"
                                 >
-                                    🎤
+                                    {{ intervention.auteur?.prenom?.[0] || '?' }}{{ intervention.auteur?.nom?.[0] || '' }}
                                 </div>
                             </div>
                             
                             <!-- Contenu -->
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-2">
-                                    <template v-if="intervention.senateur?.id">
+                                    <template v-if="intervention.auteur?.matricule">
                                         <Link 
-                                            :href="route('representants.senateurs.show', intervention.senateur.id)"
+                                            :href="route('representants.senateurs.show', intervention.auteur.matricule)"
                                             class="font-semibold text-slate-900 dark:text-white hover:text-rose-600 transition"
                                         >
-                                            {{ intervention.senateur.prenom }} {{ intervention.senateur.nom }}
+                                            {{ intervention.auteur.prenom }} {{ intervention.auteur.nom }}
                                         </Link>
-                                        <span v-if="intervention.senateur.groupe" class="text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400">
-                                            {{ intervention.senateur.groupe }}
-                                        </span>
                                     </template>
                                     <template v-else>
                                         <span class="font-semibold text-slate-900 dark:text-white">
-                                            {{ intervention.senateur?.prenom }} {{ intervention.senateur?.nom }}
+                                            {{ intervention.auteur?.prenom }} {{ intervention.auteur?.nom }}
                                         </span>
                                     </template>
                                     

@@ -89,16 +89,27 @@ class DebatSenatController extends Controller
             ->limit(10)
             ->get()
             ->map(function ($row) {
-                $senateur = Senateur::where('matricule', trim($row->auteur_code))->first();
+                // Chercher dans senat_dosleg_auteur (table de référence des auteurs)
+                $auteur = DB::table('senat_dosleg_auteur')
+                    ->where('autcod', trim($row->auteur_code))
+                    ->first();
+                
+                // Essayer de trouver le sénateur correspondant pour la photo
+                $senateur = null;
+                if ($auteur) {
+                    $senateur = Senateur::where('nom', 'ILIKE', $auteur->nomuse)
+                        ->where('prenom', 'ILIKE', $auteur->prenom)
+                        ->first();
+                }
+                
                 return [
                     'code' => $row->auteur_code,
                     'nb_interventions' => $row->nb_interventions,
-                    'senateur' => $senateur ? [
-                        'id' => $senateur->senid,
-                        'nom' => $senateur->nom,
-                        'prenom' => $senateur->prenom,
-                        'photo_url' => $senateur->photo_url,
-                        'groupe' => $senateur->groupe?->libelle_abrege,
+                    'auteur' => $auteur ? [
+                        'nom' => ucfirst(strtolower($auteur->nomuse)),
+                        'prenom' => ucfirst(strtolower($auteur->prenom)),
+                        'photo_url' => $senateur?->photo_url ?? $senateur?->photo_wikipedia_url,
+                        'matricule' => $senateur?->matricule,
                     ] : null,
                 ];
             });
@@ -126,23 +137,34 @@ class DebatSenatController extends Controller
         $section = SenatSectionDiscussion::with(['typeSection', 'debat'])
             ->findOrFail($sectionId);
 
-        // Récupérer les interventions
+        // Récupérer les interventions avec infos auteur
         $interventions = SenatInterventionLegislative::where('section_id', $sectionId)
             ->orderBy('ordre')
             ->get()
             ->map(function ($i) {
-                $senateur = Senateur::where('matricule', trim($i->auteur_code))->first();
+                // Chercher dans senat_dosleg_auteur
+                $auteur = DB::table('senat_dosleg_auteur')
+                    ->where('autcod', trim($i->auteur_code))
+                    ->first();
+                
+                // Essayer de trouver le sénateur pour la photo
+                $senateur = null;
+                if ($auteur) {
+                    $senateur = Senateur::where('nom', 'ILIKE', $auteur->nomuse)
+                        ->where('prenom', 'ILIKE', $auteur->prenom)
+                        ->first();
+                }
+                
                 return [
                     'id' => $i->id,
                     'analyse' => $i->analyse,
                     'fonction' => $i->fonction,
                     'url' => $i->url_complet,
-                    'senateur' => $senateur ? [
-                        'id' => $senateur->senid,
-                        'nom' => $senateur->nom,
-                        'prenom' => $senateur->prenom,
-                        'photo_url' => $senateur->photo_url,
-                        'groupe' => $senateur->groupe?->libelle_abrege,
+                    'auteur' => $auteur ? [
+                        'nom' => ucfirst(strtolower($auteur->nomuse)),
+                        'prenom' => ucfirst(strtolower($auteur->prenom)),
+                        'photo_url' => $senateur?->photo_url ?? $senateur?->photo_wikipedia_url,
+                        'matricule' => $senateur?->matricule,
                     ] : [
                         'nom' => 'Intervenant',
                         'prenom' => $i->auteur_code,
@@ -183,9 +205,34 @@ class DebatSenatController extends Controller
     {
         $senateur = Senateur::where('matricule', $matricule)->firstOrFail();
 
+        // Trouver le code auteur correspondant dans senat_dosleg_auteur (via nom/prénom)
+        $auteur = DB::table('senat_dosleg_auteur')
+            ->where('nomuse', 'ILIKE', $senateur->nom)
+            ->where('prenom', 'ILIKE', $senateur->prenom)
+            ->first();
+
+        $auteurCode = $auteur?->autcod;
+
+        if (!$auteurCode) {
+            // Pas de correspondance trouvée - retourner une page vide
+            return Inertia::render('Debats/Senat/ParSenateur', [
+                'senateur' => [
+                    'id' => $senateur->matricule,
+                    'matricule' => $senateur->matricule,
+                    'nom' => $senateur->nom,
+                    'prenom' => $senateur->prenom,
+                    'photo_url' => $senateur->photo_url ?? $senateur->photo_wikipedia_url,
+                    'groupe' => $senateur->groupe_politique,
+                ],
+                'interventions' => [],
+                'stats' => ['total' => 0, 'par_annee' => []],
+                'filtres' => $request->only(['annee']),
+            ]);
+        }
+
         $query = DB::table('senat_interventions_legislatives as i')
             ->join('senat_sections_discussion as s', 'i.section_id', '=', 's.id')
-            ->where('i.auteur_code', $matricule)
+            ->where('i.auteur_code', $auteurCode)
             ->select([
                 'i.id',
                 'i.analyse',
@@ -207,11 +254,11 @@ class DebatSenatController extends Controller
         // Stats
         $stats = [
             'total' => DB::table('senat_interventions_legislatives')
-                ->where('auteur_code', $matricule)
+                ->where('auteur_code', $auteurCode)
                 ->count(),
             'par_annee' => DB::table('senat_interventions_legislatives as i')
                 ->join('senat_sections_discussion as s', 'i.section_id', '=', 's.id')
-                ->where('i.auteur_code', $matricule)
+                ->where('i.auteur_code', $auteurCode)
                 ->selectRaw('EXTRACT(YEAR FROM s.date_seance) as annee, COUNT(*) as nb')
                 ->groupBy('annee')
                 ->orderByDesc('annee')
@@ -221,12 +268,12 @@ class DebatSenatController extends Controller
 
         return Inertia::render('Debats/Senat/ParSenateur', [
             'senateur' => [
-                'id' => $senateur->senid,
+                'id' => $senateur->matricule,
                 'matricule' => $senateur->matricule,
                 'nom' => $senateur->nom,
                 'prenom' => $senateur->prenom,
-                'photo_url' => $senateur->photo_url,
-                'groupe' => $senateur->groupe?->libelle,
+                'photo_url' => $senateur->photo_url ?? $senateur->photo_wikipedia_url,
+                'groupe' => $senateur->groupe_politique,
             ],
             'interventions' => $interventions,
             'stats' => $stats,

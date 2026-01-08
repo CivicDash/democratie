@@ -232,32 +232,31 @@ const getTypeIcon = (type) => {
                                     {{ index + 1 }}
                                 </span>
                                 
-                                <template v-if="item.senateur">
-                                    <Link 
-                                        :href="route('representants.senateurs.show', item.senateur.id)"
-                                        class="flex items-center gap-2 flex-1 min-w-0 hover:text-rose-600 transition"
+                                <template v-if="item.auteur">
+                                    <component 
+                                        :is="item.auteur.matricule ? Link : 'div'"
+                                        :href="item.auteur.matricule ? route('representants.senateurs.show', item.auteur.matricule) : undefined"
+                                        class="flex items-center gap-2 flex-1 min-w-0"
+                                        :class="item.auteur.matricule ? 'hover:text-rose-600 transition cursor-pointer' : ''"
                                     >
                                         <img 
-                                            v-if="item.senateur.photo_url"
-                                            :src="item.senateur.photo_url"
-                                            :alt="item.senateur.nom"
+                                            v-if="item.auteur.photo_url"
+                                            :src="item.auteur.photo_url"
+                                            :alt="item.auteur.nom"
                                             class="w-8 h-8 rounded-full object-cover"
                                         />
                                         <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-xs" v-else>
-                                            {{ item.senateur.prenom?.[0] }}{{ item.senateur.nom?.[0] }}
+                                            {{ item.auteur.prenom?.[0] }}{{ item.auteur.nom?.[0] }}
                                         </div>
                                         <div class="min-w-0">
                                             <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
-                                                {{ item.senateur.prenom }} {{ item.senateur.nom }}
-                                            </p>
-                                            <p class="text-xs text-slate-500 truncate">
-                                                {{ item.senateur.groupe }}
+                                                {{ item.auteur.prenom }} {{ item.auteur.nom }}
                                             </p>
                                         </div>
-                                    </Link>
+                                    </component>
                                 </template>
                                 <template v-else>
-                                    <span class="text-sm text-slate-600 dark:text-slate-400">
+                                    <span class="text-sm text-slate-600 dark:text-slate-400 flex-1">
                                         {{ item.code }}
                                     </span>
                                 </template>
