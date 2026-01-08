@@ -341,7 +341,7 @@ const handleRegionLeave = () => {
           <span>{{ regions[hoveredRegion].deputesCount || 0 }} députés</span>
         </div>
         <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-          <span>🏰</span>
+          <span>🔴</span>
           <span>{{ regions[hoveredRegion].senateursCount || 0 }} sénateurs</span>
         </div>
       </div>

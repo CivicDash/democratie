@@ -52,7 +52,7 @@ const timelineSteps = computed(() => {
     baseSteps.push({
       id: 'autre_chambre',
       label: props.proposition.source === 'assemblee' ? 'Sénat' : 'Assemblée',
-      icon: props.proposition.source === 'assemblee' ? '🏰' : '🏛️',
+      icon: props.proposition.source === 'assemblee' ? '🔴' : '🏛️',
       description: 'Examen par l\'autre chambre',
     });
   }

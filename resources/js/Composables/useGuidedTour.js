@@ -181,7 +181,7 @@ const tours = {
     gouvernement: {
         id: 'gouvernement',
         name: 'Le Gouvernement',
-        icon: '🏰',
+        icon: '🏛️',
         description: 'Explorez la composition du gouvernement actuel et l\'historique',
         route: 'gouvernement.index',
         steps: [

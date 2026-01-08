@@ -119,7 +119,7 @@ const hasActiveFilters = computed(() => search.value || legislature.value !== '1
               :href="route('legislation.scrutins-senat.index')"
               class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition border border-white/20 text-sm"
             >
-              <span>🏰</span>
+              <span>🔴</span>
               Voir les scrutins du Sénat →
             </Link>
           </div>

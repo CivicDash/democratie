@@ -210,7 +210,7 @@ const getStatutLabel = (statut) => {
                                     :href="evt.urlDossier"
                                     class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition font-semibold"
                                 >
-                                    🏰 Voir le compte-rendu
+                                    📜 Voir le compte-rendu
                                 </Link>
                                 
                                 <Link

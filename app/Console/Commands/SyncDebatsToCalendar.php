@@ -81,7 +81,7 @@ class SyncDebatsToCalendar extends Command
                 'url_source' => $debat->url_compte_rendu,
                 'url_dossier' => $urlInterne,
                 'couleur' => '#DC143C',
-                'icone' => '🏰',
+                'icone' => '🔴',
                 'statut' => 'confirme',
             ];
 

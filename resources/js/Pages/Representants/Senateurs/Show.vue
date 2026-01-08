@@ -93,7 +93,7 @@ const getSegmentHeight = (value, total) => {
         <!-- Breadcrumb -->
         <Breadcrumb :items="[
           { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
-          { label: 'Sénateurs', href: route('representants.senateurs.index'), icon: '🏰' },
+          { label: 'Sénateurs', href: route('representants.senateurs.index'), icon: '🔴' },
           { label: senateur.nom, icon: '👤' }
         ]" />
 

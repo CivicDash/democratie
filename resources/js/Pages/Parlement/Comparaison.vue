@@ -22,7 +22,7 @@ const breadcrumbs = [
 // Configuration des 3 catégories
 const categories = [
     { key: 'deputes', label: 'Députés', icon: '🏛️', color: 'blue', bgGradient: 'from-blue-500 to-blue-600' },
-    { key: 'senateurs', label: 'Sénateurs', icon: '🏰', color: 'purple', bgGradient: 'from-purple-500 to-purple-600' },
+    { key: 'senateurs', label: 'Sénateurs', icon: '🔴', color: 'purple', bgGradient: 'from-purple-500 to-purple-600' },
     { key: 'maires', label: 'Maires', icon: '🏘️', color: 'emerald', bgGradient: 'from-emerald-500 to-emerald-600' },
 ];
 

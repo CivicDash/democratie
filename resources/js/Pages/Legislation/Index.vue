@@ -54,7 +54,7 @@ const getSourceBadge = (source) => {
  * Get source icon
  */
 const getSourceIcon = (source) => {
-  return source === 'assemblee' ? '🏛️' : '🏰';
+  return source === 'assemblee' ? '🏛️' : '🔴';
 };
 
 /**
