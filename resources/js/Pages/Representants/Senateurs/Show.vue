@@ -243,36 +243,37 @@ const getSegmentHeight = (value, total) => {
                 </div>
               </div>
 
-              <!-- Statistiques rapides - 5 indicateurs clés -->
-              <div v-if="senateur.statistiques" class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6 mb-4">
-                <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div class="text-2xl font-bold text-blue-600">{{ senateur.statistiques.votes_total }}</div>
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Votes</div>
-                </div>
-                <div class="text-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                  <div class="text-2xl font-bold text-emerald-600">{{ senateur.statistiques.taux_presence }}%</div>
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Présence</div>
-                </div>
-                <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <div class="text-2xl font-bold text-green-600">{{ senateur.statistiques.amendements_total }}</div>
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Amendements</div>
-                </div>
-                <div class="text-center p-3 bg-rose-50 dark:bg-rose-900/20 rounded-lg">
-                  <div class="text-2xl font-bold text-rose-600">{{ senateur.statistiques.interventions_total || 0 }}</div>
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Interventions</div>
-                </div>
-                <div class="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <div class="text-2xl font-bold text-purple-600">{{ senateur.statistiques.taux_adoption_amendements }}%</div>
-                  <div class="text-xs text-gray-600 dark:text-gray-400">Taux adoption</div>
-                </div>
-              </div>
-
             </div>
           </div>
           
-          <!-- Navigation vers pages détaillées (pleine largeur) -->
+          <!-- Statistiques et Navigation (pleine largeur) -->
           <div v-if="senateur?.matricule" class="pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 mb-4">
+            <!-- Statistiques rapides - 5 indicateurs clés -->
+            <div v-if="senateur.statistiques" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+              <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <div class="text-2xl font-bold text-blue-600">{{ senateur.statistiques.votes_total }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Votes</div>
+              </div>
+              <div class="text-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                <div class="text-2xl font-bold text-emerald-600">{{ senateur.statistiques.taux_presence }}%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Présence</div>
+              </div>
+              <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div class="text-2xl font-bold text-green-600">{{ senateur.statistiques.amendements_total }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Amendements</div>
+              </div>
+              <div class="text-center p-3 bg-rose-50 dark:bg-rose-900/20 rounded-lg">
+                <div class="text-2xl font-bold text-rose-600">{{ senateur.statistiques.interventions_total || 0 }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Interventions</div>
+              </div>
+              <div class="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                <div class="text-2xl font-bold text-purple-600">{{ senateur.statistiques.taux_adoption_amendements }}%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">Taux adoption</div>
+              </div>
+            </div>
+
+            <!-- Boutons de navigation -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Link
                 :href="route('representants.senateurs.votes', senateur.matricule)"
                 class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
