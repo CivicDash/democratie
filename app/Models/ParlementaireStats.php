@@ -117,6 +117,7 @@ class ParlementaireStats extends Model
             'discipline_groupe' => $this->discipline_groupe ? round($this->discipline_groupe, 1) : null,
             'votes_rebelles' => $this->votes_rebelles,
             'questions_total' => $this->questions_total,
+            'interventions_total' => $this->interventions_total ?? 0,
             'calculated_at' => $this->calculated_at?->format('d/m/Y H:i'),
         ];
     }
