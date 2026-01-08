@@ -143,6 +143,12 @@
   - Commande : `import:questions-senat`
   - Pages `/questions/senat` avec filtres, stats, détail
   - Liaison avec sénateurs existants
+- [x] **Débats en séance publique Sénat** - Import SQL data.senat.fr ✅ *Terminé 08/01/2026*
+  - Source : `https://data.senat.fr/data/debats/debats.zip`
+  - Sections de discussion législatives et diverses
+  - Interventions des sénateurs avec analyse
+  - Liaison avec lectures et dossiers législatifs
+  - Commande : `senat:import-debats`
 - [ ] **Textes Akoma Ntoso** (Sénat) - Documents législatifs
 - [x] **Proportion hommes/femmes (statistiques)** ✅ *Terminé 07/01/2026*
   - Stats parité dans `ParlementController::calculateStats()`
@@ -1813,6 +1819,31 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
     - Débat structuré (threads, votes, signalements) → CONFIRMÉ FONCTIONNEL
     - Import OFGL → SCRIPT PRÊT (`import:ofgl-budgets`)
 
+### ✅ Accompli semaine 7 (8 janvier 2026)
+42. ✅ **Import Débats Sénat** : Comptes-rendus des séances publiques
+    - Source : `https://data.senat.fr/data/debats/debats.zip` (31 Mo)
+    - Tables : `senat_debats`, `senat_sections_discussion`, `senat_sections_diverses`
+    - Tables : `senat_interventions_legislatives`, `senat_interventions_diverses`
+    - Tables : `senat_types_section`, `senat_lectures_debats`
+    - Migration complète `2026_01_08_140000_create_debats_senat_tables.php`
+    - Commande `senat:import-debats` avec options :
+      - `--fresh` : Vider les tables avant import
+      - `--download` : Télécharger le fichier avant import
+      - `--since=YYYY-MM-DD` : Importer depuis une date
+      - `--year=YYYY` : Année spécifique
+    - Modèles Laravel : `SenatDebat`, `SenatSectionDiscussion`, `SenatSectionDiverse`
+    - Modèles Laravel : `SenatInterventionLegislative`, `SenatInterventionDiverse`
+    - Modèles Laravel : `SenatTypeSection`, `SenatLectureDebat`
+    - Liaison interventions ↔ sénateurs via matricule
+43. ✅ **Amélioration contextualisation amendements** :
+    - Champs `dispositif` et `expose` déjà présents sur `AmendementAN`
+    - Relations vers textes législatifs et dossiers
+44. ✅ **Améliorations UI/UX** :
+    - Composant `Toggle.vue` compact et élégant
+    - Composant `Checkbox.vue` avec tailles configurables (sm/md/lg)
+    - Meilleur espacement sur Login, NotificationSettings, EluFollowButton
+45. ✅ **Fix Suivi d'élus** : Correction requêtes SQL et middleware CSRF
+
 ### 🔄 En cours
 1. ✅ Refonte système Idées/Propositions citoyennes → **TERMINÉ**
 2. ✅ Interpellation des élus → **TERMINÉ**
@@ -1971,6 +2002,6 @@ CivicDash vise à devenir **la référence citoyenne** pour comprendre et partic
 ---
 
 **Maintenu par** : CivicDash Core Team / Civis Consilium  
-**Version** : 2.6  
-**Dernière mise à jour** : 7 janvier 2026  
+**Version** : 2.7  
+**Dernière mise à jour** : 8 janvier 2026  
 **Licence** : AGPL-3.0 Open Source
