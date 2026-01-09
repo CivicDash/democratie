@@ -31,6 +31,37 @@ const amendementsPage = ref(1);
 const amendementsLastPage = ref(1);
 const amendementsError = ref(null);
 
+// Modal détail amendement
+const selectedAmendement = ref(null);
+const showAmendementModal = ref(false);
+
+const openAmendementDetail = (amd) => {
+    selectedAmendement.value = amd;
+    showAmendementModal.value = true;
+};
+
+const closeAmendementModal = () => {
+    showAmendementModal.value = false;
+    selectedAmendement.value = null;
+};
+
+// Décoder les entités HTML
+const decodeHtml = (html) => {
+    if (!html) return '';
+    const txt = document.createElement('textarea');
+    txt.innerHTML = html;
+    return txt.value;
+};
+
+// Extraire le texte pur du HTML
+const stripHtml = (html) => {
+    if (!html) return '';
+    const decoded = decodeHtml(html);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = decoded;
+    return tmp.textContent || tmp.innerText || '';
+};
+
 // Charger les amendements via API
 const loadAmendements = async (page = 1) => {
     if (amendementsLoading.value) return;
@@ -504,13 +535,11 @@ const getChambreConfig = (code) => chambreConfig[code] || { icon: '📋', name: 
 
                             <!-- Amendements List (une fois chargés) -->
                             <div v-if="amendementsLoaded && amendements.length > 0" class="divide-y divide-slate-100 dark:divide-gray-700 max-h-96 overflow-y-auto">
-                                <a 
+                                <button 
                                     v-for="amd in amendements" 
                                     :key="amd.uid"
-                                    :href="amd.url || (amd.chambre === 'AN' ? `https://www.assemblee-nationale.fr/dyn/17/amendements/${amd.texte_ref || ''}/${amd.numero}` : `https://www.senat.fr/amendements/${amd.session || '2024-2025'}/${amd.texte_ref || ''}/${amd.numero}.html`)"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="block p-4 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors group"
+                                    @click="openAmendementDetail(amd)"
+                                    class="w-full text-left block p-4 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors group"
                                 >
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="flex-1 min-w-0">
@@ -534,15 +563,15 @@ const getChambreConfig = (code) => chambreConfig[code] || { icon: '📋', name: 
                                                 {{ amd.article }}
                                             </p>
                                             <p v-if="amd.expose" class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                                                {{ amd.expose }}
+                                                {{ stripHtml(amd.expose) }}
                                             </p>
                                             <div class="flex items-center gap-3 mt-2 text-xs text-slate-500">
-                                                <span>👤 {{ amd.auteur }}</span>
+                                                <span>👤 {{ decodeHtml(amd.auteur) }}</span>
                                                 <span v-if="amd.date_depot">📅 {{ amd.date_depot }}</span>
                                             </div>
                                         </div>
                                     </div>
-                                </a>
+                                </button>
                             </div>
 
                             <!-- Bouton "Charger plus" -->
@@ -958,4 +987,139 @@ const getChambreConfig = (code) => chambreConfig[code] || { icon: '📋', name: 
             </main>
         </div>
     </AuthenticatedLayout>
+
+    <!-- Modal Détail Amendement -->
+    <Teleport to="body">
+        <Transition
+            enter-active-class="duration-200 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="duration-150 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <div v-if="showAmendementModal && selectedAmendement" class="fixed inset-0 z-50 overflow-y-auto">
+                <!-- Backdrop -->
+                <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="closeAmendementModal" />
+
+                <!-- Modal -->
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div class="relative w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-2xl">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-slate-50 dark:bg-gray-800/50">
+                            <div class="flex items-center gap-3">
+                                <span 
+                                    :class="selectedAmendement.chambre === 'AN' ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'"
+                                    class="px-2 py-1 rounded text-sm font-bold"
+                                >
+                                    {{ selectedAmendement.chambre }}
+                                </span>
+                                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    Amendement {{ selectedAmendement.numero }}
+                                </h2>
+                                <span 
+                                    :class="getSortColor(selectedAmendement.sort_code)"
+                                    class="px-2 py-1 rounded text-sm font-medium"
+                                >
+                                    {{ selectedAmendement.sort }}
+                                </span>
+                            </div>
+                            <button
+                                @click="closeAmendementModal"
+                                class="rounded-full p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="px-6 py-4 max-h-[70vh] overflow-y-auto space-y-4">
+                            <!-- Infos générales -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-slate-500 dark:text-slate-400">Article</span>
+                                    <p class="font-medium text-slate-900 dark:text-white">{{ selectedAmendement.article }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500 dark:text-slate-400">Auteur</span>
+                                    <p class="font-medium text-slate-900 dark:text-white">{{ decodeHtml(selectedAmendement.auteur) }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500 dark:text-slate-400">Date de dépôt</span>
+                                    <p class="font-medium text-slate-900 dark:text-white">{{ selectedAmendement.date_depot || 'Non renseignée' }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500 dark:text-slate-400">État</span>
+                                    <p class="font-medium text-slate-900 dark:text-white">{{ selectedAmendement.etat || selectedAmendement.sort }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Exposé des motifs -->
+                            <div v-if="selectedAmendement.expose">
+                                <h4 class="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                                    <span>📝</span> Exposé des motifs
+                                </h4>
+                                <div 
+                                    class="prose prose-sm dark:prose-invert max-w-none bg-slate-50 dark:bg-gray-700/50 rounded-lg p-4 text-slate-700 dark:text-slate-300"
+                                    v-html="decodeHtml(selectedAmendement.expose)"
+                                />
+                            </div>
+
+                            <!-- Dispositif -->
+                            <div v-if="selectedAmendement.dispositif">
+                                <h4 class="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                                    <span>⚖️</span> Dispositif
+                                </h4>
+                                <div 
+                                    class="prose prose-sm dark:prose-invert max-w-none bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 text-slate-700 dark:text-slate-300"
+                                    v-html="decodeHtml(selectedAmendement.dispositif)"
+                                />
+                            </div>
+
+                            <!-- Message si pas de contenu -->
+                            <div v-if="!selectedAmendement.expose && !selectedAmendement.dispositif" class="text-center py-8 text-slate-500">
+                                <span class="text-4xl">📄</span>
+                                <p class="mt-2">Le contenu détaillé de cet amendement n'est pas disponible.</p>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-6 py-3 flex justify-between items-center">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">
+                                {{ selectedAmendement.uid }}
+                            </span>
+                            <div class="flex gap-2">
+                                <a
+                                    v-if="selectedAmendement.chambre === 'AN'"
+                                    :href="`https://www.assemblee-nationale.fr/dyn/17/amendements/${selectedAmendement.texte_ref || ''}/${selectedAmendement.numero}`"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="px-3 py-1.5 bg-sky-100 hover:bg-sky-200 text-sky-700 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    🏛️ Voir sur assemblee-nationale.fr
+                                </a>
+                                <a
+                                    v-else
+                                    :href="`https://www.senat.fr/amendements/${selectedAmendement.session || '2024-2025'}/${selectedAmendement.texte_ref || ''}/${selectedAmendement.numero}.html`"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    🔴 Voir sur senat.fr
+                                </a>
+                                <button
+                                    @click="closeAmendementModal"
+                                    class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    Fermer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
