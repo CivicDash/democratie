@@ -189,7 +189,7 @@ const hasActiveFilters = computed(() => search.value || legislature.value !== '1
                     N° {{ scrutin.numero }}
                   </span>
                   <span class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ formatDate(scrutin.date) }}
+                    {{ scrutin.date || 'Date inconnue' }}
                   </span>
                   <span
                     v-if="scrutin.resultat_libelle"
