@@ -129,12 +129,12 @@ if [ "$1" == "--check-imports" ] || [ "$2" == "--check-imports" ] || [ "$3" == "
     log_step "Statistiques des données importées:"
     docker compose exec -T app php artisan tinker --execute="
         echo '📊 Statistiques actuelles:' . PHP_EOL;
-        echo '   Députés: ' . \App\Models\Depute::count() . PHP_EOL;
+        echo '   Acteurs AN (députés): ' . \App\Models\ActeurAN::count() . PHP_EOL;
         echo '   Sénateurs: ' . \App\Models\Senateur::count() . PHP_EOL;
         echo '   Dossiers législatifs: ' . \App\Models\DossierLegislatif::count() . PHP_EOL;
         echo '   Amendements AN: ' . \App\Models\AmendementAN::count() . PHP_EOL;
         echo '   Scrutins AN: ' . \App\Models\ScrutinAN::count() . PHP_EOL;
-        echo '   Questions: ' . \App\Models\QuestionAN::count() . PHP_EOL;
+        echo '   Questions AN: ' . \App\Models\QuestionAN::count() . PHP_EOL;
         echo '   Événements calendrier: ' . \App\Models\EvenementLegislatif::count() . PHP_EOL;
         echo '   Débats Sénat: ' . \App\Models\SenatDebat::count() . PHP_EOL;
         echo '   Budgets communes: ' . \App\Models\CommuneBudget::count() . PHP_EOL;

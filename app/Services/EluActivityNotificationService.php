@@ -64,12 +64,12 @@ class EluActivityNotificationService
     private function detectNewVotes(Collection $deputeUids, \DateTime $since): Collection
     {
         $votes = DB::table('votes_individuels_an as v')
-            ->join('scrutins_an as s', 'v.scrutin_id', '=', 's.id')
-            ->join('acteurs_an as a', 'v.acteur_uid', '=', 'a.uid')
-            ->whereIn('v.acteur_uid', $deputeUids)
+            ->join('scrutins_an as s', 'v.scrutin_ref', '=', 's.uid')
+            ->join('acteurs_an as a', 'v.acteur_ref', '=', 'a.uid')
+            ->whereIn('v.acteur_ref', $deputeUids)
             ->where('s.date_scrutin', '>=', $since->format('Y-m-d'))
             ->select([
-                'v.acteur_uid as elu_id',
+                'v.acteur_ref as elu_id',
                 DB::raw("'depute' as elu_type"),
                 DB::raw("'votes' as activity_type"),
                 's.id as activity_id',
