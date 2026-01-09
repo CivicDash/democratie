@@ -79,9 +79,9 @@ class DashboardController extends Controller
                 
                 return [
                     'id' => $stats->id,
-                    'loicod' => $stats->loi_cod,
-                    'numero' => $loi->numero ?? substr($stats->loi_cod, -4),
-                    'titre' => $loi->loitit ?: $loi->loiint ?: 'Loi ' . $stats->loi_cod,
+                    'loicod' => trim($stats->loi_cod),
+                    'numero' => $loi->numero ?? substr(trim($stats->loi_cod), -4),
+                    'titre' => $loi->loitit ?: $loi->loiint ?: 'Loi ' . trim($stats->loi_cod),
                     'source' => $source,
                     'statut' => $loi->etat?->etaloilib ?? 'En cours',
                     'date_depot' => null,
@@ -113,9 +113,9 @@ class DashboardController extends Controller
                         $stats = CitizenLawStats::where('loi_cod', $loi->loicod)->first();
                         
                         return [
-                            'id' => $loi->loicod,
-                            'loicod' => $loi->loicod,
-                            'numero' => $loi->numero ?? substr($loi->loicod, -4),
+                            'id' => trim($loi->loicod),
+                            'loicod' => trim($loi->loicod),
+                            'numero' => $loi->numero ?? substr(trim($loi->loicod), -4),
                             'titre' => $loi->loitit ?: $loi->loiint,
                             'source' => $source,
                             'statut' => $loi->etat?->etaloilib ?? 'En cours',

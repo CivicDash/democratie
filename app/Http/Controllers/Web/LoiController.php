@@ -1035,7 +1035,7 @@ class LoiController extends Controller
                 'numero' => trim($loi->numero ?? ''),
                 'etat' => $loi->etat_libelle,
                 'etat_couleur' => $loi->etat_couleur,
-                'url' => route('lois.show', $loi->loicod),
+                'url' => route('lois.show', ['loicod' => trim($loi->loicod)]),
             ]);
 
         return response()->json($lois);
