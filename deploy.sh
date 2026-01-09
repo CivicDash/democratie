@@ -131,7 +131,8 @@ if [ "$1" == "--check-imports" ] || [ "$2" == "--check-imports" ] || [ "$3" == "
         echo '📊 Statistiques actuelles:' . PHP_EOL;
         echo '   Acteurs AN (députés): ' . \App\Models\ActeurAN::count() . PHP_EOL;
         echo '   Sénateurs: ' . \App\Models\Senateur::count() . PHP_EOL;
-        echo '   Dossiers législatifs: ' . \App\Models\DossierLegislatif::count() . PHP_EOL;
+        echo '   Dossiers AN: ' . \App\Models\DossierLegislatifAN::count() . PHP_EOL;
+        echo '   Dossiers Sénat: ' . \App\Models\DossierLegislatifSenat::count() . PHP_EOL;
         echo '   Amendements AN: ' . \App\Models\AmendementAN::count() . PHP_EOL;
         echo '   Scrutins AN: ' . \App\Models\ScrutinAN::count() . PHP_EOL;
         echo '   Questions AN: ' . \App\Models\QuestionAN::count() . PHP_EOL;
