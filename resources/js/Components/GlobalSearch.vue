@@ -7,7 +7,7 @@ const props = defineProps({
     compact: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'openPalette']);
 
 // State
 const query = ref('');
@@ -178,12 +178,18 @@ const groupedResults = computed(() => {
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
             </div>
-            <!-- Keyboard Shortcut -->
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <kbd class="hidden xl:inline-flex items-center px-1.5 py-0.5 text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-200 dark:bg-gray-600 rounded border border-gray-300 dark:border-gray-500">
-                    ⌘K
+            <!-- Keyboard Shortcut - Cliquable pour ouvrir la CommandPalette -->
+            <button
+                type="button"
+                @click.prevent="emit('openPalette')"
+                class="absolute inset-y-0 right-0 flex items-center pr-3 hover:opacity-80 transition-opacity"
+                title="Recherche avancée (/ ou Ctrl+K)"
+            >
+                <kbd class="hidden xl:inline-flex items-center px-1.5 py-0.5 text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-200 dark:bg-gray-600 rounded border border-gray-300 dark:border-gray-500 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                    /
                 </kbd>
-            </div>
+                <span class="xl:hidden text-gray-400 text-sm">🔍</span>
+            </button>
         </div>
 
         <!-- Results Dropdown -->

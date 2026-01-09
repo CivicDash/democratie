@@ -359,6 +359,7 @@ class ImportAmendementsAN extends Command
 
     /**
      * Extrait le texte d'un champ qui peut être string, array ou null
+     * Décode les entités HTML (&#x00E9; -> é)
      */
     private function extractText($value): ?string
     {
@@ -366,9 +367,9 @@ class ImportAmendementsAN extends Command
             return null;
         }
 
-        // Si c'est une string, la retourner
+        // Si c'est une string, décoder les entités HTML et retourner
         if (is_string($value)) {
-            return $value;
+            return html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }
 
         // Si c'est un array, essayer d'extraire le texte

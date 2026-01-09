@@ -65,8 +65,8 @@ const handleKeyboardShortcuts = (e) => {
     // Ignorer si on est dans un champ de saisie (sauf pour certains raccourcis)
     const isInputFocused = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
     
-    // Ctrl+K ou Cmd+K : Ouvrir la CommandPalette
-    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+    // Ctrl+K, Cmd+K, ou Ctrl+/ : Ouvrir la CommandPalette
+    if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "/")) {
         e.preventDefault();
         showCommandPalette.value = true;
         return;
@@ -473,7 +473,11 @@ onUnmounted(() => {
                         <!-- Right side: Search + Actions -->
                         <div class="hidden lg:flex lg:items-center lg:space-x-4">
                             <!-- Search Bar Desktop avec suggestions -->
-                            <GlobalSearch data-tour="search" placeholder="Rechercher élus, lois, idées..." />
+                            <GlobalSearch 
+                                data-tour="search" 
+                                placeholder="Rechercher élus, lois, idées..." 
+                                @open-palette="showCommandPalette = true"
+                            />
                             
                             <!-- Dark Mode Toggle -->
                             <button
@@ -530,10 +534,11 @@ onUnmounted(() => {
 
                         <!-- Mobile: Right actions -->
                         <div class="flex items-center gap-2 lg:hidden">
-                            <!-- Search toggle mobile -->
+                            <!-- Search toggle mobile - Ouvre la CommandPalette -->
                             <button
-                                @click="showMobileSearch = !showMobileSearch"
+                                @click="showCommandPalette = true"
                                 class="inline-flex items-center justify-center rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
+                                title="Rechercher"
                             >
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

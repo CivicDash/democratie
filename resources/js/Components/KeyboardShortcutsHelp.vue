@@ -16,8 +16,10 @@ const shortcutGroups = [
     {
         title: "Navigation Générale",
         shortcuts: [
-            { keys: ["⌘/Ctrl", "K"], description: "Ouvrir la recherche rapide" },
-            { keys: ["/"], description: "Focus sur la recherche" },
+            { keys: ["/"], description: "Ouvrir la recherche rapide" },
+            { keys: ["Ctrl", "/"], description: "Ouvrir la recherche (Windows)" },
+            { keys: ["⌘", "K"], description: "Ouvrir la recherche (Mac)" },
+            { keys: ["🔍"], description: "Cliquer sur l'icône loupe" },
             { keys: ["Échap"], description: "Fermer les modales" },
             { keys: ["?"], description: "Afficher cette aide" },
         ],
