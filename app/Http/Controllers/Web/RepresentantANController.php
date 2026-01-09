@@ -717,6 +717,7 @@ class RepresentantANController extends Controller
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
+                'url_externe' => "https://www.assemblee-nationale.fr/dyn/recherche-amendements?uid={$amendement->uid}",
                 'dossier' => $amendement->dossier ? [
                     'uid' => $amendement->dossier->uid,
                     'titre_court' => $amendement->dossier->titre_court ?? $amendement->dossier->titre,
@@ -1394,6 +1395,7 @@ class RepresentantANController extends Controller
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle_formate,
+                'url_externe' => $amendement->url_senat,
             ]);
 
         return Inertia::render('Representants/Senateurs/Activite', [

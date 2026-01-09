@@ -219,10 +219,13 @@ const getSortBadgeClass = (sortCode) => {
             </Link>
           </div>
           <div class="space-y-3">
-            <div
+            <a
               v-for="amendement in derniers_amendements"
               :key="amendement.id"
-              class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-green-400 dark:hover:border-green-600 transition"
+              :href="amendement.url_externe"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="block border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-green-400 dark:hover:border-green-600 hover:shadow-md transition cursor-pointer"
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="flex items-start gap-3 flex-1">
@@ -237,11 +240,14 @@ const getSortBadgeClass = (sortCode) => {
                     <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">{{ amendement.date_depot }}</div>
                   </div>
                 </div>
-                <Badge :class="getSortBadgeClass(amendement.sort_code)">
-                  {{ amendement.sort_libelle || amendement.sort_code }}
-                </Badge>
+                <div class="flex items-center gap-2">
+                  <Badge :class="getSortBadgeClass(amendement.sort_code)">
+                    {{ amendement.sort_libelle || amendement.sort_code }}
+                  </Badge>
+                  <span class="text-gray-400 text-sm">↗️</span>
+                </div>
               </div>
-            </div>
+            </a>
           </div>
         </Card>
 

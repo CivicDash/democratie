@@ -284,10 +284,13 @@ const maxActivite = computed(() => {
               </Link>
             </div>
             <div class="space-y-3">
-              <div
+              <a
                 v-for="amendement in derniers_amendements"
                 :key="amendement.uid"
-                class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                :href="amendement.url_externe"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md transition cursor-pointer"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex-1">
@@ -315,8 +318,9 @@ const maxActivite = computed(() => {
                       {{ amendement.texte?.titre_court || amendement.dossier?.titre_court }}
                     </p>
                   </div>
+                  <span class="text-gray-400 text-sm flex-shrink-0">↗️</span>
                 </div>
-              </div>
+              </a>
             </div>
           </Card>
         </div>

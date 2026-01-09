@@ -224,5 +224,21 @@ class AmendementSenat extends Model
         $decoded = html_entity_decode($this->expose, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         return strip_tags($decoded);
     }
+
+    /**
+     * URL vers le Sénat pour cet amendement
+     * Format: https://www.senat.fr/amendements/{session}/{texte_ref}/{numero}.html
+     */
+    public function getUrlSenatAttribute(): ?string
+    {
+        // Si l'URL est déjà stockée, la retourner
+        if (!empty($this->attributes['url_senat'])) {
+            return $this->attributes['url_senat'];
+        }
+        
+        // Sinon, construire une URL de recherche générique
+        $numero = urlencode($this->numero ?? '');
+        return "https://www.senat.fr/recherche/amendements?tri=amendement&numero={$numero}";
+    }
 }
 
