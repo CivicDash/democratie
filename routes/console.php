@@ -258,3 +258,15 @@ Schedule::command('senat:import-debats --download')
     ->weeklyOn(0, '04:00')
     ->description('Mise à jour hebdomadaire des débats Sénat')
     ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| ÉLECTIONS MUNICIPALES 2026
+|--------------------------------------------------------------------------
+*/
+
+// Rappels candidatures (J-7, J-3, J-1 avant date limite dépôt)
+Schedule::command('candidatures:send-reminders')
+    ->dailyAt('09:00')
+    ->description('Envoi rappels candidatures municipales')
+    ->withoutOverlapping();

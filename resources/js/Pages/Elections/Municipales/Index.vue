@@ -83,6 +83,12 @@ const joursAvantDepot = getJoursRestants(props.dates_election.limite_depot);
                             🔍 Trouver les candidats dans ma commune
                         </Link>
                         <Link
+                            :href="route('elections.municipales.carte')"
+                            class="inline-flex items-center gap-2 px-8 py-4 bg-white/20 text-white font-bold rounded-xl hover:bg-white/30 transition shadow-lg border border-white/30"
+                        >
+                            🗺️ Voir la carte
+                        </Link>
+                        <Link
                             :href="route('elections.municipales.tutoriel')"
                             class="inline-flex items-center gap-2 px-8 py-4 bg-fuchsia-500 text-white font-bold rounded-xl hover:bg-fuchsia-400 transition shadow-lg hover:shadow-xl"
                         >

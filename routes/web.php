@@ -240,10 +240,14 @@ Route::prefix('elections')->name('elections.')->middleware('auth')->group(functi
     Route::prefix('municipales')->name('municipales.')->group(function () {
         // Pages publiques
         Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'index'])->name('index');
+        Route::get('/carte', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'carte'])->name('carte');
         Route::get('/recherche', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'recherche'])->name('recherche');
         Route::get('/tutoriel', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'tutoriel'])->name('tutoriel');
         Route::get('/liste/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'showListe'])->name('liste');
         Route::get('/candidat/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'showCandidat'])->name('candidat');
+        
+        // API pour la carte
+        Route::get('/api/departement/{departement}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiListesParDepartement'])->name('api.departement');
         
         // Espace candidat (authentifié)
         Route::prefix('espace-candidat')->name('espace-candidat.')->group(function () {
