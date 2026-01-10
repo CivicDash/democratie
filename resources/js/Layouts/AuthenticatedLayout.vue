@@ -440,23 +440,61 @@ onUnmounted(() => {
                                     </template>
                                 </Dropdown>
                                 
-                                <!-- Modération (si modérateur/admin) -->
-                                <NavLink
-                                    v-if="$page.props.auth.user.roles?.includes('moderator') || $page.props.auth.user.roles?.includes('admin')"
-                                    :href="route('moderation.dashboard')"
-                                    :active="route().current('moderation.*')"
-                                >
-                                    🛡️ Modération
-                                </NavLink>
-                                
-                                <!-- Administration (si admin) -->
-                                <NavLink
-                                    v-if="$page.props.auth.user.roles?.includes('admin')"
-                                    :href="route('admin.dashboard')"
-                                    :active="route().current('admin.*')"
-                                >
-                                    ⚙️ Admin
-                                </NavLink>
+                                <!-- 🗳️ ÉLECTIONS -->
+                                <Dropdown align="left" width="72">
+                                    <template #trigger>
+                                        <button
+                                            class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                            :class="route().current('elections.*') ? 'border-blue-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                        >
+                                            🗳️ Élections
+                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <template #content>
+                                        <div class="p-3 space-y-1">
+                                            <MegaMenuLink
+                                                :href="route('elections.hub')"
+                                                icon="📅"
+                                                title="Calendrier électoral"
+                                                description="Prochaines échéances"
+                                            />
+                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
+                                            <MegaMenuLink
+                                                :href="route('elections.municipales')"
+                                                icon="🏘️"
+                                                title="Municipales"
+                                                description="Mars 2026"
+                                                badge="34 914"
+                                                badge-color="emerald"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('elections.legislatives')"
+                                                icon="🏛️"
+                                                title="Législatives"
+                                                description="Juin 2027"
+                                                badge="577"
+                                                badge-color="indigo"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('elections.senatoriales')"
+                                                icon="🔴"
+                                                title="Sénatoriales"
+                                                description="Septembre 2026"
+                                                badge="170"
+                                                badge-color="rose"
+                                            />
+                                            <MegaMenuLink
+                                                :href="route('elections.presidentielle')"
+                                                icon="🇫🇷"
+                                                title="Présidentielle"
+                                                description="Avril 2027"
+                                            />
+                                        </div>
+                                    </template>
+                                </Dropdown>
                                 
                                 <!-- Espace Élu (si élu vérifié) -->
                                 <NavLink
@@ -524,6 +562,23 @@ onUnmounted(() => {
                                     <DropdownLink :href="route('profile.gamification')">
                                         🏆 Mes Succès
                                     </DropdownLink>
+                                    
+                                    <!-- Modération (si modérateur/admin) -->
+                                    <template v-if="$page.props.auth.user.roles?.includes('moderator') || $page.props.auth.user.roles?.includes('admin')">
+                                        <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+                                        <DropdownLink :href="route('moderation.dashboard')">
+                                            🛡️ Modération
+                                        </DropdownLink>
+                                    </template>
+                                    
+                                    <!-- Administration (si admin) -->
+                                    <DropdownLink 
+                                        v-if="$page.props.auth.user.roles?.includes('admin')"
+                                        :href="route('admin.dashboard')"
+                                    >
+                                        ⚙️ Administration
+                                    </DropdownLink>
+                                    
                                     <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                     <DropdownLink :href="route('logout')" method="post" as="button">
                                         🚪 Déconnexion
@@ -694,6 +749,26 @@ onUnmounted(() => {
                             </ResponsiveNavLink>
                         </div>
                         
+                        <!-- 🗳️ ÉLECTIONS -->
+                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
+                            <button
+                                @click="toggleSection('elections')"
+                                class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                            >
+                                <span>🗳️ Élections</span>
+                                <svg :class="{ 'rotate-180': expandedSection === 'elections' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <div v-show="expandedSection === 'elections'" class="pl-4 space-y-1 mt-1">
+                                <ResponsiveNavLink :href="route('elections.hub')">📅 Calendrier électoral</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('elections.municipales')">🏘️ Municipales</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('elections.legislatives')">🏛️ Législatives</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('elections.senatoriales')">🔴 Sénatoriales</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('elections.presidentielle')">🇫🇷 Présidentielle</ResponsiveNavLink>
+                            </div>
+                        </div>
+                        
                         <!-- ⚖️ LÉGISLATION -->
                         <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
                             <button
@@ -786,6 +861,25 @@ onUnmounted(() => {
                             <ResponsiveNavLink :href="route('profile.edit')">👤 Mon Profil</ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('profile.elus-suivis')">🔔 Élus suivis</ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('profile.gamification')">🏆 Mes Succès</ResponsiveNavLink>
+                            
+                            <!-- Modération (si modérateur/admin) -->
+                            <ResponsiveNavLink 
+                                v-if="$page.props.auth.user.roles?.includes('moderator') || $page.props.auth.user.roles?.includes('admin')"
+                                :href="route('moderation.dashboard')"
+                                class="text-amber-600 dark:text-amber-400"
+                            >
+                                🛡️ Modération
+                            </ResponsiveNavLink>
+                            
+                            <!-- Administration (si admin) -->
+                            <ResponsiveNavLink 
+                                v-if="$page.props.auth.user.roles?.includes('admin')"
+                                :href="route('admin.dashboard')"
+                                class="text-red-600 dark:text-red-400"
+                            >
+                                ⚙️ Administration
+                            </ResponsiveNavLink>
+                            
                             <ResponsiveNavLink :href="route('logout')" method="post" as="button">
                                 🚪 Déconnexion
                             </ResponsiveNavLink>

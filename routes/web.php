@@ -226,6 +226,17 @@ Route::prefix('parlement')->name('parlement.')->middleware('auth')->group(functi
 });
 
 // ==========================================
+// ÉLECTIONS - Hub et pages par type
+// ==========================================
+Route::prefix('elections')->name('elections.')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Web\ElectionsController::class, 'hub'])->name('hub');
+    Route::get('/municipales', [\App\Http\Controllers\Web\ElectionsController::class, 'municipales'])->name('municipales');
+    Route::get('/legislatives', [\App\Http\Controllers\Web\ElectionsController::class, 'legislatives'])->name('legislatives');
+    Route::get('/senatoriales', [\App\Http\Controllers\Web\ElectionsController::class, 'senatoriales'])->name('senatoriales');
+    Route::get('/presidentielle', [\App\Http\Controllers\Web\ElectionsController::class, 'presidentielle'])->name('presidentielle');
+});
+
+// ==========================================
 // LOIS - Cycle de vie législatif (Authentifié)
 // ==========================================
 Route::prefix('lois')->name('lois.')->middleware('auth')->group(function () {
