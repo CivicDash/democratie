@@ -27,14 +27,6 @@ class ElectionsController extends Controller
     }
 
     /**
-     * Page Élections Municipales
-     */
-    public function municipales(): Response
-    {
-        return Inertia::render('Elections/Municipales');
-    }
-
-    /**
      * Page Élections Législatives
      */
     public function legislatives(): Response

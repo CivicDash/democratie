@@ -238,7 +238,7 @@ onUnmounted(() => {
                                             />
                                             <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
                                             <MegaMenuLink
-                                                :href="route('elections.municipales')"
+                                                :href="route('elections.municipales.index')"
                                                 icon="🏘️"
                                                 title="Municipales"
                                                 description="Mars 2026"
@@ -692,7 +692,7 @@ onUnmounted(() => {
                             </button>
                             <div v-show="expandedSection === 'elections'" class="pl-4 space-y-1 mt-1">
                                 <ResponsiveNavLink :href="route('elections.hub')">📅 Calendrier électoral</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('elections.municipales')">🏘️ Municipales</ResponsiveNavLink>
+                                <ResponsiveNavLink :href="route('elections.municipales.index')">🏘️ Municipales</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('elections.legislatives')">🏛️ Législatives</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('elections.senatoriales')">🔴 Sénatoriales</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('elections.presidentielle')">🇫🇷 Présidentielle</ResponsiveNavLink>

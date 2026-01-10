@@ -22,7 +22,7 @@ const typeElections = [
     description: 'Maires et conseils municipaux de 34 914 communes',
     color: 'emerald',
     prochaine: 'Mars 2026',
-    route: 'elections.municipales',
+    route: 'elections.municipales.index',
     stats: { label: 'Communes', value: '34 914' },
   },
   {
