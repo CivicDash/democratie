@@ -76,6 +76,41 @@ const populationChart = computed(() => {
                 </div>
             </div>
 
+            <!-- Bandeau Élections Municipales 2026 -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+                <Link
+                    :href="route('elections.municipales.recherche', { q: ville.nom })"
+                    class="block bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] group"
+                >
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center text-3xl">
+                                🗳️
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold">Élections Municipales 2026</h3>
+                                <p class="text-fuchsia-100">
+                                    Découvrez les candidats à la mairie de {{ ville.nom }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <div class="text-center hidden md:block">
+                                <div class="text-2xl font-bold">15 mars</div>
+                                <div class="text-sm text-fuchsia-200">1er tour</div>
+                            </div>
+                            <div class="text-center hidden md:block">
+                                <div class="text-2xl font-bold">22 mars</div>
+                                <div class="text-sm text-fuchsia-200">2nd tour</div>
+                            </div>
+                            <div class="px-6 py-3 bg-white text-purple-600 font-bold rounded-xl group-hover:bg-fuchsia-50 transition">
+                                Voir les listes →
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+            </div>
+
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- Colonne principale -->

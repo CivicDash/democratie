@@ -162,6 +162,9 @@ Route::prefix('search-meilisearch')->group(function () {
 // DATA.GOUV.FR - Routes publiques
 // ============================================================================
 
+// Recherche de communes (pour formulaires)
+Route::get('/communes/search', [DataGouvController::class, 'searchCommunes']);
+
 Route::prefix('datagouv')->group(function () {
     // Budget territorial
     Route::get('/commune/{codeInsee}/budget/{annee?}', [DataGouvController::class, 'getCommuneBudget']);

@@ -230,10 +230,46 @@ Route::prefix('parlement')->name('parlement.')->middleware('auth')->group(functi
 // ==========================================
 Route::prefix('elections')->name('elections.')->middleware('auth')->group(function () {
     Route::get('/', [\App\Http\Controllers\Web\ElectionsController::class, 'hub'])->name('hub');
-    Route::get('/municipales', [\App\Http\Controllers\Web\ElectionsController::class, 'municipales'])->name('municipales');
     Route::get('/legislatives', [\App\Http\Controllers\Web\ElectionsController::class, 'legislatives'])->name('legislatives');
     Route::get('/senatoriales', [\App\Http\Controllers\Web\ElectionsController::class, 'senatoriales'])->name('senatoriales');
     Route::get('/presidentielle', [\App\Http\Controllers\Web\ElectionsController::class, 'presidentielle'])->name('presidentielle');
+    
+    // ==========================================
+    // ÉLECTIONS MUNICIPALES 2026
+    // ==========================================
+    Route::prefix('municipales')->name('municipales.')->group(function () {
+        // Pages publiques
+        Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'index'])->name('index');
+        Route::get('/recherche', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'recherche'])->name('recherche');
+        Route::get('/tutoriel', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'tutoriel'])->name('tutoriel');
+        Route::get('/liste/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'showListe'])->name('liste');
+        Route::get('/candidat/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'showCandidat'])->name('candidat');
+        
+        // Espace candidat (authentifié)
+        Route::prefix('espace-candidat')->name('espace-candidat.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'espaceCandidatIndex'])->name('index');
+            Route::get('/nouvelle-liste', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'createListe'])->name('create-liste');
+            Route::post('/nouvelle-liste', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'storeListe'])->name('store-liste');
+            Route::get('/liste/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'editListe'])->name('edit-liste');
+            Route::put('/liste/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'updateListe'])->name('update-liste');
+            Route::post('/liste/{uuid}/logo', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'uploadLogo'])->name('upload-logo');
+            Route::post('/liste/{uuid}/programme', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'uploadProgramme'])->name('upload-programme');
+            Route::post('/liste/{uuid}/document', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'uploadDocument'])->name('upload-document');
+            Route::post('/liste/{uuid}/candidat', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'storeCandidat'])->name('store-candidat');
+            Route::post('/liste/{uuid}/soumettre', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'soumettreListe'])->name('soumettre-liste');
+        });
+        
+        // Modération (admin/modérateur)
+        Route::prefix('moderation')->name('moderation.')->middleware('can:moderate')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'moderationIndex'])->name('index');
+            Route::get('/liste/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'moderationShow'])->name('show');
+            Route::post('/document/{uuid}/valider', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'validerDocument'])->name('valider-document');
+            Route::post('/document/{uuid}/invalider', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'invaliderDocument'])->name('invalider-document');
+            Route::post('/liste/{uuid}/valider', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'validerListe'])->name('valider-liste');
+            Route::post('/liste/{uuid}/rejeter', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'rejeterListe'])->name('rejeter-liste');
+            Route::post('/liste/{uuid}/demander-documents', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'demanderDocuments'])->name('demander-documents');
+        });
+    });
 });
 
 // ==========================================
