@@ -215,12 +215,32 @@ class RolesAndPermissionsSeeder extends Seeder
             'upload_documents',
         ]);
 
-        $this->command->info('✓ 8 rôles créés : citizen, moderator, journalist, ong, legislator, state, admin, public_figure');
+        /**
+         * 9. CANDIDAT_MAIRE (Candidat aux élections municipales)
+         * Accès à l'espace candidat, upload programme, gestion de liste électorale
+         * Identité publique obligatoire (candidature officielle)
+         */
+        $candidatMaire = Role::create(['name' => 'candidat_maire']);
+        $candidatMaire->givePermissionTo([
+            'create_topics',
+            'create_posts',
+            'edit_own_posts',
+            'delete_own_posts',
+            'vote_on_posts',
+            'vote_in_ballots',
+            'view_ballot_results',
+            'budget.allocate',
+            'submit_budget_allocation',
+            'view_budget_data',
+            'upload_documents',
+        ]);
+
+        $this->command->info('✓ 9 rôles créés : citizen, moderator, journalist, ong, legislator, state, admin, public_figure, candidat_maire');
         $this->command->info('✓ ' . count($permissions) . ' permissions créées');
         $this->command->info('');
         $this->command->info('📋 RGPD - Rôles et anonymat :');
         $this->command->info('  • citizen, moderator : ANONYME (display_name = Citoyen1234)');
-        $this->command->info('  • journalist, ong, legislator, state, admin, public_figure : PUBLIC (display_name = nom réel)');
+        $this->command->info('  • journalist, ong, legislator, state, admin, public_figure, candidat_maire : PUBLIC (display_name = nom réel)');
     }
 }
 

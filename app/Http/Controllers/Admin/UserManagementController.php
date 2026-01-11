@@ -393,6 +393,7 @@ class UserManagementController extends Controller
             'ong' => 'ONG',
             'state' => 'Service public',
             'public_figure' => 'Personnalité publique',
+            'candidat_maire' => 'Candidat Maire',
             default => ucfirst($role),
         };
     }
