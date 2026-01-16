@@ -4,8 +4,10 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 const props = defineProps({
-    import: Object,
+    importLog: Object,
 });
+
+const importLog = props.importLog;
 
 const breadcrumbItems = [
     { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
@@ -39,7 +41,7 @@ const getStatusClass = (status) => {
                             🧾 Rapport d'import
                         </h1>
                         <p class="text-slate-500 dark:text-slate-400">
-                            Détail de la tâche <code class="font-mono">{{ import.command }}</code>
+                            Détail de la tâche <code class="font-mono">{{ importLog.command }}</code>
                         </p>
                     </div>
                     <Link :href="route('admin.imports')" class="btn-secondary">
@@ -51,41 +53,41 @@ const getStatusClass = (status) => {
                     <div class="lg:col-span-2 space-y-6">
                         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                             <div class="flex flex-wrap items-center gap-3 mb-4">
-                                <span class="px-3 py-1 text-xs font-semibold rounded-full" :class="getStatusClass(import.status)">
-                                    {{ import.statusLabel }}
+                                <span class="px-3 py-1 text-xs font-semibold rounded-full" :class="getStatusClass(importLog.status)">
+                                    {{ importLog.statusLabel }}
                                 </span>
                                 <span class="text-sm text-slate-600 dark:text-slate-400">
-                                    Source: {{ import.sourceInfo?.label || import.source }}
+                                    Source: {{ importLog.sourceInfo?.label || importLog.source }}
                                 </span>
                                 <span class="text-sm text-slate-600 dark:text-slate-400">
-                                    Origine: {{ import.triggeredBy === 'scheduler' ? 'Planifiée' : 'Manuelle' }}
+                                    Origine: {{ importLog.triggeredBy === 'scheduler' ? 'Planifiée' : 'Manuelle' }}
                                 </span>
                             </div>
 
                             <div class="grid md:grid-cols-2 gap-4 text-sm">
                                 <div>
                                     <p class="text-slate-500 dark:text-slate-400">Début</p>
-                                    <p class="text-slate-900 dark:text-white">{{ import.startedAt || '-' }}</p>
+                                    <p class="text-slate-900 dark:text-white">{{ importLog.startedAt || '-' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-slate-500 dark:text-slate-400">Fin</p>
-                                    <p class="text-slate-900 dark:text-white">{{ import.finishedAt || '-' }}</p>
+                                    <p class="text-slate-900 dark:text-white">{{ importLog.finishedAt || '-' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-slate-500 dark:text-slate-400">Durée</p>
-                                    <p class="text-slate-900 dark:text-white">{{ import.duration || '-' }}</p>
+                                    <p class="text-slate-900 dark:text-white">{{ importLog.duration || '-' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-slate-500 dark:text-slate-400">Exit code</p>
-                                    <p class="text-slate-900 dark:text-white">{{ import.exitCode ?? '-' }}</p>
+                                    <p class="text-slate-900 dark:text-white">{{ importLog.exitCode ?? '-' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-slate-500 dark:text-slate-400">Expression cron</p>
-                                    <p class="text-slate-900 dark:text-white">{{ import.scheduleExpression || '-' }}</p>
+                                    <p class="text-slate-900 dark:text-white">{{ importLog.scheduleExpression || '-' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-slate-500 dark:text-slate-400">Lancé par</p>
-                                    <p class="text-slate-900 dark:text-white">{{ import.user || 'Scheduler' }}</p>
+                                    <p class="text-slate-900 dark:text-white">{{ importLog.user || 'Scheduler' }}</p>
                                 </div>
                             </div>
                         </div>
@@ -94,33 +96,33 @@ const getStatusClass = (status) => {
                             <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Résultats</h2>
                             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
                                 <div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">+{{ import.recordsCreated }}</p>
+                                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">+{{ importLog.recordsCreated }}</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400">Créés</p>
                                 </div>
                                 <div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">↻{{ import.recordsUpdated }}</p>
+                                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">↻{{ importLog.recordsUpdated }}</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400">Mis à jour</p>
                                 </div>
                                 <div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                                    <p class="text-2xl font-bold text-slate-600 dark:text-slate-300">{{ import.recordsSkipped }}</p>
+                                    <p class="text-2xl font-bold text-slate-600 dark:text-slate-300">{{ importLog.recordsSkipped }}</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400">Ignorés</p>
                                 </div>
                                 <div class="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                                    <p class="text-2xl font-bold text-red-600 dark:text-red-400">⚠{{ import.errorsCount }}</p>
+                                    <p class="text-2xl font-bold text-red-600 dark:text-red-400">⚠{{ importLog.errorsCount }}</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400">Erreurs</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div v-if="import.errorMessage || import.outputTail" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div v-if="importLog.errorMessage || importLog.outputTail" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                             <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Diagnostics</h2>
-                            <div v-if="import.errorMessage" class="mb-4">
+                            <div v-if="importLog.errorMessage" class="mb-4">
                                 <p class="text-sm text-slate-500 dark:text-slate-400 mb-1">Message d'erreur</p>
-                                <pre class="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-3 rounded whitespace-pre-wrap">{{ import.errorMessage }}</pre>
+                                <pre class="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 p-3 rounded whitespace-pre-wrap">{{ importLog.errorMessage }}</pre>
                             </div>
-                            <div v-if="import.outputTail">
+                            <div v-if="importLog.outputTail">
                                 <p class="text-sm text-slate-500 dark:text-slate-400 mb-1">Dernières lignes de sortie</p>
-                                <pre class="text-sm text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900/50 p-3 rounded whitespace-pre-wrap">{{ import.outputTail }}</pre>
+                                <pre class="text-sm text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900/50 p-3 rounded whitespace-pre-wrap">{{ importLog.outputTail }}</pre>
                             </div>
                         </div>
                     </div>
@@ -129,13 +131,13 @@ const getStatusClass = (status) => {
                         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                             <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Options</h2>
                             <pre class="text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900/50 p-3 rounded whitespace-pre-wrap">
-{{ JSON.stringify(import.options || {}, null, 2) }}
+{{ JSON.stringify(importLog.options || {}, null, 2) }}
                             </pre>
                         </div>
-                        <div v-if="import.errorDetails" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div v-if="importLog.errorDetails" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                             <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Détails erreur</h2>
                             <pre class="text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-900/50 p-3 rounded whitespace-pre-wrap">
-{{ JSON.stringify(import.errorDetails, null, 2) }}
+{{ JSON.stringify(importLog.errorDetails, null, 2) }}
                             </pre>
                         </div>
                     </div>

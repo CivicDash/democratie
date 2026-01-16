@@ -245,7 +245,7 @@ class AdminController extends Controller
         $import->load('user');
 
         return Inertia::render('Admin/ImportDetail', [
-            'import' => [
+            'importLog' => [
                 'id' => $import->id,
                 'command' => $import->command,
                 'source' => $import->source,
