@@ -2,7 +2,15 @@
     <Teleport to="body">
         <Transition name="modal-fade">
             <div v-if="show" class="welcome-modal-overlay" @click="handleSkip">
-                <div class="welcome-modal" @click.stop>
+                <div
+                    class="welcome-modal"
+                    @click.stop
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Bienvenue"
+                    ref="modalRef"
+                    @keydown="handleKeydown"
+                >
                     <!-- Step indicator -->
                     <div class="step-indicator">
                         <div 
@@ -57,9 +65,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 
-defineProps({
+const props = defineProps({
     show: {
         type: Boolean,
         required: true,
@@ -69,6 +77,7 @@ defineProps({
 const emit = defineEmits(['close', 'complete']);
 
 const currentStep = ref(0);
+const modalRef = ref(null);
 
 const steps = [
     {
@@ -121,10 +130,58 @@ const handleSkip = () => {
     emit('close');
 };
 
+const handleKeydown = (event) => {
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        handleSkip();
+        return;
+    }
+
+    if (event.key === 'Tab') {
+        const focusable = modalRef.value
+            ? Array.from(
+                modalRef.value.querySelectorAll(
+                    'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                )
+            )
+            : [];
+        if (focusable.length === 0) {
+            event.preventDefault();
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+            return;
+        }
+        if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
+};
+
 const complete = () => {
     emit('complete');
     emit('close');
 };
+
+watch(
+    () => props.show,
+    (isOpen) => {
+        if (isOpen) {
+            nextTick(() => {
+                const firstFocusable = modalRef.value?.querySelector(
+                    'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                firstFocusable?.focus();
+            });
+        }
+    }
+);
 </script>
 
 <style scoped>

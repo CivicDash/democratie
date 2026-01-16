@@ -17,7 +17,7 @@ const breadcrumbItems = [
 const statuses = [
     { key: 'pending', label: 'En attente', icon: '⏳' },
     { key: 'resolved', label: 'Résolus', icon: '✅' },
-    { key: 'rejected', label: 'Rejetés', icon: '❌' },
+    { key: 'dismissed', label: 'Rejetés', icon: '❌' },
     { key: 'all', label: 'Tous', icon: '📋' },
 ];
 </script>

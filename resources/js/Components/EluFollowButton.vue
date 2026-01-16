@@ -190,7 +190,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useEluFollow } from '@/Composables/useEluFollow';
+import { useEluFollow } from '@/composables/useEluFollow';
 
 const props = defineProps({
     eluType: {

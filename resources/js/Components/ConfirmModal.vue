@@ -1,4 +1,6 @@
 <script setup>
+import { nextTick, ref, watch } from 'vue';
+
 const props = defineProps({
   show: {
     type: Boolean,
@@ -32,6 +34,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['confirm', 'cancel', 'close']);
+const modalRef = ref(null);
 
 const handleConfirm = () => {
   emit('confirm');
@@ -47,6 +50,48 @@ const handleBackdropClick = () => {
     handleCancel();
   }
 };
+
+const handleKeydown = (event) => {
+  if (event.key === 'Tab') {
+    const focusable = modalRef.value
+      ? Array.from(
+          modalRef.value.querySelectorAll(
+            'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        )
+      : [];
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+      return;
+    }
+    if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+};
+
+watch(
+  () => props.show,
+  (isOpen) => {
+    if (isOpen) {
+      nextTick(() => {
+        const firstFocusable = modalRef.value?.querySelector(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        firstFocusable?.focus();
+      });
+    }
+  }
+);
 </script>
 
 <template>
@@ -60,6 +105,9 @@ const handleBackdropClick = () => {
             @click.stop
             role="dialog"
             aria-modal="true"
+            :aria-label="title"
+            ref="modalRef"
+            @keydown="handleKeydown"
           >
             <!-- Icon -->
             <div :class="['modal-icon', `modal-icon-${type}`]">

@@ -19,6 +19,13 @@ class ReportController extends Controller
     {
         $user = $request->user();
 
+        if (!$user->can('create', Report::class)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'avez pas la permission de signaler du contenu.',
+            ], 403);
+        }
+
         // Vérifier que l'utilisateur peut signaler (pas démo, pas banni)
         if ($user->isReadOnly()) {
             return response()->json([

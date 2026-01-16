@@ -131,6 +131,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: civicdash_scheduler
+    profiles:
+      - scheduler
     restart: unless-stopped
     working_dir: /var/www
     volumes:

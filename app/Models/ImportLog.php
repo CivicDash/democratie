@@ -18,10 +18,14 @@ class ImportLog extends Model
         'started_at',
         'finished_at',
         'duration_seconds',
+        'exit_code',
         'options',
         'error_message',
         'error_details',
+        'output_tail',
         'user_id',
+        'triggered_by',
+        'schedule_expression',
     ];
 
     protected $casts = [
@@ -30,6 +34,9 @@ class ImportLog extends Model
         'options' => 'array',
         'error_details' => 'array',
     ];
+    public const TRIGGERED_MANUAL = 'manual';
+    public const TRIGGERED_SCHEDULER = 'scheduler';
+
 
     // Statuts
     public const STATUS_RUNNING = 'running';
@@ -143,10 +150,18 @@ class ImportLog extends Model
             'started_at' => now(),
             'options' => $options,
             'user_id' => $userId,
+            'triggered_by' => $userId ? self::TRIGGERED_MANUAL : self::TRIGGERED_SCHEDULER,
         ]);
     }
 
-    public function finish(int $created = 0, int $updated = 0, int $skipped = 0, int $errors = 0): self
+    public function finish(
+        int $created = 0,
+        int $updated = 0,
+        int $skipped = 0,
+        int $errors = 0,
+        ?int $exitCode = null,
+        ?string $outputTail = null
+    ): self
     {
         $duration = max(0, (int) now()->diffInSeconds($this->started_at));
         
@@ -158,12 +173,14 @@ class ImportLog extends Model
             'errors_count' => $errors,
             'finished_at' => now(),
             'duration_seconds' => $duration,
+            'exit_code' => $exitCode,
+            'output_tail' => $outputTail,
         ]);
 
         return $this;
     }
 
-    public function fail(string $message, ?array $details = null): self
+    public function fail(string $message, ?array $details = null, ?int $exitCode = null, ?string $outputTail = null): self
     {
         $duration = max(0, (int) now()->diffInSeconds($this->started_at));
         
@@ -173,9 +190,52 @@ class ImportLog extends Model
             'error_details' => $details,
             'finished_at' => now(),
             'duration_seconds' => $duration,
+            'exit_code' => $exitCode,
+            'output_tail' => $outputTail,
         ]);
 
         return $this;
+    }
+
+    public static function shouldLogCommand(?string $command): bool
+    {
+        if (!$command) {
+            return false;
+        }
+
+        $allowedPrefixes = [
+            'import:',
+            'sync:',
+            'extract:',
+            'enrich:',
+            'calculate:',
+            'dashboard:',
+            'elu:',
+            'scrutins:',
+            'candidatures:',
+            'senat:',
+            'an:',
+        ];
+
+        foreach ($allowedPrefixes as $prefix) {
+            if (str_starts_with($command, $prefix)) {
+                return true;
+            }
+        }
+
+        return in_array($command, ['sync:all'], true);
+    }
+
+    public static function detectSource(string $command): string
+    {
+        return match (true) {
+            str_contains($command, 'senat') => 'senat',
+            str_contains($command, 'an') => 'an',
+            str_contains($command, 'elysee') => 'elysee',
+            str_contains($command, 'hatvp') => 'hatvp',
+            str_contains($command, 'wikipedia') => 'wikipedia',
+            default => 'system',
+        };
     }
 }
 

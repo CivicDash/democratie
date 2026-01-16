@@ -6,7 +6,7 @@ const { toasts, close } = useToast();
 </script>
 
 <template>
-  <div class="toast-container">
+  <div class="toast-container" role="status" aria-live="polite" aria-atomic="true">
     <TransitionGroup name="toast">
       <Toast
         v-for="toast in toasts"

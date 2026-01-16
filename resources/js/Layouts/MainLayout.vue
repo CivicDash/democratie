@@ -4,6 +4,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import CommandPalette from '@/Components/CommandPalette.vue';
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
 
 defineProps({
     title: String,
@@ -13,6 +14,9 @@ const showingNavigationDropdown = ref(false);
 const showRepresentantsMenu = ref(false);
 const showLegislationMenu = ref(false);
 const showCommandPalette = ref(false);
+const representantsMenuId = 'main-layout-representants-menu';
+const legislationMenuId = 'main-layout-legislation-menu';
+const mobileMenuId = 'main-layout-mobile-nav';
 
 const logout = () => {
     router.post(route('logout'));
@@ -28,28 +32,25 @@ const closeMenus = () => {
     showLegislationMenu.value = false;
 };
 
-// Gestion des raccourcis clavier
-const handleKeydown = (e) => {
-    // Ctrl+K ou Cmd+K : Ouvrir la CommandPalette
-    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
+useKeyboardShortcuts({
+    onOpenPalette: () => {
         showCommandPalette.value = true;
-    }
-    // / : Ouvrir la CommandPalette (si pas dans un input)
-    if (e.key === "/" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
-        e.preventDefault();
-        showCommandPalette.value = true;
-    }
-};
+    },
+    onCloseAll: () => {
+        showCommandPalette.value = false;
+        showingNavigationDropdown.value = false;
+        showRepresentantsMenu.value = false;
+        showLegislationMenu.value = false;
+        document.activeElement?.blur();
+    },
+});
 
 onMounted(() => {
     document.addEventListener('click', closeMenus);
-    document.addEventListener('keydown', handleKeydown);
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', closeMenus);
-    document.removeEventListener('keydown', handleKeydown);
 });
 
 // Vérifier si une route est active
@@ -88,6 +89,9 @@ const isActive = (pattern) => {
                                         :class="isActive('/representants') || isActive('/deputes') || isActive('/senateurs') 
                                             ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300' 
                                             : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'"
+                                        aria-haspopup="true"
+                                        :aria-expanded="showRepresentantsMenu"
+                                        :aria-controls="representantsMenuId"
                                     >
                                         <span class="text-lg">👥</span>
                                         Représentants
@@ -106,6 +110,7 @@ const isActive = (pattern) => {
                                     >
                                         <div 
                                             v-show="showRepresentantsMenu"
+                                            :id="representantsMenuId"
                                             class="absolute left-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50"
                                         >
                                             <Link 
@@ -223,6 +228,9 @@ const isActive = (pattern) => {
                                         :class="isActive('/legislation') || isActive('/lois') 
                                             ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300' 
                                             : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'"
+                                        aria-haspopup="true"
+                                        :aria-expanded="showLegislationMenu"
+                                        :aria-controls="legislationMenuId"
                                     >
                                         <span class="text-lg">📜</span>
                                         Législation
@@ -241,6 +249,7 @@ const isActive = (pattern) => {
                                     >
                                         <div 
                                             v-show="showLegislationMenu"
+                                            :id="legislationMenuId"
                                             class="absolute left-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50"
                                         >
                                             <Link 
@@ -311,6 +320,7 @@ const isActive = (pattern) => {
                             <Link 
                                 :href="route('search')" 
                                 class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                aria-label="Recherche"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -378,6 +388,10 @@ const isActive = (pattern) => {
                             <button 
                                 @click="showingNavigationDropdown = !showingNavigationDropdown" 
                                 class="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                aria-haspopup="true"
+                                :aria-expanded="showingNavigationDropdown"
+                                :aria-controls="mobileMenuId"
+                                aria-label="Ouvrir le menu"
                             >
                                 <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path :class="{ hidden: showingNavigationDropdown, 'inline-flex': !showingNavigationDropdown }" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -389,7 +403,11 @@ const isActive = (pattern) => {
                 </div>
 
                 <!-- Mobile Navigation Menu -->
-                <div :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }" class="lg:hidden border-t border-slate-200 dark:border-slate-700">
+                <div
+                    :id="mobileMenuId"
+                    :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }"
+                    class="lg:hidden border-t border-slate-200 dark:border-slate-700"
+                >
                     <div class="px-4 py-4 space-y-2">
                         <!-- Mes Représentants -->
                         <Link :href="route('representants.mes-representants')" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">

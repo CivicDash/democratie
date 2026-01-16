@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted } from "vue";
 
 /**
  * Composable pour gérer les raccourcis clavier globaux
@@ -14,43 +14,32 @@ import { onMounted, onUnmounted, ref } from "vue";
  * - ? : Afficher l'aide des raccourcis
  */
 
-const isSearchOpen = ref(false);
-const isHelpOpen = ref(false);
 let pendingKey = null;
 let pendingTimeout = null;
 
-export function useKeyboardShortcuts() {
-    const shortcuts = [
-        { keys: ["⌘", "K"], description: "Ouvrir la recherche", action: "search" },
-        { keys: ["Échap"], description: "Fermer la recherche", action: "escape" },
-        { keys: ["/"], description: "Focus recherche", action: "focus-search" },
-        { keys: ["G", "H"], description: "Aller à l'accueil", action: "goto-home" },
-        { keys: ["G", "D"], description: "Aller aux députés", action: "goto-deputes" },
-        { keys: ["G", "S"], description: "Aller aux sénateurs", action: "goto-senateurs" },
-        { keys: ["G", "L"], description: "Aller à la législation", action: "goto-legislation" },
-        { keys: ["?"], description: "Aide raccourcis", action: "help" },
-    ];
+export function useKeyboardShortcuts(options = {}) {
+    const {
+        onOpenPalette,
+        onToggleHelp,
+        onCloseAll,
+        onNavigate,
+    } = options;
 
     const handleKeyDown = (event) => {
         const target = event.target;
         const tagName = target.tagName.toLowerCase();
         const isInputField = tagName === "input" || tagName === "textarea" || target.isContentEditable;
 
-        // Cmd/Ctrl + K : Ouvrir la recherche
-        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        // Cmd/Ctrl + K ou Cmd/Ctrl + / : Ouvrir la recherche
+        if ((event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === "k" || event.key === "/")) {
             event.preventDefault();
-            isSearchOpen.value = true;
+            onOpenPalette?.();
             return;
         }
 
         // Escape : Fermer tout
         if (event.key === "Escape") {
-            if (isSearchOpen.value) {
-                isSearchOpen.value = false;
-            }
-            if (isHelpOpen.value) {
-                isHelpOpen.value = false;
-            }
+            onCloseAll?.();
             return;
         }
 
@@ -62,14 +51,14 @@ export function useKeyboardShortcuts() {
         // / : Focus sur la recherche
         if (event.key === "/") {
             event.preventDefault();
-            isSearchOpen.value = true;
+            onOpenPalette?.();
             return;
         }
 
         // ? : Aide des raccourcis
         if (event.key === "?" || (event.shiftKey && event.key === "/")) {
             event.preventDefault();
-            isHelpOpen.value = !isHelpOpen.value;
+            onToggleHelp?.();
             return;
         }
 
@@ -89,16 +78,16 @@ export function useKeyboardShortcuts() {
 
             switch (event.key.toLowerCase()) {
                 case "h":
-                    window.location.href = "/dashboard";
+                    onNavigate?.("dashboard");
                     break;
                 case "d":
-                    window.location.href = "/representants/deputes";
+                    onNavigate?.("representants.deputes.index");
                     break;
                 case "s":
-                    window.location.href = "/representants/senateurs";
+                    onNavigate?.("representants.senateurs.index");
                     break;
                 case "l":
-                    window.location.href = "/legislation";
+                    onNavigate?.("legislation.index");
                     break;
             }
         }
@@ -112,26 +101,5 @@ export function useKeyboardShortcuts() {
         document.removeEventListener("keydown", handleKeyDown);
         if (pendingTimeout) clearTimeout(pendingTimeout);
     });
-
-    const openSearch = () => {
-        isSearchOpen.value = true;
-    };
-
-    const closeSearch = () => {
-        isSearchOpen.value = false;
-    };
-
-    const toggleHelp = () => {
-        isHelpOpen.value = !isHelpOpen.value;
-    };
-
-    return {
-        isSearchOpen,
-        isHelpOpen,
-        shortcuts,
-        openSearch,
-        closeSearch,
-        toggleHelp,
-    };
 }
 

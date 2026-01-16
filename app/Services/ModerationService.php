@@ -88,6 +88,7 @@ class ModerationService
             $report->update([
                 'status' => 'resolved',
                 'moderator_notes' => $notes,
+                'resolved_at' => now(),
             ]);
 
             // Appliquer une action si demandé (masquer le contenu)
@@ -109,8 +110,9 @@ class ModerationService
         }
 
         $report->update([
-            'status' => 'rejected',
+            'status' => 'dismissed',
             'moderator_notes' => $notes,
+            'resolved_at' => now(),
         ]);
 
         return $report->fresh();
@@ -193,6 +195,7 @@ class ModerationService
 
         $sanction->update([
             'revoked_at' => now(),
+            'is_active' => false,
         ]);
 
         return $sanction->fresh();

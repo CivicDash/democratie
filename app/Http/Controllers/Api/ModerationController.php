@@ -34,9 +34,10 @@ class ModerationController extends Controller
         }
 
         // Trier
+        $allowedSorts = ['created_at', 'updated_at', 'status'];
         $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortOrder = $request->input('sort_order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy(in_array($sortBy, $allowedSorts, true) ? $sortBy : 'created_at', $sortOrder);
 
         $reports = $query->paginate($request->input('per_page', 20));
 

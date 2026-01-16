@@ -40,11 +40,20 @@ Ce répertoire contient **tous les scripts** nécessaires pour gérer, importer 
 #### 📅 Installation du Cron
 
 ```bash
-# Installation interactive
+# Installation interactive (usage manuel uniquement)
 ./scripts/install-cron.sh
 
 # Ou manuellement (crontab -e) :
-0 3 * * * /var/www/demoscratos/scripts/sync-all-data.sh >> /var/log/demoscratos/sync.log 2>&1
+0 3 * * * cd /opt/civicdash && ./scripts/sync-all-data.sh >> /opt/civicdash/storage/logs/sync.log 2>&1
+```
+
+#### Scheduler Laravel (recommandé)
+
+Si vous utilisez le scheduler Laravel, n’installez pas le cron `sync-all-data.sh`.
+Utilisez :
+
+```bash
+* * * * * cd /opt/civicdash && docker compose exec -T app php artisan schedule:run >> /opt/civicdash/storage/logs/scheduler.log 2>&1
 ```
 
 #### 📊 Sources synchronisées
@@ -269,6 +278,14 @@ Importe groupes politiques, commissions, délégations (ancienne API).
 ---
 
 ## 🔍 Scripts Analyse & Diagnostic
+
+### `check-scheduler.sh`
+
+Diagnostic rapide du scheduler Laravel (liste des tâches + derniers logs).
+
+```bash
+./scripts/check-scheduler.sh
+```
 
 ### Analyse Complète Données AN
 

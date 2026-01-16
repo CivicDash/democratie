@@ -37,8 +37,10 @@ class PostController extends Controller
         }
 
         // Tri
+        $allowedSorts = ['created_at', 'updated_at', 'score'];
         $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
+        $sortOrder = $request->input('sort_order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $sortBy = in_array($sortBy, $allowedSorts, true) ? $sortBy : 'created_at';
 
         if ($sortBy === 'score') {
             $query->orderByRaw('(upvotes - downvotes) ' . $sortOrder);

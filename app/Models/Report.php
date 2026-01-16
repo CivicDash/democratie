@@ -118,6 +118,14 @@ class Report extends Model
      */
     public function dismiss(string $notes = null): void
     {
+        $this->reject($notes);
+    }
+
+    /**
+     * Alias explicite pour rejeter un signalement.
+     */
+    public function reject(string $notes = null): void
+    {
         $this->update([
             'status' => 'dismissed',
             'moderator_notes' => $notes,
@@ -154,7 +162,7 @@ class Report extends Model
      */
     public function scopeDismissed($query)
     {
-        return $query->where('status', 'dismissed');
+        return $query->whereIn('status', ['dismissed', 'rejected']);
     }
 
     /**
@@ -207,6 +215,10 @@ class Report extends Model
      */
     public function getStatusInfoAttribute(): array
     {
+        if ($this->status === 'rejected') {
+            return self::STATUSES['dismissed'];
+        }
+
         return self::STATUSES[$this->status] ?? self::STATUSES['pending'];
     }
 

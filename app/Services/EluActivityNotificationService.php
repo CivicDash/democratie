@@ -72,7 +72,7 @@ class EluActivityNotificationService
                 'v.acteur_ref as elu_id',
                 DB::raw("'depute' as elu_type"),
                 DB::raw("'votes' as activity_type"),
-                's.id as activity_id',
+                's.uid as activity_id',
                 's.date_scrutin as activity_date',
                 's.titre as activity_title',
                 'v.position as activity_detail',

@@ -1,5 +1,9 @@
 <template>
-    <div class="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+    <div
+        :id="id"
+        class="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+        aria-label="Notifications"
+    >
         <!-- Header -->
         <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between border-b border-gray-200 dark:border-gray-600">
             <h3 class="font-semibold text-gray-900 dark:text-gray-100">
@@ -16,6 +20,7 @@
                 <button
                     @click="$emit('close')"
                     class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    aria-label="Fermer les notifications"
                 >
                     ✕
                 </button>
@@ -63,6 +68,7 @@
                             @click.stop="$emit('mark-as-read', notification.id)"
                             class="text-gray-400 hover:text-gray-600 text-sm"
                             title="Marquer comme lu"
+                            aria-label="Marquer la notification comme lue"
                         >
                             ✓
                         </button>
@@ -70,6 +76,7 @@
                             @click.stop="$emit('delete', notification.id)"
                             class="text-gray-400 hover:text-red-500 text-sm"
                             title="Supprimer"
+                            aria-label="Supprimer la notification"
                         >
                             🗑️
                         </button>
@@ -109,6 +116,10 @@ import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
+    id: {
+        type: String,
+        default: null,
+    },
     notifications: {
         type: Array,
         default: () => [],

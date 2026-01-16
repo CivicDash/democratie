@@ -48,9 +48,9 @@ return new class extends Migration
             $table->timestamps();
             
             // Index composés pour recherche rapide
-            $table->index(['postal_code', 'city_name'], 'idx_postal_city');
-            $table->index(['department_code', 'city_name'], 'idx_dept_city');
-            $table->index(['circonscription'], 'idx_circonscription');
+            $table->index(['postal_code', 'city_name'], 'idx_french_postal_codes_postal_city');
+            $table->index(['department_code', 'city_name'], 'idx_french_postal_codes_dept_city');
+            $table->index(['circonscription'], 'idx_french_postal_codes_circonscription');
             
             // Unique sur code postal + ville uniquement (insee_code peut être NULL)
             $table->unique(['postal_code', 'city_name'], 'unique_postal_city');

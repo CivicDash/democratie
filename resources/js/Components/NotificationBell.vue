@@ -5,7 +5,9 @@
             @click="toggleDropdown"
             class="relative p-2 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg transition-all hover:bg-gray-100"
             :class="{ 'bg-blue-50': isOpen }"
-            aria-label="Notifications"
+            :aria-label="notificationLabel"
+            :aria-expanded="isOpen"
+            :aria-controls="dropdownId"
         >
             <!-- Icône cloche -->
             <svg
@@ -35,6 +37,7 @@
         <!-- Dropdown des notifications -->
         <NotificationDropdown
             v-if="isOpen"
+            :id="dropdownId"
             :notifications="notifications"
             :loading="loading"
             @mark-as-read="handleMarkAsRead"
@@ -73,6 +76,13 @@ let refreshTimer = null;
 
 // Computed
 const hasNewNotifications = computed(() => unreadCount.value > 0);
+const dropdownId = 'notifications-dropdown';
+const notificationLabel = computed(() => {
+    if (unreadCount.value > 0) {
+        return `Notifications (${unreadCount.value} non lues)`;
+    }
+    return 'Notifications';
+});
 
 // Méthodes
 const toggleDropdown = () => {

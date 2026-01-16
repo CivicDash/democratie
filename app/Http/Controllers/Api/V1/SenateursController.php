@@ -69,9 +69,10 @@ class SenateursController extends Controller
         }
 
         // Tri
+        $allowedSorts = ['nom_usuel', 'matricule', 'departement'];
         $sortBy = $request->get('sort_by', 'nom_usuel');
-        $sortOrder = $request->get('sort_order', 'asc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortOrder = $request->get('sort_order', 'asc') === 'desc' ? 'desc' : 'asc';
+        $query->orderBy(in_array($sortBy, $allowedSorts, true) ? $sortBy : 'nom_usuel', $sortOrder);
 
         // Pagination
         $perPage = min($request->get('per_page', 15), 100);

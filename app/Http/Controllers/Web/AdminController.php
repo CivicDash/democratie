@@ -195,13 +195,7 @@ class AdminController extends Controller
         }
 
         // Déterminer la source
-        $source = match(true) {
-            str_contains($command, 'an') => 'an',
-            str_contains($command, 'senat') => 'senat',
-            str_contains($command, 'elysee') => 'elysee',
-            str_contains($command, 'hatvp') => 'hatvp',
-            default => 'system',
-        };
+        $source = ImportLog::detectSource($command);
 
         // Créer le log avec statut "running"
         $log = ImportLog::start($command, $source, $options, auth()->id());
@@ -251,7 +245,31 @@ class AdminController extends Controller
         $import->load('user');
 
         return Inertia::render('Admin/ImportDetail', [
-            'import' => $import,
+            'import' => [
+                'id' => $import->id,
+                'command' => $import->command,
+                'source' => $import->source,
+                'sourceInfo' => $import->source_info,
+                'status' => $import->status,
+                'statusLabel' => $import->status_label,
+                'statusColor' => $import->status_color,
+                'recordsCreated' => $import->records_created,
+                'recordsUpdated' => $import->records_updated,
+                'recordsSkipped' => $import->records_skipped,
+                'errorsCount' => $import->errors_count,
+                'startedAt' => $import->started_at?->format('d/m/Y H:i:s'),
+                'finishedAt' => $import->finished_at?->format('d/m/Y H:i:s'),
+                'duration' => $import->duration_formatted,
+                'durationSeconds' => $import->duration_seconds,
+                'errorMessage' => $import->error_message,
+                'errorDetails' => $import->error_details,
+                'outputTail' => $import->output_tail,
+                'exitCode' => $import->exit_code,
+                'options' => $import->options,
+                'triggeredBy' => $import->triggered_by,
+                'scheduleExpression' => $import->schedule_expression,
+                'user' => $import->user?->name,
+            ],
         ]);
     }
 

@@ -40,6 +40,7 @@ class RunImportCommand implements ShouldQueue
             // Exécuter la commande
             $exitCode = Artisan::call($this->command, $this->options);
             $output = Artisan::output();
+            $outputTail = $this->truncateOutput($output);
 
             // Parser le résultat
             $created = $this->parseOutputStat($output, 'créé|created|Créés|importé|Importés');
@@ -48,16 +49,16 @@ class RunImportCommand implements ShouldQueue
             $errors = $this->parseOutputStat($output, 'erreur|error|Erreurs|échoué');
 
             if ($exitCode === 0) {
-                $log->finish($created, $updated, $skipped, $errors);
+                $log->finish($created, $updated, $skipped, $errors, $exitCode, $outputTail);
             } else {
-                $log->fail("Exit code: {$exitCode}", ['output' => substr($output, -5000)]);
+                $log->fail("Exit code: {$exitCode}", ['output' => $outputTail], $exitCode, $outputTail);
             }
 
         } catch (\Exception $e) {
             $log->fail($e->getMessage(), [
                 'exception' => get_class($e),
                 'file' => $e->getFile() . ':' . $e->getLine(),
-            ]);
+            ], 1);
         }
     }
 
@@ -76,6 +77,15 @@ class RunImportCommand implements ShouldQueue
         return 0;
     }
 
+    private function truncateOutput(string $output, int $maxLength = 5000): string
+    {
+        if (strlen($output) <= $maxLength) {
+            return $output;
+        }
+
+        return substr($output, -1 * $maxLength);
+    }
+
     /**
      * Handle failure
      */
@@ -84,7 +94,7 @@ class RunImportCommand implements ShouldQueue
         if ($this->importLogId) {
             $log = ImportLog::find($this->importLogId);
             if ($log) {
-                $log->fail($exception->getMessage());
+                $log->fail($exception->getMessage(), null, 1);
             }
         }
     }

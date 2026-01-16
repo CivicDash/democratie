@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
     placeholder: { type: String, default: 'Rechercher...' },
@@ -21,6 +21,8 @@ const containerRef = ref(null);
 
 // Debounce
 let searchTimeout = null;
+let currentRequestId = 0;
+let activeController = null;
 
 // Fetch suggestions
 async function fetchSuggestions() {
@@ -33,19 +35,38 @@ async function fetchSuggestions() {
 
     isLoading.value = true;
     
+    let requestId = 0;
     try {
-        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query.value)}`);
+        if (activeController) {
+            activeController.abort();
+        }
+        requestId = ++currentRequestId;
+        activeController = new AbortController();
+
+        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query.value)}`, {
+            signal: activeController.signal,
+        });
         const data = await response.json();
         
+        if (requestId !== currentRequestId) {
+            return;
+        }
+
         results.value = data.results || [];
         categories.value = data.categories || [];
-        isOpen.value = results.value.length > 0;
+        isOpen.value = query.value.length >= 2;
         selectedIndex.value = -1;
     } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
         console.error('Search error:', error);
         results.value = [];
+        categories.value = [];
     } finally {
-        isLoading.value = false;
+        if (requestId === currentRequestId) {
+            isLoading.value = false;
+        }
     }
 }
 
@@ -55,7 +76,12 @@ watch(query, () => {
     if (query.value.length >= 2) {
         searchTimeout = setTimeout(fetchSuggestions, 200);
     } else {
+        if (activeController) {
+            activeController.abort();
+            activeController = null;
+        }
         results.value = [];
+        categories.value = [];
         isOpen.value = false;
     }
 });
@@ -108,7 +134,7 @@ function closeDropdown() {
 }
 
 function handleFocus() {
-    if (query.value.length >= 2 && results.value.length > 0) {
+    if (query.value.length >= 2) {
         isOpen.value = true;
     }
 }
@@ -130,6 +156,10 @@ onMounted(() => {
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
     clearTimeout(searchTimeout);
+    if (activeController) {
+        activeController.abort();
+        activeController = null;
+    }
 });
 
 // Group results by category for display

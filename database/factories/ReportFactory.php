@@ -22,13 +22,10 @@ class ReportFactory extends Factory
             'reportable_id' => Post::factory(),
             'reason' => fake()->randomElement(['spam', 'harassment', 'misinformation', 'off_topic', 'inappropriate', 'other']),
             'description' => fake()->sentence(),
-            'status' => fake()->randomElement(['pending', 'reviewing', 'resolved', 'dismissed']),
-            'moderator_id' => fn (array $attributes) => 
-                in_array($attributes['status'], ['reviewing', 'resolved', 'dismissed']) ? User::factory() : null,
-            'moderator_notes' => fn (array $attributes) => 
-                in_array($attributes['status'], ['resolved', 'dismissed']) ? fake()->sentence() : null,
-            'resolved_at' => fn (array $attributes) => 
-                in_array($attributes['status'], ['resolved', 'dismissed']) ? fake()->dateTimeBetween('-30 days', 'now') : null,
+            'status' => 'pending',
+            'moderator_id' => null,
+            'moderator_notes' => null,
+            'resolved_at' => null,
         ];
     }
 

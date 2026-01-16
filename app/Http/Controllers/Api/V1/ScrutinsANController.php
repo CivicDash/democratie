@@ -57,9 +57,10 @@ class ScrutinsANController extends Controller
         }
 
         // Tri
+        $allowedSorts = ['date_scrutin', 'uid', 'titre'];
         $sortBy = $request->get('sort_by', 'date_scrutin');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortOrder = $request->get('sort_order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy(in_array($sortBy, $allowedSorts, true) ? $sortBy : 'date_scrutin', $sortOrder);
 
         // Pagination
         $perPage = min($request->get('per_page', 20), 100);

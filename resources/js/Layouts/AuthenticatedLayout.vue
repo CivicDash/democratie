@@ -17,12 +17,23 @@ import CommandPalette from "@/Components/CommandPalette.vue";
 import KeyboardShortcutsHelp from "@/Components/KeyboardShortcutsHelp.vue";
 import GlobalSearch from "@/Components/GlobalSearch.vue";
 import { Link, router } from "@inertiajs/vue3";
+import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 
 const showingNavigationDropdown = ref(false);
 const showMobileSearch = ref(false);
 const searchQuery = ref("");
 const showCommandPalette = ref(false);
 const showKeyboardHelp = ref(false);
+const mobileNavId = "auth-layout-mobile-nav";
+const mobileSectionIds = {
+    participation: "auth-layout-section-participation",
+    elections: "auth-layout-section-elections",
+    an: "auth-layout-section-an",
+    senat: "auth-layout-section-senat",
+    gouvernement: "auth-layout-section-gouvernement",
+    legislation: "auth-layout-section-legislation",
+    donnees: "auth-layout-section-donnees",
+};
 
 // Dark Mode Management
 const isDarkMode = ref(false);
@@ -60,74 +71,25 @@ const toggleSection = (section) => {
 // Référence pour le champ de recherche desktop
 const searchInputDesktop = ref(null);
 
-// Raccourcis clavier
-const handleKeyboardShortcuts = (e) => {
-    // Ignorer si on est dans un champ de saisie (sauf pour certains raccourcis)
-    const isInputFocused = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
-    
-    // Ctrl+K, Cmd+K, ou Ctrl+/ : Ouvrir la CommandPalette
-    if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "/")) {
-        e.preventDefault();
+useKeyboardShortcuts({
+    onOpenPalette: () => {
         showCommandPalette.value = true;
-        return;
-    }
-
-    // Échap : Fermer tout
-    if (e.key === "Escape") {
+    },
+    onToggleHelp: () => {
+        showKeyboardHelp.value = !showKeyboardHelp.value;
+    },
+    onCloseAll: () => {
         showCommandPalette.value = false;
         showKeyboardHelp.value = false;
         showingNavigationDropdown.value = false;
         showMobileSearch.value = false;
         expandedSection.value = null;
         document.activeElement?.blur();
-        return;
-    }
-
-    // Ne pas traiter les autres raccourcis si on est dans un input
-    if (isInputFocused) return;
-
-    // / : Ouvrir la CommandPalette
-    if (e.key === "/") {
-        e.preventDefault();
-        showCommandPalette.value = true;
-        return;
-    }
-
-    // ? : Afficher l'aide des raccourcis
-    if (e.key === "?" || (e.shiftKey && e.key === "/")) {
-        e.preventDefault();
-        showKeyboardHelp.value = !showKeyboardHelp.value;
-        return;
-    }
-
-    // Séquences G + lettre (style GitHub)
-    if (e.key === "g") {
-        window._lastKeyG = Date.now();
-        return;
-    }
-
-    if (window._lastKeyG && Date.now() - window._lastKeyG < 500) {
-        window._lastKeyG = null;
-        switch (e.key.toLowerCase()) {
-            case "h":
-                e.preventDefault();
-                router.visit(route("dashboard"));
-                break;
-            case "d":
-                e.preventDefault();
-                router.visit(route("representants.deputes.index"));
-                break;
-            case "s":
-                e.preventDefault();
-                router.visit(route("representants.senateurs.index"));
-                break;
-            case "l":
-                e.preventDefault();
-                router.visit(route("legislation.index"));
-                break;
-        }
-    }
-};
+    },
+    onNavigate: (routeName) => {
+        router.visit(route(routeName));
+    },
+});
 
 onMounted(() => {
     // Dark mode init
@@ -138,13 +100,9 @@ onMounted(() => {
         isDarkMode.value = window.matchMedia("(prefers-color-scheme: dark)").matches;
     }
     applyTheme();
-    
-    // Écouter les raccourcis clavier
-    window.addEventListener("keydown", handleKeyboardShortcuts);
 });
 
 onUnmounted(() => {
-    window.removeEventListener("keydown", handleKeyboardShortcuts);
 });
 </script>
 
@@ -594,6 +552,7 @@ onUnmounted(() => {
                                 @click="showCommandPalette = true"
                                 class="inline-flex items-center justify-center rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
                                 title="Rechercher"
+                                aria-label="Recherche"
                             >
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -604,6 +563,7 @@ onUnmounted(() => {
                             <button
                                 @click="toggleDarkMode"
                                 class="inline-flex items-center justify-center rounded-full p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                aria-label="Basculer le mode sombre"
                             >
                                 <svg v-if="!isDarkMode" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -619,6 +579,10 @@ onUnmounted(() => {
                             <button
                                 @click="showingNavigationDropdown = !showingNavigationDropdown"
                                 class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
+                                aria-haspopup="true"
+                                :aria-expanded="showingNavigationDropdown"
+                                :aria-controls="mobileNavId"
+                                aria-label="Ouvrir le menu"
                             >
                                 <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path
@@ -647,6 +611,7 @@ onUnmounted(() => {
 
                 <!-- Responsive Navigation Menu (Accordion Style) -->
                 <div
+                    :id="mobileNavId"
                     :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }"
                     class="lg:hidden border-t border-gray-200 dark:border-gray-700 max-h-[calc(100vh-64px)] overflow-y-auto"
                 >
@@ -666,13 +631,19 @@ onUnmounted(() => {
                             <button
                                 @click="toggleSection('participation')"
                                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
+                                :aria-expanded="expandedSection === 'participation'"
+                                :aria-controls="mobileSectionIds.participation"
                             >
                                 <span>💡 Participation</span>
                                 <svg :class="{ 'rotate-180': expandedSection === 'participation' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div v-show="expandedSection === 'participation'" class="pl-4 space-y-1 mt-1">
+                            <div
+                                :id="mobileSectionIds.participation"
+                                v-show="expandedSection === 'participation'"
+                                class="pl-4 space-y-1 mt-1"
+                            >
                                 <ResponsiveNavLink :href="route('participation.ideas.index')">💬 Idées Citoyennes</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('participation.ideas.create')" class="text-emerald-600 dark:text-emerald-400 font-medium">✨ Nouvelle Proposition</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('budget.index')">💰 Budget Participatif</ResponsiveNavLink>
@@ -684,13 +655,19 @@ onUnmounted(() => {
                             <button
                                 @click="toggleSection('elections')"
                                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                                :aria-expanded="expandedSection === 'elections'"
+                                :aria-controls="mobileSectionIds.elections"
                             >
                                 <span>🗳️ Élections</span>
                                 <svg :class="{ 'rotate-180': expandedSection === 'elections' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div v-show="expandedSection === 'elections'" class="pl-4 space-y-1 mt-1">
+                            <div
+                                :id="mobileSectionIds.elections"
+                                v-show="expandedSection === 'elections'"
+                                class="pl-4 space-y-1 mt-1"
+                            >
                                 <ResponsiveNavLink :href="route('elections.hub')">📅 Calendrier électoral</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('elections.municipales.index')">🏘️ Municipales</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('elections.legislatives')">🏛️ Législatives</ResponsiveNavLink>
@@ -704,6 +681,8 @@ onUnmounted(() => {
                             <button
                                 @click="toggleSection('an')"
                                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"
+                                :aria-expanded="expandedSection === 'an'"
+                                :aria-controls="mobileSectionIds.an"
                             >
                                 <span class="flex items-center gap-2">
                                     <img src="/images/Logo_de_l'Assemblée_nationale_française.svg" alt="AN" class="w-4 h-4" />
@@ -713,7 +692,11 @@ onUnmounted(() => {
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div v-show="expandedSection === 'an'" class="pl-4 space-y-1 mt-1">
+                            <div
+                                :id="mobileSectionIds.an"
+                                v-show="expandedSection === 'an'"
+                                class="pl-4 space-y-1 mt-1"
+                            >
                                 <ResponsiveNavLink :href="route('representants.deputes.index')">👥 Députés (577)</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('legislation.scrutins.index')">🗳️ Scrutins</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('questions.index')">❓ Questions au Gouv.</ResponsiveNavLink>
@@ -726,6 +709,8 @@ onUnmounted(() => {
                             <button
                                 @click="toggleSection('senat')"
                                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg"
+                                :aria-expanded="expandedSection === 'senat'"
+                                :aria-controls="mobileSectionIds.senat"
                             >
                                 <span class="flex items-center gap-2">
                                     <img src="/images/Logo_du_Sénat_Republique_française.svg" alt="Sénat" class="w-4 h-4" />
@@ -735,7 +720,11 @@ onUnmounted(() => {
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div v-show="expandedSection === 'senat'" class="pl-4 space-y-1 mt-1">
+                            <div
+                                :id="mobileSectionIds.senat"
+                                v-show="expandedSection === 'senat'"
+                                class="pl-4 space-y-1 mt-1"
+                            >
                                 <ResponsiveNavLink :href="route('representants.senateurs.index')">👥 Sénateurs (348)</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('legislation.scrutins-senat.index')">🗳️ Scrutins</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('debats.senat.index')">💬 Débats en séance</ResponsiveNavLink>
@@ -747,6 +736,8 @@ onUnmounted(() => {
                             <button
                                 @click="toggleSection('gouvernement')"
                                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
+                                :aria-expanded="expandedSection === 'gouvernement'"
+                                :aria-controls="mobileSectionIds.gouvernement"
                             >
                                 <span class="flex items-center gap-2">
                                     <img src="/images/Logo_de_la_présidence_de_la_République_(2018).svg" alt="" class="w-5 h-5" />
@@ -756,7 +747,11 @@ onUnmounted(() => {
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div v-show="expandedSection === 'gouvernement'" class="pl-4 space-y-1 mt-1">
+                            <div
+                                :id="mobileSectionIds.gouvernement"
+                                v-show="expandedSection === 'gouvernement'"
+                                class="pl-4 space-y-1 mt-1"
+                            >
                                 <ResponsiveNavLink :href="route('gouvernement.president')">🏛️ Président de la République</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('gouvernement.index')">👔 Composition du gouvernement</ResponsiveNavLink>
                             </div>
@@ -774,13 +769,19 @@ onUnmounted(() => {
                             <button
                                 @click="toggleSection('legislation')"
                                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-lg"
+                                :aria-expanded="expandedSection === 'legislation'"
+                                :aria-controls="mobileSectionIds.legislation"
                             >
                                 <span>⚖️ Législation</span>
                                 <svg :class="{ 'rotate-180': expandedSection === 'legislation' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div v-show="expandedSection === 'legislation'" class="pl-4 space-y-1 mt-1">
+                            <div
+                                :id="mobileSectionIds.legislation"
+                                v-show="expandedSection === 'legislation'"
+                                class="pl-4 space-y-1 mt-1"
+                            >
                                 <ResponsiveNavLink :href="route('lois.index')">📜 Lois</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('tags.index')">🏷️ Thématiques</ResponsiveNavLink>
                             </div>
@@ -791,13 +792,19 @@ onUnmounted(() => {
                             <button
                                 @click="toggleSection('donnees')"
                                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg"
+                                :aria-expanded="expandedSection === 'donnees'"
+                                :aria-controls="mobileSectionIds.donnees"
                             >
                                 <span>📊 Données</span>
                                 <svg :class="{ 'rotate-180': expandedSection === 'donnees' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </button>
-                            <div v-show="expandedSection === 'donnees'" class="pl-4 space-y-1 mt-1">
+                            <div
+                                :id="mobileSectionIds.donnees"
+                                v-show="expandedSection === 'donnees'"
+                                class="pl-4 space-y-1 mt-1"
+                            >
                                 <ResponsiveNavLink :href="route('statistics.france')">🗺️ Statistiques Pays</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('budget-etat.index')">💰 Statistiques État</ResponsiveNavLink>
                                 <ResponsiveNavLink :href="route('donnees.gouvernements')">🏛️ Statistiques Gouvernement</ResponsiveNavLink>

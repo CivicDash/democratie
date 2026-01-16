@@ -151,6 +151,9 @@ const formatDuration = (seconds) => {
                                         Résultats
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                        Origine
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                         Durée
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -168,9 +171,12 @@ const formatDuration = (seconds) => {
                                     class="hover:bg-slate-50 dark:hover:bg-slate-700/30"
                                 >
                                     <td class="px-6 py-4">
-                                        <code class="text-sm font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                                        <Link
+                                            :href="route('admin.imports.show', log.id)"
+                                            class="text-sm font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded hover:underline"
+                                        >
                                             {{ log.command }}
-                                        </code>
+                                        </Link>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span
@@ -204,6 +210,9 @@ const formatDuration = (seconds) => {
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                                        {{ log.triggered_by === 'scheduler' ? 'Planifiée' : 'Manuelle' }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                                         {{ formatDuration(log.duration_seconds) }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
@@ -215,7 +224,7 @@ const formatDuration = (seconds) => {
                                 </tr>
                                 
                                 <tr v-if="imports.data.length === 0">
-                                    <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                                    <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                                         Aucun import trouvé
                                     </td>
                                 </tr>

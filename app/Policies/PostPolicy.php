@@ -105,7 +105,7 @@ class PostPolicy
     public function hide(User $user, Post $post): bool
     {
         // Seuls modérateurs et admins peuvent masquer
-        return $user->hasPermissionTo('hide_posts');
+        return $user->hasPermissionTo('posts.hide');
     }
 
     /**

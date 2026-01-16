@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import { useGuidedTour } from '@/Composables/useGuidedTour';
+import { useGuidedTour } from '@/composables/useGuidedTour';
 
 const {
     isActive,

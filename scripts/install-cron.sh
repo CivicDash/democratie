@@ -3,6 +3,7 @@
 # 📅 Installation du cron de synchronisation
 #
 # Ce script configure le cron pour la synchronisation quotidienne
+# ⚠️ Si le scheduler Laravel (schedule:run) est actif, ne pas installer ce cron.
 #
 
 set -e
@@ -10,7 +11,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SYNC_SCRIPT="$SCRIPT_DIR/sync-all-data.sh"
-LOG_DIR="/var/log/demoscratos"
+LOG_DIR="${PROJECT_DIR}/storage/logs"
 
 # Couleurs
 GREEN='\033[0;32m'
@@ -43,7 +44,7 @@ CRON_ENTRIES="
 # ============================================================================
 
 # Synchronisation complète quotidienne à 3h du matin
-0 3 * * * $SYNC_SCRIPT >> $LOG_DIR/sync.log 2>&1
+0 3 * * * cd $PROJECT_DIR && $SYNC_SCRIPT >> $LOG_DIR/sync.log 2>&1
 
 # Synchronisation légère des scrutins AN toutes les 6h (pendant les sessions)
 # 0 */6 * * * $SYNC_SCRIPT --an >> $LOG_DIR/sync-an.log 2>&1

@@ -14,6 +14,9 @@ use App\Observers\PostHashtagObserver;
 use App\Observers\TopicHashtagObserver;
 use App\Observers\ListeElectoraleObserver;
 use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Console\Events\ScheduledTaskFailed;
+use Illuminate\Console\Events\ScheduledTaskFinished;
+use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -44,6 +47,11 @@ class AppServiceProvider extends ServiceProvider
         
         // Listener pour logger les emails envoyés
         Event::listen(MessageSent::class, LogSentEmail::class);
+
+        // Logger scheduler : historique des imports planifiés
+        Event::listen(ScheduledTaskStarting::class, [\App\Listeners\SchedulerTaskLogger::class, 'starting']);
+        Event::listen(ScheduledTaskFinished::class, [\App\Listeners\SchedulerTaskLogger::class, 'finished']);
+        Event::listen(ScheduledTaskFailed::class, [\App\Listeners\SchedulerTaskLogger::class, 'failed']);
         
         // TODO: Enregistrer les observers pour la gamification quand les modèles existent
         // Vote::observe(VoteObserver::class);

@@ -536,12 +536,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Compte les signalements actifs contre l'user
+     * Compte les signalements actifs créés par l'user
      */
     public function activeReportsCount(): int
     {
-        return Report::where('reportable_type', Post::class)
-            ->whereIn('reportable_id', $this->posts->pluck('id'))
+        return Report::where('reporter_id', $this->id)
             ->whereIn('status', ['pending', 'reviewing'])
             ->count();
     }
