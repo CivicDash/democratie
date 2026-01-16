@@ -9,6 +9,7 @@ use App\Models\Commune;
 use App\Models\ListeElectorale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -26,31 +27,39 @@ class ElectionsMunicipalesController extends Controller
      */
     public function carte()
     {
+        $cacheTtl = 300;
+
         // Statistiques par département
-        $parDepartement = ListeElectorale::valide()
-            ->selectRaw('departement_code, COUNT(*) as nb_listes, COUNT(DISTINCT commune_code_insee) as nb_communes')
-            ->groupBy('departement_code')
-            ->get()
-            ->keyBy('departement_code')
-            ->map(fn($row) => [
-                'nb_listes' => $row->nb_listes,
-                'nb_communes' => $row->nb_communes,
-            ]);
+        $parDepartement = Cache::remember('municipales:carte:par_departement', $cacheTtl, function () {
+            return ListeElectorale::valide()
+                ->selectRaw('departement_code, COUNT(*) as nb_listes, COUNT(DISTINCT commune_code_insee) as nb_communes')
+                ->groupBy('departement_code')
+                ->get()
+                ->keyBy('departement_code')
+                ->map(fn($row) => [
+                    'nb_listes' => $row->nb_listes,
+                    'nb_communes' => $row->nb_communes,
+                ]);
+        });
 
         // Top communes (les plus de listes)
-        $topCommunes = ListeElectorale::valide()
-            ->selectRaw('commune_code_insee, commune_nom, departement_code, COUNT(*) as nb_listes')
-            ->groupBy('commune_code_insee', 'commune_nom', 'departement_code')
-            ->orderByDesc('nb_listes')
-            ->limit(20)
-            ->get();
+        $topCommunes = Cache::remember('municipales:carte:top_communes', $cacheTtl, function () {
+            return ListeElectorale::valide()
+                ->selectRaw('commune_code_insee, commune_nom, departement_code, COUNT(*) as nb_listes')
+                ->groupBy('commune_code_insee', 'commune_nom', 'departement_code')
+                ->orderByDesc('nb_listes')
+                ->limit(20)
+                ->get();
+        });
 
         // Stats globales
-        $stats = [
-            'total_listes' => ListeElectorale::valide()->count(),
-            'total_communes' => ListeElectorale::valide()->distinct('commune_code_insee')->count(),
-            'total_departements' => ListeElectorale::valide()->distinct('departement_code')->count(),
-        ];
+        $stats = Cache::remember('municipales:carte:stats', $cacheTtl, function () {
+            return [
+                'total_listes' => ListeElectorale::valide()->count(),
+                'total_communes' => ListeElectorale::valide()->distinct('commune_code_insee')->count(),
+                'total_departements' => ListeElectorale::valide()->distinct('departement_code')->count(),
+            ];
+        });
 
         return Inertia::render('Elections/Municipales/Carte', [
             'par_departement' => $parDepartement,
@@ -64,26 +73,33 @@ class ElectionsMunicipalesController extends Controller
      */
     public function apiListesParDepartement(string $departement)
     {
-        $listes = ListeElectorale::valide()
-            ->where('departement_code', $departement)
-            ->with(['candidats' => fn($q) => $q->teteDeListe()])
-            ->orderBy('commune_nom')
-            ->get()
-            ->map(fn($liste) => [
-                'uuid' => $liste->uuid,
-                'nom_liste' => $liste->nom_liste,
-                'commune_nom' => $liste->commune_nom,
-                'commune_code_insee' => $liste->commune_code_insee,
-                'tete_de_liste' => $liste->candidats->first()?->nom_complet,
-                'nuance_politique' => $liste->nuance_politique,
-                'couleur' => $liste->couleur_principale,
+        $cacheTtl = 300;
+        $cacheKey = "municipales:departement:{$departement}";
+
+        [$listes, $communes] = Cache::remember($cacheKey, $cacheTtl, function () use ($departement) {
+            $listes = ListeElectorale::valide()
+                ->where('departement_code', $departement)
+                ->with(['candidats' => fn($q) => $q->teteDeListe()])
+                ->orderBy('commune_nom')
+                ->get()
+                ->map(fn($liste) => [
+                    'uuid' => $liste->uuid,
+                    'nom_liste' => $liste->nom_liste,
+                    'commune_nom' => $liste->commune_nom,
+                    'commune_code_insee' => $liste->commune_code_insee,
+                    'tete_de_liste' => $liste->candidats->first()?->nom_complet,
+                    'nuance_politique' => $liste->nuance_politique,
+                    'couleur' => $liste->couleur_principale,
+                ]);
+
+            $communes = $listes->groupBy('commune_code_insee')->map(fn($group) => [
+                'commune_nom' => $group->first()['commune_nom'],
+                'nb_listes' => $group->count(),
+                'listes' => $group->values(),
             ]);
 
-        $communes = $listes->groupBy('commune_code_insee')->map(fn($group) => [
-            'commune_nom' => $group->first()['commune_nom'],
-            'nb_listes' => $group->count(),
-            'listes' => $group->values(),
-        ]);
+            return [$listes, $communes];
+        });
 
         return response()->json([
             'departement' => $departement,
