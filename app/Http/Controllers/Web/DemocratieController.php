@@ -242,4 +242,9 @@ class DemocratieController extends Controller
             'slug' => $p->personne?->slug,
         ])->values()->toArray();
     }
+
+    public function conseilConstitutionnel(): Response
+    {
+        return Inertia::render('Democratie/ConseilConstitutionnel');
+    }
 }

@@ -283,8 +283,10 @@ function sectionActiveClass(section) {
                                             @click="closeDropdowns"
                                         >
                                             <div class="p-3 space-y-1">
-                                                <template v-for="item in comprendre.items" :key="item.href || 'div'">
-                                                    <div v-if="item.divider" class="border-t border-gray-100 dark:border-gray-600 my-2" />
+                                                <template v-for="(item, idx) in comprendre.items" :key="item.href || `div-${idx}`">
+                                                    <div v-if="item.divider" class="border-t border-gray-100 dark:border-gray-600 my-2">
+                                                        <p v-if="item.label" class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pt-2 px-1">{{ item.label }}</p>
+                                                    </div>
                                                     <MegaMenuLink
                                                         v-else
                                                         :href="item.href"

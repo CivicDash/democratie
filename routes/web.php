@@ -200,6 +200,11 @@ Route::prefix('legislation')->name('legislation.')->middleware('auth')->group(fu
     // Textes législatifs (NOUVEAU)
     Route::get('/textes/{uid}', [LegislationController::class, 'showTexte'])->name('textes.show');
     
+    // Constitution
+    Route::get('/constitution', function () {
+        return Inertia::render('Legislation/Constitution');
+    })->name('constitution');
+
     // Redirection /legislation/lois vers /lois (éviter conflit avec route générique)
     Route::get('/lois', function () {
         return redirect()->route('lois.index');
@@ -407,6 +412,7 @@ Route::prefix('democratie')->name('democratie.')->group(function () {
     Route::get('/representants', [\App\Http\Controllers\Web\DemocratieController::class, 'representants'])->name('representants');
     Route::get('/votes', [\App\Http\Controllers\Web\DemocratieController::class, 'votes'])->name('votes');
     Route::get('/gouvernement', [\App\Http\Controllers\Web\DemocratieController::class, 'gouvernement'])->name('gouvernement');
+    Route::get('/conseil-constitutionnel', [\App\Http\Controllers\Web\DemocratieController::class, 'conseilConstitutionnel'])->name('conseil-constitutionnel');
 });
 
 /*

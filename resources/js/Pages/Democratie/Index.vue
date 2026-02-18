@@ -64,6 +64,14 @@ const modules = [
         color: 'rose',
         route: 'democratie.gouvernement',
     },
+    {
+        key: 'conseil-constitutionnel',
+        icon: '⚖️',
+        title: 'Le Conseil Constitutionnel',
+        description: 'Gardien de la Constitution, contrôle de constitutionnalité et QPC : comprendre son rôle.',
+        color: 'purple',
+        route: 'democratie.conseil-constitutionnel',
+    },
 ];
 
 const completedCount = ref(0);
@@ -108,6 +116,13 @@ const colorClasses = {
         hover: 'hover:border-rose-400 dark:hover:border-rose-600',
         badge: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200',
     },
+    purple: {
+        bg: 'bg-purple-50 dark:bg-purple-900/20',
+        border: 'border-purple-200 dark:border-purple-800',
+        icon: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+        hover: 'hover:border-purple-400 dark:hover:border-purple-600',
+        badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200',
+    },
 };
 </script>
 
@@ -125,7 +140,7 @@ const colorClasses = {
                         🎓 Comprendre la Démocratie
                     </h1>
                     <p class="mt-3 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                        Explorez le fonctionnement de la démocratie française à travers 5 modules interactifs.
+                        Explorez le fonctionnement de la démocratie française à travers 6 modules interactifs.
                         Chaque module vous renvoie vers les données réelles de CivicDash.
                     </p>
 

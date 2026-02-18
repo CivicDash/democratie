@@ -40,11 +40,9 @@ class LoiController extends Controller
             $query->where('typloicod', $request->type);
         }
 
-        // Par défaut, filtrer sur 2025 (2026 est encore vide)
-        // TODO: Basculer sur date('Y') quand les données 2026 seront disponibles
-        $annee = $request->get('annee', '2025');
+        $annee = $request->get('annee', 'all');
         if ($annee && $annee !== 'all') {
-            $query->whereYear('loidatjo', $annee);
+            $query->whereRaw("EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi)) = ?", [$annee]);
         }
 
         if ($request->filled('search')) {
@@ -64,20 +62,19 @@ class LoiController extends Controller
             });
         }
 
-        // Tri
         $sort = $request->get('sort', 'recent');
         switch ($sort) {
             case 'recent':
-                $query->orderByDesc('loidatjo');
+                $query->orderByRaw('COALESCE(loidatjo, date_loi) DESC NULLS LAST');
                 break;
             case 'ancien':
-                $query->orderBy('loidatjo');
+                $query->orderByRaw('COALESCE(loidatjo, date_loi) ASC NULLS LAST');
                 break;
             case 'titre':
                 $query->orderBy('loitit');
                 break;
             default:
-                $query->orderByDesc('loidatjo');
+                $query->orderByRaw('COALESCE(loidatjo, date_loi) DESC NULLS LAST');
         }
 
         $lois = $query->paginate(20)->withQueryString();
@@ -107,9 +104,9 @@ class LoiController extends Controller
         ])->filter(fn ($t) => !empty($t['libelle']));
 
         $annees = DB::table('senat_dosleg_loi')
-            ->selectRaw('EXTRACT(YEAR FROM loidatjo) as annee')
-            ->whereNotNull('loidatjo')
-            ->groupBy(DB::raw('EXTRACT(YEAR FROM loidatjo)'))
+            ->selectRaw('EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi)) as annee')
+            ->whereRaw('COALESCE(loidatjo, date_loi) IS NOT NULL')
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi))'))
             ->orderByDesc('annee')
             ->pluck('annee')
             ->filter()

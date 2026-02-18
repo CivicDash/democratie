@@ -516,6 +516,93 @@ class ContributionCitoyenne extends Model
 
 ---
 
+## 🎬 Portail Video AN (videos.assemblee-nationale.fr)
+
+> Recherche effectuee le 2026-02-18 via `php artisan an:research-video`
+
+### Architecture
+
+Le portail video utilise la plateforme **Vodalys** :
+- **Hebergement video** : `anorigin.vodalys.com` (CDN via Akamai en backup)
+- **Streaming** : HLS (M3U8), RTMP via `vipwowza.yacast.net`, MP4 direct
+- **Player** : RequireJS + modules Vodalys proprietaires
+- **Synchro** : Socket.IO v0.9 via `node-event.assemblee-nationale.fr`
+
+### Endpoint `data.nvs` (XML)
+
+**URL** : `https://videos.assemblee-nationale.fr/Datas/an/{video_id}/content/data.nvs`
+
+Le fichier `data.nvs` est un XML riche accessible publiquement pour chaque video. Il contient :
+
+| Donnee | Description | Exemple |
+|--------|-------------|---------|
+| **Chapitres** | Hierarchie complete avec type (Question, Reponse, Article, Adt...) et themes | `<chapter id="..." label="Pesticides"><theme key="1" value="Agriculture"/>` |
+| **Orateurs** | Noms + UID AN (sans prefixe PA) | `<speaker id="..."><name>M. Jean-Noel Barrot</name><url>721836</url>` |
+| **Fichiers video** | URLs MP4, M3U8, RTMP, MP3 audio | `serverfiles://..., http://anorigin.vodalys.com/...` |
+| **Metadonnees** | Date, legislature, session, type (QG/SP), lieu | `<metadata name="video_type" value="QG"/>` |
+| **Thumbnails** | Storyboard toutes les 60 secondes | `<thumbnail url="./files/storyboard/120.jpg"/>` |
+
+### Format du video_id
+
+`{numeric_id}_{hash}` extrait de l'URL : `video.18339196_69960cf6d5a3c.slug-titre`
+
+### Types de chapitres (QAG)
+
+| Type key | Type | Usage |
+|----------|------|-------|
+| 36 | QUESTIONS AU GOUVERNEMENT | Racine |
+| 5 | Titre question | Theme de la question |
+| 4 | Question | Intervention du depute |
+| 6 | Reponse | Intervention du ministre |
+| 48 | Presidente de l'Assemblee | Annonces presidentielles |
+| 40 | HOMMAGE | Hommage |
+
+### Types de chapitres (Seance publique)
+
+| Type key | Type | Usage |
+|----------|------|-------|
+| 23 | Texte | Racine du texte en discussion |
+| 1 | Discussion des articles | Section discussion |
+| 2 | Article | Numero d'article |
+| 25 | Adt | Amendement(s) |
+| 7 | Intervention | Prise de parole |
+| 42 | President de seance | Annonces |
+
+### Correspondance UID Orateurs
+
+Le champ `<url>` dans `<speaker>` contient l'UID AN **sans prefixe PA**.
+Exemple : `<url>721836</url>` → `PA721836` → correspond a `acteurs_an.uid = 'PA721836'`
+
+### Timecodes (synchros)
+
+Les timecodes (mapping chapitre → seconde video) sont servis via **Socket.IO v0.9** :
+- Serveur : `http://node-event.assemblee-nationale.fr`
+- Protocole : `xhr-polling`, namespace `/vodalys_nodejs_interface`
+- Subscription : event `subscribe` avec `interface_uid` depuis data.nvs
+- **Statut** : Les synchros n'etaient pas disponibles pour les videos du 18/02/2026 (possiblement ajoutees avec un delai apres la seance)
+
+### URLs timecodes
+
+Le portail supporte les URLs timecodes :
+```
+https://videos.assemblee-nationale.fr/video.{video_id}.{slug}?timecode={secondes}
+```
+
+### Commande de recherche
+
+```bash
+# Analyse complete d'une page video (JS, endpoints, SRT)
+php artisan an:research-video "https://videos.assemblee-nationale.fr/video.{id}"
+
+# Parser les data.nvs (chapitres, orateurs, metadonnees)
+php artisan an:research-video --fetch-nvs
+
+# Avec une URL specifique
+php artisan an:research-video "https://..." --fetch-nvs
+```
+
+---
+
 ## 🔗 Ressources
 
 - [Documentation officielle AN](https://data.assemblee-nationale.fr/static/openData/doc/doc_opendata.pdf)

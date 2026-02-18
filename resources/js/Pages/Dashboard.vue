@@ -200,8 +200,8 @@ const getScoreClass = (score) => {
                                 <div class="text-2xl font-bold text-white">{{ globalStats?.total_votes || 0 }}</div>
                                 <div class="text-xs text-emerald-100">Votes citoyens</div>
                             </div>
-                            <div class="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px] border border-white/10">
-                                <div class="text-2xl font-bold text-white">{{ globalStats?.total_propositions || 0 }}</div>
+                            <div v-if="globalStats?.total_propositions" class="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3 text-center min-w-[100px] border border-white/10">
+                                <div class="text-2xl font-bold text-white">{{ globalStats.total_propositions }}</div>
                                 <div class="text-xs text-emerald-100">Propositions</div>
                             </div>
                         </div>
@@ -317,7 +317,7 @@ const getScoreClass = (score) => {
                         </div>
 
                         <!-- Propositions de Loi (cliquables) -->
-                        <div data-tour="dashboard-lois" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div v-if="propositionsLegislatives && propositionsLegislatives.length > 0" data-tour="dashboard-lois" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">

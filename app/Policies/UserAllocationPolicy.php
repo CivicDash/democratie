@@ -6,17 +6,26 @@ use App\Models\Sector;
 use App\Models\User;
 use App\Models\UserAllocation;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 
 class UserAllocationPolicy
 {
     use HandlesAuthorization;
+
+    private function canAllocateBudget(User $user): bool
+    {
+        try {
+            return $user->hasPermissionTo('budget.allocate');
+        } catch (PermissionDoesNotExist) {
+            return false;
+        }
+    }
 
     /**
      * Determine if the user can view any allocations.
      */
     public function viewAny(User $user): bool
     {
-        // Tous les utilisateurs authentifiés peuvent voir les allocations agrégées
         return true;
     }
 
@@ -25,12 +34,10 @@ class UserAllocationPolicy
      */
     public function view(User $user, UserAllocation $allocation): bool
     {
-        // User peut voir ses propres allocations
         if ($allocation->user_id === $user->id) {
             return true;
         }
 
-        // State et admins peuvent voir toutes les allocations
         return $user->hasAnyRole(['state', 'admin']);
     }
 
@@ -39,8 +46,7 @@ class UserAllocationPolicy
      */
     public function viewOwn(User $user): bool
     {
-        // Tous les citoyens peuvent voir leurs allocations
-        return $user->hasPermissionTo('budget.allocate');
+        return $this->canAllocateBudget($user);
     }
 
     /**
@@ -48,17 +54,14 @@ class UserAllocationPolicy
      */
     public function create(User $user): bool
     {
-        // Seuls les citoyens peuvent allouer leur budget
-        if (!$user->hasPermissionTo('budget.allocate')) {
+        if (!$this->canAllocateBudget($user)) {
             return false;
         }
 
-        // User ne doit pas être banni
         if ($user->isBanned()) {
             return false;
         }
 
-        // User doit avoir un profil
         return $user->profile !== null;
     }
 

@@ -53,7 +53,16 @@ const formatDate = (dateIso) => {
     });
 };
 
+const showFilters = ref(false);
+
 const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
+
+const activeFilterCount = computed(() => {
+    let count = 0;
+    if (anneeFiltre.value) count++;
+    if (moisFiltre.value) count++;
+    return count;
+});
 </script>
 
 <template>
@@ -62,7 +71,6 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
     <AuthenticatedLayout>
         <!-- Hero Banner -->
         <section class="relative overflow-hidden bg-gradient-to-br from-rose-900 via-rose-800 to-pink-900">
-            <!-- Background Pattern -->
             <div class="absolute inset-0 opacity-10">
                 <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
             </div>
@@ -101,16 +109,59 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
         </section>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Mobile filter toggle -->
+            <div class="lg:hidden mb-4">
+                <button
+                    @click="showFilters = !showFilters"
+                    class="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700"
+                >
+                    <span class="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                        🔍 Filtres
+                        <span v-if="activeFilterCount" class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-rose-500 rounded-full">
+                            {{ activeFilterCount }}
+                        </span>
+                    </span>
+                    <svg class="w-5 h-5 text-slate-400 transition-transform" :class="{ 'rotate-180': showFilters }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div v-show="showFilters" class="mt-2 p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Année</label>
+                            <select
+                                v-model="anneeFiltre"
+                                @change="appliquerFiltres"
+                                class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-sm"
+                            >
+                                <option value="">Toutes</option>
+                                <option v-for="annee in stats.annees_disponibles" :key="annee" :value="annee">{{ annee }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mois</label>
+                            <select
+                                v-model="moisFiltre"
+                                @change="appliquerFiltres"
+                                class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 text-sm"
+                            >
+                                <option v-for="m in moisOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid lg:grid-cols-4 gap-8">
-                <!-- Sidebar filtres -->
-                <div class="lg:col-span-1">
+                <!-- Sidebar filtres (desktop only) -->
+                <div class="hidden lg:block lg:col-span-1">
                     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 sticky top-24">
                         <h3 class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             🔍 Filtres
                         </h3>
                         
                         <div class="space-y-4">
-                            <!-- Année -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                     Année
@@ -131,7 +182,6 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
                                 </select>
                             </div>
                             
-                            <!-- Mois -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                     Mois
@@ -152,7 +202,6 @@ const formatNumber = (n) => new Intl.NumberFormat('fr-FR').format(n);
                             </div>
                         </div>
                         
-                        <!-- Info source -->
                         <div class="mt-6 p-4 bg-rose-50 dark:bg-rose-900/20 rounded-lg">
                             <p class="text-sm text-rose-700 dark:text-rose-300">
                                 📊 <strong>Source:</strong> data.senat.fr<br/>
