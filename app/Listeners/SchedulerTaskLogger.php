@@ -79,7 +79,7 @@ class SchedulerTaskLogger
             return null;
         }
 
-        if (preg_match('/artisan\s+([^\s]+)/', $command, $matches)) {
+        if (preg_match('/artisan[\'"\s]+([^\s\'\"]+)/', $command, $matches)) {
             return $matches[1];
         }
 

@@ -28,15 +28,15 @@ class BudgetService
     public function allocate(User $user, Sector $sector, float $percent): UserAllocation
     {
         // Vérifier les contraintes du secteur
-        if ($percent < $sector->min_allocation_percent) {
+        if ($percent < $sector->min_percent) {
             throw new RuntimeException(
-                "Allocation below minimum: {$sector->min_allocation_percent}% required for {$sector->name}."
+                "Allocation below minimum: {$sector->min_percent}% required for {$sector->name}."
             );
         }
 
-        if ($percent > $sector->max_allocation_percent) {
+        if ($percent > $sector->max_percent) {
             throw new RuntimeException(
-                "Allocation exceeds maximum: {$sector->max_allocation_percent}% allowed for {$sector->name}."
+                "Allocation exceeds maximum: {$sector->max_percent}% allowed for {$sector->name}."
             );
         }
 
@@ -87,15 +87,15 @@ class BudgetService
             foreach ($allocations as $sectorId => $percent) {
                 $sector = Sector::findOrFail($sectorId);
 
-                if ($percent < $sector->min_allocation_percent) {
+                if ($percent < $sector->min_percent) {
                     throw new RuntimeException(
-                        "Allocation for {$sector->name} below minimum ({$sector->min_allocation_percent}%)."
+                        "Allocation for {$sector->name} below minimum ({$sector->min_percent}%)."
                     );
                 }
 
-                if ($percent > $sector->max_allocation_percent) {
+                if ($percent > $sector->max_percent) {
                     throw new RuntimeException(
-                        "Allocation for {$sector->name} exceeds maximum ({$sector->max_allocation_percent}%)."
+                        "Allocation for {$sector->name} exceeds maximum ({$sector->max_percent}%)."
                     );
                 }
             }

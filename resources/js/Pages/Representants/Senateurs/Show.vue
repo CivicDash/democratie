@@ -471,10 +471,11 @@ const getSegmentHeight = (value, total) => {
           </div>
           
           <div class="space-y-3">
-            <div
+            <Link
               v-for="vote in senateur.derniers_votes"
               :key="vote.id"
-              class="flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-600 transition"
+              :href="vote.scrutin ? route('legislation.scrutins-senat.show', vote.scrutin.id) : '#'"
+              class="flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition cursor-pointer"
             >
               <!-- Position du vote -->
               <div class="flex-shrink-0">
@@ -504,8 +505,8 @@ const getSegmentHeight = (value, total) => {
                 </div>
               </div>
               
-              <!-- Résultats du scrutin -->
-              <div v-if="vote.scrutin" class="hidden md:flex items-center gap-4 text-sm">
+              <!-- Résultats du scrutin (hide when both are 0) -->
+              <div v-if="vote.scrutin && (vote.scrutin.pour > 0 || vote.scrutin.contre > 0)" class="hidden md:flex items-center gap-4 text-sm">
                 <span class="text-green-600">✓ {{ vote.scrutin.pour }}</span>
                 <span class="text-red-600">✗ {{ vote.scrutin.contre }}</span>
               </div>
@@ -520,7 +521,7 @@ const getSegmentHeight = (value, total) => {
               >
                 {{ vote.position?.toUpperCase() || 'N/A' }}
               </Badge>
-            </div>
+            </Link>
           </div>
         </Card>
 

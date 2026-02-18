@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -13,6 +13,9 @@ const props = defineProps({
     status: String,
 });
 
+const page = usePage();
+const demo = page.props.demo;
+
 const form = useForm({
     email: '',
     password: '',
@@ -25,16 +28,16 @@ const submit = () => {
     });
 };
 
-// Remplir avec compte démo citoyen
 const fillDemoAccount = () => {
-    form.email = 'demo@civicdash.fr';
-    form.password = 'Demo2026!';
+    if (!demo) return;
+    form.email = demo.citizen_email;
+    form.password = demo.citizen_password;
 };
 
-// Remplir avec compte démo élu
 const fillDemoEluAccount = () => {
-    form.email = 'demo-elu@civicdash.fr';
-    form.password = 'DemoElu2026!';
+    if (!demo) return;
+    form.email = demo.elu_email;
+    form.password = demo.elu_password;
 };
 </script>
 
@@ -226,7 +229,7 @@ const fillDemoEluAccount = () => {
                     </div>
                     
                     <!-- Boutons démo -->
-                    <div class="space-y-3">
+                    <div v-if="demo" class="space-y-3">
                         <button
                             type="button"
                             @click="fillDemoAccount"

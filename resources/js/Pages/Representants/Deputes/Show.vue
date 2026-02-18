@@ -335,10 +335,11 @@ const formatMontant = (montant) => {
           </div>
           
           <div class="space-y-3">
-            <div
+            <Link
               v-for="vote in depute.derniers_votes"
               :key="vote.id"
-              class="flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 transition"
+              :href="vote.scrutin?.uid ? route('legislation.scrutins.show', vote.scrutin.uid) : '#'"
+              class="flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition cursor-pointer"
             >
               <!-- Position du vote -->
               <div class="flex-shrink-0">
@@ -384,7 +385,7 @@ const formatMontant = (montant) => {
               >
                 {{ vote.position.toUpperCase() }}
               </Badge>
-            </div>
+            </Link>
           </div>
         </Card>
 

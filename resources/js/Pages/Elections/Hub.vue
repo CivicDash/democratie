@@ -11,7 +11,8 @@ defineProps({
 
 const breadcrumbItems = [
   { label: 'Accueil', href: route('dashboard'), icon: '🏠' },
-  { label: 'Élections', icon: '🗳️' },
+  { label: 'Agir', href: route('elections.hub'), icon: '💡' },
+  { label: 'Élections', current: true, icon: '🗳️' },
 ];
 
 const typeElections = [
@@ -70,15 +71,9 @@ const getColorClasses = (color) => ({
   <Head title="Élections" />
 
   <AuthenticatedLayout>
-    <div class="py-8">
-      <div class="mx-auto px-4 sm:px-6 lg:px-8 space-y-8" style="max-width: 100%;">
-        
-        <!-- Breadcrumb -->
-        <Breadcrumb :items="breadcrumbItems" />
-
-        <!-- Hero Banner -->
-        <div class="relative overflow-hidden bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900 rounded-2xl shadow-xl">
-          <!-- Pattern décoratif -->
+        <!-- Hero Section Full Width -->
+        <section class="relative overflow-hidden bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900">
+          <!-- Pattern decoratif -->
           <div class="absolute inset-0 opacity-10">
             <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
               <defs>
@@ -89,20 +84,23 @@ const getColorClasses = (color) => ({
               <rect fill="url(#elections-grid)" width="100" height="100"/>
             </svg>
           </div>
-          
-          <div class="relative px-8 py-12 lg:py-16">
+
+          <div class="relative w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+            <Breadcrumb :items="breadcrumbItems" variant="light" class="mb-4 hidden sm:block" />
+
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <h1 class="text-4xl lg:text-5xl font-bold text-white tracking-tight mb-4">
-                  🗳️ Élections en France
+                <h1 class="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-white tracking-tight mb-3 flex items-center gap-3">
+                  <span class="text-3xl sm:text-4xl">🗳️</span>
+                  Élections en France
                 </h1>
-                <p class="text-xl text-blue-100 max-w-2xl">
+                <p class="text-lg text-blue-100 max-w-2xl">
                   Suivez les échéances électorales, découvrez les candidats et préparez votre vote
                 </p>
               </div>
-              
-              <!-- Prochaine élection -->
-              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+
+              <!-- Prochaine election -->
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 flex-shrink-0">
                 <div class="text-blue-200 text-sm font-medium mb-2">📅 Prochaine élection</div>
                 <div class="text-white text-2xl font-bold">Municipales 2026</div>
                 <div class="text-blue-100 text-lg mt-1">Mars 2026</div>
@@ -114,7 +112,10 @@ const getColorClasses = (color) => ({
               </div>
             </div>
           </div>
-        </div>
+        </section>
+
+    <div class="py-8">
+      <div class="mx-auto px-4 sm:px-6 lg:px-8 space-y-8" style="max-width: 100%;">
 
         <!-- Grille des types d'élections -->
         <div class="grid md:grid-cols-2 gap-6">

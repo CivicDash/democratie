@@ -3,6 +3,66 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InstitutionLogo from '@/Components/InstitutionLogo.vue';
 import { ref, computed } from 'vue';
+import { useNavigation } from '@/composables/useNavigation';
+
+const { mesElus, institutions, legislatif, agir, comprendre } = useNavigation();
+
+const sectionCards = computed(() => [
+    {
+        key: 'mes-elus',
+        label: mesElus.value.label,
+        emoji: mesElus.value.emoji,
+        description: 'Vos representants locaux',
+        href: route('representants.mes-representants'),
+        color: 'from-indigo-500 to-violet-600',
+        borderHover: 'hover:border-indigo-500',
+        items: mesElus.value.items.slice(0, 3),
+    },
+    {
+        key: 'institutions',
+        label: institutions.value.label,
+        emoji: institutions.value.emoji,
+        description: 'AN, Senat, Gouvernement',
+        href: route('representants.deputes.index'),
+        color: 'from-sky-500 to-blue-600',
+        borderHover: 'hover:border-sky-500',
+        items: [
+            institutions.value.columns[0].items[0],
+            institutions.value.columns[1].items[0],
+            institutions.value.columns[2].items[1],
+        ],
+    },
+    {
+        key: 'legislatif',
+        label: legislatif.value.label,
+        emoji: legislatif.value.emoji,
+        description: 'Lois, scrutins, budget',
+        href: route('lois.index'),
+        color: 'from-teal-500 to-cyan-600',
+        borderHover: 'hover:border-teal-500',
+        items: legislatif.value.items.slice(0, 3),
+    },
+    {
+        key: 'agir',
+        label: agir.value.label,
+        emoji: agir.value.emoji,
+        description: 'Participez au debat',
+        href: route('participation.ideas.index'),
+        color: 'from-emerald-500 to-green-600',
+        borderHover: 'hover:border-emerald-500',
+        items: agir.value.items.filter(i => !i.divider).slice(0, 3),
+    },
+    {
+        key: 'comprendre',
+        label: comprendre.value.label,
+        emoji: comprendre.value.emoji,
+        description: 'Democratie expliquee',
+        href: route('democratie.index'),
+        color: 'from-amber-500 to-orange-600',
+        borderHover: 'hover:border-amber-500',
+        items: comprendre.value.items.filter(i => !i.divider).slice(0, 3),
+    },
+]);
 
 const props = defineProps({
     trendingTopics: Array,
@@ -151,83 +211,45 @@ const getScoreClass = (score) => {
 
             <!-- Contenu principal -->
             <div class="px-4 sm:px-6 lg:px-8 xl:px-12 py-8 -mt-4">
-                <!-- Quick Actions -->
-                <div data-tour="dashboard-quick-actions" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+                <!-- Section Cards -->
+                <div data-tour="dashboard-quick-actions" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
                     <Link
-                        :href="route('representants.deputes.index')"
-                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:shadow-lg transition-all flex items-center gap-3"
+                        v-for="section in sectionCards"
+                        :key="section.key"
+                        :href="section.href"
+                        :data-tour="'dashboard-section-' + section.key"
+                        class="group bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all overflow-hidden"
+                        :class="section.borderHover"
                     >
-                        <div class="w-10 h-10 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform p-1.5 border border-slate-200 dark:border-slate-600">
-                            <InstitutionLogo institution="an" size="md" />
-                        </div>
-                        <div>
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm">Députés</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">577 élus</p>
-                        </div>
-                    </Link>
-                    
-                    <Link
-                        :href="route('representants.senateurs.index')"
-                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-rose-500 hover:shadow-lg transition-all flex items-center gap-3"
-                    >
-                        <div class="w-10 h-10 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform p-1.5 border border-slate-200 dark:border-slate-600">
-                            <InstitutionLogo institution="senat" size="md" />
-                        </div>
-                        <div>
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm">Sénateurs</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">348 élus</p>
-                        </div>
-                    </Link>
-                    
-                    <Link
-                        :href="route('legislation.scrutins.index')"
-                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-teal-500 hover:shadow-lg transition-all flex items-center gap-3"
-                    >
-                        <div class="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="text-lg">🗳️</span>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm">Scrutins</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Tous les votes</p>
-                        </div>
-                    </Link>
-                    
-                    <Link
-                        :href="route('participation.ideas.index')"
-                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-purple-500 hover:shadow-lg transition-all flex items-center gap-3"
-                    >
-                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="text-lg">💡</span>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm">Idées</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Citoyennes</p>
-                        </div>
-                    </Link>
-                    
-                    <Link
-                        :href="route('representants.mes-representants')"
-                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:shadow-lg transition-all flex items-center gap-3"
-                    >
-                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="text-lg">📍</span>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm">Mes Élus</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Par localisation</p>
-                        </div>
-                    </Link>
-                    
-                    <Link
-                        :href="route('statistics.france')"
-                        class="group bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-amber-500 hover:shadow-lg transition-all flex items-center gap-3"
-                    >
-                        <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <span class="text-lg">📊</span>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm">Statistiques</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">France</p>
+                        <div class="p-4">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div
+                                    class="w-11 h-11 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform bg-gradient-to-br text-white"
+                                    :class="section.color"
+                                >
+                                    <span class="text-xl">{{ section.emoji }}</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-900 dark:text-white text-sm">{{ section.label }}</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ section.description }}</p>
+                                </div>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div
+                                    v-for="item in section.items"
+                                    :key="item.title"
+                                    class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400"
+                                >
+                                    <span class="text-sm" aria-hidden="true">{{ item.icon }}</span>
+                                    <span class="truncate">{{ item.title }}</span>
+                                    <span
+                                        v-if="item.badge"
+                                        class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                                    >
+                                        {{ item.badge }}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </Link>
                 </div>

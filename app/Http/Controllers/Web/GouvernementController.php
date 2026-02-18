@@ -728,8 +728,8 @@ class GouvernementController extends Controller
 
                 // Nombre de ministres historiques
                 $nbMinistres = PosteMinisteriel::where('domaine_ministeriel_id', $domaine->id)
-                    ->distinct('personne_politique_id')
-                    ->count('personne_politique_id');
+                    ->distinct('personne_id')
+                    ->count('personne_id');
 
                 return [
                     'id' => $domaine->id,

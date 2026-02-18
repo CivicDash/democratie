@@ -34,7 +34,7 @@ class DocumentPolicy
     public function upload(User $user): bool
     {
         // Users avec permission peuvent uploader
-        return $user->hasPermissionTo('documents.upload') &&
+        return $user->hasPermissionTo('upload_documents') &&
                !$user->isMuted() &&
                !$user->isBanned();
     }

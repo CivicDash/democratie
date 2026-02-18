@@ -6,7 +6,7 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 
 defineProps({
     canResetPassword: {
@@ -16,6 +16,9 @@ defineProps({
         type: String,
     },
 });
+
+const page = usePage();
+const demo = page.props.demo;
 
 const form = useForm({
     email: '',
@@ -29,17 +32,17 @@ const submit = () => {
     });
 };
 
-// Remplir avec le compte démo citoyen
 const fillDemoAccount = () => {
-    form.email = 'citoyen1@civicdash.fr';
-    form.password = 'demo2025';
+    if (!demo) return;
+    form.email = demo.citizen_email;
+    form.password = demo.citizen_password;
     form.remember = true;
 };
 
-// Remplir avec le compte démo élu
 const fillDemoEluAccount = () => {
-    form.email = 'demo-elu@civicdash.fr';
-    form.password = 'DemoElu2026!';
+    if (!demo) return;
+    form.email = demo.elu_email;
+    form.password = demo.elu_password;
     form.remember = true;
 };
 </script>
@@ -80,7 +83,7 @@ const fillDemoEluAccount = () => {
         </div>
 
         <!-- Boutons comptes démo -->
-        <div class="mb-6 space-y-3">
+        <div v-if="demo" class="mb-6 space-y-3">
             <button
                 type="button"
                 @click="fillDemoAccount"

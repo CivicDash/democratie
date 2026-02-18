@@ -44,7 +44,7 @@ Schedule::command('import:organes-an')
     ->withoutOverlapping();
 
 // Sénateurs (données complémentaires)
-Schedule::command('senat:sync')
+Schedule::command('senat:sync --no-confirm')
     ->dailyAt('01:30')
     ->description('Synchronisation données Sénat')
     ->withoutOverlapping();
@@ -86,11 +86,11 @@ Schedule::command('import:amendements-an')
     ->description('Import quotidien des amendements AN')
     ->withoutOverlapping();
 
-// Amendements Sénat
-Schedule::command('import:amendements-senat')
-    ->dailyAt('03:15')
-    ->description('Import quotidien des amendements Sénat')
-    ->withoutOverlapping();
+// Amendements Sénat (désactivé : nécessite import SQL AMELI via import:senat-sql)
+// Schedule::command('import:amendements-senat')
+//     ->dailyAt('03:15')
+//     ->description('Import quotidien des amendements Sénat')
+//     ->withoutOverlapping();
 
 /*
 |--------------------------------------------------------------------------

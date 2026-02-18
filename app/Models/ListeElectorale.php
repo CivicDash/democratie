@@ -128,7 +128,7 @@ class ListeElectorale extends Model
      */
     public function commune(): BelongsTo
     {
-        return $this->belongsTo(Commune::class, 'commune_code_insee', 'code_insee');
+        return $this->belongsTo(FrenchPostalCode::class, 'commune_code_insee', 'insee_code');
     }
 
     // =========================================================================

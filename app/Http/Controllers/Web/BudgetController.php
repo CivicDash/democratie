@@ -23,20 +23,55 @@ class BudgetController extends Controller
     public function index(): Response
     {
         $user = auth()->user();
-        
-        $sectors = Sector::orderBy('name')->get();
+
+        $sectors = Sector::active()->ordered()->get();
         $averages = $this->budgetService->getAverageAllocations();
         $stats = $this->budgetService->getStats();
-        
-        $userAllocations = $user 
+
+        $userAllocations = $user
             ? $this->budgetService->getUserAllocations($user)
             : null;
+
+        $year = (int) date('Y');
+        $realSpending = \App\Models\PublicSpend::forYear($year)->national()
+            ->with('sector')
+            ->get()
+            ->groupBy('sector_id')
+            ->map(fn ($items) => $items->sum('amount'));
+
+        if ($realSpending->isEmpty()) {
+            $realSpending = \App\Models\PublicSpend::forYear($year - 1)->national()
+                ->with('sector')
+                ->get()
+                ->groupBy('sector_id')
+                ->map(fn ($items) => $items->sum('amount'));
+            $year = $year - 1;
+        }
+
+        $totalBudgetCp = \App\Models\BudgetMinistere::where('annee', $year)->sum('budget_cp');
+        if ($totalBudgetCp <= 0) {
+            $totalBudgetCp = \App\Models\BudgetMinistere::where('annee', $year - 1)->sum('budget_cp');
+        }
+        $totalBudget = $totalBudgetCp > 0 ? (float) $totalBudgetCp : 500e9;
+
+        $govAllocations = [];
+        $totalReal = $realSpending->sum();
+        foreach ($sectors as $sector) {
+            $amount = $realSpending[$sector->id] ?? null;
+            $govAllocations[$sector->id] = [
+                'amount' => $amount,
+                'percent' => $totalReal > 0 && $amount ? round(($amount / $totalReal) * 100, 1) : null,
+            ];
+        }
 
         return Inertia::render('Budget/Index', [
             'sectors' => $sectors,
             'userAllocations' => $userAllocations,
             'averages' => $averages,
             'stats' => $stats,
+            'govAllocations' => $govAllocations,
+            'totalBudget' => $totalBudget,
+            'budgetYear' => $year,
         ]);
     }
 

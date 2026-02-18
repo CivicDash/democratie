@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\CandidatMunicipal;
 use App\Models\CandidatureDocument;
-use App\Models\Commune;
 use App\Models\ListeElectorale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1033,7 +1032,7 @@ class ElectionsMunicipalesController extends Controller
         ];
     }
 
-    private function getNuancesPolitiques(): array
+    public static function nuancesPolitiques(): array
     {
         return [
             ['code' => 'EXG', 'label' => 'Extrême gauche'],

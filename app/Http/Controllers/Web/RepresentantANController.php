@@ -19,6 +19,7 @@ use App\Models\EluFollower;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -594,7 +595,7 @@ class RepresentantANController extends Controller
                 'sort_libelle' => $amendement->sort_libelle,
                 'etat_libelle' => $amendement->etat_libelle,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
-                'dispositif' => $amendement->dispositif ? substr($amendement->dispositif, 0, 200) . '...' : '',
+                'dispositif' => $amendement->dispositif ? $this->cleanUtf8(mb_substr($amendement->dispositif, 0, 200)) . '...' : '',
                 'cosignataires_count' => $amendement->nombre_cosignataires,
                 'dossier' => $amendement->dossier ? [
                     'uid' => $amendement->dossier->uid,
@@ -961,7 +962,7 @@ class RepresentantANController extends Controller
                 ->orderBy('date_depot', 'desc')
                 ->get();
                 
-                // Si pas de liaison directe, chercher par nom/prénom
+                // Si pas de liaison directe, chercher par nom/prénom exact
                 if ($declarations->isEmpty()) {
                     $declarations = \App\Models\HatvpDeclaration::with([
                         'mandatsElectifs.remunerations',
@@ -974,6 +975,24 @@ class RepresentantANController extends Controller
                     ->where('parlementaire_type', 'senateur')
                     ->where('nom', 'ILIKE', $senateur->nom_usuel)
                     ->where('prenom', 'ILIKE', $senateur->prenom_usuel)
+                    ->orderBy('date_depot', 'desc')
+                    ->get();
+                }
+
+                // Fallback: unaccented nom + prenom prefix (handles "Marie-Do" vs "Marie-Dominique")
+                if ($declarations->isEmpty() && $senateur->nom_usuel) {
+                    $prenomPrefix = mb_substr($senateur->prenom_usuel ?? '', 0, 5);
+                    $declarations = \App\Models\HatvpDeclaration::with([
+                        'mandatsElectifs.remunerations',
+                        'activitesProfessionnelles.remunerations',
+                        'activitesConsultant.remunerations',
+                        'participationsDirigeantes.remunerations',
+                        'collaborateurs',
+                        'fonctionsBenevoles',
+                    ])
+                    ->where('parlementaire_type', 'senateur')
+                    ->whereRaw("unaccent(lower(nom)) = unaccent(lower(?))", [$senateur->nom_usuel])
+                    ->whereRaw("unaccent(lower(prenom)) LIKE unaccent(lower(?))", [$prenomPrefix . '%'])
                     ->orderBy('date_depot', 'desc')
                     ->get();
                 }
@@ -1144,11 +1163,7 @@ class RepresentantANController extends Controller
                     'numero' => $m->numero_mandat ?? null,
                     'actif' => is_null($m->date_fin),
                 ])->toArray(),
-                'historique_groupes' => $senateur->historiqueGroupes->map(fn($g) => [
-                    'groupe' => $g->groupe_nom ?? $g->groupe_code ?? 'Groupe',
-                    'date_debut' => $g->date_debut?->format('d/m/Y'),
-                    'date_fin' => $g->date_fin?->format('d/m/Y'),
-                ])->toArray(),
+                'historique_groupes' => $this->getSenateurHistoriqueGroupes($matricule),
                 'mandats_locaux' => $senateur->mandatsLocaux->map(fn($m) => [
                     'type_mandat' => $m->type_mandat,
                     'fonction' => $m->fonction,
@@ -1331,8 +1346,8 @@ class RepresentantANController extends Controller
                 'id' => $amendement->id,
                 'numero' => $amendement->numero,
                 'type_amendement' => $amendement->type_amendement,
-                'dispositif' => $this->cleanUtf8(substr($amendement->dispositif_decode ?? '', 0, 200)),
-                'expose' => $this->cleanUtf8(substr($amendement->expose_decode ?? '', 0, 200)),
+                'dispositif' => $this->cleanUtf8(mb_substr($amendement->dispositif_decode ?? '', 0, 200)),
+                'expose' => $this->cleanUtf8(mb_substr($amendement->expose_decode ?? '', 0, 200)),
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle_formate,
@@ -1391,7 +1406,7 @@ class RepresentantANController extends Controller
             ->map(fn($amendement) => [
                 'id' => $amendement->id,
                 'numero' => $amendement->numero,
-                'dispositif' => $this->cleanUtf8(substr($amendement->dispositif_decode ?? '', 0, 150)),
+                'dispositif' => $this->cleanUtf8(mb_substr($amendement->dispositif_decode ?? '', 0, 150)),
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle_formate,
@@ -1418,6 +1433,29 @@ class RepresentantANController extends Controller
             'derniers_votes' => $derniersVotes,
             'derniers_amendements' => $derniersAmendements,
         ]);
+    }
+
+    /**
+     * Historique des groupes politiques d'un sénateur via memgrppol (codes lisibles).
+     */
+    private function getSenateurHistoriqueGroupes(string $matricule): array
+    {
+        $rows = DB::select("
+            SELECT DISTINCT ON (mgp.grppolcod, mgp.memgrppoldatdeb)
+                COALESCE(gp.grppollibcou, mgp.grppolcod) AS groupe,
+                mgp.memgrppoldatdeb::date AS date_debut,
+                mgp.memgrppoldatfin::date AS date_fin
+            FROM senat_senateurs_memgrppol mgp
+            LEFT JOIN senat_senateurs_grppol gp ON mgp.grppolcod = gp.grppolcod
+            WHERE TRIM(mgp.senmat) = ?
+            ORDER BY mgp.grppolcod, mgp.memgrppoldatdeb, mgp.memgrppoldatfin DESC NULLS FIRST
+        ", [$matricule]);
+
+        return collect($rows)->map(fn($r) => [
+            'groupe' => $r->groupe,
+            'date_debut' => $r->date_debut ? \Carbon\Carbon::parse($r->date_debut)->format('d/m/Y') : null,
+            'date_fin' => $r->date_fin ? \Carbon\Carbon::parse($r->date_fin)->format('d/m/Y') : null,
+        ])->sortByDesc('date_debut')->values()->toArray();
     }
 
     /**

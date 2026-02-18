@@ -18,7 +18,7 @@ const tours = {
         name: 'Découverte du tableau de bord',
         icon: '🏠',
         description: 'Apprenez à utiliser votre tableau de bord CivicDash',
-        route: 'dashboard', // Route Inertia pour redirection
+        route: 'dashboard',
         steps: [
             {
                 target: '[data-tour="dashboard-stats"]',
@@ -28,8 +28,8 @@ const tours = {
             },
             {
                 target: '[data-tour="dashboard-quick-actions"]',
-                title: 'Accès rapides',
-                content: 'Naviguez rapidement vers les députés, sénateurs, scrutins, idées citoyennes et vos représentants locaux.',
+                title: 'Explorer les 5 sections',
+                content: 'Accédez aux 5 grandes sections de CivicDash : Mes Élus (vos représentants), Institutions (AN, Sénat, Gouvernement), Législatif (lois et scrutins), Agir (participation citoyenne) et Comprendre (démocratie expliquée).',
                 position: 'bottom',
             },
             {
@@ -47,7 +47,7 @@ const tours = {
             {
                 target: '[data-tour="navigation"]',
                 title: 'Navigation principale',
-                content: 'Utilisez le menu pour accéder à toutes les fonctionnalités : Parlement, Gouvernement, Législation, Participation... Raccourci : ⌘K',
+                content: 'Explorez les 5 sections du menu : Mes Élus, Institutions, Législatif, Agir et Comprendre. Sur mobile, utilisez la barre de navigation en bas de l\'écran. Raccourci recherche : ⌘K',
                 position: 'bottom',
             },
         ],
@@ -248,7 +248,7 @@ const tours = {
             {
                 target: '[data-tour="navigation"]',
                 title: 'Bienvenue sur CivicDash !',
-                content: 'CivicDash est la plateforme citoyenne qui rend la politique accessible. Commençons par découvrir les fonctionnalités principales.',
+                content: 'CivicDash est la plateforme citoyenne qui rend la politique accessible. Le menu s\'organise en 5 sections : Mes Élus, Institutions, Législatif, Agir et Comprendre. Sur mobile, retrouvez-les dans la barre en bas de l\'écran.',
                 position: 'bottom',
             },
             {
@@ -259,8 +259,8 @@ const tours = {
             },
             {
                 target: '[data-tour="dashboard-quick-actions"]',
-                title: 'Accès rapides',
-                content: 'Accédez en un clic aux sections principales : représentants, scrutins, idées citoyennes...',
+                title: 'Les 5 sections de CivicDash',
+                content: 'Accédez en un clic aux sections principales : Mes Élus pour vos représentants, Institutions pour l\'AN, le Sénat et le Gouvernement, Législatif pour les lois, Agir pour participer, et Comprendre pour apprendre.',
                 position: 'bottom',
             },
             {

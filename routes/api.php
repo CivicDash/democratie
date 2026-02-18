@@ -376,7 +376,7 @@ Route::prefix('groupes-parlementaires')->name('groupes.')->group(function () {
 });
 
 // Routes admin
-Route::middleware(['auth:sanctum'])->prefix('groupes-parlementaires')->name('groupes.')->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('groupes-parlementaires')->name('groupes.')->group(function () {
     Route::post('/sync', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'sync'])->name('sync');
 });
 
@@ -393,8 +393,8 @@ Route::prefix('thematiques')->name('thematiques.')->group(function () {
     Route::get('/{code}/propositions', [App\Http\Controllers\Api\ThematiquesController::class, 'propositions'])->name('propositions');
 });
 
-// Routes admin/modération
-Route::middleware(['auth:sanctum'])->prefix('thematiques')->name('thematiques.')->group(function () {
+// Routes admin
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('thematiques')->name('thematiques.')->group(function () {
     Route::post('/detecter', [App\Http\Controllers\Api\ThematiquesController::class, 'detecter'])->name('detecter');
     Route::post('/detecter-batch', [App\Http\Controllers\Api\ThematiquesController::class, 'detecterBatch'])->name('detecter_batch');
     Route::post('/attacher', [App\Http\Controllers\Api\ThematiquesController::class, 'attacher'])->name('attacher');

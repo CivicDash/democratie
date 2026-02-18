@@ -1226,11 +1226,29 @@ class DemoDataSeeder extends Seeder
 
         $years = [2024, 2025];
 
+        $sectorCodeMap = [
+            'education' => 'EDU',
+            'sante' => 'HEALTH',
+            'defense' => 'DEFENSE',
+            'securite' => 'DEFENSE',
+            'justice' => 'JUSTICE',
+            'environnement' => 'ECO',
+            'culture' => 'CULTURE',
+            'sport' => 'CULTURE',
+            'recherche' => 'RESEARCH',
+            'economie' => 'INFRA',
+            'agriculture' => 'AGRI',
+            'logement' => 'INFRA',
+            'transport' => 'INFRA',
+            'numerique' => 'RESEARCH',
+            'social' => 'SOCIAL',
+            'formation' => 'EDU',
+        ];
+
         foreach ($years as $year) {
-            // Dépenses nationales par secteur (budget de l'État)
             $depensesNationales = [
                 'education' => 61000000000,
-                'sante' => 8500000000, // Hors sécu
+                'sante' => 8500000000,
                 'defense' => 43000000000,
                 'securite' => 21000000000,
                 'justice' => 9500000000,
@@ -1247,7 +1265,8 @@ class DemoDataSeeder extends Seeder
             ];
 
             foreach ($depensesNationales as $sectorCode => $amount) {
-                $sector = $sectors->where('code', strtoupper($sectorCode))->first();
+                $mappedCode = $sectorCodeMap[$sectorCode] ?? strtoupper($sectorCode);
+                $sector = $sectors->where('code', $mappedCode)->first();
                 if ($sector) {
                     PublicSpend::create([
                         'year' => $year,
@@ -1271,7 +1290,8 @@ class DemoDataSeeder extends Seeder
                 ];
 
                 foreach ($depensesRegionales as $sectorCode => $amount) {
-                    $sector = $sectors->where('code', strtoupper($sectorCode))->first();
+                    $mappedCode = $sectorCodeMap[$sectorCode] ?? strtoupper($sectorCode);
+                    $sector = $sectors->where('code', $mappedCode)->first();
                     if ($sector) {
                         PublicSpend::create([
                             'year' => $year,
@@ -1299,7 +1319,8 @@ class DemoDataSeeder extends Seeder
                 ];
 
                 foreach ($depensesDepartementales as $sectorCode => $amount) {
-                    $sector = $sectors->where('code', strtoupper($sectorCode))->first();
+                    $mappedCode = $sectorCodeMap[$sectorCode] ?? strtoupper($sectorCode);
+                    $sector = $sectors->where('code', $mappedCode)->first();
                     if ($sector) {
                         PublicSpend::create([
                             'year' => $year,

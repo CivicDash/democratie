@@ -49,7 +49,7 @@ class SanctionPolicy
     public function create(User $user, User $targetUser): bool
     {
         // Seuls modérateurs et admins peuvent créer des sanctions
-        if (!$user->hasPermissionTo('sanctions.create')) {
+        if (!$user->hasPermissionTo('create_sanctions')) {
             return false;
         }
 

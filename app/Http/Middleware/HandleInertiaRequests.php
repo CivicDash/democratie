@@ -56,6 +56,12 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
             ],
+            'demo' => config('app.demo_mode') ? [
+                'citizen_email' => config('app.demo_citizen_email'),
+                'citizen_password' => config('app.demo_citizen_password'),
+                'elu_email' => config('app.demo_elu_email'),
+                'elu_password' => config('app.demo_elu_password'),
+            ] : null,
         ];
     }
 }

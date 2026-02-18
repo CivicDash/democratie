@@ -2,97 +2,63 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
-import NavLink from "@/Components/NavLink.vue";
-import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
+import MegaMenuLink from "@/Components/MegaMenuLink.vue";
 import ToastContainer from "@/Components/ToastContainer.vue";
 import ConfirmContainer from "@/Components/ConfirmContainer.vue";
 import NotificationBell from "@/Components/NotificationBell.vue";
 import TourMenu from "@/Components/GuidedTour/TourMenu.vue";
 import TourOverlay from "@/Components/GuidedTour/TourOverlay.vue";
-// BottomNav retiré - le burger menu est suffisant
 import ScrollToTop from "@/Components/ScrollToTop.vue";
 import AppFooter from "@/Components/AppFooter.vue";
-import MegaMenuLink from "@/Components/MegaMenuLink.vue";
 import CommandPalette from "@/Components/CommandPalette.vue";
 import KeyboardShortcutsHelp from "@/Components/KeyboardShortcutsHelp.vue";
 import GlobalSearch from "@/Components/GlobalSearch.vue";
+import InstitutionsMegaMenu from "@/Components/Navigation/InstitutionsMegaMenu.vue";
+import BottomTabBar from "@/Components/Navigation/BottomTabBar.vue";
 import { Link, router } from "@inertiajs/vue3";
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
+import { useNavigation } from "@/composables/useNavigation";
 
-const showingNavigationDropdown = ref(false);
-const showMobileSearch = ref(false);
-const searchQuery = ref("");
+const { desktopSections, institutions, mesElus, legislatif, agir, comprendre, user: navUser } = useNavigation();
+
 const showCommandPalette = ref(false);
 const showKeyboardHelp = ref(false);
-const mobileNavId = "auth-layout-mobile-nav";
-const mobileSectionIds = {
-    participation: "auth-layout-section-participation",
-    elections: "auth-layout-section-elections",
-    an: "auth-layout-section-an",
-    senat: "auth-layout-section-senat",
-    gouvernement: "auth-layout-section-gouvernement",
-    legislation: "auth-layout-section-legislation",
-    donnees: "auth-layout-section-donnees",
-};
 
-// Dark Mode Management
+// Track which desktop dropdown is open
+const openDropdown = ref(null);
+function toggleDropdown(key) {
+    openDropdown.value = openDropdown.value === key ? null : key;
+}
+function closeDropdowns() {
+    openDropdown.value = null;
+}
+
+// Dark Mode
 const isDarkMode = ref(false);
-
 const applyTheme = () => {
-    if (isDarkMode.value) {
-        document.documentElement.classList.add("dark");
-    } else {
-        document.documentElement.classList.remove("dark");
-    }
+    document.documentElement.classList.toggle("dark", isDarkMode.value);
 };
-
 const toggleDarkMode = () => {
     isDarkMode.value = !isDarkMode.value;
     localStorage.setItem("theme", isDarkMode.value ? "dark" : "light");
     applyTheme();
 };
 
-// Recherche rapide
-const handleSearch = () => {
-    if (searchQuery.value.trim()) {
-        router.visit(route("search", { q: searchQuery.value }));
-        searchQuery.value = "";
-        showMobileSearch.value = false;
-    }
-};
-
-// Sections du menu mobile (accordéon)
-const expandedSection = ref(null);
-const toggleSection = (section) => {
-    expandedSection.value = expandedSection.value === section ? null : section;
-};
-
-
-// Référence pour le champ de recherche desktop
-const searchInputDesktop = ref(null);
-
 useKeyboardShortcuts({
-    onOpenPalette: () => {
-        showCommandPalette.value = true;
-    },
-    onToggleHelp: () => {
-        showKeyboardHelp.value = !showKeyboardHelp.value;
-    },
+    onOpenPalette: () => { showCommandPalette.value = true; },
+    onToggleHelp: () => { showKeyboardHelp.value = !showKeyboardHelp.value; },
     onCloseAll: () => {
         showCommandPalette.value = false;
         showKeyboardHelp.value = false;
-        showingNavigationDropdown.value = false;
-        showMobileSearch.value = false;
-        expandedSection.value = null;
+        openDropdown.value = null;
         document.activeElement?.blur();
     },
-    onNavigate: (routeName) => {
-        router.visit(route(routeName));
-    },
+    onNavigate: (routeName) => { router.visit(route(routeName)); },
 });
 
+const onDocClick = () => { openDropdown.value = null; };
+
 onMounted(() => {
-    // Dark mode init
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) {
         isDarkMode.value = savedTheme === "dark";
@@ -100,15 +66,26 @@ onMounted(() => {
         isDarkMode.value = window.matchMedia("(prefers-color-scheme: dark)").matches;
     }
     applyTheme();
+    document.addEventListener("click", onDocClick);
 });
 
 onUnmounted(() => {
+    document.removeEventListener("click", onDocClick);
 });
+
+const chevronSvg = `<svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+
+function sectionActiveClass(section) {
+    return section.isActive
+        ? `border-${section.activeColor}-500 text-gray-900 dark:text-gray-100`
+        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700';
+}
 </script>
 
 <template>
     <div>
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+        <div class="min-h-screen bg-gray-100 dark:bg-gray-900 pb-20 lg:pb-0">
+            <!-- Top Navigation -->
             <nav data-tour="navigation" class="border-b border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800 sticky top-0 z-40">
                 <div class="mx-auto px-4 sm:px-6 lg:px-8" style="max-width: 100%;">
                     <div class="flex h-16 justify-between">
@@ -120,361 +97,234 @@ onUnmounted(() => {
                                 </Link>
                             </div>
 
-                            <!-- Navigation Links - Desktop - Structure aérée -->
-                            <div class="hidden xl:flex xl:items-center xl:ms-6 xl:space-x-1">
-                                
-                                <!-- 📍 MES REPRÉSENTANTS - Lien direct prominent -->
-                                <NavLink 
-                                    :href="route('representants.mes-representants')" 
-                                    :active="route().current('representants.mes-representants')"
-                                    class="!px-3"
-                                >
-                                    <span class="flex items-center gap-1.5">
-                                        <span>📍</span>
-                                        <span>Mes Élus</span>
-                                    </span>
-                                </NavLink>
-                                
-                                <!-- 💡 PARTICIPATION -->
-                                <Dropdown align="left" width="72">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
-                                            :class="route().current('participation.*') || route().current('budget.*') ? 'border-emerald-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                            <!-- Desktop Navigation - 5 mega-sections -->
+                            <div class="hidden lg:flex lg:items-center lg:ms-6 lg:space-x-1">
+
+                                <!-- 1. MES ELUS -->
+                                <div class="relative" @click.stop>
+                                    <button
+                                        @click="toggleDropdown('mes-elus')"
+                                        class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                        :class="mesElus.isActive
+                                            ? 'border-indigo-500 text-gray-900 dark:text-gray-100'
+                                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    >
+                                        📍 Mes Elus
+                                        <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                    <Transition
+                                        enter-active-class="transition ease-out duration-200"
+                                        enter-from-class="opacity-0 scale-95"
+                                        enter-to-class="opacity-100 scale-100"
+                                        leave-active-class="transition ease-in duration-75"
+                                        leave-from-class="opacity-100 scale-100"
+                                        leave-to-class="opacity-0 scale-95"
+                                    >
+                                        <div
+                                            v-show="openDropdown === 'mes-elus'"
+                                            class="absolute left-0 z-50 mt-2 w-72 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5"
+                                            @click="closeDropdowns"
                                         >
-                                            💡 Participation
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <div class="p-3 space-y-1">
-                                            <MegaMenuLink
-                                                :href="route('participation.ideas.index')"
-                                                icon="💬"
-                                                title="Idées Citoyennes"
-                                                description="Propositions & débats"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('participation.ideas.create')"
-                                                icon="✨"
-                                                title="Nouvelle Proposition"
-                                                description="Partagez votre idée"
-                                            />
-                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
-                                            <MegaMenuLink
-                                                :href="route('budget.index')"
-                                                icon="💰"
-                                                title="Budget Participatif"
-                                                description="Répartissez le budget"
-                                            />
+                                            <div class="p-3 space-y-1">
+                                                <MegaMenuLink
+                                                    v-for="item in mesElus.items"
+                                                    :key="item.href"
+                                                    :href="item.href"
+                                                    :icon="item.icon"
+                                                    :title="item.title"
+                                                    :description="item.description || ''"
+                                                    :badge="item.badge"
+                                                    :badge-color="item.badgeColor || 'gray'"
+                                                />
+                                            </div>
                                         </div>
-                                    </template>
-                                </Dropdown>
-                                
-                                <!-- 🗳️ ÉLECTIONS -->
-                                <Dropdown align="left" width="72">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
-                                            :class="route().current('elections.*') ? 'border-blue-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    </Transition>
+                                </div>
+
+                                <!-- 2. INSTITUTIONS (mega-menu 3 colonnes) -->
+                                <div class="relative" @click.stop>
+                                    <button
+                                        @click="toggleDropdown('institutions')"
+                                        class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                        :class="institutions.isActive
+                                            ? 'border-sky-500 text-gray-900 dark:text-gray-100'
+                                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    >
+                                        🏛️ Institutions
+                                        <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                    <Transition
+                                        enter-active-class="transition ease-out duration-200"
+                                        enter-from-class="opacity-0 scale-95"
+                                        enter-to-class="opacity-100 scale-100"
+                                        leave-active-class="transition ease-in duration-75"
+                                        leave-from-class="opacity-100 scale-100"
+                                        leave-to-class="opacity-0 scale-95"
+                                    >
+                                        <div
+                                            v-show="openDropdown === 'institutions'"
+                                            class="absolute left-0 z-50 mt-2 rounded-xl shadow-xl bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5"
+                                            @click="closeDropdowns"
                                         >
-                                            🗳️ Élections
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <div class="p-3 space-y-1">
-                                            <MegaMenuLink
-                                                :href="route('elections.hub')"
-                                                icon="📅"
-                                                title="Calendrier électoral"
-                                                description="Prochaines échéances"
-                                            />
-                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
-                                            <MegaMenuLink
-                                                :href="route('elections.municipales.index')"
-                                                icon="🏘️"
-                                                title="Municipales"
-                                                description="Mars 2026"
-                                                badge="34 914"
-                                                badge-color="emerald"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('elections.legislatives')"
-                                                icon="🏛️"
-                                                title="Législatives"
-                                                description="Juin 2027"
-                                                badge="577"
-                                                badge-color="indigo"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('elections.senatoriales')"
-                                                icon="🔴"
-                                                title="Sénatoriales"
-                                                description="Septembre 2026"
-                                                badge="170"
-                                                badge-color="rose"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('elections.presidentielle')"
-                                                icon="🇫🇷"
-                                                title="Présidentielle"
-                                                description="Avril 2027"
-                                            />
+                                            <InstitutionsMegaMenu :columns="institutions.columns" />
                                         </div>
-                                    </template>
-                                </Dropdown>
-                                
-                                <!-- 🏛️ ASSEMBLÉE NATIONALE -->
-                                <Dropdown align="left" width="72">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
-                                            :class="route().current('representants.deputes.*') || route().current('legislation.scrutins.*') || route().current('questions.*') ? 'border-indigo-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    </Transition>
+                                </div>
+
+                                <!-- 3. LEGISLATIF -->
+                                <div class="relative" @click.stop>
+                                    <button
+                                        @click="toggleDropdown('legislatif')"
+                                        class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                        :class="legislatif.isActive
+                                            ? 'border-sky-500 text-gray-900 dark:text-gray-100'
+                                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    >
+                                        ⚖️ Legislatif
+                                        <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                    <Transition
+                                        enter-active-class="transition ease-out duration-200"
+                                        enter-from-class="opacity-0 scale-95"
+                                        enter-to-class="opacity-100 scale-100"
+                                        leave-active-class="transition ease-in duration-75"
+                                        leave-from-class="opacity-100 scale-100"
+                                        leave-to-class="opacity-0 scale-95"
+                                    >
+                                        <div
+                                            v-show="openDropdown === 'legislatif'"
+                                            class="absolute left-0 z-50 mt-2 w-72 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5"
+                                            @click="closeDropdowns"
                                         >
-                                            <img src="/images/Logo_de_l'Assemblée_nationale_française.svg" alt="AN" class="w-4 h-4 object-contain me-1.5" />
-                                            Assemblée
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <div class="p-3 space-y-1">
-                                            <MegaMenuLink
-                                                :href="route('representants.deputes.index')"
-                                                icon="👥"
-                                                title="Députés"
-                                                description="577 élus"
-                                                badge="577"
-                                                badge-color="indigo"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('legislation.scrutins.index')"
-                                                icon="🗳️"
-                                                title="Scrutins"
-                                                description="Votes publics"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('questions.index')"
-                                                icon="❓"
-                                                title="Questions au Gouv."
-                                                description="Interpellations"
-                                            />
-                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
-                                            <MegaMenuLink
-                                                :href="route('legislation.groupes.index')"
-                                                icon="🎨"
-                                                title="Groupes politiques"
-                                                description="AN & Sénat"
-                                            />
+                                            <div class="p-3 space-y-1">
+                                                <template v-for="item in legislatif.items" :key="item.href || 'div'">
+                                                    <div v-if="item.divider" class="border-t border-gray-100 dark:border-gray-600 my-2" />
+                                                    <MegaMenuLink
+                                                        v-else
+                                                        :href="item.href"
+                                                        :icon="item.icon"
+                                                        :title="item.title"
+                                                        :description="item.description || ''"
+                                                        :badge="item.badge"
+                                                        :badge-color="item.badgeColor || 'gray'"
+                                                    />
+                                                </template>
+                                            </div>
                                         </div>
-                                    </template>
-                                </Dropdown>
-                                
-                                <!-- 🏰 SÉNAT -->
-                                <Dropdown align="left" width="72">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
-                                            :class="route().current('representants.senateurs.*') || route().current('legislation.scrutins-senat.*') ? 'border-rose-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    </Transition>
+                                </div>
+
+                                <!-- 4. AGIR -->
+                                <div class="relative" @click.stop>
+                                    <button
+                                        @click="toggleDropdown('agir')"
+                                        class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                        :class="agir.isActive
+                                            ? 'border-emerald-500 text-gray-900 dark:text-gray-100'
+                                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    >
+                                        💡 Agir
+                                        <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                    <Transition
+                                        enter-active-class="transition ease-out duration-200"
+                                        enter-from-class="opacity-0 scale-95"
+                                        enter-to-class="opacity-100 scale-100"
+                                        leave-active-class="transition ease-in duration-75"
+                                        leave-from-class="opacity-100 scale-100"
+                                        leave-to-class="opacity-0 scale-95"
+                                    >
+                                        <div
+                                            v-show="openDropdown === 'agir'"
+                                            class="absolute left-0 z-50 mt-2 w-72 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5"
+                                            @click="closeDropdowns"
                                         >
-                                            <img src="/images/Logo_du_Sénat_Republique_française.svg" alt="Sénat" class="w-4 h-4 object-contain me-1.5" />
-                                            Sénat
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <div class="p-3 space-y-1">
-                                            <MegaMenuLink
-                                                :href="route('representants.senateurs.index')"
-                                                icon="👥"
-                                                title="Sénateurs"
-                                                description="348 élus"
-                                                badge="348"
-                                                badge-color="rose"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('legislation.scrutins-senat.index')"
-                                                icon="🗳️"
-                                                title="Scrutins"
-                                                description="Votes publics"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('debats.senat.index')"
-                                                icon="💬"
-                                                title="Débats en séance"
-                                                description="Comptes-rendus"
-                                            />
+                                            <div class="p-3 space-y-1">
+                                                <template v-for="item in agir.items" :key="item.href || 'div'">
+                                                    <div v-if="item.divider" class="border-t border-gray-100 dark:border-gray-600 my-2" />
+                                                    <MegaMenuLink
+                                                        v-else
+                                                        :href="item.href"
+                                                        :icon="item.icon"
+                                                        :title="item.title"
+                                                        :description="item.description || ''"
+                                                        :badge="item.badge"
+                                                        :badge-color="item.badgeColor || 'gray'"
+                                                    />
+                                                </template>
+                                            </div>
                                         </div>
-                                    </template>
-                                </Dropdown>
-                                
-                                <!-- 🏛️ GOUVERNEMENT -->
-                                <Dropdown align="left" width="72">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
-                                            :class="route().current('gouvernement.*') ? 'border-amber-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    </Transition>
+                                </div>
+
+                                <!-- 5. COMPRENDRE -->
+                                <div class="relative" @click.stop>
+                                    <button
+                                        @click="toggleDropdown('comprendre')"
+                                        class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
+                                        :class="comprendre.isActive
+                                            ? 'border-amber-500 text-gray-900 dark:text-gray-100'
+                                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
+                                    >
+                                        🎓 Comprendre
+                                        <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                    <Transition
+                                        enter-active-class="transition ease-out duration-200"
+                                        enter-from-class="opacity-0 scale-95"
+                                        enter-to-class="opacity-100 scale-100"
+                                        leave-active-class="transition ease-in duration-75"
+                                        leave-from-class="opacity-100 scale-100"
+                                        leave-to-class="opacity-0 scale-95"
+                                    >
+                                        <div
+                                            v-show="openDropdown === 'comprendre'"
+                                            class="absolute left-0 z-50 mt-2 w-72 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5"
+                                            @click="closeDropdowns"
                                         >
-                                            <img 
-                                                src="/images/Logo_de_la_présidence_de_la_République_(2018).svg" 
-                                                alt="" 
-                                                class="w-5 h-5 mr-1.5"
-                                            />
-                                            Gouvernement
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <div class="p-3 space-y-1">
-                                            <MegaMenuLink
-                                                :href="route('gouvernement.president')"
-                                                icon="🏛️"
-                                                title="Président de la République"
-                                                description="Chef de l'État"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('gouvernement.index')"
-                                                icon="👔"
-                                                title="Composition du Gouvernement"
-                                                description="Ministres et ministères"
-                                            />
+                                            <div class="p-3 space-y-1">
+                                                <template v-for="item in comprendre.items" :key="item.href || 'div'">
+                                                    <div v-if="item.divider" class="border-t border-gray-100 dark:border-gray-600 my-2" />
+                                                    <MegaMenuLink
+                                                        v-else
+                                                        :href="item.href"
+                                                        :icon="item.icon"
+                                                        :title="item.title"
+                                                        :description="item.description || ''"
+                                                        :badge="item.badge"
+                                                        :badge-color="item.badgeColor || 'gray'"
+                                                    />
+                                                </template>
+                                            </div>
                                         </div>
-                                    </template>
-                                </Dropdown>
-                                
-                                <!-- 📅 CALENDRIER UNIFIÉ - Lien direct -->
-                                <NavLink 
-                                    :href="route('parlement.calendrier.index')" 
-                                    :active="route().current('parlement.calendrier.*')"
-                                    class="!px-3"
-                                >
-                                    📅 Calendrier
-                                </NavLink>
-                                
-                                <!-- ⚖️ LÉGISLATION -->
-                                <Dropdown align="left" width="72">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
-                                            :class="route().current('legislation.*') || route().current('lois.*') || route().current('tags.*') ? 'border-sky-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
-                                        >
-                                            ⚖️ Législation
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <div class="p-3 space-y-1">
-                                            <MegaMenuLink
-                                                :href="route('lois.index')"
-                                                icon="📜"
-                                                title="Lois"
-                                                description="Parcours législatif"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('tags.index')"
-                                                icon="🏷️"
-                                                title="Thématiques"
-                                                description="Par domaine"
-                                            />
-                                        </div>
-                                    </template>
-                                </Dropdown>
-                                
-                                <!-- 📊 DONNÉES -->
-                                <Dropdown align="left" width="72">
-                                    <template #trigger>
-                                        <button
-                                            class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-b-2"
-                                            :class="route().current('statistics.*') || route().current('documents.*') || route().current('parlement.comparaison') ? 'border-violet-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700'"
-                                        >
-                                            📊 Données
-                                            <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                    <template #content>
-                                        <div class="p-3 space-y-1">
-                                            <MegaMenuLink
-                                                :href="route('statistics.france')"
-                                                icon="🗺️"
-                                                title="Statistiques Pays"
-                                                description="Démographie, économie, société"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('statistics.villes')"
-                                                icon="🏘️"
-                                                title="Statistiques Villes"
-                                                description="Communes, populations, budgets"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('statistics.regions.index')"
-                                                icon="🗺️"
-                                                title="Statistiques Régions"
-                                                description="18 régions, départements, indicateurs"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('budget-etat.index')"
-                                                icon="💰"
-                                                title="Statistiques État"
-                                                description="Budget, recettes, dépenses"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('donnees.gouvernements')"
-                                                icon="🏛️"
-                                                title="Statistiques Gouvernement"
-                                                description="Ministres, ministères"
-                                            />
-                                            <MegaMenuLink
-                                                :href="route('parlement.comparaison')"
-                                                icon="👔"
-                                                title="Statistiques Élus"
-                                                description="Députés, sénateurs, maires"
-                                            />
-                                            <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
-                                            <MegaMenuLink
-                                                :href="route('documents.index')"
-                                                icon="📄"
-                                                title="Documents Publics"
-                                                description="Officiels vérifiés"
-                                            />
-                                        </div>
-                                    </template>
-                                </Dropdown>
-                                
-                                <!-- Espace Élu (si élu vérifié) -->
-                                <NavLink
+                                    </Transition>
+                                </div>
+
+                                <!-- Espace Elu (si elu verifie) -->
+                                <Link
                                     v-if="$page.props.auth.user.is_verified_elu"
                                     :href="route('elu.dashboard')"
-                                    :active="route().current('elu.*')"
-                                    class="!text-purple-600 dark:!text-purple-400 font-semibold"
+                                    class="inline-flex items-center px-3 py-2 text-sm font-medium leading-5 transition border-b-2"
+                                    :class="route().current('elu.*')
+                                        ? 'border-purple-500 text-purple-700 dark:text-purple-300'
+                                        : 'border-transparent text-purple-600 dark:text-purple-400 hover:border-purple-300 font-semibold'"
                                 >
-                                    🏛️ Espace Élu
-                                </NavLink>
+                                    🏛️ Espace Elu
+                                </Link>
                             </div>
                         </div>
 
-                        <!-- Right side: Search + Actions -->
-                        <div class="hidden lg:flex lg:items-center lg:space-x-4">
-                            <!-- Search Bar Desktop avec suggestions -->
-                            <GlobalSearch 
-                                data-tour="search" 
-                                placeholder="Rechercher élus, lois, idées..." 
-                                @open-palette="showCommandPalette = true"
-                            />
-                            
+                        <!-- Right side: Search + Actions (visible on all breakpoints for desktop, simplified for mobile) -->
+                        <div class="flex items-center space-x-2 lg:space-x-4">
+                            <!-- Desktop-only: full search + extras -->
+                            <div class="hidden lg:flex lg:items-center lg:space-x-4">
+                                <GlobalSearch
+                                    data-tour="search"
+                                    placeholder="Rechercher elus, lois, idees..."
+                                    @open-palette="showCommandPalette = true"
+                                />
+                            </div>
+
                             <!-- Dark Mode Toggle -->
                             <button
                                 @click="toggleDarkMode"
@@ -489,22 +339,35 @@ onUnmounted(() => {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                                 </svg>
                             </button>
-                            
-                            <!-- Tour Guide Menu -->
-                            <TourMenu />
-                            
+
+                            <!-- Mobile search (opens command palette) -->
+                            <button
+                                @click="showCommandPalette = true"
+                                class="lg:hidden inline-flex items-center justify-center rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
+                                title="Rechercher"
+                                aria-label="Recherche"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </button>
+
+                            <!-- Tour Guide Menu (desktop) -->
+                            <div class="hidden lg:block">
+                                <TourMenu />
+                            </div>
+
                             <!-- Notification Bell -->
                             <NotificationBell data-tour="notifications" />
-                            
+
                             <!-- User Dropdown -->
-                            <Dropdown align="right" width="48" data-tour="user-menu">
+                            <Dropdown align="right" width="48" data-tour="user-menu" class="hidden lg:block">
                                 <template #trigger>
                                     <button
                                         type="button"
                                         class="inline-flex items-center rounded-full border border-transparent bg-gray-100 dark:bg-gray-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-600"
                                     >
-                                        <span class="hidden sm:inline">{{ $page.props.auth.user.name }}</span>
-                                        <span class="sm:hidden">👤</span>
+                                        <span>{{ $page.props.auth.user.name }}</span>
                                         <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                         </svg>
@@ -515,381 +378,32 @@ onUnmounted(() => {
                                         👤 Mon Profil
                                     </DropdownLink>
                                     <DropdownLink :href="route('profile.elus-suivis')">
-                                        🔔 Élus suivis
+                                        🔔 Elus suivis
                                     </DropdownLink>
                                     <DropdownLink :href="route('profile.gamification')">
-                                        🏆 Mes Succès
+                                        🏆 Mes Succes
                                     </DropdownLink>
-                                    
-                                    <!-- Modération (si modérateur/admin) -->
+
                                     <template v-if="$page.props.auth.user.roles?.includes('moderator') || $page.props.auth.user.roles?.includes('admin')">
                                         <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                         <DropdownLink :href="route('moderation.dashboard')">
-                                            🛡️ Modération
+                                            🛡️ Moderation
                                         </DropdownLink>
                                     </template>
-                                    
-                                    <!-- Administration (si admin) -->
-                                    <DropdownLink 
+
+                                    <DropdownLink
                                         v-if="$page.props.auth.user.roles?.includes('admin')"
                                         :href="route('admin.dashboard')"
                                     >
                                         ⚙️ Administration
                                     </DropdownLink>
-                                    
+
                                     <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                     <DropdownLink :href="route('logout')" method="post" as="button">
-                                        🚪 Déconnexion
+                                        🚪 Deconnexion
                                     </DropdownLink>
                                 </template>
                             </Dropdown>
-                        </div>
-
-                        <!-- Mobile: Right actions -->
-                        <div class="flex items-center gap-2 lg:hidden">
-                            <!-- Search toggle mobile - Ouvre la CommandPalette -->
-                            <button
-                                @click="showCommandPalette = true"
-                                class="inline-flex items-center justify-center rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
-                                title="Rechercher"
-                                aria-label="Recherche"
-                            >
-                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </button>
-                            
-                            <!-- Dark Mode Toggle Mobile -->
-                            <button
-                                @click="toggleDarkMode"
-                                class="inline-flex items-center justify-center rounded-full p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                aria-label="Basculer le mode sombre"
-                            >
-                                <svg v-if="!isDarkMode" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                                </svg>
-                                <svg v-else class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                                </svg>
-                            </button>
-                            
-                            <NotificationBell />
-                            
-                            <!-- Hamburger -->
-                            <button
-                                @click="showingNavigationDropdown = !showingNavigationDropdown"
-                                class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-700"
-                                aria-haspopup="true"
-                                :aria-expanded="showingNavigationDropdown"
-                                :aria-controls="mobileNavId"
-                                aria-label="Ouvrir le menu"
-                            >
-                                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                    <path
-                                        :class="{ hidden: showingNavigationDropdown, 'inline-flex': !showingNavigationDropdown }"
-                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        :class="{ hidden: !showingNavigationDropdown, 'inline-flex': showingNavigationDropdown }"
-                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Mobile Search Bar (expandable) -->
-                <div v-if="showMobileSearch" class="lg:hidden border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
-                    <GlobalSearch 
-                        placeholder="Rechercher élus, lois, idées..." 
-                        @close="showMobileSearch = false"
-                    />
-                </div>
-
-                <!-- Responsive Navigation Menu (Accordion Style) -->
-                <div
-                    :id="mobileNavId"
-                    :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }"
-                    class="lg:hidden border-t border-gray-200 dark:border-gray-700 max-h-[calc(100vh-64px)] overflow-y-auto"
-                >
-                    <div class="space-y-1 pb-3 pt-2 px-3">
-                        <!-- 🏠 Accueil -->
-                        <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
-                            🏠 Accueil
-                        </ResponsiveNavLink>
-                        
-                        <!-- 📍 MES ÉLUS - Lien direct -->
-                        <ResponsiveNavLink :href="route('representants.mes-representants')" class="font-medium bg-indigo-50 dark:bg-indigo-900/30">
-                            📍 Mes Élus
-                        </ResponsiveNavLink>
-                        
-                        <!-- 💡 PARTICIPATION -->
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2 mt-2">
-                            <button
-                                @click="toggleSection('participation')"
-                                class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg"
-                                :aria-expanded="expandedSection === 'participation'"
-                                :aria-controls="mobileSectionIds.participation"
-                            >
-                                <span>💡 Participation</span>
-                                <svg :class="{ 'rotate-180': expandedSection === 'participation' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <div
-                                :id="mobileSectionIds.participation"
-                                v-show="expandedSection === 'participation'"
-                                class="pl-4 space-y-1 mt-1"
-                            >
-                                <ResponsiveNavLink :href="route('participation.ideas.index')">💬 Idées Citoyennes</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('participation.ideas.create')" class="text-emerald-600 dark:text-emerald-400 font-medium">✨ Nouvelle Proposition</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('budget.index')">💰 Budget Participatif</ResponsiveNavLink>
-                            </div>
-                        </div>
-                        
-                        <!-- 🗳️ ÉLECTIONS -->
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
-                            <button
-                                @click="toggleSection('elections')"
-                                class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                                :aria-expanded="expandedSection === 'elections'"
-                                :aria-controls="mobileSectionIds.elections"
-                            >
-                                <span>🗳️ Élections</span>
-                                <svg :class="{ 'rotate-180': expandedSection === 'elections' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <div
-                                :id="mobileSectionIds.elections"
-                                v-show="expandedSection === 'elections'"
-                                class="pl-4 space-y-1 mt-1"
-                            >
-                                <ResponsiveNavLink :href="route('elections.hub')">📅 Calendrier électoral</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('elections.municipales.index')">🏘️ Municipales</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('elections.legislatives')">🏛️ Législatives</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('elections.senatoriales')">🔴 Sénatoriales</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('elections.presidentielle')">🇫🇷 Présidentielle</ResponsiveNavLink>
-                            </div>
-                        </div>
-                        
-                        <!-- 🏛️ ASSEMBLÉE NATIONALE -->
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
-                            <button
-                                @click="toggleSection('an')"
-                                class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"
-                                :aria-expanded="expandedSection === 'an'"
-                                :aria-controls="mobileSectionIds.an"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <img src="/images/Logo_de_l'Assemblée_nationale_française.svg" alt="AN" class="w-4 h-4" />
-                                    Assemblée Nationale
-                                </span>
-                                <svg :class="{ 'rotate-180': expandedSection === 'an' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <div
-                                :id="mobileSectionIds.an"
-                                v-show="expandedSection === 'an'"
-                                class="pl-4 space-y-1 mt-1"
-                            >
-                                <ResponsiveNavLink :href="route('representants.deputes.index')">👥 Députés (577)</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('legislation.scrutins.index')">🗳️ Scrutins</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('questions.index')">❓ Questions au Gouv.</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('legislation.groupes.index')">🎨 Groupes politiques</ResponsiveNavLink>
-                            </div>
-                        </div>
-                        
-                        <!-- 🏰 SÉNAT -->
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
-                            <button
-                                @click="toggleSection('senat')"
-                                class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg"
-                                :aria-expanded="expandedSection === 'senat'"
-                                :aria-controls="mobileSectionIds.senat"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <img src="/images/Logo_du_Sénat_Republique_française.svg" alt="Sénat" class="w-4 h-4" />
-                                    Sénat
-                                </span>
-                                <svg :class="{ 'rotate-180': expandedSection === 'senat' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <div
-                                :id="mobileSectionIds.senat"
-                                v-show="expandedSection === 'senat'"
-                                class="pl-4 space-y-1 mt-1"
-                            >
-                                <ResponsiveNavLink :href="route('representants.senateurs.index')">👥 Sénateurs (348)</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('legislation.scrutins-senat.index')">🗳️ Scrutins</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('debats.senat.index')">💬 Débats en séance</ResponsiveNavLink>
-                            </div>
-                        </div>
-                        
-                        <!-- 🏛️ GOUVERNEMENT -->
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
-                            <button
-                                @click="toggleSection('gouvernement')"
-                                class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
-                                :aria-expanded="expandedSection === 'gouvernement'"
-                                :aria-controls="mobileSectionIds.gouvernement"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <img src="/images/Logo_de_la_présidence_de_la_République_(2018).svg" alt="" class="w-5 h-5" />
-                                    Gouvernement
-                                </span>
-                                <svg :class="{ 'rotate-180': expandedSection === 'gouvernement' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <div
-                                :id="mobileSectionIds.gouvernement"
-                                v-show="expandedSection === 'gouvernement'"
-                                class="pl-4 space-y-1 mt-1"
-                            >
-                                <ResponsiveNavLink :href="route('gouvernement.president')">🏛️ Président de la République</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('gouvernement.index')">👔 Composition du gouvernement</ResponsiveNavLink>
-                            </div>
-                        </div>
-                        
-                        <!-- 📅 CALENDRIER UNIFIÉ - Lien direct -->
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
-                            <ResponsiveNavLink :href="route('parlement.calendrier.index')">
-                                📅 Calendrier
-                            </ResponsiveNavLink>
-                        </div>
-                        
-                        <!-- ⚖️ LÉGISLATION -->
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
-                            <button
-                                @click="toggleSection('legislation')"
-                                class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-lg"
-                                :aria-expanded="expandedSection === 'legislation'"
-                                :aria-controls="mobileSectionIds.legislation"
-                            >
-                                <span>⚖️ Législation</span>
-                                <svg :class="{ 'rotate-180': expandedSection === 'legislation' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <div
-                                :id="mobileSectionIds.legislation"
-                                v-show="expandedSection === 'legislation'"
-                                class="pl-4 space-y-1 mt-1"
-                            >
-                                <ResponsiveNavLink :href="route('lois.index')">📜 Lois</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('tags.index')">🏷️ Thématiques</ResponsiveNavLink>
-                            </div>
-                        </div>
-                        
-                        <!-- 📊 DONNÉES -->
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-2">
-                            <button
-                                @click="toggleSection('donnees')"
-                                class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg"
-                                :aria-expanded="expandedSection === 'donnees'"
-                                :aria-controls="mobileSectionIds.donnees"
-                            >
-                                <span>📊 Données</span>
-                                <svg :class="{ 'rotate-180': expandedSection === 'donnees' }" class="w-4 h-4 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <div
-                                :id="mobileSectionIds.donnees"
-                                v-show="expandedSection === 'donnees'"
-                                class="pl-4 space-y-1 mt-1"
-                            >
-                                <ResponsiveNavLink :href="route('statistics.france')">🗺️ Statistiques Pays</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('budget-etat.index')">💰 Statistiques État</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('donnees.gouvernements')">🏛️ Statistiques Gouvernement</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('parlement.comparaison')">👔 Statistiques Élus</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('statistics.villes')">🏘️ Statistiques Villes</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('statistics.regions.index')">🗺️ Statistiques Régions</ResponsiveNavLink>
-                                <ResponsiveNavLink :href="route('documents.index')">📄 Documents Publics</ResponsiveNavLink>
-                            </div>
-                        </div>
-                        
-                        <!-- Modération (if moderator/admin) -->
-                        <div
-                            v-if="$page.props.auth.user.roles?.includes('moderator') || $page.props.auth.user.roles?.includes('admin')"
-                            class="border-t border-gray-100 dark:border-gray-700 pt-2"
-                        >
-                            <ResponsiveNavLink :href="route('moderation.dashboard')">
-                                🛡️ Modération
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                v-if="$page.props.auth.user.roles?.includes('admin')"
-                                :href="route('admin.dashboard')"
-                            >
-                                ⚙️ Administration
-                            </ResponsiveNavLink>
-                        </div>
-                        
-                        <!-- Espace Élu (si élu vérifié) -->
-                        <div
-                            v-if="$page.props.auth.user.is_verified_elu"
-                            class="border-t border-purple-200 dark:border-purple-700 pt-2"
-                        >
-                            <ResponsiveNavLink :href="route('elu.dashboard')" class="text-purple-600 dark:text-purple-400">
-                                🏛️ Espace Élu
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink :href="route('elu.interpellations')">
-                                📬 Interpellations
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink :href="route('elu.stats')">
-                                📊 Mes Statistiques
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
-
-                    <!-- User Section Mobile -->
-                    <div class="border-t border-gray-200 dark:border-gray-600 pb-3 pt-4 px-3">
-                        <div class="flex items-center gap-3 px-3 mb-3">
-                            <div class="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">
-                                {{ $page.props.auth.user.name.charAt(0).toUpperCase() }}
-                            </div>
-                            <div>
-                                <div class="text-sm font-medium text-gray-800 dark:text-gray-200">
-                                    {{ $page.props.auth.user.name }}
-                                </div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $page.props.auth.user.email }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-1">
-                            <ResponsiveNavLink :href="route('profile.edit')">👤 Mon Profil</ResponsiveNavLink>
-                            <ResponsiveNavLink :href="route('profile.elus-suivis')">🔔 Élus suivis</ResponsiveNavLink>
-                            <ResponsiveNavLink :href="route('profile.gamification')">🏆 Mes Succès</ResponsiveNavLink>
-                            
-                            <!-- Modération (si modérateur/admin) -->
-                            <ResponsiveNavLink 
-                                v-if="$page.props.auth.user.roles?.includes('moderator') || $page.props.auth.user.roles?.includes('admin')"
-                                :href="route('moderation.dashboard')"
-                                class="text-amber-600 dark:text-amber-400"
-                            >
-                                🛡️ Modération
-                            </ResponsiveNavLink>
-                            
-                            <!-- Administration (si admin) -->
-                            <ResponsiveNavLink 
-                                v-if="$page.props.auth.user.roles?.includes('admin')"
-                                :href="route('admin.dashboard')"
-                                class="text-red-600 dark:text-red-400"
-                            >
-                                ⚙️ Administration
-                            </ResponsiveNavLink>
-                            
-                            <ResponsiveNavLink :href="route('logout')" method="post" as="button">
-                                🚪 Déconnexion
-                            </ResponsiveNavLink>
                         </div>
                     </div>
                 </div>
@@ -906,18 +420,18 @@ onUnmounted(() => {
             <main>
                 <slot />
             </main>
-            
+
             <!-- Footer -->
             <AppFooter />
         </div>
 
-        <!-- Bottom Navigation (Mobile only) -->
-        <!-- BottomNav retiré - burger menu suffisant -->
-        
+        <!-- Bottom Tab Bar (mobile only) -->
+        <BottomTabBar />
+
         <!-- Scroll to Top -->
         <ScrollToTop />
-        
-        <!-- Tour Overlay (visite guidée) -->
+
+        <!-- Tour Overlay -->
         <TourOverlay />
     </div>
 

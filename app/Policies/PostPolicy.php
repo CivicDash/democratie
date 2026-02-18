@@ -40,7 +40,7 @@ class PostPolicy
     public function create(User $user, ?Topic $topic = null): bool
     {
         // User doit avoir la permission
-        if (!$user->hasPermissionTo('posts.create')) {
+        if (!$user->hasPermissionTo('create_posts')) {
             return false;
         }
 
@@ -105,7 +105,7 @@ class PostPolicy
     public function hide(User $user, Post $post): bool
     {
         // Seuls modérateurs et admins peuvent masquer
-        return $user->hasPermissionTo('posts.hide');
+        return $user->hasPermissionTo('hide_posts');
     }
 
     /**
@@ -113,8 +113,7 @@ class PostPolicy
      */
     public function unhide(User $user, Post $post): bool
     {
-        // Seuls modérateurs et admins peuvent démasquer
-        return $user->hasPermissionTo('posts.hide');
+        return $user->hasPermissionTo('hide_posts');
     }
 
     /**
@@ -128,7 +127,7 @@ class PostPolicy
         }
 
         // User doit avoir la permission
-        if (!$user->hasPermissionTo('posts.vote')) {
+        if (!$user->hasPermissionTo('vote_on_posts')) {
             return false;
         }
 
@@ -171,8 +170,7 @@ class PostPolicy
         }
 
         // User doit avoir la permission
-        return $user->hasPermissionTo('reports.create') &&
-               !$user->isBanned();
+        return !$user->isMuted() && !$user->isBanned();
     }
 }
 

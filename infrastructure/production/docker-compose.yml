@@ -25,7 +25,7 @@ services:
       - MGT_PG_HOST=safeline-pg
       - MGT_PG_PORT=5432
       - MGT_PG_USER=safeline
-      - MGT_PG_PASSWORD=${SAFELINE_PG_PASSWORD:-safeline123}
+      - MGT_PG_PASSWORD=${SAFELINE_PG_PASSWORD:?SAFELINE_PG_PASSWORD must be set}
     depends_on:
       - safeline-pg
     networks:
@@ -40,7 +40,7 @@ services:
       - safeline_pg_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: safeline
-      POSTGRES_PASSWORD: ${SAFELINE_PG_PASSWORD:-safeline123}
+      POSTGRES_PASSWORD: ${SAFELINE_PG_PASSWORD:?SAFELINE_PG_PASSWORD must be set}
       POSTGRES_DB: safeline
     networks:
       - safeline

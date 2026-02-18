@@ -15,8 +15,7 @@ class ReportPolicy
      */
     public function viewAny(User $user): bool
     {
-        // Seuls modérateurs et admins peuvent voir les rapports
-        return $user->hasPermissionTo('reports.review');
+        return $user->hasPermissionTo('view_reports');
     }
 
     /**
@@ -24,13 +23,11 @@ class ReportPolicy
      */
     public function view(User $user, Report $report): bool
     {
-        // Le créateur du rapport peut le voir
         if ($report->reporter_id === $user->id) {
             return true;
         }
 
-        // Les modérateurs et admins peuvent voir tous les rapports
-        return $user->hasPermissionTo('reports.review');
+        return $user->hasPermissionTo('view_reports');
     }
 
     /**
@@ -38,8 +35,7 @@ class ReportPolicy
      */
     public function create(User $user): bool
     {
-        // Tous les utilisateurs non bannis peuvent créer des rapports
-        return $user->hasPermissionTo('reports.create') && !$user->isBanned();
+        return !$user->isMuted() && !$user->isBanned();
     }
 
     /**
@@ -47,12 +43,10 @@ class ReportPolicy
      */
     public function review(User $user, Report $report): bool
     {
-        // Seuls modérateurs et admins peuvent reviewer
-        if (!$user->hasPermissionTo('reports.review')) {
+        if (!$user->hasPermissionTo('handle_reports')) {
             return false;
         }
 
-        // Le rapport doit être pending ou reviewing
         return in_array($report->status, ['pending', 'reviewing']);
     }
 
@@ -61,12 +55,10 @@ class ReportPolicy
      */
     public function resolve(User $user, Report $report): bool
     {
-        // Seuls modérateurs et admins peuvent résoudre
-        if (!$user->hasPermissionTo('reports.resolve')) {
+        if (!$user->hasPermissionTo('handle_reports')) {
             return false;
         }
 
-        // Le rapport doit être en reviewing
         return $report->status === 'reviewing';
     }
 
@@ -75,7 +67,6 @@ class ReportPolicy
      */
     public function reject(User $user, Report $report): bool
     {
-        // Même logique que resolve
         return $this->resolve($user, $report);
     }
 
@@ -84,13 +75,11 @@ class ReportPolicy
      */
     public function update(User $user, Report $report): bool
     {
-        // Seuls modérateurs/admins peuvent mettre à jour
-        // Le créateur peut mettre à jour seulement si pending
         if ($report->reporter_id === $user->id && $report->status === 'pending') {
             return true;
         }
 
-        return $user->hasPermissionTo('reports.review');
+        return $user->hasPermissionTo('handle_reports');
     }
 
     /**
@@ -98,12 +87,10 @@ class ReportPolicy
      */
     public function delete(User $user, Report $report): bool
     {
-        // Le créateur peut supprimer si pending
         if ($report->reporter_id === $user->id && $report->status === 'pending') {
             return true;
         }
 
-        // Admins peuvent supprimer
         return $user->hasRole('admin');
     }
 
@@ -112,8 +99,7 @@ class ReportPolicy
      */
     public function assign(User $user, Report $report): bool
     {
-        // Modérateurs et admins peuvent s'assigner des rapports pending
-        return $user->hasPermissionTo('reports.review') && 
+        return $user->hasPermissionTo('handle_reports') &&
                $report->status === 'pending';
     }
 
@@ -122,8 +108,7 @@ class ReportPolicy
      */
     public function addNotes(User $user, Report $report): bool
     {
-        // Modérateurs assignés ou admins peuvent ajouter des notes
-        return $user->hasPermissionTo('reports.review') &&
+        return $user->hasPermissionTo('handle_reports') &&
                ($report->moderator_id === $user->id || $user->hasRole('admin'));
     }
 }
