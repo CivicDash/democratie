@@ -28,13 +28,22 @@ const comparison = [
     { label: 'Dissolution possible', an: 'Oui (par le Président)', senat: 'Non' },
 ];
 
-const dailyTasks = [
+const deputeTasks = [
     { icon: '📋', title: 'Commissions', description: 'Étudier les textes de loi en commission permanente (mardi et mercredi matin)' },
     { icon: '🎙️', title: 'Séance publique', description: 'Débattre et voter les lois en hémicycle (mardi après-midi au vendredi)' },
     { icon: '❓', title: 'Questions au Gouvernement', description: 'Interroger les ministres chaque mardi et mercredi (retransmis en direct)' },
     { icon: '✍️', title: 'Amendements', description: 'Rédiger et défendre des modifications aux textes de loi' },
     { icon: '📍', title: 'Circonscription', description: 'Permanences, rencontres avec les citoyens, événements locaux' },
     { icon: '🌍', title: 'Missions', description: 'Commissions d\'enquête, missions d\'information, diplomatie parlementaire' },
+];
+
+const senateurTasks = [
+    { icon: '📋', title: 'Commissions', description: 'Travail en commission permanente ou spéciale sur les textes législatifs' },
+    { icon: '🎙️', title: 'Séance publique', description: 'Discussion et vote des lois en hémicycle, navette parlementaire avec l\'AN' },
+    { icon: '❓', title: 'Questions d\'actualité', description: 'Interroger le Gouvernement chaque mercredi après-midi (en direct)' },
+    { icon: '🏘️', title: 'Collectivités territoriales', description: 'Représenter les intérêts des communes, départements et régions' },
+    { icon: '✍️', title: 'Propositions de loi', description: 'Déposer et défendre des textes, notamment sur les questions territoriales' },
+    { icon: '🔍', title: 'Contrôle & Évaluation', description: 'Missions d\'information, commissions d\'enquête, suivi des politiques publiques' },
 ];
 
 const totalAN = computed(() => props.groupesAN.reduce((s, g) => s + (g.nombre_membres || 0), 0));
@@ -133,9 +142,21 @@ const parite = computed(() => props.stats?.parite || {});
 
                 <!-- Que fait un député -->
                 <div class="mt-12">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">📋 Que fait un député au quotidien ?</h2>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">🏛️ Que fait un député au quotidien ?</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div v-for="task in dailyTasks" :key="task.title" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+                        <div v-for="task in deputeTasks" :key="task.title" class="bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 rounded-xl p-5">
+                            <div class="text-2xl mb-2">{{ task.icon }}</div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white">{{ task.title }}</h3>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ task.description }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Que fait un sénateur -->
+                <div class="mt-10">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">🏛️ Que fait un sénateur au quotidien ?</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div v-for="task in senateurTasks" :key="task.title" class="bg-white dark:bg-gray-800 border border-rose-100 dark:border-gray-700 rounded-xl p-5">
                             <div class="text-2xl mb-2">{{ task.icon }}</div>
                             <h3 class="font-semibold text-gray-900 dark:text-white">{{ task.title }}</h3>
                             <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ task.description }}</p>

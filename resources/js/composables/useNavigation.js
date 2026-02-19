@@ -246,7 +246,10 @@ export function useNavigation() {
         comprendre: [
             {
                 label: 'Comprendre la Democratie',
-                items: comprendre.value.items.filter(i => !i.divider),
+                items: comprendre.value.items.filter(i => {
+                    if (i.divider) return false;
+                    return !donnees.value.items.some(d => d.href === i.href);
+                }),
             },
             {
                 label: 'Donnees & Statistiques',
