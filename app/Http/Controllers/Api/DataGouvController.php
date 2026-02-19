@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\BudgetTerritorialService;
 use App\Services\DataGouvService;
 use App\Models\CommuneBudget;
+use App\Models\FrenchPostalCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -191,61 +192,42 @@ class DataGouvController extends Controller
     /**
      * Recherche de communes par nom
      * 
-     * GET /api/datagouv/communes/search?q=paris&annee=2024
-     * 
-     * @param Request $request
-     * @return JsonResponse
+     * GET /api/communes/search?q=paris
+     * Returns a flat array for frontend autocomplete compatibility.
      */
     public function searchCommunes(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'q' => 'required|string|min:2|max:100',
-            'annee' => 'nullable|integer|min:2000|max:' . date('Y'),
-            'limit' => 'nullable|integer|min:1|max:50',
-        ]);
+        $query = $request->input('q', '');
 
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Validation échouée',
-                'errors' => $validator->errors(),
-            ], 422);
+        if (mb_strlen($query) < 2) {
+            return response()->json([]);
         }
 
-        $query = $request->input('q');
-        $annee = $request->input('annee', date('Y'));
-        $limit = $request->input('limit', 20);
-
         try {
-            $communes = CommuneBudget::where('nom_commune', 'ILIKE', "%{$query}%")
-                ->forYear($annee)
-                ->orderByPopulation()
-                ->limit($limit)
+            $communes = FrenchPostalCode::where('city_name', 'ILIKE', "%{$query}%")
+                ->select('insee_code', 'city_name', 'postal_code', 'department_name')
+                ->orderByRaw("CASE WHEN city_name ILIKE ? THEN 0 ELSE 1 END", [$query . '%'])
+                ->orderBy('city_name')
+                ->limit(15)
                 ->get()
-                ->map(function ($commune) {
-                    return [
-                        'code_insee' => $commune->code_insee,
-                        'nom' => $commune->nom_commune,
-                        'population' => $commune->population,
-                        'budget_total' => $commune->budget_total_euros,
-                        'depenses_par_habitant' => $commune->depenses_par_habitant,
-                    ];
-                });
+                ->unique('insee_code')
+                ->values()
+                ->map(fn($pc) => [
+                    'code_insee' => $pc->insee_code,
+                    'nom' => $pc->city_name,
+                    'departement_code' => mb_substr($pc->insee_code, 0, 2),
+                    'departement_nom' => $pc->department_name,
+                    'postal_code' => $pc->postal_code,
+                ]);
 
-            return response()->json([
-                'success' => true,
-                'data' => $communes,
-                'count' => $communes->count(),
-            ]);
+            return response()->json($communes);
         } catch (\Exception $e) {
             Log::error('Erreur searchCommunes', [
                 'query' => $query,
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'error' => 'Erreur serveur',
-                'message' => 'Une erreur est survenue lors de la recherche',
-            ], 500);
+            return response()->json([]);
         }
     }
 

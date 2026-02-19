@@ -13,6 +13,27 @@ const props = defineProps({
 const search = ref(props.filters.q || '');
 const departement = ref(props.filters.departement || '');
 
+const communeSuggestions = ref([]);
+let communeTimeout = null;
+
+watch(search, (val) => {
+    if (communeTimeout) clearTimeout(communeTimeout);
+    if (val.length < 2) { communeSuggestions.value = []; return; }
+    communeTimeout = setTimeout(async () => {
+        try {
+            const res = await fetch(`/api/communes/search?q=${encodeURIComponent(val)}`);
+            const data = await res.json();
+            communeSuggestions.value = (Array.isArray(data) ? data : []).slice(0, 8);
+        } catch { communeSuggestions.value = []; }
+    }, 250);
+});
+
+const selectSuggestion = (commune) => {
+    search.value = commune.nom;
+    communeSuggestions.value = [];
+    performSearch();
+};
+
 let searchTimeout = null;
 const performSearch = () => {
     if (searchTimeout) clearTimeout(searchTimeout);
@@ -53,13 +74,29 @@ watch([search, departement], performSearch);
 
                 <!-- Barre de recherche -->
                 <div class="flex flex-col md:flex-row gap-4">
-                    <div class="flex-1">
+                    <div class="flex-1 relative">
                         <TextInput
                             v-model="search"
                             type="text"
                             placeholder="Nom de la commune ou de la liste..."
                             class="w-full text-lg py-4 px-6"
+                            autocomplete="off"
                         />
+                        <div
+                            v-if="communeSuggestions.length > 0"
+                            class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                        >
+                            <button
+                                v-for="commune in communeSuggestions"
+                                :key="commune.code_insee"
+                                type="button"
+                                @click="selectSuggestion(commune)"
+                                class="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                            >
+                                <span class="font-medium text-gray-900 dark:text-white">{{ commune.nom }}</span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400 ml-2">({{ commune.departement_code }})</span>
+                            </button>
+                        </div>
                     </div>
                     <select
                         v-model="departement"

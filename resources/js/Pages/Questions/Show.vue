@@ -2,11 +2,13 @@
 import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import VideoButton from '@/Components/VideoButton.vue';
 
 const props = defineProps({
     question: { type: Object, required: true },
     similaires: { type: Array, default: () => [] },
     autresDepute: { type: Array, default: () => [] },
+    video_url: { type: String, default: null },
 });
 
 function formatDate(dateStr) {
@@ -93,6 +95,7 @@ const breadcrumbs = [
                                 <span>📅 {{ formatDate(question.date_question) }}</span>
                                 <span v-if="question.rubrique">📋 {{ question.rubrique }}</span>
                                 <span v-if="question.ministere_nom">🏛️ {{ question.ministere_nom }}</span>
+                                <VideoButton v-if="video_url" :href="video_url" variant="hero" />
                             </div>
                         </div>
                     </div>

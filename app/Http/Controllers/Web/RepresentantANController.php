@@ -718,7 +718,7 @@ class RepresentantANController extends Controller
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
-                'url_externe' => "https://www.assemblee-nationale.fr/dyn/recherche-amendements?uid={$amendement->uid}",
+                'url_externe' => "https://www.assemblee-nationale.fr/dyn/" . ($amendement->legislature ?: '17') . "/amendements/{$amendement->uid}",
                 'dossier' => $amendement->dossier ? [
                     'uid' => $amendement->dossier->uid,
                     'titre_court' => $amendement->dossier->titre_court ?? $amendement->dossier->titre,
@@ -914,14 +914,14 @@ class RepresentantANController extends Controller
             // Fallback: calcul à la volée (pour les premiers chargements)
             $totalScrutinsSenat = ScrutinSenat::count();
             
-            $votesTotal = VoteSenat::where('senateur_matricule', $matricule)->count();
+            $votesTotal = VoteSenat::where('senateur_matricule', $matricule)->distinct('scrutin_id')->count('scrutin_id');
             $amendementsTotal = AmendementSenat::where('senateur_matricule', $matricule)->count();
             $amendementsAdoptes = AmendementSenat::where('senateur_matricule', $matricule)->adoptes()->count();
 
             $stats = [
                 'votes_total' => $votesTotal,
                 'taux_presence' => $totalScrutinsSenat > 0 
-                    ? round(($votesTotal / $totalScrutinsSenat) * 100, 1) 
+                    ? min(100, round(($votesTotal / $totalScrutinsSenat) * 100, 1))
                     : 0,
                 'amendements_total' => $amendementsTotal,
                 'amendements_adoptes' => $amendementsAdoptes,

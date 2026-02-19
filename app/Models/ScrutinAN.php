@@ -22,6 +22,7 @@ class ScrutinAN extends Model
         'uid',
         'numero',
         'organe_ref',
+        'seance_ref',
         'legislature',
         'date_scrutin',
         'type_vote_code',
@@ -59,6 +60,11 @@ class ScrutinAN extends Model
     public function organe(): BelongsTo
     {
         return $this->belongsTo(OrganeAN::class, 'organe_ref', 'uid');
+    }
+
+    public function seance(): BelongsTo
+    {
+        return $this->belongsTo(ReunionAN::class, 'seance_ref', 'uid');
     }
 
     public function votesIndividuels(): HasMany

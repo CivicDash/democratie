@@ -198,16 +198,16 @@ class CalculateParlementairesStats extends Command
      */
     private function calculateSenateurStats(Senateur $senateur): array
     {
-        // Votes
+        // Votes (use distinct scrutin count to avoid duplicates inflating the rate)
         $votesQuery = VoteSenat::where('senateur_matricule', $senateur->matricule);
 
-        $votesTotal = $votesQuery->count();
+        $votesTotal = $votesQuery->distinct('scrutin_id')->count('scrutin_id');
         $votesPour = (clone $votesQuery)->where('position', 'pour')->count();
         $votesContre = (clone $votesQuery)->where('position', 'contre')->count();
         $votesAbstention = (clone $votesQuery)->where('position', 'abstention')->count();
 
         $tauxPresence = $this->totalScrutinsSenat > 0
-            ? ($votesTotal / $this->totalScrutinsSenat) * 100
+            ? min(100, ($votesTotal / $this->totalScrutinsSenat) * 100)
             : 0;
 
         // Amendements

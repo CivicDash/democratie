@@ -225,17 +225,8 @@ const formatNumber = (num) => {
                             class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-4 py-2.5 text-sm"
                         />
                         
-                        <!-- État & Année -->
+                        <!-- Année & État -->
                         <div class="grid grid-cols-2 gap-3">
-                            <select
-                                v-model="selectedEtat"
-                                class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm py-2.5"
-                            >
-                                <option value="">Tous états</option>
-                                <option v-for="etat in etats" :key="etat.code" :value="etat.code">
-                                    {{ etat.libelle }}
-                                </option>
-                            </select>
                             <select
                                 v-model="selectedAnnee"
                                 class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm py-2.5"
@@ -243,6 +234,15 @@ const formatNumber = (num) => {
                                 <option value="">Toutes années</option>
                                 <option v-for="annee in annees" :key="annee" :value="annee">
                                     {{ annee }}
+                                </option>
+                            </select>
+                            <select
+                                v-model="selectedEtat"
+                                class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm py-2.5"
+                            >
+                                <option value="">Tous états</option>
+                                <option v-for="etat in etats" :key="etat.code" :value="etat.code">
+                                    {{ etat.libelle }}
                                 </option>
                             </select>
                         </div>
@@ -288,6 +288,20 @@ const formatNumber = (num) => {
                             </div>
                         </div>
 
+                        <!-- Année -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">📅 Année</h3>
+                            <select
+                                v-model="selectedAnnee"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm"
+                            >
+                                <option value="">Toutes les années</option>
+                                <option v-for="annee in annees" :key="annee" :value="annee">
+                                    {{ annee }}
+                                </option>
+                            </select>
+                        </div>
+
                         <!-- État -->
                         <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
                             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">📊 État</h3>
@@ -319,20 +333,6 @@ const formatNumber = (num) => {
                                     <span class="truncate">{{ etat.libelle }}</span>
                                 </button>
                             </div>
-                        </div>
-
-                        <!-- Année -->
-                        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">📅 Année</h3>
-                            <select
-                                v-model="selectedAnnee"
-                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 text-sm"
-                            >
-                                <option value="">Toutes les années</option>
-                                <option v-for="annee in annees" :key="annee" :value="annee">
-                                    {{ annee }}
-                                </option>
-                            </select>
                         </div>
 
                         <!-- Clear Filters -->
@@ -430,11 +430,13 @@ const formatNumber = (num) => {
                                             </span>
                                         </div>
                                         <span 
-                                            :class="[getEtatConfig(loi.etaloicod).bgLight, getEtatConfig(loi.etaloicod).text]"
+                                            :class="loi.est_caduc 
+                                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' 
+                                                : [getEtatConfig(loi.etaloicod).bgLight, getEtatConfig(loi.etaloicod).text]"
                                             class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold shrink-0"
                                         >
-                                            <span>{{ getEtatConfig(loi.etaloicod).icon }}</span>
-                                            <span class="hidden sm:inline">{{ loi.etat?.etaloilib?.trim() || getEtatConfig(loi.etaloicod).label }}</span>
+                                            <span>{{ loi.est_caduc ? '🕰️' : getEtatConfig(loi.etaloicod).icon }}</span>
+                                            <span class="hidden sm:inline">{{ loi.est_caduc ? 'Probablement caduc' : (loi.etat?.etaloilib?.trim() || getEtatConfig(loi.etaloicod).label) }}</span>
                                         </span>
                                     </div>
                                 </div>

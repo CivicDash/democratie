@@ -7,6 +7,7 @@ use App\Models\QuestionAN;
 use App\Models\ActeurAN;
 use App\Models\SenateurQuestion;
 use App\Models\Senateur;
+use App\Models\VideoChapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -107,10 +108,22 @@ class QuestionController extends Controller
             ->limit(5)
             ->get();
 
+        $videoChapter = VideoChapter::where('question_uid', $uid)->first();
+        $videoUrl = $videoChapter?->video_url;
+
+        if (! $videoUrl && $question->type === 'QG' && $question->acteur_ref) {
+            $videoChapter = VideoChapter::where('chapter_type_key', 4)
+                ->where('speaker_an_uid', $question->acteur_ref)
+                ->whereHas('reunion', fn ($q) => $q->whereDate('date_debut', $question->date_question))
+                ->first();
+            $videoUrl = $videoChapter?->video_url;
+        }
+
         return Inertia::render('Questions/Show', [
             'question' => $question,
             'similaires' => $similaires,
             'autresDepute' => $autresDepute,
+            'video_url' => $videoUrl,
         ]);
     }
 

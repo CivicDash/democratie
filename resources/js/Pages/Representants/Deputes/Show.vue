@@ -201,18 +201,24 @@ const formatMontant = (montant) => {
               </div>
 
               <!-- Navigation vers pages détaillées -->
-              <div v-if="depute?.uid" class="grid grid-cols-3 gap-3 mt-6">
+              <div v-if="depute?.uid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
                 <Link
                   :href="route('representants.deputes.votes', depute.uid)"
                   class="text-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
-                  🗳️ Voir les votes
+                  🗳️ Votes
                 </Link>
                 <Link
                   :href="route('representants.deputes.amendements', depute.uid)"
                   class="text-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                 >
                   📝 Amendements
+                </Link>
+                <Link
+                  :href="route('questions.depute', depute.uid)"
+                  class="text-center px-4 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition"
+                >
+                  ❓ Questions
                 </Link>
                 <Link
                   :href="route('representants.deputes.activite', depute.uid)"

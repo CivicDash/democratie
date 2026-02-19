@@ -5,6 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import VideoButton from '@/Components/VideoButton.vue';
 
 const props = defineProps({
   scrutin: Object,
@@ -74,9 +75,10 @@ const getVoteLabel = (type) => {
                 {{ scrutin.objet }}
               </p>
             </div>
-            <div class="text-right">
+            <div class="text-right space-y-2">
               <div class="text-sm text-blue-200">{{ scrutin.date }}</div>
-              <div class="text-sm text-blue-200 mt-1">{{ scrutin.moment_scrutin }}</div>
+              <div class="text-sm text-blue-200">{{ scrutin.moment_scrutin }}</div>
+              <VideoButton v-if="scrutin.video_url" :href="scrutin.video_url" variant="hero" />
             </div>
           </div>
         </div>

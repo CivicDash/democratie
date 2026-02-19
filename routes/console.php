@@ -192,6 +192,27 @@ Schedule::command('import:questions-senat')
 
 /*
 |--------------------------------------------------------------------------
+| 7b. VIDEOS AN (06h30 - 06h50)
+|--------------------------------------------------------------------------
+*/
+
+Schedule::command('import:video-ids-an')
+    ->dailyAt('06:30')
+    ->description('Découverte des vidéos AN et rattachement aux réunions')
+    ->withoutOverlapping();
+
+Schedule::command('import:video-chapters-an --all')
+    ->dailyAt('06:40')
+    ->description('Import des chapitres vidéo depuis data.nvs')
+    ->withoutOverlapping();
+
+Schedule::command('match:video-chapters-an')
+    ->dailyAt('06:50')
+    ->description('Matching chapitres vidéo avec QAG et amendements')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
 | 8. ENRICHISSEMENT (07h00 - 08h00)
 |--------------------------------------------------------------------------
 */

@@ -18,12 +18,18 @@ const formatDate = (date) => {
     });
 };
 
+const hasVoteData = computed(() => {
+    const s = props.scrutin;
+    return (s.pour > 0 || s.contre > 0 || s.votants > 0 || s.suffrages_exprimes > 0);
+});
+
 const abstentions = computed(() => {
-    return props.scrutin.suffrages_exprimes - props.scrutin.pour - props.scrutin.contre;
+    if (!hasVoteData.value) return 0;
+    return (props.scrutin.suffrages_exprimes || 0) - (props.scrutin.pour || 0) - (props.scrutin.contre || 0);
 });
 
 const tauxAdoption = computed(() => {
-    const exprimes = props.scrutin.pour + props.scrutin.contre;
+    const exprimes = (props.scrutin.pour || 0) + (props.scrutin.contre || 0);
     return exprimes > 0 ? Math.round((props.scrutin.pour / exprimes) * 100) : 0;
 });
 
@@ -85,8 +91,20 @@ const positionLabels = {
             </div>
 
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Pas de données -->
+                <div v-if="!hasVoteData" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-8 mb-8 text-center">
+                    <div class="text-4xl mb-3">📊</div>
+                    <h2 class="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-2">
+                        Donnees de vote non disponibles
+                    </h2>
+                    <p class="text-amber-700 dark:text-amber-400 text-sm max-w-md mx-auto">
+                        Les resultats detailles de ce scrutin ne sont pas encore disponibles dans notre base de donnees.
+                        Les compteurs agreges sont absents de la source Senat pour ce scrutin.
+                    </p>
+                </div>
+
                 <!-- Résumé des votes -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+                <div v-if="hasVoteData" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                         Résultat du vote
                     </h2>
@@ -95,19 +113,19 @@ const positionLabels = {
                     <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex mb-4">
                         <div
                             class="h-full bg-green-500 flex items-center justify-center text-white text-sm font-bold"
-                            :style="{ width: `${(scrutin.pour / scrutin.suffrages_exprimes) * 100}%` }"
+                            :style="{ width: `${scrutin.suffrages_exprimes ? (scrutin.pour / scrutin.suffrages_exprimes) * 100 : 0}%` }"
                         >
                             <span v-if="scrutin.pour > 20">{{ scrutin.pour }}</span>
                         </div>
                         <div
                             class="h-full bg-red-500 flex items-center justify-center text-white text-sm font-bold"
-                            :style="{ width: `${(scrutin.contre / scrutin.suffrages_exprimes) * 100}%` }"
+                            :style="{ width: `${scrutin.suffrages_exprimes ? (scrutin.contre / scrutin.suffrages_exprimes) * 100 : 0}%` }"
                         >
                             <span v-if="scrutin.contre > 20">{{ scrutin.contre }}</span>
                         </div>
                         <div
                             class="h-full bg-gray-400 flex items-center justify-center text-white text-sm font-bold"
-                            :style="{ width: `${(abstentions / scrutin.suffrages_exprimes) * 100}%` }"
+                            :style="{ width: `${scrutin.suffrages_exprimes ? (abstentions / scrutin.suffrages_exprimes) * 100 : 0}%` }"
                         >
                             <span v-if="abstentions > 20">{{ abstentions }}</span>
                         </div>

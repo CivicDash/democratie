@@ -46,6 +46,8 @@ class ActeurAN extends Model
         'adresses' => 'array',
     ];
 
+    protected $appends = ['photo_url'];
+
     /**
      * Relations
      */

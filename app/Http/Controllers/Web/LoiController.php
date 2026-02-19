@@ -79,6 +79,18 @@ class LoiController extends Controller
 
         $lois = $query->paginate(20)->withQueryString();
 
+        $fiveYearsAgo = now()->subYears(5);
+        $lois->through(function ($loi) use ($fiveYearsAgo) {
+            if (trim($loi->etaloicod ?? '') === '01') {
+                $date = $loi->loidatjo ?? $loi->date_loi;
+                if ($date && \Carbon\Carbon::parse($date)->lt($fiveYearsAgo)) {
+                    $loi->setAttribute('est_caduc', true);
+                }
+            }
+
+            return $loi;
+        });
+
         // Statistiques
         $stats = Cache::remember('lois_stats', 3600, function () {
             return [
@@ -96,7 +108,7 @@ class LoiController extends Controller
         $etats = EtatLoi::orderBy('etaloicod')->get()->map(fn ($e) => [
             'code' => trim($e->etaloicod),
             'libelle' => trim($e->etaloilib),
-        ]);
+        ])->unique('code')->values();
 
         $types = TypeLoi::orderBy('typloilib')->get()->map(fn ($t) => [
             'code' => trim($t->typloicod),

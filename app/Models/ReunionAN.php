@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ReunionAN extends Model
 {
@@ -37,6 +38,8 @@ class ReunionAN extends Model
         'visio_conference',
         'ouverture_presse',
         'captation_video',
+        'video_id',
+        'url_video',
         'reunion_internationale',
         'pays_reunion_internationale',
     ];
@@ -66,6 +69,20 @@ class ReunionAN extends Model
     public function organe(): BelongsTo
     {
         return $this->belongsTo(OrganeAN::class, 'organe_ref', 'uid');
+    }
+
+    public function videoChapters(): HasMany
+    {
+        return $this->hasMany(VideoChapter::class, 'reunion_uid', 'uid');
+    }
+
+    public function getVideoUrlAttribute(): ?string
+    {
+        if (! $this->video_id) {
+            return null;
+        }
+
+        return "https://videos.assemblee-nationale.fr/video.{$this->video_id}";
     }
 
     // ===== SCOPES =====

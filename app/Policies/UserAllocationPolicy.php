@@ -54,6 +54,10 @@ class UserAllocationPolicy
      */
     public function create(User $user): bool
     {
+        if ($user->hasAnyRole(['admin', 'state'])) {
+            return true;
+        }
+
         if (!$this->canAllocateBudget($user)) {
             return false;
         }

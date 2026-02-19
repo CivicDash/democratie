@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sector;
+use App\Models\UserAllocation;
 use App\Services\BudgetService;
 use App\Http\Requests\Budget\AllocateBudgetRequest;
 use App\Http\Requests\Budget\BulkAllocateBudgetRequest;
@@ -108,7 +109,7 @@ class BudgetController extends Controller
      */
     public function myAllocations()
     {
-        $this->authorize('allocate', Sector::class);
+        $this->authorize('create', UserAllocation::class);
 
         $allocations = $this->budgetService->getUserAllocations(auth()->user());
 

@@ -30,7 +30,7 @@ watch(communeSearch, (newVal) => {
         try {
             const response = await fetch(`/api/communes/search?q=${encodeURIComponent(newVal)}`);
             const data = await response.json();
-            communeResults.value = data.slice(0, 10);
+            communeResults.value = (Array.isArray(data) ? data : (data.data || [])).slice(0, 10);
         } catch (e) {
             communeResults.value = [];
         } finally {
@@ -43,8 +43,8 @@ const selectCommune = (commune) => {
     selectedCommune.value = commune;
     form.commune_code_insee = commune.code_insee;
     form.commune_nom = commune.nom;
-    form.departement_code = commune.departement_code;
-    communeSearch.value = `${commune.nom} (${commune.departement_code})`;
+    form.departement_code = commune.departement_code || commune.code_insee?.substring(0, 2) || '';
+    communeSearch.value = `${commune.nom} (${form.departement_code})`;
     communeResults.value = [];
 };
 
@@ -130,7 +130,7 @@ const submit = () => {
                                     {{ commune.nom }}
                                 </div>
                                 <div class="text-sm text-gray-500 dark:text-gray-400">
-                                    {{ commune.departement_code }} - {{ commune.population?.toLocaleString('fr-FR') }} habitants
+                                    {{ commune.departement_code || commune.code_insee?.substring(0, 2) }} - {{ commune.departement_nom || '' }}
                                 </div>
                             </button>
                         </div>
@@ -142,7 +142,7 @@ const submit = () => {
 
                     <div v-if="selectedCommune" class="mt-4 p-4 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-700">
                         <p class="text-green-700 dark:text-green-300 font-medium flex items-center gap-2">
-                            ✅ Commune sélectionnée : {{ selectedCommune.nom }} ({{ selectedCommune.departement_code }})
+                            ✅ Commune sélectionnée : {{ selectedCommune.nom }} ({{ form.departement_code }})
                         </p>
                     </div>
 
