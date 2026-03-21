@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Maire;
+use App\Models\ResultatMunicipal;
 use App\Models\Ville;
 use App\Models\MaireMandat;
 use Illuminate\Http\Request;
@@ -227,6 +229,7 @@ class VilleController extends Controller
             'budgets' => $budgets,
             'stats' => $statsVille,
             'elus' => $elus,
+            'resultats_municipales_2026' => $this->getResultatsMunicipales($ville),
             'villesVoisines' => $villesVoisines,
             'breadcrumbs' => [
                 ['label' => 'Accueil', 'href' => route('dashboard'), 'icon' => '🏠'],
@@ -289,18 +292,26 @@ class VilleController extends Controller
                 ->select('a.uid', 'a.nom', 'a.prenom', 'a.photo_wikipedia_url')
                 ->get();
 
-            $elus['deputes'] = $deputes->map(fn($d) => [
-                'uid' => $d->uid,
-                'nom' => trim($d->prenom . ' ' . $d->nom),
-                'photo_url' => $d->photo_wikipedia_url,
-                'url' => route('representants.deputes.show', $d->uid),
-            ])->toArray();
+            $elus['deputes'] = $deputes->map(function ($d) {
+                $photoUrl = $d->photo_wikipedia_url;
+                if (!$photoUrl) {
+                    $numericId = preg_replace('/^PA/', '', $d->uid);
+                    $photoUrl = "https://www.assemblee-nationale.fr/dyn/static/tribun/17/photos/{$numericId}.jpg";
+                }
+                return [
+                    'uid' => $d->uid,
+                    'nom' => trim($d->prenom . ' ' . $d->nom),
+                    'photo_url' => $photoUrl,
+                    'url' => route('representants.deputes.show', $d->uid),
+                ];
+            })->toArray();
         }
 
-        // Sénateurs (via département)
+        // Sénateurs actifs (via département)
         if ($ville->departement_nom) {
             $senateurs = DB::table('senateurs')
                 ->where('circonscription', $ville->departement_nom)
+                ->where('etat', 'ACTIF')
                 ->whereNull('date_deces')
                 ->select('matricule', 'nom', 'prenom', 'photo_wikipedia_url')
                 ->get();
@@ -340,6 +351,63 @@ class VilleController extends Controller
         // Supprimer tout ce qui n'est pas alphanumérique ou underscore
         $text = preg_replace('/[^a-z0-9_]/', '', $text);
         return $text;
+    }
+
+    private function getResultatsMunicipales(Ville $ville): ?array
+    {
+        $resultats = ResultatMunicipal::where('ville_id', $ville->id)
+            ->with(['listes' => fn($q) => $q->orderByDesc('voix')])
+            ->orderBy('tour')
+            ->get();
+
+        if ($resultats->isEmpty()) {
+            return null;
+        }
+
+        $ancienMaire = Maire::where('code_commune', $ville->code_insee)
+            ->where('mandature', '2020-2026')->first();
+        $nouveauMaire = Maire::where('code_commune', $ville->code_insee)
+            ->where('mandature', '2026-2032')
+            ->where('en_exercice', true)->first();
+
+        return [
+            'tours' => $resultats->map(fn($r) => [
+                'tour' => $r->tour,
+                'inscrits' => (int) $r->inscrits,
+                'votants' => (int) $r->votants,
+                'blancs' => (int) $r->blancs,
+                'nuls' => (int) $r->nuls,
+                'exprimes' => (int) $r->exprimes,
+                'taux_participation' => $r->taux_participation !== null ? (float) $r->taux_participation : null,
+                'nb_sieges_a_pourvoir' => $r->nb_sieges_a_pourvoir ? (int) $r->nb_sieges_a_pourvoir : null,
+                'statut_commune' => $r->statut_commune,
+                'statut_libelle' => $r->statut_libelle,
+                'listes' => $r->listes->map(fn($l) => [
+                    'numero_panneau' => $l->numero_panneau,
+                    'nom_liste' => $l->nom_liste,
+                    'nuance_politique' => $l->nuance_politique,
+                    'tete_de_liste' => $l->tete_de_liste_nom_complet,
+                    'voix' => (int) $l->voix,
+                    'pourcentage_exprimes' => $l->pourcentage_exprimes !== null ? (float) $l->pourcentage_exprimes : null,
+                    'elu' => (bool) $l->elu,
+                    'sieges_obtenus' => $l->sieges_obtenus !== null ? (int) $l->sieges_obtenus : null,
+                    'sieges_cc' => $l->sieges_cc !== null ? (int) $l->sieges_cc : null,
+                ]),
+            ]),
+            'transition' => [
+                'ancien_maire' => $ancienMaire ? [
+                    'nom_complet' => $ancienMaire->nom_complet,
+                    'nuance_politique' => $ancienMaire->nuance_politique,
+                    'photo' => $ancienMaire->photo,
+                ] : null,
+                'nouveau_maire' => $nouveauMaire ? [
+                    'nom_complet' => $nouveauMaire->nom_complet,
+                    'nuance_politique' => $nouveauMaire->nuance_politique,
+                    'photo' => $nouveauMaire->photo,
+                    'reelu' => $nouveauMaire->reelu,
+                ] : null,
+            ],
+        ];
     }
 
     private function formatVilleCard(Ville $ville): array

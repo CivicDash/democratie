@@ -25,6 +25,8 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'display_name' => ['nullable', 'string', 'max:50'],
+            'is_public_figure' => ['nullable', 'boolean'],
         ];
     }
 }

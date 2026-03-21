@@ -88,7 +88,7 @@ class ModerationController extends Controller
      */
     public function reports(Request $request): Response
     {
-        $status = $request->get('status', 'pending');
+        $status = $request->input('status', 'pending');
 
         $reports = [];
         if (DB::getSchemaBuilder()->hasTable('content_reports')) {

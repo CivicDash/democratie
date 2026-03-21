@@ -27,15 +27,15 @@ class AdminModerationWordsController extends Controller
         // Filtres pour mots bannis
         $bannedQuery = BannedWord::query();
         
-        if ($search = $request->get('search_banned')) {
+        if ($search = $request->input('search_banned')) {
             $bannedQuery->where('word', 'ilike', "%{$search}%");
         }
         
-        if ($category = $request->get('category')) {
+        if ($category = $request->input('category')) {
             $bannedQuery->where('category', $category);
         }
         
-        if ($severity = $request->get('severity')) {
+        if ($severity = $request->input('severity')) {
             $bannedQuery->where('severity', $severity);
         }
 
@@ -49,11 +49,11 @@ class AdminModerationWordsController extends Controller
         // Filtres pour mots gentils
         $niceQuery = NiceWord::query();
         
-        if ($searchNice = $request->get('search_nice')) {
+        if ($searchNice = $request->input('search_nice')) {
             $niceQuery->where('word', 'ilike', "%{$searchNice}%");
         }
         
-        if ($niceCategory = $request->get('nice_category')) {
+        if ($niceCategory = $request->input('nice_category')) {
             $niceQuery->where('category', $niceCategory);
         }
 
@@ -77,11 +77,11 @@ class AdminModerationWordsController extends Controller
             'severities' => BannedWord::SEVERITIES,
             'niceCategories' => NiceWord::CATEGORIES,
             'filters' => [
-                'search_banned' => $request->get('search_banned', ''),
-                'category' => $request->get('category', ''),
-                'severity' => $request->get('severity', ''),
-                'search_nice' => $request->get('search_nice', ''),
-                'nice_category' => $request->get('nice_category', ''),
+                'search_banned' => $request->input('search_banned', ''),
+                'category' => $request->input('category', ''),
+                'severity' => $request->input('severity', ''),
+                'search_nice' => $request->input('search_nice', ''),
+                'nice_category' => $request->input('nice_category', ''),
             ],
         ]);
     }

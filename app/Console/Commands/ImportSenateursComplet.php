@@ -236,15 +236,19 @@ class ImportSenateursComplet extends Command
 
                 foreach ($mandats as $mandatData) {
                     try {
-                        SenateurMandat::create([
-                            'matricule' => $mandatData['Matricule'],
-                            'type_mandat' => $type,
-                            'circonscription' => $mandatData['Circonscription'] ?? null,
-                            'date_debut' => $this->parseDate($mandatData['Date_debut']),
-                            'date_fin' => $this->parseDate($mandatData['Date_fin'] ?? null),
-                            'motif_fin' => $mandatData['Motif_fin'] ?? null,
-                            'numero_mandat' => $mandatData['Numero_mandat'] ?? null,
-                        ]);
+                        SenateurMandat::updateOrCreate(
+                            [
+                                'matricule' => $mandatData['Matricule'],
+                                'type_mandat' => $type,
+                                'date_debut' => $this->parseDate($mandatData['Date_debut']),
+                            ],
+                            [
+                                'circonscription' => $mandatData['Circonscription'] ?? null,
+                                'date_fin' => $this->parseDate($mandatData['Date_fin'] ?? null),
+                                'motif_fin' => $mandatData['Motif_fin'] ?? null,
+                                'numero_mandat' => $mandatData['Numero_mandat'] ?? null,
+                            ]
+                        );
                         $this->stats['mandats']['imported']++;
                     } catch (\Exception $e) {
                         $this->stats['mandats']['errors']++;
@@ -270,12 +274,16 @@ class ImportSenateursComplet extends Command
 
             foreach ($etudes as $etudeData) {
                 try {
-                    SenateurEtude::create([
-                        'matricule' => $etudeData['Matricule'],
-                        'diplome' => $etudeData['Diplome'] ?? null,
-                        'etablissement' => $etudeData['Etablissement'] ?? null,
-                        'annee_obtention' => $etudeData['Annee_obtention'] ?? null,
-                    ]);
+                    SenateurEtude::updateOrCreate(
+                        [
+                            'matricule' => $etudeData['Matricule'],
+                            'diplome' => $etudeData['Diplome'] ?? null,
+                        ],
+                        [
+                            'etablissement' => $etudeData['Etablissement'] ?? null,
+                            'annee_obtention' => $etudeData['Annee_obtention'] ?? null,
+                        ]
+                    );
                     $this->stats['etudes']['imported']++;
                 } catch (\Exception $e) {
                     $this->stats['etudes']['errors']++;

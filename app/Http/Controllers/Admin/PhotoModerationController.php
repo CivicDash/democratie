@@ -16,7 +16,7 @@ class PhotoModerationController extends Controller
      */
     public function index(Request $request)
     {
-        $status = $request->get('status', 'pending');
+        $status = $request->input('status', 'pending');
 
         $query = User::query()
             ->whereNotNull('profile_photo_path')

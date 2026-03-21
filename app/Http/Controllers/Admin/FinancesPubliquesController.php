@@ -213,7 +213,7 @@ class FinancesPubliquesController extends Controller
      */
     public function urssafDetails(Request $request)
     {
-        $annee = $request->get('annee', date('Y'));
+        $annee = $request->input('annee', date('Y'));
         
         $data = DB::table('urssaf_effectifs_national')
             ->where('annee', $annee)

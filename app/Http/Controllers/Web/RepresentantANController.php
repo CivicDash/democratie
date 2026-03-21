@@ -58,8 +58,8 @@ class RepresentantANController extends Controller
         }
 
         // Tri
-        $sortBy = $request->get('sort', 'nom');
-        $sortOrder = $request->get('order', 'asc');
+        $sortBy = $request->input('sort', 'nom');
+        $sortOrder = $request->input('order', 'asc');
         $query->orderBy($sortBy, $sortOrder);
 
         $deputes = $query->paginate(30)->withQueryString();
@@ -810,8 +810,8 @@ class RepresentantANController extends Controller
         }
 
         // Tri
-        $sortBy = $request->get('sort', 'nom_usuel');
-        $sortOrder = $request->get('order', 'asc');
+        $sortBy = $request->input('sort', 'nom_usuel');
+        $sortOrder = $request->input('order', 'asc');
         $query->orderBy($sortBy, $sortOrder);
 
         $senateurs = $query->paginate(30)->withQueryString();

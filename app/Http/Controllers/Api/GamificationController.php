@@ -168,7 +168,7 @@ class GamificationController extends Controller
             'data' => [
                 'user' => [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->display_name,
                     'email' => $user->email,
                 ],
                 'stats' => $stats,

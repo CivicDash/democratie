@@ -301,10 +301,15 @@ class ImportSenatSQL extends Command
      * Transforme un fichier SQL pour ajouter un préfixe aux noms de tables
      * Traite le fichier en streaming pour éviter les problèmes de mémoire
      */
+    /**
+     * Transforme un fichier SQL pour ajouter un préfixe aux noms de tables.
+     * Utilise des tables staging temporaires + INSERT ON CONFLICT DO NOTHING
+     * pour un import incrémental (diff) : seules les nouvelles lignes sont ajoutées.
+     */
     private function transformSQLWithPrefix(string $sqlFile, string $prefix): ?string
     {
         if (empty($prefix)) {
-            return $sqlFile; // Pas de préfixe, retourner le fichier original
+            return $sqlFile;
         }
         
         $tempFile = storage_path('app/temp_' . basename($sqlFile));
@@ -319,22 +324,26 @@ class ImportSenatSQL extends Command
             
             $lineCount = 0;
             $transformedCount = 0;
+            $inCopy = false;
+            $currentStagingTable = null;
+            $currentRealTable = null;
             
             while (($line = fgets($input)) !== false) {
                 $lineCount++;
                 
-                // Transformer les instructions CREATE TABLE
+                // CREATE TABLE -> CREATE TABLE IF NOT EXISTS (table conservée entre imports)
                 if (preg_match('/^CREATE TABLE\s+(\w+)/i', $line, $matches)) {
                     $tableName = $matches[1];
+                    $realTable = "{$prefix}{$tableName}";
                     $line = str_replace(
                         "CREATE TABLE {$tableName}",
-                        "CREATE TABLE {$prefix}{$tableName}",
+                        "CREATE TABLE IF NOT EXISTS {$realTable}",
                         $line
                     );
                     $transformedCount++;
                 }
                 
-                // Transformer les instructions ALTER TABLE
+                // ALTER TABLE avec préfixe
                 if (preg_match('/^ALTER TABLE\s+(\w+)/i', $line, $matches)) {
                     $tableName = $matches[1];
                     $line = str_replace(
@@ -345,18 +354,48 @@ class ImportSenatSQL extends Command
                     $transformedCount++;
                 }
                 
-                // Transformer les COPY
+                // COPY -> redirigé vers une table staging temporaire
                 if (preg_match('/^COPY\s+(\w+)/i', $line, $matches)) {
                     $tableName = $matches[1];
+                    $currentRealTable = "{$prefix}{$tableName}";
+                    $currentStagingTable = "_stg_{$prefix}{$tableName}";
+                    
+                    fwrite($output, "DROP TABLE IF EXISTS {$currentStagingTable};\n");
+                    fwrite($output, "CREATE TEMP TABLE {$currentStagingTable} (LIKE {$currentRealTable} INCLUDING DEFAULTS);\n");
+                    
                     $line = str_replace(
                         "COPY {$tableName}",
-                        "COPY {$prefix}{$tableName}",
+                        "COPY {$currentStagingTable}",
                         $line
                     );
+                    $inCopy = true;
                     $transformedCount++;
                 }
                 
-                // Transformer les CREATE INDEX
+                // Fin du bloc COPY (marqueur \.) -> upsert staging vers table réelle
+                if ($inCopy && trim($line) === '\\.') {
+                    fwrite($output, $line);
+                    fwrite($output, "DO \$\$\n");
+                    fwrite($output, "BEGIN\n");
+                    fwrite($output, "  IF EXISTS (SELECT 1 FROM pg_index WHERE indrelid = '{$currentRealTable}'::regclass AND indisprimary) THEN\n");
+                    fwrite($output, "    INSERT INTO {$currentRealTable} SELECT * FROM {$currentStagingTable} ON CONFLICT DO NOTHING;\n");
+                    fwrite($output, "  ELSIF NOT EXISTS (SELECT 1 FROM {$currentRealTable} LIMIT 1) THEN\n");
+                    fwrite($output, "    INSERT INTO {$currentRealTable} SELECT * FROM {$currentStagingTable};\n");
+                    fwrite($output, "  END IF;\n");
+                    fwrite($output, "END \$\$;\n");
+                    fwrite($output, "DROP TABLE IF EXISTS {$currentStagingTable};\n");
+                    $inCopy = false;
+                    $currentStagingTable = null;
+                    $currentRealTable = null;
+                    $transformedCount++;
+                    
+                    if ($lineCount % 10000 === 0) {
+                        $this->line("   ... {$lineCount} lignes traitées, {$transformedCount} transformations");
+                    }
+                    continue;
+                }
+                
+                // CREATE INDEX ... ON table
                 if (preg_match('/ON\s+(\w+)\s+USING/i', $line, $matches)) {
                     $tableName = $matches[1];
                     $line = str_replace(
@@ -366,7 +405,7 @@ class ImportSenatSQL extends Command
                     );
                 }
                 
-                // Transformer les FOREIGN KEY REFERENCES
+                // FOREIGN KEY REFERENCES
                 if (preg_match('/REFERENCES\s+(\w+)\s*\(/i', $line, $matches)) {
                     $tableName = $matches[1];
                     $line = str_replace(
@@ -378,7 +417,6 @@ class ImportSenatSQL extends Command
                 
                 fwrite($output, $line);
                 
-                // Afficher progression tous les 10000 lignes
                 if ($lineCount % 10000 === 0) {
                     $this->line("   ... {$lineCount} lignes traitées, {$transformedCount} transformations");
                 }
@@ -387,7 +425,7 @@ class ImportSenatSQL extends Command
             fclose($input);
             fclose($output);
             
-            $this->line("   ✓ {$lineCount} lignes traitées, {$transformedCount} transformations appliquées");
+            $this->line("   ✓ {$lineCount} lignes traitées, {$transformedCount} transformations (mode incrémental)");
             
             return $tempFile;
             
@@ -399,6 +437,7 @@ class ImportSenatSQL extends Command
             return null;
         }
     }
+
 
     /**
      * Liste les bases de données disponibles

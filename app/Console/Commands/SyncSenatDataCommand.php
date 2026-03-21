@@ -332,6 +332,10 @@ class SyncSenatDataCommand extends Command
     /**
      * Transforme un fichier SQL pour ajouter les préfixes de tables
      */
+    /**
+     * Transforme un fichier SQL pour ajouter les préfixes de tables.
+     * Import incrémental via staging tables + INSERT ON CONFLICT DO NOTHING.
+     */
     private function transformSqlWithPrefix(string $sqlFile, string $prefix): ?string
     {
         if (empty($prefix)) {
@@ -348,12 +352,16 @@ class SyncSenatDataCommand extends Command
                 return null;
             }
 
+            $inCopy = false;
+            $currentStagingTable = null;
+            $currentRealTable = null;
+
             while (($line = fgets($input)) !== false) {
-                // CREATE TABLE
+                // CREATE TABLE -> IF NOT EXISTS avec préfixe
                 if (preg_match('/^CREATE TABLE\s+(\w+)/i', $line, $matches)) {
                     $line = str_replace(
                         "CREATE TABLE {$matches[1]}",
-                        "CREATE TABLE {$prefix}{$matches[1]}",
+                        "CREATE TABLE IF NOT EXISTS {$prefix}{$matches[1]}",
                         $line
                     );
                 }
@@ -367,13 +375,38 @@ class SyncSenatDataCommand extends Command
                     );
                 }
 
-                // COPY
+                // COPY -> staging table temporaire
                 if (preg_match('/^COPY\s+(\w+)/i', $line, $matches)) {
+                    $currentRealTable = "{$prefix}{$matches[1]}";
+                    $currentStagingTable = "_stg_{$prefix}{$matches[1]}";
+
+                    fwrite($output, "DROP TABLE IF EXISTS {$currentStagingTable};\n");
+                    fwrite($output, "CREATE TEMP TABLE {$currentStagingTable} (LIKE {$currentRealTable} INCLUDING DEFAULTS);\n");
+
                     $line = str_replace(
                         "COPY {$matches[1]}",
-                        "COPY {$prefix}{$matches[1]}",
+                        "COPY {$currentStagingTable}",
                         $line
                     );
+                    $inCopy = true;
+                }
+
+                // Fin COPY -> upsert staging vers réelle
+                if ($inCopy && trim($line) === '\\.') {
+                    fwrite($output, $line);
+                    fwrite($output, "DO \$\$\n");
+                    fwrite($output, "BEGIN\n");
+                    fwrite($output, "  IF EXISTS (SELECT 1 FROM pg_index WHERE indrelid = '{$currentRealTable}'::regclass AND indisprimary) THEN\n");
+                    fwrite($output, "    INSERT INTO {$currentRealTable} SELECT * FROM {$currentStagingTable} ON CONFLICT DO NOTHING;\n");
+                    fwrite($output, "  ELSIF NOT EXISTS (SELECT 1 FROM {$currentRealTable} LIMIT 1) THEN\n");
+                    fwrite($output, "    INSERT INTO {$currentRealTable} SELECT * FROM {$currentStagingTable};\n");
+                    fwrite($output, "  END IF;\n");
+                    fwrite($output, "END \$\$;\n");
+                    fwrite($output, "DROP TABLE IF EXISTS {$currentStagingTable};\n");
+                    $inCopy = false;
+                    $currentStagingTable = null;
+                    $currentRealTable = null;
+                    continue;
                 }
 
                 // CREATE INDEX ... ON table
@@ -409,6 +442,7 @@ class SyncSenatDataCommand extends Command
             return null;
         }
     }
+
 
     /**
      * Synchronise les textes Akoma Ntoso

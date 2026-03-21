@@ -58,12 +58,12 @@ class ScrutinsANController extends Controller
 
         // Tri
         $allowedSorts = ['date_scrutin', 'uid', 'titre'];
-        $sortBy = $request->get('sort_by', 'date_scrutin');
-        $sortOrder = $request->get('sort_order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $sortBy = $request->input('sort_by', 'date_scrutin');
+        $sortOrder = $request->input('sort_order', 'desc') === 'asc' ? 'asc' : 'desc';
         $query->orderBy(in_array($sortBy, $allowedSorts, true) ? $sortBy : 'date_scrutin', $sortOrder);
 
         // Pagination
-        $perPage = min($request->get('per_page', 20), 100);
+        $perPage = min($request->input('per_page', 20), 100);
         $scrutins = $query->paginate($perPage);
 
         return response()->json($scrutins);
@@ -123,7 +123,7 @@ class ScrutinsANController extends Controller
         $query->orderBy('acteur_ref');
 
         // Pagination
-        $perPage = min($request->get('per_page', 50), 200);
+        $perPage = min($request->input('per_page', 50), 200);
         $votes = $query->paginate($perPage);
 
         return response()->json($votes);

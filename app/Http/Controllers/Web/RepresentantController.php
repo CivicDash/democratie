@@ -225,8 +225,8 @@ class RepresentantController extends Controller
         }
 
         // Tri
-        $sortBy = $request->get('sort', 'nom');
-        $sortOrder = $request->get('order', 'asc');
+        $sortBy = $request->input('sort', 'nom');
+        $sortOrder = $request->input('order', 'asc');
 
         switch ($sortBy) {
             case 'groupe':

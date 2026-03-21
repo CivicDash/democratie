@@ -51,3 +51,8 @@ phpunit.xml
 # Objectif2027 (landing page séparée)
 /objectif2027
 
+
+# Data files (mounted as volumes instead)
+/storage/app
+/storage/logs
+/public/data

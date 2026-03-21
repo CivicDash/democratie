@@ -54,7 +54,7 @@ class ActeursANController extends Controller
         }
 
         // Pagination
-        $perPage = min($request->get('per_page', 15), 100);
+        $perPage = min($request->input('per_page', 15), 100);
         $acteurs = $query->paginate($perPage);
 
         return response()->json($acteurs);
@@ -129,7 +129,7 @@ class ActeursANController extends Controller
         $query->orderBy('created_at', 'desc');
 
         // Pagination
-        $perPage = min($request->get('per_page', 20), 100);
+        $perPage = min($request->input('per_page', 20), 100);
         $votes = $query->paginate($perPage);
 
         // Stats
@@ -182,7 +182,7 @@ class ActeursANController extends Controller
         $query->orderBy('date_depot', 'desc');
 
         // Pagination
-        $perPage = min($request->get('per_page', 20), 100);
+        $perPage = min($request->input('per_page', 20), 100);
         $amendements = $query->paginate($perPage);
 
         // Stats
@@ -213,7 +213,7 @@ class ActeursANController extends Controller
     public function stats(string $uid, Request $request): JsonResponse
     {
         $acteur = ActeurAN::findOrFail($uid);
-        $legislature = $request->get('legislature', 17);
+        $legislature = $request->input('legislature', 17);
 
         // Votes
         $votesQuery = $acteur->votesIndividuels()

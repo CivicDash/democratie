@@ -36,6 +36,12 @@ const submit = () => {
     });
 };
 
+const verifyEmail = () => {
+    if (confirm('Valider manuellement l\'adresse email de cet utilisateur ?')) {
+        router.post(route('admin.users.verify-email', props.user.id));
+    }
+};
+
 const verifyElu = () => {
     if (confirm('Vérifier cet élu ?')) {
         router.post(route('admin.users.verify-elu', props.user.id));
@@ -148,6 +154,15 @@ const breadcrumbs = [
                                     <div>
                                         <div class="text-sm text-gray-500 dark:text-gray-400">Inscrit le</div>
                                         <div class="font-medium text-gray-900 dark:text-white">{{ user.created_at }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">Email vérifié</div>
+                                        <div v-if="user.email_verified_at" class="font-medium text-green-600 dark:text-green-400">
+                                            ✓ {{ user.email_verified_at }}
+                                        </div>
+                                        <div v-else class="font-medium text-red-500 dark:text-red-400">
+                                            ✗ Non vérifié
+                                        </div>
                                     </div>
                                 </div>
 
@@ -378,6 +393,13 @@ const breadcrumbs = [
                                 Actions
                             </h2>
                             <div class="space-y-2">
+                                <button
+                                    v-if="!user.email_verified_at"
+                                    @click="verifyEmail"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                                >
+                                    ✉ Valider l'adresse email
+                                </button>
                                 <button
                                     v-if="user.elu_type && !user.is_verified_elu"
                                     @click="verifyElu"

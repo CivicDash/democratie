@@ -40,7 +40,7 @@ class LoiController extends Controller
             $query->where('typloicod', $request->type);
         }
 
-        $annee = $request->get('annee', 'all');
+        $annee = $request->input('annee', 'all');
         if ($annee && $annee !== 'all') {
             $query->whereRaw("EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi)) = ?", [$annee]);
         }
@@ -62,7 +62,7 @@ class LoiController extends Controller
             });
         }
 
-        $sort = $request->get('sort', 'recent');
+        $sort = $request->input('sort', 'recent');
         switch ($sort) {
             case 'recent':
                 $query->orderByRaw('COALESCE(loidatjo, date_loi) DESC NULLS LAST');
@@ -626,8 +626,8 @@ class LoiController extends Controller
     public function amendementsApi(Request $request, string $loicod)
     {
         $loicodTrim = trim($loicod);
-        $page = $request->get('page', 1);
-        $perPage = $request->get('per_page', 20);
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 20);
         
         $loi = Loi::with('thematiques')
             ->whereRaw("TRIM(loicod) = ?", [$loicodTrim])
@@ -1023,7 +1023,7 @@ class LoiController extends Controller
      */
     public function search(Request $request)
     {
-        $query = $request->get('q', '');
+        $query = $request->input('q', '');
 
         if (strlen($query) < 2) {
             return response()->json([]);

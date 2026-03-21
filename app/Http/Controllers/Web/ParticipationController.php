@@ -99,7 +99,7 @@ class ParticipationController extends Controller
         }
 
         // Tri
-        $sort = $request->get('sort', 'recent');
+        $sort = $request->input('sort', 'recent');
         switch ($sort) {
             case 'trending':
                 $query->orderByDesc('score')->orderByDesc('votes_pour');
@@ -483,7 +483,7 @@ class ParticipationController extends Controller
                 'created_at' => $topic->created_at->toIso8601String(),
                 'author' => $topic->author ? [
                     'id' => $topic->author->id,
-                    'name' => $topic->author->name,
+                    'name' => $topic->author->display_name,
                 ] : null,
                 'region' => $topic->region ? [
                     'id' => $topic->region->id,
@@ -517,7 +517,7 @@ class ParticipationController extends Controller
                 'created_at' => $post->created_at->toIso8601String(),
                 'user' => $post->user ? [
                     'id' => $post->user->id,
-                    'name' => $post->user->name,
+                    'name' => $post->user->display_name,
                 ] : null,
                 'votes_count' => $post->votes_count ?? 0,
             ]),
@@ -586,7 +586,7 @@ class ParticipationController extends Controller
                 'created_at' => $post->created_at->toIso8601String(),
                 'user' => [
                     'id' => $post->user->id,
-                    'name' => $post->user->name,
+                    'name' => $post->user->display_name,
                 ],
             ],
         ]);

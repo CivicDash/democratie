@@ -120,9 +120,16 @@ const submitDocument = () => {
 };
 
 // Soumettre la liste
+const soumissionEnCours = ref(false);
 const soumettreListe = () => {
     if (confirm('Êtes-vous sûr de vouloir soumettre cette liste pour validation ? Vous ne pourrez plus la modifier après soumission.')) {
-        router.post(route('elections.municipales.espace-candidat.soumettre-liste', props.liste.uuid));
+        soumissionEnCours.value = true;
+        router.post(route('elections.municipales.espace-candidat.soumettre-liste', props.liste.uuid), {}, {
+            preserveScroll: true,
+            onFinish: () => {
+                soumissionEnCours.value = false;
+            },
+        });
     }
 };
 
@@ -168,9 +175,11 @@ const getStatutBadgeClass = (couleur) => {
                         <button
                             v-if="liste.statut === 'brouillon' || liste.statut === 'documents_requis'"
                             @click="soumettreListe"
-                            class="px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-400 transition"
+                            :disabled="soumissionEnCours"
+                            class="px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            📤 Soumettre pour validation
+                            <span v-if="soumissionEnCours">⏳ Soumission en cours...</span>
+                            <span v-else>📤 Soumettre pour validation</span>
                         </button>
                     </div>
                 </div>

@@ -18,10 +18,10 @@ class CalendrierController extends Controller
      */
     public function index(Request $request)
     {
-        $mois = $request->get('mois', now()->month);
-        $annee = $request->get('annee', now()->year);
-        $source = $request->get('source'); // 'an', 'senat', ou null pour tous
-        $type = $request->get('type'); // 'seance', 'commission', etc.
+        $mois = $request->input('mois', now()->month);
+        $annee = $request->input('annee', now()->year);
+        $source = $request->input('source'); // 'an', 'senat', ou null pour tous
+        $type = $request->input('type'); // 'seance', 'commission', etc.
         
         // Date de référence
         $dateRef = Carbon::createFromDate($annee, $mois, 1);
@@ -89,8 +89,8 @@ class CalendrierController extends Controller
      */
     public function semaine(Request $request)
     {
-        $date = $request->get('date', now()->format('Y-m-d'));
-        $source = $request->get('source');
+        $date = $request->input('date', now()->format('Y-m-d'));
+        $source = $request->input('source');
         
         $dateRef = Carbon::parse($date);
         $debutSemaine = $dateRef->copy()->startOfWeek();
@@ -200,8 +200,8 @@ class CalendrierController extends Controller
      */
     public function prochaines(Request $request)
     {
-        $limit = $request->get('limit', 5);
-        $source = $request->get('source');
+        $limit = $request->input('limit', 5);
+        $source = $request->input('source');
         
         $evenements = EvenementLegislatif::query()
             ->aVenir()

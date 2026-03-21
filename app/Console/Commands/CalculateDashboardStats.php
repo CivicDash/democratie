@@ -130,11 +130,17 @@ class CalculateDashboardStats extends Command
 
         // 📈 STATS GLOBALES
         $this->info('📊 Calcul stats globales...');
+        $allScrutins = ScrutinAN::get();
+        $nbAdoptes = $allScrutins->filter(fn($s) => $s->pour_calcule > $s->contre_calcule)->count();
         $globalStats = [
             'nb_deputes' => ActeurAN::count(),
             'nb_senateurs' => Senateur::where('etat', 'ACTIF')->count(),
-            'nb_scrutins' => ScrutinAN::count(),
+            'nb_scrutins' => $allScrutins->count(),
             'nb_amendements_an' => DB::table('amendements_an')->count(),
+            'nb_maires' => DB::table('maires')->count(),
+            'nb_gouvernements' => DB::table('gouvernements')->count(),
+            'nb_scrutins_adoptes' => $nbAdoptes,
+            'nb_scrutins_rejetes' => $allScrutins->count() - $nbAdoptes,
         ];
         DashboardStat::set('global_stats', $globalStats);
         $this->info('  ✓ Stats globales calculées');

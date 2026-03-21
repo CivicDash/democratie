@@ -254,6 +254,24 @@ Route::prefix('elections')->name('elections.')->middleware('auth')->group(functi
         // API pour la carte
         Route::get('/api/departement/{departement}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiListesParDepartement'])->name('api.departement');
         
+        // Résultats électoraux
+        Route::prefix('resultats')->name('resultats.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultats'])->name('index');
+            Route::get('/statistiques', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'statistiques'])->name('statistiques');
+            Route::get('/transition-maires', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'transitionMaires'])->name('transition');
+            Route::get('/commune/{code}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultatCommune'])->name('commune');
+            Route::get('/departement/{code}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultatDepartement'])->name('departement');
+        });
+
+        // API résultats (JSON pour composants dynamiques)
+        Route::prefix('api/resultats')->name('api.resultats.')->group(function () {
+            Route::get('/commune/{code}/{tour}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiResultatsCommune'])->name('commune');
+            Route::get('/stats/nuances', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiStatsNuances'])->name('nuances');
+            Route::get('/carte/participation', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiCarteParticipation'])->name('carte-participation');
+            Route::get('/carte/nuances', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiCarteNuances'])->name('carte-nuances');
+            Route::get('/transition/{codeInsee}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiTransitionMaire'])->name('transition');
+        });
+        
         // Espace candidat (authentifié)
         Route::prefix('espace-candidat')->name('espace-candidat.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'index'])->name('index');
@@ -708,6 +726,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
         Route::post('/{user}/change-role', [App\Http\Controllers\Admin\UserManagementController::class, 'changeRole'])->name('change-role');
         Route::post('/{user}/verify-elu', [App\Http\Controllers\Admin\UserManagementController::class, 'verifyElu'])->name('verify-elu');
         Route::post('/{user}/revoke-elu', [App\Http\Controllers\Admin\UserManagementController::class, 'revokeElu'])->name('revoke-elu');
+        Route::post('/{user}/verify-email', [App\Http\Controllers\Admin\UserManagementController::class, 'verifyEmail'])->name('verify-email');
         
         // Sanctions
         Route::get('/{user}/sanctions', [App\Http\Controllers\Admin\UserSanctionController::class, 'history'])->name('sanctions');

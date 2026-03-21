@@ -70,10 +70,10 @@ docker compose exec app php artisan view:clear
 docker compose exec app php artisan event:clear 2>/dev/null || true
 log_success "Caches cleared"
 
-# 4. Reload Octane Workers (important pour recharger le manifeste Vite)
-log_step "4/6 - Reloading Octane workers..."
-docker compose exec app php artisan octane:reload 2>/dev/null || docker compose restart app
-log_success "Octane workers reloaded"
+# 4. Reload PHP-FPM workers (recharge le manifeste Vite et les fichiers modifiés)
+log_step "4/6 - Reloading PHP-FPM workers..."
+docker compose exec app kill -USR2 1 2>/dev/null || docker compose restart app
+log_success "PHP-FPM workers reloaded"
 
 # 5. Optimize (optionnel en prod)
 if [ "$1" == "--optimize" ] || [ "$2" == "--optimize" ]; then

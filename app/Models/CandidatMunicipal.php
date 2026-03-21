@@ -45,6 +45,11 @@ class CandidatMunicipal extends Model
         'instagram_url',
         'linkedin_url',
         'statut',
+        'source',
+        'sexe',
+        'sortant',
+        'elu',
+        'maire_id',
     ];
 
     protected $casts = [
@@ -52,6 +57,8 @@ class CandidatMunicipal extends Model
         'est_tete_de_liste' => 'boolean',
         'parcours' => 'array',
         'engagements' => 'array',
+        'sortant' => 'boolean',
+        'elu' => 'boolean',
     ];
 
     // =========================================================================
@@ -105,6 +112,14 @@ class CandidatMunicipal extends Model
         return $this->morphMany(CandidatureModerationLog::class, 'moderatable');
     }
 
+    /**
+     * Fiche Maire liée (si candidat est un maire sortant ou nouveau)
+     */
+    public function maire(): BelongsTo
+    {
+        return $this->belongsTo(Maire::class);
+    }
+
     // =========================================================================
     // SCOPES
     // =========================================================================
@@ -117,6 +132,21 @@ class CandidatMunicipal extends Model
     public function scopeActif($query)
     {
         return $query->where('statut', 'actif');
+    }
+
+    public function scopeElus($query)
+    {
+        return $query->where('elu', true);
+    }
+
+    public function scopeSortants($query)
+    {
+        return $query->where('sortant', true);
+    }
+
+    public function scopeOfficiels($query)
+    {
+        return $query->where('source', 'datagouv');
     }
 
     // =========================================================================

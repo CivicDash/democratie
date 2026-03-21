@@ -79,7 +79,7 @@ class TagController extends Controller
                     'id' => $t->id,
                     'title' => $t->title,
                     'description' => $t->description,
-                    'user_name' => $t->user->name ?? 'Anonyme',
+                    'user_name' => $t->user->display_name ?? 'Anonyme',
                     'created_at' => $t->created_at->diffForHumans(),
                     'posts_count' => $t->posts_count ?? 0,
                 ]),

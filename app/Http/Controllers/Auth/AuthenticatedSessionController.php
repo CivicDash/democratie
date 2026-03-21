@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\DolibarrService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,17 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        $user = Auth::user();
+        $dolibarr = new DolibarrService();
+        if ($dolibarr->isConfigured()) {
+            $wasMember = $user->is_association_member;
+            $isMember = $dolibarr->syncMemberToUser($user);
+
+            if ($isMember && !$wasMember) {
+                session()->flash('status', 'Votre adhésion à Civis-Consilium a été reconnue automatiquement.');
+            }
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

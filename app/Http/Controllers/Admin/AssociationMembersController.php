@@ -15,8 +15,8 @@ class AssociationMembersController extends Controller
      */
     public function index(Request $request)
     {
-        $search = $request->get('search');
-        $status = $request->get('status', 'active'); // active, all
+        $search = $request->input('search');
+        $status = $request->input('status', 'active'); // active, all
 
         $query = User::query();
 
@@ -136,7 +136,7 @@ class AssociationMembersController extends Controller
      */
     public function searchUsers(Request $request)
     {
-        $search = $request->get('q', '');
+        $search = $request->input('q', '');
 
         if (strlen($search) < 2) {
             return response()->json([]);

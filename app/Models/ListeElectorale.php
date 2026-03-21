@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -49,6 +50,13 @@ class ListeElectorale extends Model
         'validated_at',
         'validated_by',
         'created_by',
+        'source',
+        'numero_panneau',
+        'tour',
+        'libelle_abrege',
+        'libelle_etendu',
+        'liste_t1_id',
+        'liste_civicdash_id',
     ];
 
     protected $casts = [
@@ -131,6 +139,30 @@ class ListeElectorale extends Model
         return $this->belongsTo(FrenchPostalCode::class, 'commune_code_insee', 'insee_code');
     }
 
+    /**
+     * Résultats électoraux liés à cette liste
+     */
+    public function resultats(): HasMany
+    {
+        return $this->hasMany(ResultatListeMunicipale::class, 'liste_id');
+    }
+
+    /**
+     * Liste T1 d'origine (pour les fusions T2)
+     */
+    public function listeT1(): BelongsTo
+    {
+        return $this->belongsTo(ListeElectorale::class, 'liste_t1_id');
+    }
+
+    /**
+     * Listes T2 issues de cette liste T1
+     */
+    public function listesT2(): HasMany
+    {
+        return $this->hasMany(ListeElectorale::class, 'liste_t1_id');
+    }
+
     // =========================================================================
     // SCOPES
     // =========================================================================
@@ -158,6 +190,21 @@ class ListeElectorale extends Model
     public function scopePourDepartement($query, string $codeDept)
     {
         return $query->where('departement_code', $codeDept);
+    }
+
+    public function scopeOfficielles($query)
+    {
+        return $query->where('source', 'datagouv');
+    }
+
+    public function scopeCivicdash($query)
+    {
+        return $query->where('source', 'civicdash');
+    }
+
+    public function scopeTour($query, int $tour)
+    {
+        return $query->where('tour', $tour);
     }
 
     // =========================================================================

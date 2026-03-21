@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Scout\Searchable;
 
 /**
@@ -79,6 +80,11 @@ class Maire extends Model
         'mandature',
         'latitude',
         'longitude',
+        'predecesseur_id',
+        'score_election_pct',
+        'tour_election',
+        'reelu',
+        'liste_id',
     ];
 
     protected $casts = [
@@ -92,6 +98,9 @@ class Maire extends Model
         'longitude' => 'float',
         'mandats_precedents' => 'array',
         'wikipedia_last_sync' => 'datetime',
+        'score_election_pct' => 'decimal:2',
+        'tour_election' => 'integer',
+        'reelu' => 'boolean',
     ];
 
     // ========================================================================
@@ -112,6 +121,30 @@ class Maire extends Model
     public function postalCodes()
     {
         return FrenchPostalCode::where('insee_code', $this->code_commune)->get();
+    }
+
+    /**
+     * Maire prédécesseur sur la même commune
+     */
+    public function predecesseur(): BelongsTo
+    {
+        return $this->belongsTo(Maire::class, 'predecesseur_id');
+    }
+
+    /**
+     * Maire successeur (inverse du prédécesseur)
+     */
+    public function successeur(): HasOne
+    {
+        return $this->hasOne(Maire::class, 'predecesseur_id');
+    }
+
+    /**
+     * Liste électorale gagnante
+     */
+    public function liste(): BelongsTo
+    {
+        return $this->belongsTo(ListeElectorale::class, 'liste_id');
     }
 
     // ========================================================================
@@ -150,6 +183,21 @@ class Maire extends Model
               ->orWhere('prenom', 'like', "%{$search}%")
               ->orWhere('nom_commune', 'like', "%{$search}%");
         });
+    }
+
+    public function scopeMandature($query, string $mandature)
+    {
+        return $query->where('mandature', $mandature);
+    }
+
+    public function scopeReelus($query)
+    {
+        return $query->where('reelu', true);
+    }
+
+    public function scopeNouveaux($query)
+    {
+        return $query->where('reelu', false);
     }
 
     // ========================================================================

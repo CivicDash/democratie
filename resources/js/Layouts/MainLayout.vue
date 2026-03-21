@@ -303,9 +303,9 @@ onUnmounted(() => { document.removeEventListener('click', onDocClick); });
                                         <template #trigger>
                                             <button type="button" class="inline-flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-600 text-sm font-medium rounded-lg text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
                                                 <span class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs">
-                                                    {{ user.name?.charAt(0).toUpperCase() }}
+                                                    {{ (user.display_name || user.name)?.charAt(0).toUpperCase() }}
                                                 </span>
-                                                <span class="hidden md:inline">{{ user.name }}</span>
+                                                <span class="hidden md:inline">{{ user.display_name || user.name }}</span>
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                                 </svg>

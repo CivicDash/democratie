@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import MegaMenuLink from "@/Components/MegaMenuLink.vue";
@@ -15,11 +15,22 @@ import KeyboardShortcutsHelp from "@/Components/KeyboardShortcutsHelp.vue";
 import GlobalSearch from "@/Components/GlobalSearch.vue";
 import InstitutionsMegaMenu from "@/Components/Navigation/InstitutionsMegaMenu.vue";
 import BottomTabBar from "@/Components/Navigation/BottomTabBar.vue";
-import { Link, router } from "@inertiajs/vue3";
+import { Link, router, usePage } from "@inertiajs/vue3";
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 import { useNavigation } from "@/composables/useNavigation";
+import { useToast } from "@/composables/useToast";
 
 const { desktopSections, institutions, mesElus, legislatif, agir, comprendre, user: navUser } = useNavigation();
+const toast = useToast();
+const page = usePage();
+
+const flash = computed(() => page.props.flash);
+watch(flash, (newFlash) => {
+    if (newFlash?.success) toast.success(newFlash.success);
+    if (newFlash?.error) toast.error(newFlash.error);
+    if (newFlash?.warning) toast.warning(newFlash.warning);
+    if (newFlash?.info) toast.info(newFlash.info);
+}, { deep: true, immediate: true });
 
 const showCommandPalette = ref(false);
 const showKeyboardHelp = ref(false);
@@ -369,7 +380,7 @@ function sectionActiveClass(section) {
                                         type="button"
                                         class="inline-flex items-center rounded-full border border-transparent bg-gray-100 dark:bg-gray-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-600"
                                     >
-                                        <span>{{ $page.props.auth.user.name }}</span>
+                                        <span>{{ $page.props.auth.user.display_name }}</span>
                                         <svg class="ms-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                         </svg>

@@ -43,7 +43,7 @@ class GouvernementController extends Controller
             })->values();
 
         // Gouvernement sélectionné (actuel par défaut)
-        $gouvernementId = $request->get('gouvernement');
+        $gouvernementId = $request->input('gouvernement');
         
         if ($gouvernementId) {
             $gouvernement = Gouvernement::find($gouvernementId);

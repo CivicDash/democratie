@@ -6,6 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\CandidatMunicipal;
 use App\Models\CandidatureDocument;
 use App\Models\ListeElectorale;
+use App\Models\Maire;
+use App\Models\ResultatListeMunicipale;
+use App\Models\ResultatMunicipal;
+use App\Models\StatsElectionMunicipale;
+use App\Models\Ville;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -13,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 use Inertia\Inertia;
 
 class ElectionsMunicipalesController extends Controller
@@ -113,16 +119,59 @@ class ElectionsMunicipalesController extends Controller
      */
     public function index()
     {
-        // Statistiques globales
-        $stats = [
-            'total_listes' => ListeElectorale::valide()->count(),
-            'total_candidats' => CandidatMunicipal::actif()
-                ->whereHas('liste', fn($q) => $q->valide())
-                ->count(),
-            'communes_couvertes' => ListeElectorale::valide()
-                ->distinct('commune_code_insee')
-                ->count('commune_code_insee'),
+        $datesElection = [
+            'premier_tour' => '2026-03-15',
+            'second_tour' => '2026-03-22',
+            'limite_depot' => '2026-02-27',
+            'debut_campagne' => '2026-03-02',
         ];
+
+        $electionsPassees = now()->greaterThan(Carbon::parse($datesElection['premier_tour']));
+
+        // Compteurs basés sur les listes officielles (datagouv) si disponibles, sinon CivicDash
+        $totalListesOfficielles = ListeElectorale::officielles()->count();
+        $totalCandidatsOfficiels = CandidatMunicipal::officiels()->count();
+
+        $stats = [
+            'total_listes' => $totalListesOfficielles > 0
+                ? $totalListesOfficielles
+                : ListeElectorale::valide()->count(),
+            'total_candidats' => $totalCandidatsOfficiels > 0
+                ? $totalCandidatsOfficiels
+                : CandidatMunicipal::actif()->whereHas('liste', fn($q) => $q->valide())->count(),
+            'communes_couvertes' => $totalListesOfficielles > 0
+                ? ListeElectorale::officielles()->distinct('commune_code_insee')->count('commune_code_insee')
+                : ListeElectorale::valide()->distinct('commune_code_insee')->count('commune_code_insee'),
+            'total_listes_civicdash' => ListeElectorale::valide()->civicdash()->count(),
+            'source' => $totalListesOfficielles > 0 ? 'officielles' : 'civicdash',
+        ];
+
+        // Résultats T1 (stats nationales pré-calculées)
+        $statsResultatsT1 = null;
+        $topCommunesT1 = [];
+        if ($electionsPassees) {
+            $statsNationales = StatsElectionMunicipale::national()->first();
+            $statsResultatsT1 = $statsNationales?->data;
+
+            $topCommunesT1 = ResultatMunicipal::with(['listes' => fn($q) => $q->where('elu', true)])
+                ->where('tour', 1)
+                ->whereHas('ville', fn($q) => $q->where('population', '>=', 30000))
+                ->orderByDesc('taux_participation')
+                ->limit(5)
+                ->get()
+                ->map(fn($r) => [
+                    'code_commune' => $r->code_commune,
+                    'nom_commune' => $r->nom_commune,
+                    'code_departement' => $r->code_departement,
+                    'taux_participation' => $r->taux_participation,
+                    'statut_commune' => $r->statut_commune,
+                    'statut_libelle' => $r->statut_libelle,
+                    'liste_gagnante' => $r->listes->first()?->only([
+                        'nom_liste', 'nuance_politique', 'tete_de_liste_nom',
+                        'tete_de_liste_prenom', 'pourcentage_exprimes',
+                    ]),
+                ]);
+        }
 
         // Dernières listes validées
         $dernieresListes = ListeElectorale::valide()
@@ -141,19 +190,13 @@ class ElectionsMunicipalesController extends Controller
                 'logo_url' => $liste->logo_url,
             ]);
 
-        // Dates clés
-        $datesElection = [
-            'premier_tour' => '2026-03-15',
-            'second_tour' => '2026-03-22',
-            'limite_depot' => '2026-02-27', // J-16 avant le 1er tour
-            'debut_campagne' => '2026-03-02',
-        ];
-
-        // Tutoriel - étapes pour candidater
         $etapesCandidature = $this->getEtapesCandidature();
 
         return Inertia::render('Elections/Municipales/Index', [
             'stats' => $stats,
+            'stats_resultats_t1' => $statsResultatsT1,
+            'top_communes_t1' => $topCommunesT1,
+            'elections_passees' => $electionsPassees,
             'dernieres_listes' => $dernieresListes,
             'dates_election' => $datesElection,
             'etapes_candidature' => $etapesCandidature,
@@ -325,6 +368,229 @@ class ElectionsMunicipalesController extends Controller
                 'premier_tour' => '15 mars 2026',
                 'second_tour' => '22 mars 2026',
             ],
+        ]);
+    }
+
+    // =========================================================================
+    // RÉSULTATS ÉLECTORAUX
+    // =========================================================================
+
+    public function resultats(Request $request)
+    {
+        $statsNationales = StatsElectionMunicipale::national()->first();
+
+        $statsData = $statsNationales?->data;
+
+        if (!$statsData) {
+            $totalCommunes = ResultatMunicipal::where('tour', 1)->count();
+            $eluesT1 = ResultatMunicipal::where('tour', 1)->where('statut_commune', 'elu_t1')->count();
+            $secondTour = ResultatMunicipal::where('tour', 1)->where('statut_commune', 'second_tour')->count();
+            $tauxMoyen = ResultatMunicipal::where('tour', 1)->avg('taux_participation');
+
+            if ($totalCommunes > 0) {
+                $statsData = [
+                    'communes' => [
+                        'total' => $totalCommunes,
+                        'elues_t1' => $eluesT1,
+                        'second_tour' => $secondTour,
+                    ],
+                    'participation' => [
+                        't1' => ['taux' => $tauxMoyen ? round($tauxMoyen, 2) : null],
+                    ],
+                ];
+            }
+        }
+
+        $topCommunes = ResultatMunicipal::with('listes')
+            ->where('tour', 1)
+            ->whereHas('ville', fn($q) => $q->where('population', '>=', 30000))
+            ->orderByDesc('taux_participation')
+            ->limit(20)
+            ->get();
+
+        if ($topCommunes->isEmpty()) {
+            $topCommunes = ResultatMunicipal::with('listes')
+                ->where('tour', 1)
+                ->orderByDesc('votants')
+                ->limit(20)
+                ->get();
+        }
+
+        $topCommunesMapped = $topCommunes->map(function ($r) {
+            $gagnante = $r->listes->where('elu', true)->first();
+            return [
+                'code_commune' => $r->code_commune,
+                'nom_commune' => $r->nom_commune,
+                'code_departement' => $r->code_departement,
+                'taux_participation' => $r->taux_participation !== null ? (float) $r->taux_participation : null,
+                'statut_commune' => $r->statut_commune,
+                'statut_libelle' => $r->statut_libelle,
+                'liste_gagnante' => $gagnante ? [
+                    'nom_liste' => $gagnante->nom_liste,
+                    'nuance_politique' => $gagnante->nuance_politique,
+                    'tete_de_liste_nom' => $gagnante->tete_de_liste_nom,
+                    'tete_de_liste_prenom' => $gagnante->tete_de_liste_prenom,
+                    'pourcentage_exprimes' => $gagnante->pourcentage_exprimes !== null ? (float) $gagnante->pourcentage_exprimes : null,
+                ] : null,
+            ];
+        });
+
+        return Inertia::render('Elections/Municipales/Resultats', [
+            'stats_nationales' => $statsData,
+            'top_communes' => $topCommunesMapped,
+        ]);
+    }
+
+    public function resultatCommune(string $codeInsee)
+    {
+        $ville = Ville::where('code_insee', $codeInsee)->first();
+
+        if ($ville) {
+            return redirect()->route('villes.show', $ville->slug);
+        }
+
+        abort(404, 'Commune introuvable.');
+    }
+
+    public function resultatDepartement(string $codeDept)
+    {
+        $stats = StatsElectionMunicipale::departement($codeDept)->first();
+
+        $resultats = ResultatMunicipal::where('code_departement', $codeDept)
+            ->where('tour', 1)
+            ->with(['listes' => fn($q) => $q->where('elu', true)])
+            ->orderBy('nom_commune')
+            ->get()
+            ->map(fn($r) => [
+                'code_commune' => $r->code_commune,
+                'nom_commune' => $r->nom_commune,
+                'taux_participation' => $r->taux_participation,
+                'statut_commune' => $r->statut_commune,
+                'statut_libelle' => $r->statut_libelle,
+                'liste_gagnante' => $r->listes->first()?->only([
+                    'nom_liste', 'nuance_politique', 'tete_de_liste_nom',
+                    'tete_de_liste_prenom', 'pourcentage_exprimes',
+                ]),
+            ]);
+
+        return Inertia::render('Elections/Municipales/ResultatDepartement', [
+            'code_departement' => $codeDept,
+            'stats' => $stats?->data,
+            'resultats' => $resultats,
+        ]);
+    }
+
+    public function statistiques()
+    {
+        $nationale = StatsElectionMunicipale::national()->first();
+
+        $departements = StatsElectionMunicipale::where('scope', 'departement')
+            ->where('annee', 2026)
+            ->get()
+            ->keyBy('scope_code')
+            ->map(fn($s) => $s->data);
+
+        return Inertia::render('Elections/Municipales/Statistiques', [
+            'stats_nationales' => $nationale?->data,
+            'stats_departements' => $departements,
+        ]);
+    }
+
+    public function transitionMaires()
+    {
+        $stats = StatsElectionMunicipale::national()->first();
+
+        $grandesVilles = Maire::where('mandature', '2026-2032')
+            ->where('en_exercice', true)
+            ->where('population_commune', '>=', 30000)
+            ->with('predecesseur')
+            ->orderByDesc('population_commune')
+            ->get()
+            ->map(fn($m) => [
+                'nom_complet' => $m->nom_complet,
+                'commune' => $m->nom_commune,
+                'code_commune' => $m->code_commune,
+                'population' => $m->population_commune,
+                'nuance' => $m->nuance_politique,
+                'nuance_libelle' => $m->nuance_libelle,
+                'reelu' => $m->reelu,
+                'score' => $m->score_election_pct,
+                'tour' => $m->tour_election,
+                'photo' => $m->photo,
+                'predecesseur' => $m->predecesseur ? [
+                    'nom_complet' => $m->predecesseur->nom_complet,
+                    'nuance' => $m->predecesseur->nuance_politique,
+                    'nuance_libelle' => $m->predecesseur->nuance_libelle,
+                    'photo' => $m->predecesseur->photo,
+                ] : null,
+            ]);
+
+        return Inertia::render('Elections/Municipales/TransitionMaires', [
+            'stats' => $stats?->data,
+            'grandes_villes' => $grandesVilles,
+        ]);
+    }
+
+    // =========================================================================
+    // API JSON (pour composants dynamiques)
+    // =========================================================================
+
+    public function apiResultatsCommune(string $code, int $tour)
+    {
+        $resultat = ResultatMunicipal::where('code_commune', $code)
+            ->where('tour', $tour)
+            ->with('listes')
+            ->firstOrFail();
+
+        return response()->json($resultat);
+    }
+
+    public function apiStatsNuances()
+    {
+        $stats = StatsElectionMunicipale::national()->first();
+        return response()->json($stats?->data['nuances'] ?? []);
+    }
+
+    public function apiCarteParticipation()
+    {
+        $data = ResultatMunicipal::where('tour', 1)
+            ->select('code_departement')
+            ->selectRaw('AVG(taux_participation) as taux_moyen')
+            ->selectRaw('COUNT(*) as nb_communes')
+            ->groupBy('code_departement')
+            ->get()
+            ->keyBy('code_departement');
+
+        return response()->json($data);
+    }
+
+    public function apiCarteNuances()
+    {
+        $data = DB::table('resultats_listes_municipales as rlm')
+            ->join('resultats_municipaux as rm', 'rlm.resultat_commune_id', '=', 'rm.id')
+            ->where('rlm.elu', true)
+            ->select('rm.code_departement')
+            ->selectRaw("rlm.nuance_politique, COUNT(*) as nb")
+            ->groupBy('rm.code_departement', 'rlm.nuance_politique')
+            ->get()
+            ->groupBy('code_departement')
+            ->map(fn($rows) => $rows->sortByDesc('nb')->first());
+
+        return response()->json($data);
+    }
+
+    public function apiTransitionMaire(string $codeInsee)
+    {
+        $ancien = Maire::where('code_commune', $codeInsee)
+            ->where('mandature', '2020-2026')->first();
+        $nouveau = Maire::where('code_commune', $codeInsee)
+            ->where('mandature', '2026-2032')
+            ->where('en_exercice', true)->first();
+
+        return response()->json([
+            'ancien' => $ancien?->toApiArray(),
+            'nouveau' => $nouveau?->toApiArray(),
+            'reelu' => $nouveau?->reelu,
         ]);
     }
 
