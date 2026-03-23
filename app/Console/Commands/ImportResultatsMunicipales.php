@@ -23,7 +23,9 @@ class ImportResultatsMunicipales extends Command
     protected $description = 'Importe les résultats des élections municipales depuis data.gouv.fr';
 
     private const DATAGOUV_T1 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-premier-tour/20260320-164339/municipales-2026-resultats-communes-2026-03-20.csv';
-    // TODO: Mettre à jour avec l'URL réelle quand data.gouv.fr publie les résultats T2
+    // T2 (22 mars 2026) : URL à renseigner dès publication par le Ministère de l'Intérieur
+    // Format attendu : https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-second-tour/YYYYMMDD-HHMMSS/municipales-2026-resultats-communes-YYYY-MM-DD.csv
+    // En attendant, utiliser --url= ou --file= pour fournir le CSV manuellement
     private const DATAGOUV_T2 = '';
 
     private const FIXED_COLS = 18;

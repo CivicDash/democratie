@@ -405,7 +405,7 @@ class VilleController extends Controller
                     'pourcentage_exprimes' => $l->pourcentage_exprimes !== null ? (float) $l->pourcentage_exprimes : null,
                     'elu' => (bool) $l->elu,
                     'sieges_obtenus' => $l->sieges_obtenus !== null ? (int) $l->sieges_obtenus : null,
-                    'sieges_cc' => $l->sieges_cc !== null ? (int) $l->sieges_cc : null,
+                    'sieges_cc' => $l->sieges_conseil_communautaire !== null ? (int) $l->sieges_conseil_communautaire : null,
                 ]),
             ]),
             'transition' => [
