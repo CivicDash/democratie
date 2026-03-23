@@ -66,7 +66,7 @@ class SearchController extends Controller
                         'description' => substr($topic->description, 0, 200) . '...',
                         'type' => $topic->type,
                         'scope' => $topic->scope,
-                        'author' => $topic->author?->name,
+                        'author' => $topic->author?->display_name,
                         'created_at' => $topic->created_at->diffForHumans(),
                         'url' => "/topics/{$topic->id}",
                     ];
@@ -89,7 +89,7 @@ class SearchController extends Controller
                         'content' => substr($post->content, 0, 200) . '...',
                         'topic_id' => $post->topic_id,
                         'topic_title' => $post->topic?->title,
-                        'author' => $post->author?->name,
+                        'author' => $post->author?->display_name,
                         'upvotes' => $post->upvotes,
                         'created_at' => $post->created_at->diffForHumans(),
                         'url' => "/topics/{$post->topic_id}#post-{$post->id}",
@@ -114,7 +114,7 @@ class SearchController extends Controller
                         'description' => $document->description,
                         'filename' => $document->filename,
                         'mime_type' => $document->mime_type,
-                        'uploader' => $document->uploader?->name,
+                        'uploader' => $document->uploader?->display_name,
                         'created_at' => $document->created_at->diffForHumans(),
                         'url' => "/documents/{$document->id}",
                     ];

@@ -23,7 +23,14 @@ Artisan::command('inspire', function () {
 | 5. 04h00-04h30 : Recalcul des statistiques
 | 6. 05h00-06h00 : Agenda et calendrier
 | 7. 06h00-07h00 : Questions gouvernement
+|
+| IMPORTANT : Les imports auto sont desactives sur l'environnement dev
+| Pour forcer un import en dev : php artisan <commande> manuellement
 */
+
+if (app()->environment('local', 'development', 'testing') && env('DISABLE_SCHEDULED_IMPORTS', false)) {
+    return;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -44,7 +51,7 @@ Schedule::command('import:organes-an')
     ->withoutOverlapping();
 
 // Sénateurs (données complémentaires)
-Schedule::command('senat:sync')
+Schedule::command('senat:sync --no-confirm')
     ->dailyAt('01:30')
     ->description('Synchronisation données Sénat')
     ->withoutOverlapping();
@@ -86,11 +93,11 @@ Schedule::command('import:amendements-an')
     ->description('Import quotidien des amendements AN')
     ->withoutOverlapping();
 
-// Amendements Sénat
-Schedule::command('import:amendements-senat')
-    ->dailyAt('03:15')
-    ->description('Import quotidien des amendements Sénat')
-    ->withoutOverlapping();
+// Amendements Sénat (désactivé : nécessite import SQL AMELI via import:senat-sql)
+// Schedule::command('import:amendements-senat')
+//     ->dailyAt('03:15')
+//     ->description('Import quotidien des amendements Sénat')
+//     ->withoutOverlapping();
 
 /*
 |--------------------------------------------------------------------------
@@ -192,6 +199,27 @@ Schedule::command('import:questions-senat')
 
 /*
 |--------------------------------------------------------------------------
+| 7b. VIDEOS AN (06h30 - 06h50)
+|--------------------------------------------------------------------------
+*/
+
+Schedule::command('import:video-ids-an')
+    ->dailyAt('06:30')
+    ->description('Découverte des vidéos AN et rattachement aux réunions')
+    ->withoutOverlapping();
+
+Schedule::command('import:video-chapters-an --all')
+    ->dailyAt('06:40')
+    ->description('Import des chapitres vidéo depuis data.nvs')
+    ->withoutOverlapping();
+
+Schedule::command('match:video-chapters-an')
+    ->dailyAt('06:50')
+    ->description('Matching chapitres vidéo avec QAG et amendements')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
 | 8. ENRICHISSEMENT (07h00 - 08h00)
 |--------------------------------------------------------------------------
 */
@@ -257,4 +285,56 @@ Schedule::command('scrutins:recalculate-totals')
 Schedule::command('senat:import-debats --download')
     ->weeklyOn(0, '04:00')
     ->description('Mise à jour hebdomadaire des débats Sénat')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| ÉLECTIONS MUNICIPALES 2026
+|--------------------------------------------------------------------------
+*/
+
+// Rappels candidatures (J-7, J-3, J-1 avant date limite dépôt)
+Schedule::command('candidatures:send-reminders')
+    ->dailyAt('09:00')
+    ->description('Envoi rappels candidatures municipales')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| AFFAIRES JUDICIAIRES (détection + stats + notifications)
+|--------------------------------------------------------------------------
+*/
+
+Schedule::command('affaires:detect-wikidata')
+    ->weekly()
+    ->description('Détection Wikidata des affaires judiciaires (P1399)')
+    ->withoutOverlapping();
+
+Schedule::command('affaires:detect-wikipedia')
+    ->twiceMonthly(1, 15)
+    ->description('Détection Wikipedia NLP des affaires judiciaires')
+    ->withoutOverlapping();
+
+Schedule::command('affaires:detect-hatvp')
+    ->monthly()
+    ->description('Détection HATVP des manquements/signalements')
+    ->withoutOverlapping();
+
+Schedule::command('affaires:calculate-stats')
+    ->dailyAt('04:55')
+    ->description('Recalcul des statistiques affaires judiciaires');
+
+Schedule::command('affaires:notify-moderators')
+    ->dailyAt('09:00')
+    ->description('Notification modérateurs pour affaires en attente');
+
+/*
+|--------------------------------------------------------------------------
+| ENRICHISSEMENT WIKIDATA - PersonnePolitique
+|--------------------------------------------------------------------------
+*/
+
+Schedule::command('enrich:personnes-wikidata')
+    ->monthly()
+    ->description('Enrichissement Wikidata ID des PersonnePolitique')
     ->withoutOverlapping();

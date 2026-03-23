@@ -47,8 +47,8 @@ class UserManagementController extends Controller
         }
 
         // Tri
-        $sortBy = $request->get('sort', 'created_at');
-        $sortOrder = $request->get('order', 'desc');
+        $sortBy = $request->input('sort', 'created_at');
+        $sortOrder = $request->input('order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
 
         $users = $query->paginate(30)->withQueryString();
@@ -327,6 +327,20 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Forcer la validation de l'adresse email
+     */
+    public function verifyEmail(User $user)
+    {
+        if ($user->hasVerifiedEmail()) {
+            return back()->with('info', "L'adresse email de {$user->name} est déjà vérifiée.");
+        }
+
+        $user->markEmailAsVerified();
+
+        return back()->with('success', "L'adresse email de {$user->name} a été validée manuellement.");
+    }
+
+    /**
      * Vérifier un élu
      */
     public function verifyElu(User $user)
@@ -393,6 +407,7 @@ class UserManagementController extends Controller
             'ong' => 'ONG',
             'state' => 'Service public',
             'public_figure' => 'Personnalité publique',
+            'candidat_maire' => 'Candidat Maire',
             default => ucfirst($role),
         };
     }

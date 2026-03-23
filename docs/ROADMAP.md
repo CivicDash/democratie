@@ -1245,12 +1245,38 @@ CREATE TABLE budget_ministeres (
 - Comparaison régionale
 - Corrélation avec votes
 
-**Tâches** :
-- [ ] Inscription API INSEE (clé API)
-- [ ] Modèles (DonneesDemographiques, DonneesEconomiques)
-- [ ] Commande `import:insee`
-- [ ] Enrichissement page Statistiques France
-- [ ] Visualisations cartographiques
+**État actuel** :
+- ✅ Commande `import:insee` existante (`app/Console/Commands/ImportInsee.php`) -- importe régions, départements, communes via données statiques
+- ✅ Modèles existants : `InseeRegion`, `InseeDepartement`, `InseeCommune`, `InseeSalaire`
+- ✅ Pages stats existantes : `/statistiques/villes`, `/statistiques/regions`, `/statistiques/france`
+- ⚠️ Données actuellement **statiques** (hardcodées dans la commande), pas encore via API live
+
+**Tâches restantes -- Intégration API INSEE live** :
+
+1. **Service API INSEE** :
+   - [ ] Inscription portail API INSEE (`portail-api.insee.fr`) -- obtenir clé API
+   - [ ] Créer `app/Services/InseeApiService.php` avec client HTTP authentifié
+   - [ ] Endpoints : `Sirene V3` (entreprises), `Nomenclatures` (COG), `Données locales` (statistiques communales)
+   - [ ] Rate limiting : max 30 req/min (respect quota gratuit)
+   - [ ] Cache des réponses 24h (`Cache::remember`)
+
+2. **Nouvelles commandes Artisan** :
+   - [ ] `import:insee-population` -- population légale par commune/département/région (source : recensement)
+   - [ ] `import:insee-emploi` -- taux d'emploi, CSP, revenus (source : Filosofi / Flores)
+   - [ ] `import:insee-logement` -- parc immobilier, résidences principales/secondaires
+   - [ ] Scheduler : exécution mensuelle (données INSEE mises à jour annuellement)
+
+3. **Enrichissement pages Statistiques existantes** :
+   - [ ] `/statistiques/france` (`FranceStatisticsController`) : ajouter section démographie nationale, pyramide des âges, évolution population
+   - [ ] `/statistiques/villes/{code}` (`StatistiquesVillesController`) : indicateurs socio-économiques communaux (revenus, emploi, logement)
+   - [ ] `/statistiques/regions/{code}` (`StatistiquesRegionsController`) : comparaison inter-départementale, PIB régional détaillé
+   - [ ] Composants Vue : `PyramideAges.vue`, `EvolutionPopulation.vue` (Chart.js, vue-chartjs)
+
+4. **Corrélations et analyses croisées** :
+   - [ ] Taux de chômage × participation électorale par département
+   - [ ] Revenus médians × résultats par candidat
+   - [ ] Densité population × orientation politique
+   - [ ] Page dédiée `/statistiques/correlations` avec graphiques scatter
 
 ---
 
@@ -1623,6 +1649,233 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
 
 ---
 
+## 🎓 PHASE 5 : COMPRENDRE LA DÉMOCRATIE (T2-T3 2026)
+**Objectif** : Créer un espace éducatif interactif pour rendre la démocratie française accessible à tous  
+**Principe** : S'appuyer sur les pages et données existantes de CivicDash, ne pas réinventer la roue
+
+### 5.0 : Architecture & Principes
+**Statut** : 📋 Planifié
+
+Le hub Démocratie est un **portail pédagogique** qui :
+- Explique les concepts avec du contenu structuré et des éléments interactifs
+- Renvoie systématiquement vers les pages existantes pour approfondir avec les données réelles
+- Réutilise les composants déjà développés (hémicycles, timelines, groupes, stats)
+
+**Architecture technique** :
+- Controller : `app/Http/Controllers/Web/DemocratieController.php` (6 méthodes)
+- Pages Vue : `resources/js/Pages/Democratie/` (6 pages)
+- Route prefix : `/democratie` -- accessible **sans authentification** (contenu public)
+- Navigation : nouvel item "Comprendre" dans le menu principal (`AuthenticatedLayout.vue` + `MainLayout.vue`)
+
+---
+
+### 5.1 : 🏠 Hub Principal `/democratie`
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 1 semaine  
+**Statut** : 📋 Planifié
+
+**Page** : `Democratie/Index.vue`
+
+**Fonctionnalités** :
+- Carte visuelle des 5 modules avec icônes et descriptions
+- Progression utilisateur sauvegardée en `localStorage` (modules consultés)
+- Liens contextuels "Comment ça marche ?" ajoutés sur les pages existantes (lois, scrutins, députés)
+- Meta descriptions et schema.org `EducationalContent` pour le SEO
+
+**Tâches** :
+- [ ] Créer `DemocratieController.php` avec 6 méthodes
+- [ ] Créer `Democratie/Index.vue` -- hub avec carte des modules
+- [ ] Ajouter item "Comprendre" dans la navigation (`AuthenticatedLayout.vue`, `MainLayout.vue`)
+- [ ] Ajouter boutons "Comment ça marche ?" sur les pages `/lois`, `/legislation/scrutins`, `/representants/deputes`
+- [ ] Routes publiques `/democratie/*` dans `routes/web.php`
+
+---
+
+### 5.2 : 📜 Module "Le Parcours d'une Loi"
+**Priorité** : 🔴 CRITIQUE  
+**Durée** : 1-2 semaines  
+**Statut** : 📋 Planifié
+
+**Page** : `Democratie/ParcoursLoi.vue`
+
+**Contenu hybride** :
+- **Timeline interactive verticale** : initiative → dépôt → commission → séance publique (1re lecture) → navette (2e chambre) → CMP éventuelle → vote final → promulgation → publication JO
+- Chaque étape cliquable avec encart explicatif (qui intervient, durée, cas possibles)
+- **Schéma navette parlementaire** : diagramme interactif AN ↔ Sénat (accord, désaccord, CMP, dernier mot AN)
+- **Mini-quiz** en fin de parcours (5 questions)
+- **Exemples réels** depuis les données existantes
+
+**Pages existantes réutilisées** :
+| Fonctionnalité | Page existante | Usage |
+|----------------|---------------|-------|
+| Liste des lois | `/lois` | "Explorer les lois en cours" |
+| Timeline d'une loi | `/lois/{loicod}/timeline` | Exemples concrets de parcours |
+| Scrutins liés | `/legislation/scrutins` | "Voir les votes sur cette loi" |
+| Amendements | `/legislation/amendements/{uid}` | "Comprendre les modifications" |
+| Hub législation | `/legislation` | "Approfondir par thématique" |
+
+**Données existantes exploitées** :
+- Modèles `Loi`, `EtatLoi`, `LectureLoi`, `PassageChambre`
+- `LegislationController::timeline()` pour les exemples dynamiques
+- `EvenementLegislatif` pour les événements concrets
+
+**Tâches** :
+- [ ] Créer `Democratie/ParcoursLoi.vue` avec timeline interactive
+- [ ] Composant `NavetteSchema.vue` -- schéma AN ↔ Sénat
+- [ ] Composant `LegislativeQuiz.vue` -- quiz 5 questions
+- [ ] Endpoint API pour récupérer 3 lois exemples récentes (promulguée, en cours, rejetée)
+- [ ] Liens "Voir un exemple réel" vers `/lois/{loicod}/timeline`
+
+---
+
+### 5.3 : 🗳️ Module "Les Élections en France"
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 semaine  
+**Statut** : 📋 Planifié
+
+**Page** : `Democratie/Elections.vue`
+
+**Contenu** :
+- **Carte des 7 types d'élections** avec fiches explicatives :
+  - Présidentielle (scrutin uninominal 2 tours, 5 ans)
+  - Législatives (scrutin uninominal 2 tours, 5 ans, 577 députés)
+  - Sénatoriales (scrutin indirect, 6 ans, renouvellement par moitié)
+  - Européennes (scrutin proportionnel, 5 ans)
+  - Régionales (scrutin proportionnel à 2 tours, 6 ans)
+  - Départementales (scrutin binominal mixte, 6 ans)
+  - Municipales (scrutin de liste, 6 ans)
+- **Frise chronologique** des prochaines échéances électorales (2026-2032)
+- **Simulateur simplifié** : "Dans quelle(s) élection(s) puis-je voter ?" (âge + nationalité)
+
+**Pages existantes réutilisées** :
+| Fonctionnalité | Page existante | Usage |
+|----------------|---------------|-------|
+| Municipales 2026 | `/elections/municipales` | Focus élection en cours |
+| Tutoriel candidature | `/elections/municipales/tutoriel` | Guide pratique |
+| Législatives | `/elections/legislatives` | Approfondir |
+| Sénatoriales | `/elections/senatoriales` | Approfondir |
+| Présidentielle | `/elections/presidentielle` | Approfondir |
+| Carte des listes | `/elections/municipales/carte` | Visualisation géographique |
+
+**Tâches** :
+- [ ] Créer `Democratie/Elections.vue` avec carte et fiches
+- [ ] Composant `ElectionSimulator.vue` -- simulateur âge/nationalité
+- [ ] Composant `ElectionTimeline.vue` -- frise des échéances
+- [ ] Liens vers les hubs élections existants
+
+---
+
+### 5.4 : 👥 Module "Qui sont nos Représentants ?"
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 semaine  
+**Statut** : 📋 Planifié
+
+**Page** : `Democratie/Representants.vue`
+
+**Contenu** :
+- **Infographie AN vs Sénat** : différences de rôle, composition, mode d'élection, renouvellement, âge minimum
+- **Hémicycle visuel** avec données live `GroupeParlementaire` (nombre de sièges, couleurs)
+- **"Que fait un député / sénateur au quotidien ?"** : commissions, questions au gouvernement, votes, amendements -- illustré avec statistiques réelles depuis `parlementaires_stats`
+- **Top 5 les plus actifs** (députés + sénateurs) pour montrer l'utilité concrète des données
+- **Lien direct** vers "Mes Représentants" pour trouver ses élus par code postal
+
+**Pages existantes réutilisées** :
+| Fonctionnalité | Page existante | Usage |
+|----------------|---------------|-------|
+| Mes Représentants | `/representants/mes-representants` | "Trouver mes élus" |
+| Liste députés | `/representants/deputes` | Explorer l'AN |
+| Liste sénateurs | `/representants/senateurs` | Explorer le Sénat |
+| Comparaison AN/Sénat | `/parlement/comparaison` | Stats parité, activité |
+| Groupes parlementaires | `/legislation/groupes` | Composition politique |
+| Calendrier | `/parlement/calendrier` | Agenda des séances |
+| Questions AN | `/questions` | Questions au gouvernement |
+| Questions Sénat | `/questions/senat` | Questions écrites |
+
+**Données existantes exploitées** :
+- `GroupeParlementaire` -- composition hémicycles (déjà importé)
+- `parlementaires_stats` -- top parlementaires actifs (table pré-calculée)
+- `CalculateElusGlobalStats` -- stats globales parité etc.
+- Composants existants : `HemicycleView`, `FranceRegionsMap`
+
+**Tâches** :
+- [ ] Créer `Democratie/Representants.vue` avec infographie
+- [ ] Réutiliser composant `HemicycleView` existant pour affichage groupes
+- [ ] Widget "Top 5 actifs" depuis `parlementaires_stats`
+- [ ] Lien CTA vers `/representants/mes-representants`
+
+---
+
+### 5.5 : 🗳️ Module "Comment Votent-ils ?"
+**Priorité** : 🟡 HAUTE  
+**Durée** : 1 semaine  
+**Statut** : 📋 Planifié
+
+**Page** : `Democratie/Votes.vue`
+
+**Contenu** :
+- **Types de scrutin** : scrutin public ordinaire, scrutin solennel, vote à main levée, quorum
+- **Exemple interactif** : un scrutin réel récent (depuis `ScrutinAN`), résultat avec ventilation par groupe, possibilité de "simuler" un changement de vote
+- **Discipline de groupe** : explication du concept + données réelles depuis `DisciplineGroupeService`
+- **Vote citoyen** : explication du système CivicDash de vote sur les lois
+
+**Pages existantes réutilisées** :
+| Fonctionnalité | Page existante | Usage |
+|----------------|---------------|-------|
+| Scrutins AN | `/legislation/scrutins` | Liste des votes |
+| Détail scrutin | `/legislation/scrutins/{uid}` | Exemple concret |
+| Comparaison votes | `/legislation/scrutins/{uid}/comparaison` | Qui vote quoi |
+| Scrutins Sénat | `/legislation/scrutins-senat` | Votes Sénat |
+| Groupes | `/legislation/groupes` | Discipline de groupe |
+| Vote citoyen | `/lois/{loicod}` (widget vote) | Participer |
+
+**Données existantes exploitées** :
+- `ScrutinAN` -- dernier scrutin pour l'exemple interactif
+- `DisciplineGroupeService` -- taux de cohésion des groupes
+- `VoteIndividuelAN` -- détail des votes par député
+- `GroupeParlementaire` -- ventilation par groupe
+
+**Tâches** :
+- [ ] Créer `Democratie/Votes.vue` avec explications et exemple
+- [ ] Composant `ScrutinInteractif.vue` -- simulateur de vote sur un scrutin réel
+- [ ] Endpoint API pour le dernier scrutin solennel avec ventilation
+- [ ] Lien vers comparaison de votes existante
+
+---
+
+### 5.6 : 🏛️ Module "Le Gouvernement"
+**Priorité** : 🟢 MOYENNE  
+**Durée** : 1 semaine  
+**Statut** : 📋 Planifié
+
+**Page** : `Democratie/Gouvernement.vue`
+
+**Contenu** :
+- **Organigramme interactif** : Président → Premier Ministre → Ministères (données live)
+- **Séparation des pouvoirs** : Exécutif vs Législatif vs Judiciaire (schéma interactif)
+- **Les pouvoirs du Président** : dissolution, référendum, article 49.3, nominations
+- **Le Conseil des ministres** : rôle et fonctionnement
+
+**Pages existantes réutilisées** :
+| Fonctionnalité | Page existante | Usage |
+|----------------|---------------|-------|
+| Organigramme | `/gouvernement` | Composition actuelle |
+| Ministères | `/gouvernement/ministeres` | Domaines ministériels |
+| Statistiques | `/gouvernement/statistiques` | Évolution, parité |
+| Agenda Élysée | `/parlement/calendrier` (filtre Élysée) | Activité présidentielle |
+
+**Données existantes exploitées** :
+- `Gouvernement`, `Ministere`, `PersonnePolitique`, `PosteMinisteriel`
+- `DomaineMinisteriel` -- 16 catégories permanentes
+- Photos ministres déjà importées depuis Wikipedia
+
+**Tâches** :
+- [ ] Créer `Democratie/Gouvernement.vue` avec organigramme
+- [ ] Composant `SeparationPouvoirs.vue` -- schéma interactif
+- [ ] Données live depuis les modèles existants
+- [ ] Liens vers `/gouvernement` et `/gouvernement/ministeres`
+
+---
+
 ## 📊 SOURCES DE DONNÉES - RÉCAPITULATIF
 
 ### Déjà intégrées ✅
@@ -1943,6 +2196,151 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
 
 ---
 
+## 🔧 OPTIMISATIONS TECHNIQUES & DETTE TECHNIQUE (Continu)
+**Objectif** : Consolider la plateforme, améliorer la maintenabilité et les performances
+
+### OPT-1 : Migration Cache & Queue vers Redis
+**Priorité** : 🔴 CRITIQUE  
+**Statut** : 📋 Planifié
+
+L'application utilise actuellement le driver `database` pour le cache et les queues. La migration vers Redis apportera des gains significatifs de performance.
+
+**État actuel** :
+- Redis installé et fonctionnel (utilisé pour les sessions)
+- Driver cache : `database` → migrer vers `redis`
+- Driver queue : `database` → migrer vers `redis`
+- Laravel Horizon déjà en dépendance (`composer.json`)
+
+**Tâches** :
+- [ ] Configurer `CACHE_DRIVER=redis` et `QUEUE_CONNECTION=redis` dans `.env`
+- [ ] Configurer Horizon (`config/horizon.php`) avec les superviseurs adaptés
+- [ ] Déployer Horizon en production (process supervisor)
+- [ ] Migrer les jobs existants (imports, calculs stats) vers Redis queues
+- [ ] Ajouter monitoring Horizon dans le dashboard admin
+
+---
+
+### OPT-2 : Refactoring Frontend (Pages Vue volumineuses)
+**Priorité** : 🟡 HAUTE  
+**Statut** : 📋 Planifié
+
+Plusieurs pages Vue dépassent 500 lignes et combinent trop de responsabilités.
+
+**Pages identifiées** :
+| Page | Lignes | Action |
+|------|--------|--------|
+| `Communes/Show.vue` | ~800+ | Extraire composants stats, budget, carte |
+| `Villes/Show.vue` | ~600+ | Extraire composants indicateurs, graphiques |
+| `Admin/ImportDetail.vue` | ~400+ | Corriger erreur meta property + refactorer |
+| `Legislation/Index.vue` | ~500+ | Extraire filtres, timeline, composants loi |
+
+**Approche** :
+- Extraire les sections en composants réutilisables (`components/communes/`, `components/stats/`)
+- Utiliser des composables Vue 3 (`useChartData`, `useFilters`) pour la logique partagée
+- Lazy-loading des composants lourds (graphiques, cartes)
+
+**Tâches** :
+- [ ] Auditer toutes les pages >400 lignes
+- [ ] Extraire composants stats communes (`CommuneStats.vue`, `CommuneBudget.vue`, `CommuneMap.vue`)
+- [ ] Extraire composants législation (`LoiTimeline.vue`, `LoiFilters.vue`)
+- [ ] Corriger l'erreur `import.meta` dans `ImportDetail.vue`
+- [ ] Mettre en place les composables partagés
+
+---
+
+### OPT-3 : Couverture de Tests
+**Priorité** : 🔴 CRITIQUE  
+**Statut** : 📋 Planifié
+
+**État actuel** :
+- CI GitHub Actions configuré avec Xdebug et `--min=30`
+- Couverture actuelle estimée <20%
+- Tests unitaires existants pour quelques services
+
+**Objectifs** :
+| Échéance | Couverture min | Focus |
+|----------|---------------|-------|
+| T2 2026 | 40% | Policies, Services critiques (Budget, Import) |
+| T3 2026 | 60% | Controllers, Middleware, Commandes Artisan |
+| T4 2026 | 75% | Frontend (Vitest), E2E (Playwright) |
+
+**Tâches** :
+- [ ] Tests unitaires pour toutes les Policies (`TopicPolicy`, `PostPolicy`, `BallotPolicy`, etc.)
+- [ ] Tests pour `BudgetService` (allocations, edge cases)
+- [ ] Tests pour les commandes d'import (`ImportInsee`, `ImportActeursAN`, etc.)
+- [ ] Tests Feature pour les routes publiques critiques (`/lois`, `/representants`, `/elections`)
+- [ ] Configurer Vitest pour les composants Vue critiques
+- [ ] Ajouter tests E2E Playwright pour les parcours utilisateur clés
+
+---
+
+### OPT-4 : Imports Automatiques & Monitoring
+**Priorité** : 🟡 HAUTE  
+**Statut** : 📋 Planifié
+
+**Retry automatique** :
+- [ ] Implémenter retry avec backoff exponentiel sur les commandes d'import (3 tentatives, délais 30s/2min/10min)
+- [ ] Logging structuré des échecs dans `import_logs` (source, commande, erreur, tentative)
+- [ ] Notification Slack/email admin en cas d'échec après toutes les tentatives
+
+**Dashboard monitoring imports** :
+- [ ] Page admin `/admin/imports` avec tableau de bord
+- [ ] Statut par source (dernière exécution, résultat, nombre d'enregistrements)
+- [ ] Graphique historique des imports (succès/échecs par semaine)
+- [ ] Alertes automatiques si un import n'a pas tourné depuis >48h
+
+---
+
+### OPT-5 : SEO & Performance Web
+**Priorité** : 🟢 MOYENNE  
+**Statut** : 📋 Planifié
+
+**SSR / Pre-rendering** :
+- [ ] Évaluer Inertia SSR (`@inertiajs/server`) pour les pages publiques critiques
+- [ ] Alternative : pre-rendering statique via `spatie/laravel-sitemap` + `prerender.io`
+- [ ] Générer `sitemap.xml` dynamique (lois, députés, scrutins, communes)
+
+**Open Graph / Meta** :
+- [ ] Balises OG dynamiques sur les pages clés (loi, député, scrutin, commune)
+- [ ] Images OG générées automatiquement (`spatie/browsershot` ou service Canvas)
+- [ ] Twitter Cards pour le partage
+
+**Accessibilité (RGAA)** :
+- [ ] Audit WCAG 2.1 AA des pages principales
+- [ ] Contraste couleurs (vérifier palette Tailwind)
+- [ ] Navigation clavier complète
+- [ ] Attributs ARIA sur les graphiques et composants interactifs
+- [ ] Labels sur tous les formulaires
+
+---
+
+### OPT-6 : Documentation API
+**Priorité** : 🟢 MOYENNE  
+**Statut** : 📋 Planifié
+
+**Tâches** :
+- [ ] Installer `knuckleswtf/scribe` pour la génération automatique de doc API
+- [ ] Annoter les routes API publiques avec `@group`, `@urlParam`, `@response`
+- [ ] Publier la documentation sur `/docs/api`
+- [ ] Versionner l'API (`/api/v1/`) pour la stabilité
+- [ ] Ajouter exemples de réponse et codes d'erreur
+
+---
+
+### OPT-7 : Résolution des TODO/FIXME existants
+**Priorité** : 🟡 HAUTE  
+**Statut** : 📋 Planifié
+
+Des `TODO` et `FIXME` dispersés dans le code nécessitent un nettoyage systématique.
+
+**Approche** :
+- [ ] Inventorier tous les TODO/FIXME dans le codebase (`grep -r "TODO\|FIXME"`)
+- [ ] Classifier par criticité (bug potentiel, amélioration, dette technique)
+- [ ] Traiter les TODO critiques (liés à la sécurité ou à des bugs)
+- [ ] Convertir les TODO non-critiques en issues GitHub
+
+---
+
 ## 📈 MÉTRIQUES DE SUCCÈS
 
 ### T1 2026 - Fondations
@@ -1951,22 +2349,29 @@ curl "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-
 - 🎯 Navigation refaite
 - 🎯 100 utilisateurs beta
 
-### T2 2026 - Participation
+### T2 2026 - Participation & Éducation
 - 🎯 Vote citoyen lancé
 - 🎯 1000 votes citoyens
 - 🎯 Forum actif (100+ topics)
 - 🎯 500 utilisateurs
+- 🎯 Hub "Comprendre la Démocratie" lancé (Phase 5.1 + 5.2)
+- 🎯 Couverture tests ≥ 40%
 
-### T3 2026 - Données
+### T3 2026 - Données & Comprendre
 - 🎯 5 sources open data intégrées
 - 🎯 API Légifrance connectée
+- 🎯 API INSEE live opérationnelle
+- 🎯 6 modules Démocratie disponibles (Phase 5.1 à 5.6)
 - 🎯 2000 utilisateurs
+- 🎯 Couverture tests ≥ 60%
 
 ### T4 2026 - Scale
 - 🎯 Association créée
 - 🎯 Charte acceptée par 100% users
 - 🎯 5000 utilisateurs
 - 🎯 Couverture presse
+- 🎯 Couverture tests ≥ 75%
+- 🎯 Cache & Queue Redis en production
 
 ---
 

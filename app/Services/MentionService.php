@@ -172,15 +172,16 @@ class MentionService
      */
     public function suggestUsers(string $query, int $limit = 10): Collection
     {
-        return User::where('name', 'ILIKE', "%{$query}%")
+        return User::with('profile')
+            ->where('name', 'ILIKE', "%{$query}%")
             ->whereNull('email_verified_at')
             ->orWhereNotNull('email_verified_at')
             ->limit($limit)
             ->get(['id', 'name'])
             ->map(fn($user) => [
                 'id' => $user->id,
-                'name' => $user->name,
-                'mention' => "@{$user->name}",
+                'name' => $user->display_name,
+                'mention' => "@{$user->display_name}",
             ]);
     }
 

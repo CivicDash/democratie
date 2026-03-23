@@ -250,7 +250,7 @@ const topThematiques = computed(() => {
                                     <Link
                                         v-for="loi in dernieresLois"
                                         :key="loi.loicod"
-                                        :href="route('lois.show', loi.loicod)"
+                                        :href="route('lois.show', loi.loicod?.trim?.() || loi.loicod)"
                                         class="block p-4 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors"
                                     >
                                         <div class="flex items-start gap-3">

@@ -60,7 +60,7 @@
 
 <script setup>
 import { computed, onMounted } from 'vue';
-import { useToast } from '@/Composables/useToast';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     show: {

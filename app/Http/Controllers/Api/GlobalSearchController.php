@@ -265,7 +265,7 @@ class GlobalSearchController extends Controller
                 'category' => 'Idée citoyenne',
                 'icon' => $ideaIcons[$t->idea_type] ?? '💡',
                 'title' => strlen($t->title) > 60 ? substr($t->title, 0, 60) . '...' : $t->title,
-                'subtitle' => $t->author?->name ?? 'Citoyen',
+                'subtitle' => $t->author?->display_name ?? 'Citoyen',
                 'url' => route('participation.ideas.show', $t->slug ?: $t->id),
                 'photo_url' => null,
                 'score' => $score,

@@ -9,12 +9,16 @@ import TwoFactorForm from './Partials/TwoFactorForm.vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     mustVerifyEmail: {
         type: Boolean,
     },
     status: {
         type: String,
+    },
+    profileSettings: {
+        type: Object,
+        default: () => ({ display_name: '', is_public_figure: false }),
     },
 });
 
@@ -69,8 +73,9 @@ const bannerDismissed = ref(false);
                     class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800"
                 >
                     <UpdateProfileInformationForm
-                        :must-verify-email="mustVerifyEmail"
-                        :status="status"
+                        :must-verify-email="props.mustVerifyEmail"
+                        :status="props.status"
+                        :profile-settings="props.profileSettings"
                         class="max-w-xl"
                     />
                 </div>

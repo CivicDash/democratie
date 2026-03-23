@@ -18,9 +18,15 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $profile = $request->user()->profile;
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'profileSettings' => [
+                'display_name' => $profile?->display_name ?? '',
+                'is_public_figure' => $profile?->is_public_figure ?? false,
+            ],
         ]);
     }
 
@@ -29,13 +35,29 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $validated = $request->validated();
+
+        $request->user()->fill([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ]);
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
         }
 
         $request->user()->save();
+
+        $profile = $request->user()->profile;
+        if ($profile) {
+            if (isset($validated['display_name'])) {
+                $profile->display_name = $validated['display_name'];
+            }
+            if (isset($validated['is_public_figure'])) {
+                $profile->is_public_figure = (bool) $validated['is_public_figure'];
+            }
+            $profile->save();
+        }
 
         return Redirect::route('profile.edit');
     }

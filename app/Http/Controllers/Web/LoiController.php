@@ -40,11 +40,9 @@ class LoiController extends Controller
             $query->where('typloicod', $request->type);
         }
 
-        // Par défaut, filtrer sur 2025 (2026 est encore vide)
-        // TODO: Basculer sur date('Y') quand les données 2026 seront disponibles
-        $annee = $request->get('annee', '2025');
+        $annee = $request->input('annee', 'all');
         if ($annee && $annee !== 'all') {
-            $query->whereYear('loidatjo', $annee);
+            $query->whereRaw("EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi)) = ?", [$annee]);
         }
 
         if ($request->filled('search')) {
@@ -64,23 +62,34 @@ class LoiController extends Controller
             });
         }
 
-        // Tri
-        $sort = $request->get('sort', 'recent');
+        $sort = $request->input('sort', 'recent');
         switch ($sort) {
             case 'recent':
-                $query->orderByDesc('loidatjo');
+                $query->orderByRaw('COALESCE(loidatjo, date_loi) DESC NULLS LAST');
                 break;
             case 'ancien':
-                $query->orderBy('loidatjo');
+                $query->orderByRaw('COALESCE(loidatjo, date_loi) ASC NULLS LAST');
                 break;
             case 'titre':
                 $query->orderBy('loitit');
                 break;
             default:
-                $query->orderByDesc('loidatjo');
+                $query->orderByRaw('COALESCE(loidatjo, date_loi) DESC NULLS LAST');
         }
 
         $lois = $query->paginate(20)->withQueryString();
+
+        $fiveYearsAgo = now()->subYears(5);
+        $lois->through(function ($loi) use ($fiveYearsAgo) {
+            if (trim($loi->etaloicod ?? '') === '01') {
+                $date = $loi->loidatjo ?? $loi->date_loi;
+                if ($date && \Carbon\Carbon::parse($date)->lt($fiveYearsAgo)) {
+                    $loi->setAttribute('est_caduc', true);
+                }
+            }
+
+            return $loi;
+        });
 
         // Statistiques
         $stats = Cache::remember('lois_stats', 3600, function () {
@@ -99,7 +108,7 @@ class LoiController extends Controller
         $etats = EtatLoi::orderBy('etaloicod')->get()->map(fn ($e) => [
             'code' => trim($e->etaloicod),
             'libelle' => trim($e->etaloilib),
-        ]);
+        ])->unique('code')->values();
 
         $types = TypeLoi::orderBy('typloilib')->get()->map(fn ($t) => [
             'code' => trim($t->typloicod),
@@ -107,9 +116,9 @@ class LoiController extends Controller
         ])->filter(fn ($t) => !empty($t['libelle']));
 
         $annees = DB::table('senat_dosleg_loi')
-            ->selectRaw('EXTRACT(YEAR FROM loidatjo) as annee')
-            ->whereNotNull('loidatjo')
-            ->groupBy(DB::raw('EXTRACT(YEAR FROM loidatjo)'))
+            ->selectRaw('EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi)) as annee')
+            ->whereRaw('COALESCE(loidatjo, date_loi) IS NOT NULL')
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi))'))
             ->orderByDesc('annee')
             ->pluck('annee')
             ->filter()
@@ -617,8 +626,8 @@ class LoiController extends Controller
     public function amendementsApi(Request $request, string $loicod)
     {
         $loicodTrim = trim($loicod);
-        $page = $request->get('page', 1);
-        $perPage = $request->get('per_page', 20);
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 20);
         
         $loi = Loi::with('thematiques')
             ->whereRaw("TRIM(loicod) = ?", [$loicodTrim])
@@ -1014,7 +1023,7 @@ class LoiController extends Controller
      */
     public function search(Request $request)
     {
-        $query = $request->get('q', '');
+        $query = $request->input('q', '');
 
         if (strlen($query) < 2) {
             return response()->json([]);
@@ -1035,7 +1044,7 @@ class LoiController extends Controller
                 'numero' => trim($loi->numero ?? ''),
                 'etat' => $loi->etat_libelle,
                 'etat_couleur' => $loi->etat_couleur,
-                'url' => route('lois.show', $loi->loicod),
+                'url' => route('lois.show', ['loicod' => trim($loi->loicod)]),
             ]);
 
         return response()->json($lois);

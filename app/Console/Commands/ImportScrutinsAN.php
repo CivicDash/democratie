@@ -117,6 +117,7 @@ class ImportScrutinsAN extends Command
             [
                 'numero' => $scrutin['numero'] ?? null,
                 'organe_ref' => $scrutin['organeRef'] ?? null,
+                'seance_ref' => $scrutin['seanceRef'] ?? null,
                 'legislature' => $legislature,
                 'date_scrutin' => $scrutin['dateScrutin'] ?? null,
                 'type_vote_code' => $scrutin['typeVote']['codeTypeVote'] ?? null,

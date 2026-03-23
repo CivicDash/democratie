@@ -71,7 +71,7 @@ class MaireMandat extends Model
         if (!$this->date_debut) return null;
         
         $fin = $this->date_fin ?? now();
-        return $this->date_debut->diffInMonths($fin);
+        return (int) $this->date_debut->diffInMonths($fin);
     }
 
     public function getDureeFormateAttribute(): string

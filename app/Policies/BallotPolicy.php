@@ -51,7 +51,7 @@ class BallotPolicy
         }
 
         // User doit avoir la permission
-        if (!$user->hasPermissionTo('ballots.vote')) {
+        if (!$user->hasPermissionTo('vote_in_ballots')) {
             return false;
         }
 
@@ -93,7 +93,7 @@ class BallotPolicy
     public function create(User $user, Topic $topic): bool
     {
         // User doit être l'auteur du topic ou avoir la permission
-        if ($topic->author_id !== $user->id && !$user->hasPermissionTo('ballots.create')) {
+        if ($topic->author_id !== $user->id && !$user->hasPermissionTo('create_ballots')) {
             return false;
         }
 

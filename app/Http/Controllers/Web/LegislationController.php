@@ -420,7 +420,7 @@ class LegislationController extends Controller
      */
     public function showScrutin(string $uid): Response
     {
-        $scrutin = ScrutinAN::findOrFail($uid);
+        $scrutin = ScrutinAN::with('seance')->findOrFail($uid);
         $groupeService = app(GroupeParlementaireService::class);
 
         // Récupérer TOUS les votes individuels
@@ -489,6 +489,8 @@ class LegislationController extends Controller
                 'participation_percent' => $totalVotants > 0 
                     ? round(($totalVotants / 577) * 100, 1) // 577 députés
                     : 0,
+                'video_url' => $scrutin->seance?->video_url,
+                'seance_ref' => $scrutin->seance_ref,
             ],
             'votes_par_groupe' => $votesParGroupe,
             'deputes_ayant_vote' => $deputesAyantVote,

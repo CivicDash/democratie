@@ -364,7 +364,7 @@ class AdminElusController extends Controller
      */
     public function search(Request $request)
     {
-        $search = $request->get('q', '');
+        $search = $request->input('q', '');
         
         if (strlen($search) < 2) {
             return response()->json([]);

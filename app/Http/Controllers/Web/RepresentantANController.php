@@ -16,9 +16,11 @@ use App\Models\QuestionAN;
 use App\Services\GroupeParlementaireService;
 use App\Services\DisciplineGroupeService;
 use App\Models\EluFollower;
+use App\Models\AffaireJudiciaire;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -57,8 +59,8 @@ class RepresentantANController extends Controller
         }
 
         // Tri
-        $sortBy = $request->get('sort', 'nom');
-        $sortOrder = $request->get('order', 'asc');
+        $sortBy = $request->input('sort', 'nom');
+        $sortOrder = $request->input('order', 'asc');
         $query->orderBy($sortBy, $sortOrder);
 
         $deputes = $query->paginate(30)->withQueryString();
@@ -377,6 +379,7 @@ class RepresentantANController extends Controller
                 'url_hatvp' => $acteur->url_hatvp,
                 'declarations_hatvp' => $declarationsHatvp,
                 'hatvp_summary' => $hatvpSummary,
+                'affaires_judiciaires' => $this->getAffairesJudiciaires('depute', $uid),
                 'reseaux_sociaux' => [
                     'twitter' => $acteur->twitter_url,
                     'facebook' => $acteur->facebook_url,
@@ -594,7 +597,7 @@ class RepresentantANController extends Controller
                 'sort_libelle' => $amendement->sort_libelle,
                 'etat_libelle' => $amendement->etat_libelle,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
-                'dispositif' => $amendement->dispositif ? substr($amendement->dispositif, 0, 200) . '...' : '',
+                'dispositif' => $amendement->dispositif ? $this->cleanUtf8(mb_substr($amendement->dispositif, 0, 200)) . '...' : '',
                 'cosignataires_count' => $amendement->nombre_cosignataires,
                 'dossier' => $amendement->dossier ? [
                     'uid' => $amendement->dossier->uid,
@@ -717,6 +720,7 @@ class RepresentantANController extends Controller
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle,
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
+                'url_externe' => "https://www.assemblee-nationale.fr/dyn/" . ($amendement->legislature ?: '17') . "/amendements/{$amendement->uid}",
                 'dossier' => $amendement->dossier ? [
                     'uid' => $amendement->dossier->uid,
                     'titre_court' => $amendement->dossier->titre_court ?? $amendement->dossier->titre,
@@ -808,8 +812,8 @@ class RepresentantANController extends Controller
         }
 
         // Tri
-        $sortBy = $request->get('sort', 'nom_usuel');
-        $sortOrder = $request->get('order', 'asc');
+        $sortBy = $request->input('sort', 'nom_usuel');
+        $sortOrder = $request->input('order', 'asc');
         $query->orderBy($sortBy, $sortOrder);
 
         $senateurs = $query->paginate(30)->withQueryString();
@@ -912,14 +916,14 @@ class RepresentantANController extends Controller
             // Fallback: calcul à la volée (pour les premiers chargements)
             $totalScrutinsSenat = ScrutinSenat::count();
             
-            $votesTotal = VoteSenat::where('senateur_matricule', $matricule)->count();
+            $votesTotal = VoteSenat::where('senateur_matricule', $matricule)->distinct('scrutin_id')->count('scrutin_id');
             $amendementsTotal = AmendementSenat::where('senateur_matricule', $matricule)->count();
             $amendementsAdoptes = AmendementSenat::where('senateur_matricule', $matricule)->adoptes()->count();
 
             $stats = [
                 'votes_total' => $votesTotal,
                 'taux_presence' => $totalScrutinsSenat > 0 
-                    ? round(($votesTotal / $totalScrutinsSenat) * 100, 1) 
+                    ? min(100, round(($votesTotal / $totalScrutinsSenat) * 100, 1))
                     : 0,
                 'amendements_total' => $amendementsTotal,
                 'amendements_adoptes' => $amendementsAdoptes,
@@ -960,7 +964,7 @@ class RepresentantANController extends Controller
                 ->orderBy('date_depot', 'desc')
                 ->get();
                 
-                // Si pas de liaison directe, chercher par nom/prénom
+                // Si pas de liaison directe, chercher par nom/prénom exact
                 if ($declarations->isEmpty()) {
                     $declarations = \App\Models\HatvpDeclaration::with([
                         'mandatsElectifs.remunerations',
@@ -973,6 +977,24 @@ class RepresentantANController extends Controller
                     ->where('parlementaire_type', 'senateur')
                     ->where('nom', 'ILIKE', $senateur->nom_usuel)
                     ->where('prenom', 'ILIKE', $senateur->prenom_usuel)
+                    ->orderBy('date_depot', 'desc')
+                    ->get();
+                }
+
+                // Fallback: unaccented nom + prenom prefix (handles "Marie-Do" vs "Marie-Dominique")
+                if ($declarations->isEmpty() && $senateur->nom_usuel) {
+                    $prenomPrefix = mb_substr($senateur->prenom_usuel ?? '', 0, 5);
+                    $declarations = \App\Models\HatvpDeclaration::with([
+                        'mandatsElectifs.remunerations',
+                        'activitesProfessionnelles.remunerations',
+                        'activitesConsultant.remunerations',
+                        'participationsDirigeantes.remunerations',
+                        'collaborateurs',
+                        'fonctionsBenevoles',
+                    ])
+                    ->where('parlementaire_type', 'senateur')
+                    ->whereRaw("unaccent(lower(nom)) = unaccent(lower(?))", [$senateur->nom_usuel])
+                    ->whereRaw("unaccent(lower(prenom)) LIKE unaccent(lower(?))", [$prenomPrefix . '%'])
                     ->orderBy('date_depot', 'desc')
                     ->get();
                 }
@@ -1143,11 +1165,7 @@ class RepresentantANController extends Controller
                     'numero' => $m->numero_mandat ?? null,
                     'actif' => is_null($m->date_fin),
                 ])->toArray(),
-                'historique_groupes' => $senateur->historiqueGroupes->map(fn($g) => [
-                    'groupe' => $g->groupe_nom ?? $g->groupe_code ?? 'Groupe',
-                    'date_debut' => $g->date_debut?->format('d/m/Y'),
-                    'date_fin' => $g->date_fin?->format('d/m/Y'),
-                ])->toArray(),
+                'historique_groupes' => $this->getSenateurHistoriqueGroupes($matricule),
                 'mandats_locaux' => $senateur->mandatsLocaux->map(fn($m) => [
                     'type_mandat' => $m->type_mandat,
                     'fonction' => $m->fonction,
@@ -1169,6 +1187,7 @@ class RepresentantANController extends Controller
                 'statistiques' => $stats,
                 'declarations_hatvp' => $declarationsHatvp,
                 'hatvp_summary' => $hatvpSummary,
+                'affaires_judiciaires' => $this->getAffairesJudiciaires('senateur', $matricule),
                 'derniers_votes' => $derniersVotes,
                 'is_followed' => Auth::check() && EluFollower::where('user_id', Auth::id())
                     ->where('elu_type', 'senateur')
@@ -1330,8 +1349,8 @@ class RepresentantANController extends Controller
                 'id' => $amendement->id,
                 'numero' => $amendement->numero,
                 'type_amendement' => $amendement->type_amendement,
-                'dispositif' => $this->cleanUtf8(substr($amendement->dispositif_decode ?? '', 0, 200)),
-                'expose' => $this->cleanUtf8(substr($amendement->expose_decode ?? '', 0, 200)),
+                'dispositif' => $this->cleanUtf8(mb_substr($amendement->dispositif_decode ?? '', 0, 200)),
+                'expose' => $this->cleanUtf8(mb_substr($amendement->expose_decode ?? '', 0, 200)),
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle_formate,
@@ -1390,10 +1409,11 @@ class RepresentantANController extends Controller
             ->map(fn($amendement) => [
                 'id' => $amendement->id,
                 'numero' => $amendement->numero,
-                'dispositif' => $this->cleanUtf8(substr($amendement->dispositif_decode ?? '', 0, 150)),
+                'dispositif' => $this->cleanUtf8(mb_substr($amendement->dispositif_decode ?? '', 0, 150)),
                 'date_depot' => $amendement->date_depot?->format('d/m/Y'),
                 'sort_code' => $amendement->sort_code,
                 'sort_libelle' => $amendement->sort_libelle_formate,
+                'url_externe' => $amendement->url_senat,
             ]);
 
         return Inertia::render('Representants/Senateurs/Activite', [
@@ -1416,6 +1436,29 @@ class RepresentantANController extends Controller
             'derniers_votes' => $derniersVotes,
             'derniers_amendements' => $derniersAmendements,
         ]);
+    }
+
+    /**
+     * Historique des groupes politiques d'un sénateur via memgrppol (codes lisibles).
+     */
+    private function getSenateurHistoriqueGroupes(string $matricule): array
+    {
+        $rows = DB::select("
+            SELECT DISTINCT ON (mgp.grppolcod, mgp.memgrppoldatdeb)
+                COALESCE(gp.grppollibcou, mgp.grppolcod) AS groupe,
+                mgp.memgrppoldatdeb::date AS date_debut,
+                mgp.memgrppoldatfin::date AS date_fin
+            FROM senat_senateurs_memgrppol mgp
+            LEFT JOIN senat_senateurs_grppol gp ON mgp.grppolcod = gp.grppolcod
+            WHERE TRIM(mgp.senmat) = ?
+            ORDER BY mgp.grppolcod, mgp.memgrppoldatdeb, mgp.memgrppoldatfin DESC NULLS FIRST
+        ", [$matricule]);
+
+        return collect($rows)->map(fn($r) => [
+            'groupe' => $r->groupe,
+            'date_debut' => $r->date_debut ? \Carbon\Carbon::parse($r->date_debut)->format('d/m/Y') : null,
+            'date_fin' => $r->date_fin ? \Carbon\Carbon::parse($r->date_fin)->format('d/m/Y') : null,
+        ])->sortByDesc('date_debut')->values()->toArray();
     }
 
     /**
@@ -1442,6 +1485,49 @@ class RepresentantANController extends Controller
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         return $text;
+    }
+
+    private function getAffairesJudiciaires(string $type, string $id): array
+    {
+        $query = AffaireJudiciaire::publiques()
+            ->with(['sources' => fn ($q) => $q->orderByRaw("CASE fiabilite WHEN 'haute' THEN 1 WHEN 'moyenne' THEN 2 ELSE 3 END")])
+            ->orderByRaw("CASE statut_judiciaire
+                WHEN 'condamne_definitif' THEN 1
+                WHEN 'condamne_appel' THEN 2
+                WHEN 'condamne_premiere_instance' THEN 3
+                WHEN 'mis_en_examen' THEN 4
+                ELSE 5 END");
+
+        if ($type === 'depute') {
+            $query->forDepute($id);
+        } else {
+            $query->forSenateur($id);
+        }
+
+        return $query->get()->map(fn ($a) => [
+            'id' => $a->id,
+            'titre' => $a->titre,
+            'description' => $a->description,
+            'type_affaire' => $a->type_affaire,
+            'type_affaire_libelle' => $a->type_affaire_libelle,
+            'categorie' => $a->categorie,
+            'statut_judiciaire' => $a->statut_judiciaire,
+            'statut_libelle' => $a->statut_judiciaire_libelle,
+            'statut_couleur' => $a->statut_judiciaire_couleur,
+            'statut_validation' => $a->statut_validation,
+            'date_condamnation' => $a->date_condamnation_definitive?->format('d/m/Y'),
+            'date_mise_en_examen' => $a->date_mise_en_examen?->format('d/m/Y'),
+            'peine_resume' => $a->peine_resume,
+            'juridiction' => $a->juridiction,
+            'valide_at' => $a->valide_at?->format('d/m/Y'),
+            'sources' => $a->sources->map(fn ($s) => [
+                'media' => $s->media,
+                'url' => $s->url,
+                'date' => $s->date_publication?->format('d/m/Y'),
+                'type' => $s->type_source,
+                'fiabilite' => $s->fiabilite,
+            ])->toArray(),
+        ])->toArray();
     }
 }
 

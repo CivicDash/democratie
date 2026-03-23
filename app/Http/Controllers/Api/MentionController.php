@@ -19,7 +19,7 @@ class MentionController extends Controller
      */
     public function suggest(Request $request): JsonResponse
     {
-        $query = $request->get('q', '');
+        $query = $request->input('q', '');
         
         if (strlen($query) < 2) {
             return response()->json(['suggestions' => []]);
@@ -47,7 +47,7 @@ class MentionController extends Controller
                 'id' => $m->id,
                 'author' => [
                     'id' => $m->author->id,
-                    'name' => $m->author->name,
+                    'name' => $m->author->display_name,
                 ],
                 'content_type' => class_basename($m->mentionable_type),
                 'created_at' => $m->created_at->diffForHumans(),

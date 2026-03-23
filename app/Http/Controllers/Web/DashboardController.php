@@ -18,6 +18,8 @@ use App\Models\Senateur;
 use App\Models\ScrutinAN;
 use App\Models\OrganeAN;
 use App\Models\DashboardStat;
+use App\Models\FranceDemographics;
+use App\Models\FranceEconomy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +49,7 @@ class DashboardController extends Controller
                         'id' => $topic->id,
                         'slug' => $topic->slug,
                         'titre' => $topic->title,
-                        'auteur' => $topic->author->name ?? 'Anonyme',
+                        'auteur' => $topic->author->display_name ?? 'Anonyme',
                         'type' => $topic->idea_type ?? $topic->type,
                         'scope' => $topic->scope,
                         'territoire' => $topic->territory?->name ?? 'National',
@@ -79,9 +81,9 @@ class DashboardController extends Controller
                 
                 return [
                     'id' => $stats->id,
-                    'loicod' => $stats->loi_cod,
-                    'numero' => $loi->numero ?? substr($stats->loi_cod, -4),
-                    'titre' => $loi->loitit ?: $loi->loiint ?: 'Loi ' . $stats->loi_cod,
+                    'loicod' => trim($stats->loi_cod),
+                    'numero' => $loi->numero ?? substr(trim($stats->loi_cod), -4),
+                    'titre' => $loi->loitit ?: $loi->loiint ?: 'Loi ' . trim($stats->loi_cod),
                     'source' => $source,
                     'statut' => $loi->etat?->etaloilib ?? 'En cours',
                     'date_depot' => null,
@@ -113,9 +115,9 @@ class DashboardController extends Controller
                         $stats = CitizenLawStats::where('loi_cod', $loi->loicod)->first();
                         
                         return [
-                            'id' => $loi->loicod,
-                            'loicod' => $loi->loicod,
-                            'numero' => $loi->numero ?? substr($loi->loicod, -4),
+                            'id' => trim($loi->loicod),
+                            'loicod' => trim($loi->loicod),
+                            'numero' => $loi->numero ?? substr(trim($loi->loicod), -4),
                             'titre' => $loi->loitit ?: $loi->loiint,
                             'source' => $source,
                             'statut' => $loi->etat?->etaloilib ?? 'En cours',
@@ -345,6 +347,25 @@ class DashboardController extends Controller
             ])->toArray();
         }
 
+        $platformStats = DashboardStat::get('global_stats', [
+            'nb_deputes' => 577, 'nb_senateurs' => 348,
+            'nb_scrutins' => 0, 'nb_amendements_an' => 0,
+        ]);
+
+        $franceStats = Cache::remember('dashboard_france_stats', 86400, function () {
+            $demo = FranceDemographics::orderByDesc('year')->first();
+            $eco = FranceEconomy::whereNull('quarter')->orderByDesc('year')->first();
+            return [
+                'population' => $demo?->population_total,
+                'pib' => $eco?->gdp_billions_euros,
+                'chomage' => $eco?->unemployment_rate,
+                'dette' => $eco?->public_debt_billions_euros,
+                'inflation' => $eco?->inflation_rate,
+                'salaire_median' => $demo?->median_salary_euros,
+                'annee' => $eco?->year ?? $demo?->year,
+            ];
+        });
+
         return Inertia::render('Dashboard', [
             'trendingTopics' => $trendingTopics,
             'propositionsLegislatives' => $propositionsLegislatives,
@@ -360,6 +381,9 @@ class DashboardController extends Controller
             'topSenateurs' => $topSenateurs,
             'groupesActifs' => $groupesActifs,
             'prochainesReunions' => $prochainesReunions,
+            'platformStats' => $platformStats,
+            'franceStats' => $franceStats,
+            'isNewUser' => $user->created_at->diffInDays(now()) < 7,
         ]);
     }
 }

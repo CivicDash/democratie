@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { nextTick, ref, watch } from 'vue';
+
+const props = defineProps({
     modelValue: {
         type: Boolean,
         default: false,
@@ -7,17 +9,68 @@ defineProps({
 });
 
 const emit = defineEmits(["update:modelValue"]);
+const modalRef = ref(null);
 
 const close = () => {
     emit("update:modelValue", false);
 };
 
+const handleKeydown = (event) => {
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        close();
+        return;
+    }
+
+    if (event.key === 'Tab') {
+        const focusable = modalRef.value
+            ? Array.from(
+                modalRef.value.querySelectorAll(
+                    'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                )
+            )
+            : [];
+        if (focusable.length === 0) {
+            event.preventDefault();
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+            return;
+        }
+        if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
+};
+
+watch(
+    () => props.modelValue,
+    (isOpen) => {
+        if (isOpen) {
+            nextTick(() => {
+                const firstFocusable = modalRef.value?.querySelector(
+                    'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                firstFocusable?.focus();
+            });
+        }
+    }
+);
+
 const shortcutGroups = [
     {
         title: "Navigation Générale",
         shortcuts: [
-            { keys: ["⌘/Ctrl", "K"], description: "Ouvrir la recherche rapide" },
-            { keys: ["/"], description: "Focus sur la recherche" },
+            { keys: ["/"], description: "Ouvrir la recherche rapide" },
+            { keys: ["Ctrl", "/"], description: "Ouvrir la recherche (Windows)" },
+            { keys: ["⌘", "K"], description: "Ouvrir la recherche (Mac)" },
+            { keys: ["🔍"], description: "Cliquer sur l'icône loupe" },
             { keys: ["Échap"], description: "Fermer les modales" },
             { keys: ["?"], description: "Afficher cette aide" },
         ],
@@ -50,7 +103,14 @@ const shortcutGroups = [
                 <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="close" />
 
                 <!-- Modal -->
-                <div class="relative mx-auto max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-white/10">
+                <div
+                    class="relative mx-auto max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-white/10"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Aide des raccourcis clavier"
+                    ref="modalRef"
+                    @keydown="handleKeydown"
+                >
                     <!-- Header -->
                     <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -60,6 +120,7 @@ const shortcutGroups = [
                         <button
                             @click="close"
                             class="rounded-full p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                            aria-label="Fermer l'aide des raccourcis"
                         >
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

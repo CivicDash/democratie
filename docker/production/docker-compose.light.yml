@@ -156,6 +156,8 @@ services:
       context: ../..
       dockerfile: Dockerfile.frankenphp
     container_name: civicdash_scheduler
+    profiles:
+      - scheduler
     restart: unless-stopped
     command: >
       sh -c "while true; do

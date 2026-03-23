@@ -23,9 +23,12 @@ const emit = defineEmits(["update:modelValue"]);
 
 const searchQuery = ref("");
 const searchInput = ref(null);
+const modalRef = ref(null);
 const selectedIndex = ref(0);
 const isLoading = ref(false);
 const apiResults = ref([]);
+let currentRequestId = 0;
+let activeController = null;
 
 // Navigation rapide (liens statiques)
 const quickLinks = [
@@ -44,22 +47,43 @@ const quickLinks = [
 // Recherche API avec debounce
 const searchAPI = debounce(async (query) => {
     if (!query || query.length < 2) {
+        if (activeController) {
+            activeController.abort();
+            activeController = null;
+        }
         apiResults.value = [];
         isLoading.value = false;
         return;
     }
 
     isLoading.value = true;
+    let requestId = 0;
     try {
+        if (activeController) {
+            activeController.abort();
+        }
+        requestId = ++currentRequestId;
+        activeController = new AbortController();
+
         const response = await axios.get('/api/search/suggestions', {
-            params: { q: query }
+            params: { q: query },
+            signal: activeController.signal,
         });
+
+        if (requestId !== currentRequestId) {
+            return;
+        }
         apiResults.value = response.data.results || [];
     } catch (error) {
+        if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+            return;
+        }
         console.error('Search error:', error);
         apiResults.value = [];
     } finally {
-        isLoading.value = false;
+        if (requestId === currentRequestId) {
+            isLoading.value = false;
+        }
     }
 }, 300);
 
@@ -112,6 +136,10 @@ watch(searchQuery, (newQuery) => {
         isLoading.value = true;
         searchAPI(newQuery);
     } else {
+        if (activeController) {
+            activeController.abort();
+            activeController = null;
+        }
         apiResults.value = [];
         isLoading.value = false;
     }
@@ -134,6 +162,10 @@ watch(
             searchQuery.value = "";
             selectedIndex.value = 0;
             apiResults.value = [];
+            if (activeController) {
+                activeController.abort();
+                activeController = null;
+            }
         }
     }
 );
@@ -151,6 +183,34 @@ const navigate = (item) => {
 };
 
 const handleKeydown = (event) => {
+    if (event.key === "Tab") {
+        const focusable = modalRef.value
+            ? Array.from(
+                modalRef.value.querySelectorAll(
+                    'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+                )
+            )
+            : [];
+        if (focusable.length === 0) {
+            event.preventDefault();
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const isShift = event.shiftKey;
+        if (isShift && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+            return;
+        }
+        if (!isShift && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+            return;
+        }
+    }
+
     switch (event.key) {
         case "ArrowDown":
             event.preventDefault();
@@ -211,7 +271,12 @@ const getCategoryColor = (type) => {
                 >
                     <div
                         v-if="modelValue"
+                        ref="modalRef"
                         class="relative mx-auto max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-white/10"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Recherche rapide"
+                        @keydown="handleKeydown"
                     >
                         <!-- Search Input -->
                         <div class="flex items-center border-b border-gray-200 dark:border-gray-700 px-4">
@@ -229,7 +294,6 @@ const getCategoryColor = (type) => {
                                 type="text"
                                 placeholder="Rechercher un député, sénateur, loi, idée..."
                                 class="w-full border-0 bg-transparent py-4 px-3 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:ring-0 text-base"
-                                @keydown="handleKeydown"
                             />
                             <kbd class="hidden sm:inline-flex items-center gap-1 rounded-md bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400">
                                 Échap

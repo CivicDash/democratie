@@ -47,7 +47,7 @@ class TopicPolicy
     public function create(User $user): bool
     {
         // Citoyens et législateurs peuvent créer des topics
-        return $user->hasAnyPermission(['topics.create']) &&
+        return $user->hasPermissionTo('create_topics') &&
                !$user->isMuted() &&
                !$user->isBanned();
     }
@@ -58,7 +58,7 @@ class TopicPolicy
     public function createBill(User $user): bool
     {
         // Seuls les législateurs peuvent créer des bills
-        return $user->hasPermissionTo('topics.bill') && !$user->isMuted() && !$user->isBanned();
+        return $user->hasAnyRole(['legislator', 'state', 'admin']) && !$user->isMuted() && !$user->isBanned();
     }
 
     /**
@@ -96,7 +96,7 @@ class TopicPolicy
     {
         // L'auteur, modérateurs et admins peuvent fermer
         return $topic->author_id === $user->id ||
-               $user->hasPermissionTo('topics.close');
+               $user->hasAnyRole(['moderator', 'admin']);
     }
 
     /**
@@ -105,7 +105,7 @@ class TopicPolicy
     public function pin(User $user, Topic $topic): bool
     {
         // Seuls modérateurs et admins peuvent épingler
-        return $user->hasPermissionTo('topics.pin');
+        return $user->hasAnyRole(['moderator', 'admin']);
     }
 
     /**
@@ -115,8 +115,8 @@ class TopicPolicy
     {
         // L'auteur du topic peut créer un scrutin
         // OU les législateurs/admins
-        return ($topic->author_id === $user->id || $user->hasPermissionTo('ballots.create')) &&
-               !$topic->has_ballot; // Pas déjà de scrutin
+        return ($topic->author_id === $user->id || $user->hasPermissionTo('create_ballots')) &&
+               !$topic->has_ballot;
     }
 
     /**
@@ -130,7 +130,7 @@ class TopicPolicy
         }
 
         // User doit avoir la permission de voter
-        if (!$user->hasPermissionTo('ballots.vote')) {
+        if (!$user->hasPermissionTo('vote_in_ballots')) {
             return false;
         }
 

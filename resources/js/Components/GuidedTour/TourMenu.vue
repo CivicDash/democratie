@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useGuidedTour } from '@/Composables/useGuidedTour';
+import { useGuidedTour } from '@/composables/useGuidedTour';
 import TourIcon from './TourIcon.vue';
 
 const { startTourWithRedirect, availableTours, isTourCompleted, resetTours, completedTours } = useGuidedTour();

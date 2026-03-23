@@ -72,7 +72,7 @@ class SenatSectionDiscussion extends Model
         if (!$this->url) {
             return null;
         }
-        return 'https://www.senat.fr' . $this->url;
+        return 'https://www.senat.fr/seances/' . ltrim($this->url, '/');
     }
 
     /**

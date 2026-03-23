@@ -52,8 +52,8 @@ RUN install-php-extensions \
 # Installation de Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Permissions FrankenPHP (éviter les erreurs de mise à jour auto)
-RUN chmod 777 /usr/local/bin/frankenphp
+# Permissions FrankenPHP
+RUN chmod 755 /usr/local/bin/frankenphp
 
 # Installation Node.js (pour build assets)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \

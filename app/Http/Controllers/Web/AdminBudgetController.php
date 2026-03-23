@@ -16,7 +16,7 @@ class AdminBudgetController extends Controller
      */
     public function index(Request $request): Response
     {
-        $annee = $request->get('annee', now()->year);
+        $annee = $request->input('annee', now()->year);
         $annees = BudgetMinistere::distinct('annee')
             ->orderByDesc('annee')
             ->pluck('annee');
@@ -212,7 +212,7 @@ class AdminBudgetController extends Controller
      */
     public function export(Request $request)
     {
-        $annee = $request->get('annee', now()->year);
+        $annee = $request->input('annee', now()->year);
         $budgets = BudgetMinistere::where('annee', $annee)
             ->orderByDesc('budget_total')
             ->get();

@@ -57,7 +57,7 @@ return new class extends Migration
             // Index
             $table->index(['code_commune', 'en_exercice'], 'idx_commune_exercice');
             $table->index(['code_departement', 'en_exercice'], 'idx_dept_exercice');
-            $table->fullText(['nom', 'prenom', 'nom_commune'], 'fulltext_search');
+            $table->fullText(['nom', 'prenom', 'nom_commune'], 'fulltext_maires_search');
         });
     }
 

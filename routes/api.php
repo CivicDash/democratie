@@ -30,6 +30,22 @@ use Illuminate\Support\Facades\Route;
 
 
 // ============================================================================
+// CADDY ON_DEMAND TLS - Verification sous-domaine commune
+// ============================================================================
+Route::get('/verify-subdomain', function (\Illuminate\Http\Request $request) {
+    $domain = $request->query('domain', '');
+    if (!str_ends_with($domain, '.civicdash.fr')) {
+        return response('', 404);
+    }
+    $slug = str_replace('.civicdash.fr', '', $domain);
+    if (empty($slug) || $slug === 'www') {
+        return response('', 404);
+    }
+    $exists = \App\Models\Ville::where('slug', $slug)->exists();
+    return response('', $exists ? 200 : 404);
+});
+
+// ============================================================================
 // ROUTES PUBLIQUES (sans authentification)
 // ============================================================================
 
@@ -54,8 +70,8 @@ Route::get('/budget/sectors', [BudgetController::class, 'sectors']);
 Route::get('/budget/averages', [BudgetController::class, 'averages']);
 Route::get('/budget/ranking', [BudgetController::class, 'ranking']);
 Route::get('/budget/stats', [BudgetController::class, 'stats']);
-Route::post('/budget/simulate', [BudgetController::class, 'simulate']);
-Route::post('/budget/compare', [BudgetController::class, 'compare']);
+Route::post('/budget/simulate', [BudgetController::class, 'simulate'])->middleware('throttle:60,1');
+Route::post('/budget/compare', [BudgetController::class, 'compare'])->middleware('throttle:60,1');
 
 // Codes postaux - routes publiques
 Route::get('/postal-codes/search', [PostalCodeController::class, 'search']);
@@ -142,6 +158,8 @@ Route::get('/documents/{document}/verifications', [DocumentController::class, 'v
 Route::get('/documents/{document}/download', [DocumentController::class, 'download']);
 Route::get('/documents/stats', [DocumentController::class, 'stats']);
 Route::get('/documents/top-verifiers', [DocumentController::class, 'topVerifiers']);
+Route::get('/documents/pending', [DocumentController::class, 'pending'])
+    ->middleware(['auth:sanctum', 'role:journalist|ong|admin']);
 
 // ============================================================================
 // RECHERCHE MEILISEARCH - Routes publiques
@@ -161,6 +179,9 @@ Route::prefix('search-meilisearch')->group(function () {
 // ============================================================================
 // DATA.GOUV.FR - Routes publiques
 // ============================================================================
+
+// Recherche de communes (pour formulaires)
+Route::get('/communes/search', [DataGouvController::class, 'searchCommunes']);
 
 Route::prefix('datagouv')->group(function () {
     // Budget territorial
@@ -187,7 +208,7 @@ Route::prefix('legislation')->group(function () {
     Route::get('/propositions/{source}/{numero}/votes', [LegislationController::class, 'getVotes']);
     
     // 🔥 KILLER FEATURE: Comparaison avec propositions citoyennes
-    Route::post('/find-similar', [LegislationController::class, 'findSimilar']);
+    Route::post('/find-similar', [LegislationController::class, 'findSimilar'])->middleware('throttle:60,1');
     
     // 👍👎 VOTES CITOYENS (routes publiques pour consultation)
     Route::get('/propositions/{id}/votes/stats', [LegislationController::class, 'getVoteStats']);
@@ -217,7 +238,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // TOPICS (écriture - bloqué pour comptes démo)
     // ========================================================================
     Route::middleware('not-readonly')->group(function () {
-        Route::post('/topics', [TopicController::class, 'store']);
+        Route::post('/topics', [TopicController::class, 'store'])->middleware('rate.limit:post');
         Route::put('/topics/{topic}', [TopicController::class, 'update']);
         Route::delete('/topics/{topic}', [TopicController::class, 'destroy']);
         Route::post('/topics/{topic}/close', [TopicController::class, 'close']);
@@ -229,7 +250,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // POSTS (écriture - bloqué pour comptes démo)
     // ========================================================================
     Route::middleware('not-readonly')->group(function () {
-        Route::post('/topics/{topic}/posts', [PostController::class, 'store']);
+        Route::post('/topics/{topic}/posts', [PostController::class, 'store'])->middleware('rate.limit:post');
         Route::put('/posts/{post}', [PostController::class, 'update']);
         Route::delete('/posts/{post}', [PostController::class, 'destroy']);
         Route::post('/posts/{post}/vote', [PostController::class, 'vote']);
@@ -297,8 +318,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // ========================================================================
     
     // Signalements - tous les utilisateurs authentifiés
-    Route::post('/moderation/reports', [ModerationController::class, 'storeReport']);
-    Route::post('/reports', [ModerationController::class, 'storeReport']); // Alias simplifié
+Route::post('/moderation/reports', [ModerationController::class, 'storeReport'])->middleware(['rate.limit:report', 'auth:sanctum']);
+Route::post('/reports', [ModerationController::class, 'storeReport'])->middleware(['rate.limit:report', 'auth:sanctum']); // Alias simplifié
     
     // Modération - routes modérateurs/admins
     Route::middleware('role:moderator|admin')->prefix('moderation')->group(function () {
@@ -322,7 +343,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ========================================================================
     // DOCUMENTS
     // ========================================================================
-    Route::post('/documents', [DocumentController::class, 'store']);
+    Route::post('/documents', [DocumentController::class, 'store'])->middleware('rate.limit:document');
     Route::put('/documents/{document}', [DocumentController::class, 'update']);
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);
     
@@ -371,7 +392,7 @@ Route::prefix('groupes-parlementaires')->name('groupes.')->group(function () {
 });
 
 // Routes admin
-Route::middleware(['auth:sanctum'])->prefix('groupes-parlementaires')->name('groupes.')->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('groupes-parlementaires')->name('groupes.')->group(function () {
     Route::post('/sync', [App\Http\Controllers\Api\GroupesParlementairesController::class, 'sync'])->name('sync');
 });
 
@@ -388,8 +409,8 @@ Route::prefix('thematiques')->name('thematiques.')->group(function () {
     Route::get('/{code}/propositions', [App\Http\Controllers\Api\ThematiquesController::class, 'propositions'])->name('propositions');
 });
 
-// Routes admin/modération
-Route::middleware(['auth:sanctum'])->prefix('thematiques')->name('thematiques.')->group(function () {
+// Routes admin
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('thematiques')->name('thematiques.')->group(function () {
     Route::post('/detecter', [App\Http\Controllers\Api\ThematiquesController::class, 'detecter'])->name('detecter');
     Route::post('/detecter-batch', [App\Http\Controllers\Api\ThematiquesController::class, 'detecterBatch'])->name('detecter_batch');
     Route::post('/attacher', [App\Http\Controllers\Api\ThematiquesController::class, 'attacher'])->name('attacher');
@@ -451,24 +472,19 @@ Route::prefix('export')->name('export.')->group(function () {
 // ═══════════════════════════════════════════════════════════════════════════════════
 // GAMIFICATION & ACHIEVEMENTS
 // ═══════════════════════════════════════════════════════════════════════════════════
-Route::middleware('web')->prefix('gamification')->name('gamification.')->group(function () {
-    // Routes publiques
+Route::middleware(['auth:sanctum'])->prefix('gamification')->name('gamification.')->group(function () {
     Route::get('/achievements', [App\Http\Controllers\Api\GamificationController::class, 'allAchievements'])->name('achievements.all');
     Route::get('/global-stats', [App\Http\Controllers\Api\GamificationController::class, 'globalStats'])->name('global_stats');
     Route::get('/leaderboard', [App\Http\Controllers\Api\GamificationController::class, 'leaderboard'])->name('leaderboard');
     Route::get('/users/{userId}/stats', [App\Http\Controllers\Api\GamificationController::class, 'userStats'])->name('user.stats');
     Route::get('/users/{userId}/achievements', [App\Http\Controllers\Api\GamificationController::class, 'userAchievements'])->name('user.achievements');
-    
-    // Routes authentifiées (avec session web)
-    Route::middleware('auth')->group(function () {
-        Route::post('/initialize', [App\Http\Controllers\Api\GamificationController::class, 'initialize'])->name('initialize');
-        Route::get('/my-stats', [App\Http\Controllers\Api\GamificationController::class, 'myStats'])->name('my_stats');
-        Route::get('/my-achievements', [App\Http\Controllers\Api\GamificationController::class, 'myAchievements'])->name('my_achievements');
-        Route::get('/recent-achievements', [App\Http\Controllers\Api\GamificationController::class, 'recentAchievements'])->name('recent_achievements');
-        Route::get('/almost-unlocked', [App\Http\Controllers\Api\GamificationController::class, 'almostUnlocked'])->name('almost_unlocked');
-        Route::post('/achievements/{achievementId}/share', [App\Http\Controllers\Api\GamificationController::class, 'shareAchievement'])->name('achievements.share');
-        Route::post('/test', [App\Http\Controllers\Api\GamificationController::class, 'test'])->name('test');
-    });
+    Route::post('/initialize', [App\Http\Controllers\Api\GamificationController::class, 'initialize'])->name('initialize');
+    Route::get('/my-stats', [App\Http\Controllers\Api\GamificationController::class, 'myStats'])->name('my_stats');
+    Route::get('/my-achievements', [App\Http\Controllers\Api\GamificationController::class, 'myAchievements'])->name('my_achievements');
+    Route::get('/recent-achievements', [App\Http\Controllers\Api\GamificationController::class, 'recentAchievements'])->name('recent_achievements');
+    Route::get('/almost-unlocked', [App\Http\Controllers\Api\GamificationController::class, 'almostUnlocked'])->name('almost_unlocked');
+    Route::post('/achievements/{achievementId}/share', [App\Http\Controllers\Api\GamificationController::class, 'shareAchievement'])->name('achievements.share');
+    Route::post('/test', [App\Http\Controllers\Api\GamificationController::class, 'test'])->name('test');
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════════
@@ -532,7 +548,7 @@ Route::prefix('references')->name('references.')->group(function () {
 Route::prefix('mentions')->name('mentions.')->group(function () {
     // Public : suggestions pour autocomplete
     Route::get('/suggest', [App\Http\Controllers\Api\MentionController::class, 'suggest'])->name('suggest');
-    Route::post('/preview', [App\Http\Controllers\Api\MentionController::class, 'preview'])->name('preview');
+    Route::post('/preview', [App\Http\Controllers\Api\MentionController::class, 'preview'])->name('preview')->middleware('throttle:60,1');
     
     // Authentifié : gestion des mentions
     Route::middleware('auth:sanctum')->group(function () {

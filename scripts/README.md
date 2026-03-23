@@ -40,11 +40,20 @@ Ce répertoire contient **tous les scripts** nécessaires pour gérer, importer 
 #### 📅 Installation du Cron
 
 ```bash
-# Installation interactive
+# Installation interactive (usage manuel uniquement)
 ./scripts/install-cron.sh
 
 # Ou manuellement (crontab -e) :
-0 3 * * * /var/www/demoscratos/scripts/sync-all-data.sh >> /var/log/demoscratos/sync.log 2>&1
+0 3 * * * cd /opt/civicdash && ./scripts/sync-all-data.sh >> /opt/civicdash/storage/logs/sync.log 2>&1
+```
+
+#### Scheduler Laravel (recommandé)
+
+Si vous utilisez le scheduler Laravel, n’installez pas le cron `sync-all-data.sh`.
+Utilisez :
+
+```bash
+* * * * * cd /opt/civicdash && docker compose exec -T app php artisan schedule:run >> /opt/civicdash/storage/logs/scheduler.log 2>&1
 ```
 
 #### 📊 Sources synchronisées
@@ -270,14 +279,24 @@ Importe groupes politiques, commissions, délégations (ancienne API).
 
 ## 🔍 Scripts Analyse & Diagnostic
 
-### Analyse Complète Données AN
+> Les scripts d’analyse historiques ont été **archivés** dans `scripts/legacy/diagnostic/`.
+
+### `check-scheduler.sh`
+
+Diagnostic rapide du scheduler Laravel (liste des tâches + derniers logs).
+
+```bash
+./scripts/check-scheduler.sh
+```
+
+### Analyse Complète Données AN (archivé)
 
 **`analyse_complete_donnees_an.sh`**
 
 Rapport détaillé sur toutes les données AN importées.
 
 ```bash
-./scripts/analyse_complete_donnees_an.sh
+./scripts/legacy/diagnostic/analyse_complete_donnees_an.sh
 ```
 
 **Affiche** :
@@ -290,14 +309,14 @@ Rapport détaillé sur toutes les données AN importées.
 
 ---
 
-### Test Données AN
+### Test Données AN (archivé)
 
 **`test_donnees_an.sh`**
 
 Tests rapides de cohérence des données.
 
 ```bash
-./scripts/test_donnees_an.sh
+./scripts/legacy/diagnostic/test_donnees_an.sh
 ```
 
 ---
@@ -374,6 +393,8 @@ Lance tous les enrichissements d'un coup.
 
 ## 🗺️ Scripts Codes Postaux & Géo
 
+> Les scripts de contrôle/postaux ont été **archivés** dans `scripts/legacy/diagnostic/` et `scripts/legacy/tests/`.
+
 ### Import Codes Postaux
 
 **`import_postal_codes_local.sh`**
@@ -390,12 +411,12 @@ Importe codes postaux depuis CSV local.
 
 ### Diagnostic Codes Postaux
 
-**`check_postal_codes.sh`**
+**`check_postal_codes.sh`** (archivé)
 
 Vérifie l'intégrité des codes postaux en base.
 
 ```bash
-./scripts/check_postal_codes.sh
+./scripts/legacy/diagnostic/check_postal_codes.sh
 ```
 
 **Affiche** :
@@ -408,50 +429,52 @@ Vérifie l'intégrité des codes postaux en base.
 
 ### Test Recherche Postale
 
-**`test_postal_search.sh`**
+**`test_postal_search.sh`** (archivé)
 
 Teste les recherches par code postal ET par ville.
 
 ```bash
-./scripts/test_postal_search.sh
+./scripts/legacy/tests/test_postal_search.sh
 ```
 
 ---
 
 ## 🧪 Scripts Tests & Debug
 
+> Les scripts de test/debug ont été **archivés** dans `scripts/legacy/tests/` et `scripts/legacy/debug/`.
+
 ### Test Enrichissement Votes
 
-**`test_enrich_votes.sh`**
+**`test_enrich_votes.sh`** (archivé)
 
 Test rapide enrichissement votes (limite 5 députés).
 
 ```bash
-./scripts/test_enrich_votes.sh
+./scripts/legacy/tests/test_enrich_votes.sh
 ```
 
 ---
 
 ### Debug API NosDéputés
 
-**`debug_api_nosdeputes.sh`**
+**`debug_api_nosdeputes.sh`** (archivé)
 
 Teste connexion et parsing API RegardsCitoyens.
 
 ```bash
-./scripts/debug_api_nosdeputes.sh
+./scripts/legacy/debug/debug_api_nosdeputes.sh
 ```
 
 ---
 
 ### Debug Recherche Postale
 
-**`debug_postal_search.sh`**
+**`debug_postal_search.sh`** (archivé)
 
 Debug recherches codes postaux.
 
 ```bash
-./scripts/debug_postal_search.sh
+./scripts/legacy/debug/debug_postal_search.sh
 ```
 
 ---
@@ -459,6 +482,8 @@ Debug recherches codes postaux.
 ### Dossier Debug
 
 **`debug/`** (gitignored)
+
+Les scripts historiques équivalents sont désormais dans `scripts/legacy/debug/`.
 
 Scripts de debug temporaires :
 - `check_postal_table.sh`
@@ -472,7 +497,7 @@ Scripts de debug temporaires :
 
 ## 🗑️ Scripts Obsolètes
 
-Ces scripts sont **redondants** avec `import_parlement_master.sh` et peuvent être supprimés :
+Ces scripts sont **redondants** avec `import_parlement_master.sh` et doivent rester **supprimés**.
 
 ### ❌ À Supprimer
 

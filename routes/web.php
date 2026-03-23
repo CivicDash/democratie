@@ -200,6 +200,11 @@ Route::prefix('legislation')->name('legislation.')->middleware('auth')->group(fu
     // Textes législatifs (NOUVEAU)
     Route::get('/textes/{uid}', [LegislationController::class, 'showTexte'])->name('textes.show');
     
+    // Constitution
+    Route::get('/constitution', function () {
+        return Inertia::render('Legislation/Constitution');
+    })->name('constitution');
+
     // Redirection /legislation/lois vers /lois (éviter conflit avec route générique)
     Route::get('/lois', function () {
         return redirect()->route('lois.index');
@@ -223,6 +228,75 @@ Route::prefix('parlement')->name('parlement.')->middleware('auth')->group(functi
     // API pour widgets
     Route::get('/api/reunions/aujourdhui', [\App\Http\Controllers\Web\CalendrierController::class, 'aujourdhui'])->name('api.reunions.aujourdhui');
     Route::get('/api/reunions/prochaines', [\App\Http\Controllers\Web\CalendrierController::class, 'prochaines'])->name('api.reunions.prochaines');
+});
+
+// ==========================================
+// ÉLECTIONS - Hub et pages par type
+// ==========================================
+Route::prefix('elections')->name('elections.')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Web\ElectionsController::class, 'hub'])->name('hub');
+    Route::get('/legislatives', [\App\Http\Controllers\Web\ElectionsController::class, 'legislatives'])->name('legislatives');
+    Route::get('/senatoriales', [\App\Http\Controllers\Web\ElectionsController::class, 'senatoriales'])->name('senatoriales');
+    Route::get('/presidentielle', [\App\Http\Controllers\Web\ElectionsController::class, 'presidentielle'])->name('presidentielle');
+    
+    // ==========================================
+    // ÉLECTIONS MUNICIPALES 2026
+    // ==========================================
+    Route::prefix('municipales')->name('municipales.')->group(function () {
+        // Pages publiques
+        Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'index'])->name('index');
+        Route::get('/carte', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'carte'])->name('carte');
+        Route::get('/recherche', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'recherche'])->name('recherche');
+        Route::get('/tutoriel', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'tutoriel'])->name('tutoriel');
+        Route::get('/liste/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'showListe'])->name('liste');
+        Route::get('/candidat/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'showCandidat'])->name('candidat');
+        
+        // API pour la carte
+        Route::get('/api/departement/{departement}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiListesParDepartement'])->name('api.departement');
+        
+        // Résultats électoraux
+        Route::prefix('resultats')->name('resultats.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultats'])->name('index');
+            Route::get('/statistiques', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'statistiques'])->name('statistiques');
+            Route::get('/transition-maires', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'transitionMaires'])->name('transition');
+            Route::get('/commune/{code}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultatCommune'])->name('commune');
+            Route::get('/departement/{code}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultatDepartement'])->name('departement');
+        });
+
+        // API résultats (JSON pour composants dynamiques)
+        Route::prefix('api/resultats')->name('api.resultats.')->group(function () {
+            Route::get('/commune/{code}/{tour}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiResultatsCommune'])->name('commune');
+            Route::get('/stats/nuances', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiStatsNuances'])->name('nuances');
+            Route::get('/carte/participation', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiCarteParticipation'])->name('carte-participation');
+            Route::get('/carte/nuances', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiCarteNuances'])->name('carte-nuances');
+            Route::get('/transition/{codeInsee}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiTransitionMaire'])->name('transition');
+        });
+        
+        // Espace candidat (authentifié)
+        Route::prefix('espace-candidat')->name('espace-candidat.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'index'])->name('index');
+            Route::get('/nouvelle-liste', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'createListe'])->name('create-liste');
+            Route::post('/nouvelle-liste', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'storeListe'])->name('store-liste');
+            Route::get('/liste/{uuid}', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'editListe'])->name('edit-liste');
+            Route::put('/liste/{uuid}', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'updateListe'])->name('update-liste');
+            Route::post('/liste/{uuid}/logo', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'uploadLogo'])->name('upload-logo');
+            Route::post('/liste/{uuid}/programme', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'uploadProgramme'])->name('upload-programme');
+            Route::post('/liste/{uuid}/document', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'uploadDocument'])->name('upload-document');
+            Route::post('/liste/{uuid}/candidat', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'storeCandidat'])->name('store-candidat');
+            Route::post('/liste/{uuid}/soumettre', [\App\Http\Controllers\Web\EspaceCandidatController::class, 'soumettreListe'])->name('soumettre-liste');
+        });
+        
+        // Modération (admin/modérateur)
+        Route::prefix('moderation')->name('moderation.')->middleware('can:moderate')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Web\ModerationMunicipalesController::class, 'index'])->name('index');
+            Route::get('/liste/{uuid}', [\App\Http\Controllers\Web\ModerationMunicipalesController::class, 'show'])->name('show');
+            Route::post('/document/{uuid}/valider', [\App\Http\Controllers\Web\ModerationMunicipalesController::class, 'validerDocument'])->name('valider-document');
+            Route::post('/document/{uuid}/invalider', [\App\Http\Controllers\Web\ModerationMunicipalesController::class, 'invaliderDocument'])->name('invalider-document');
+            Route::post('/liste/{uuid}/valider', [\App\Http\Controllers\Web\ModerationMunicipalesController::class, 'validerListe'])->name('valider-liste');
+            Route::post('/liste/{uuid}/rejeter', [\App\Http\Controllers\Web\ModerationMunicipalesController::class, 'rejeterListe'])->name('rejeter-liste');
+            Route::post('/liste/{uuid}/demander-documents', [\App\Http\Controllers\Web\ModerationMunicipalesController::class, 'demanderDocuments'])->name('demander-documents');
+        });
+    });
 });
 
 // ==========================================
@@ -342,6 +416,21 @@ Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
     Route::get('/president/{slug}', [GouvernementController::class, 'showPresident'])->name('president.show');
     Route::get('/historique', [GouvernementController::class, 'historique'])->name('historique');
     Route::get('/personne/{slug}', [GouvernementController::class, 'showPersonne'])->name('personne');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Comprendre la Démocratie (Phase 5 - Hub éducatif public)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('democratie')->name('democratie.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Web\DemocratieController::class, 'index'])->name('index');
+    Route::get('/parcours-loi', [\App\Http\Controllers\Web\DemocratieController::class, 'parcoursLoi'])->name('parcours-loi');
+    Route::get('/elections', [\App\Http\Controllers\Web\DemocratieController::class, 'elections'])->name('elections');
+    Route::get('/representants', [\App\Http\Controllers\Web\DemocratieController::class, 'representants'])->name('representants');
+    Route::get('/votes', [\App\Http\Controllers\Web\DemocratieController::class, 'votes'])->name('votes');
+    Route::get('/gouvernement', [\App\Http\Controllers\Web\DemocratieController::class, 'gouvernement'])->name('gouvernement');
+    Route::get('/conseil-constitutionnel', [\App\Http\Controllers\Web\DemocratieController::class, 'conseilConstitutionnel'])->name('conseil-constitutionnel');
 });
 
 /*
@@ -513,6 +602,11 @@ Route::prefix('donnees')->name('donnees.')->middleware('auth')->group(function (
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-factor'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/imports', [AdminController::class, 'imports'])->name('imports');
+
+    Route::prefix('ip-bans')->name('ip-bans.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\IpBanController::class, 'index'])->name('index');
+        Route::post('/{ipBan}/unban', [App\Http\Controllers\Admin\IpBanController::class, 'unban'])->name('unban');
+    });
     Route::get('/imports/{import}', [AdminController::class, 'showImport'])->name('imports.show');
     Route::post('/run-command', [AdminController::class, 'runCommand'])->name('run-command');
 
@@ -632,6 +726,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
         Route::post('/{user}/change-role', [App\Http\Controllers\Admin\UserManagementController::class, 'changeRole'])->name('change-role');
         Route::post('/{user}/verify-elu', [App\Http\Controllers\Admin\UserManagementController::class, 'verifyElu'])->name('verify-elu');
         Route::post('/{user}/revoke-elu', [App\Http\Controllers\Admin\UserManagementController::class, 'revokeElu'])->name('revoke-elu');
+        Route::post('/{user}/verify-email', [App\Http\Controllers\Admin\UserManagementController::class, 'verifyEmail'])->name('verify-email');
         
         // Sanctions
         Route::get('/{user}/sanctions', [App\Http\Controllers\Admin\UserSanctionController::class, 'history'])->name('sanctions');
@@ -724,6 +819,22 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
         Route::get('/history', [App\Http\Controllers\Admin\PhotoModerationController::class, 'history'])->name('history');
     });
 
+    // Affaires judiciaires — modération
+    Route::prefix('affaires-judiciaires')->name('affaires.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'index'])->name('index');
+        Route::get('/stats', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'stats'])->name('stats');
+        Route::get('/create', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'store'])->name('store');
+        Route::get('/{affaire}', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'show'])->name('show');
+        Route::post('/{affaire}/prendre-en-charge', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'prendreEnCharge'])->name('prendre');
+        Route::put('/{affaire}/valider', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'valider'])->name('valider');
+        Route::put('/{affaire}/rejeter', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'rejeter'])->name('rejeter');
+        Route::put('/{affaire}/completer', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'completer'])->name('completer');
+        Route::put('/{affaire}/archiver', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'archiver'])->name('archiver');
+        Route::post('/{affaire}/sources', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'ajouterSource'])->name('source.add');
+        Route::delete('/sources/{source}', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'supprimerSource'])->name('source.delete');
+    });
+
     // Membres de l'association Civis-Consilium
     Route::prefix('association')->name('association.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\AssociationMembersController::class, 'index'])->name('index');
@@ -758,6 +869,16 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
     Route::get('/senateurs/{matricule}/votes', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurVotes'])->name('senateurs.votes');
     Route::get('/senateurs/{matricule}/amendements', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurAmendements'])->name('senateurs.amendements');
     Route::get('/senateurs/{matricule}/activite', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurActivite'])->name('senateurs.activite');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Transparence (Affaires judiciaires — pages publiques)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('transparence')->name('transparence.')->group(function () {
+    Route::get('/affaires-judiciaires', [App\Http\Controllers\Web\TransparenceController::class, 'affairesJudiciaires'])->name('affaires');
+    Route::get('/notre-demarche', [App\Http\Controllers\Web\TransparenceController::class, 'notreDemarche'])->name('demarche');
 });
 
 /*

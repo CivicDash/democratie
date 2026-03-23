@@ -43,6 +43,14 @@
                                 📖 Présentation
                             </Link>
                         </li>
+                        <li>
+                            <Link 
+                                :href="route('transparence.demarche')"
+                                class="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                            >
+                                🛡️ Notre démarche
+                            </Link>
+                        </li>
                     </ul>
                 </div>
 

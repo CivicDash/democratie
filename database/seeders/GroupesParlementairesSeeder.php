@@ -29,7 +29,6 @@ class GroupesParlementairesSeeder extends Seeder
                 'site_web' => 'https://www.assemblee-nationale.fr/dyn/17/organes/groupes-politiques/renaissance',
                 'est_actif' => true,
                 'legislature' => 17,
-                'legislature' => 17,
             ],
             [
                 'nom' => 'Rassemblement National',

@@ -1,0 +1,312 @@
+# =============================================================================
+# CivicDash Production Stack
+# =============================================================================
+# Architecture sécurisée avec WAF SafeLine + Matomo Analytics
+#
+# Internet → SafeLine (WAF) → Nginx → Laravel Octane
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # 🛡️ WAF - SafeLine (Chaitin)
+  # ===========================================================================
+  # Documentation: https://github.com/chaitin/SafeLine
+  safeline-mgt:
+    image: chaitin/safeline-mgt:latest
+    container_name: safeline-mgt
+    restart: unless-stopped
+    ports:
+      - "9443:9443"  # Interface d'administration
+    volumes:
+      - safeline_logs:/logs
+      - safeline_resources:/resources
+      - safeline_mgt:/app/data
+    environment:
+      - MGT_PG_HOST=safeline-pg
+      - MGT_PG_PORT=5432
+      - MGT_PG_USER=safeline
+      - MGT_PG_PASSWORD=${SAFELINE_PG_PASSWORD:?SAFELINE_PG_PASSWORD must be set}
+    depends_on:
+      - safeline-pg
+    networks:
+      - civicdash
+      - safeline
+
+  safeline-pg:
+    image: postgres:15-alpine
+    container_name: safeline-pg
+    restart: unless-stopped
+    volumes:
+      - safeline_pg_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: safeline
+      POSTGRES_PASSWORD: ${SAFELINE_PG_PASSWORD:?SAFELINE_PG_PASSWORD must be set}
+      POSTGRES_DB: safeline
+    networks:
+      - safeline
+
+  safeline-tengine:
+    image: chaitin/safeline-tengine:latest
+    container_name: safeline-tengine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - safeline_logs:/logs
+      - safeline_resources:/resources
+      - ./ssl:/etc/nginx/ssl:ro
+    environment:
+      - MGT_HOST=safeline-mgt
+      - MGT_PORT=9443
+    depends_on:
+      - safeline-mgt
+      - nginx
+    networks:
+      - civicdash
+      - safeline
+
+  safeline-detector:
+    image: chaitin/safeline-detector:latest
+    container_name: safeline-detector
+    restart: unless-stopped
+    volumes:
+      - safeline_logs:/logs
+    environment:
+      - MGT_HOST=safeline-mgt
+    networks:
+      - safeline
+
+  # ===========================================================================
+  # 🌐 Reverse Proxy interne (Nginx)
+  # ===========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: civicdash_nginx
+    restart: unless-stopped
+    expose:
+      - "80"  # Interne seulement, SafeLine est le frontend
+    volumes:
+      - ../:/var/www:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../storage/logs/nginx:/var/log/nginx
+    depends_on:
+      - app
+    networks:
+      - civicdash
+
+  # ===========================================================================
+  # 🚀 Application Laravel Octane
+  # ===========================================================================
+  app:
+    image: ghcr.io/civicdash/app:${APP_VERSION:-latest}
+    container_name: civicdash_app
+    restart: unless-stopped
+    working_dir: /var/www
+    expose:
+      - "8000"
+    volumes:
+      - ../storage:/var/www/storage
+      - ../.env:/var/www/.env:ro
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=postgres
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=${MEILISEARCH_KEY}
+    command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    networks:
+      - civicdash
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # ===========================================================================
+  # 🗄️ PostgreSQL Database
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: civicdash_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-civicdash}
+      POSTGRES_USER: ${DB_USERNAME:-civicdash}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - civicdash
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-civicdash}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+  # ===========================================================================
+  # ⚡ Redis Cache
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: civicdash_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - civicdash
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # 🔍 Meilisearch
+  # ===========================================================================
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: civicdash_search
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY}
+      MEILI_NO_ANALYTICS: true
+      MEILI_ENV: production
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - civicdash
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # 📊 Queue Worker
+  # ===========================================================================
+  queue:
+    image: ghcr.io/civicdash/app:${APP_VERSION:-latest}
+    container_name: civicdash_queue
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ../storage:/var/www/storage
+      - ../.env:/var/www/.env:ro
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    environment:
+      - DB_HOST=postgres
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - civicdash
+
+  # ===========================================================================
+  # ⏰ Scheduler
+  # ===========================================================================
+  scheduler:
+    image: ghcr.io/civicdash/app:${APP_VERSION:-latest}
+    container_name: civicdash_scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ../storage:/var/www/storage
+      - ../.env:/var/www/.env:ro
+    command: >
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction &
+        sleep 60
+      done"
+    environment:
+      - DB_HOST=postgres
+      - DB_DATABASE=${DB_DATABASE:-civicdash}
+      - DB_USERNAME=${DB_USERNAME:-civicdash}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - civicdash
+
+  # ===========================================================================
+  # 📈 Matomo Analytics
+  # ===========================================================================
+  matomo:
+    image: matomo:5-apache
+    container_name: civicdash_matomo
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - matomo_data:/var/www/html
+    environment:
+      MATOMO_DATABASE_HOST: postgres
+      MATOMO_DATABASE_ADAPTER: pdo_pgsql
+      MATOMO_DATABASE_TABLES_PREFIX: matomo_
+      MATOMO_DATABASE_USERNAME: ${DB_USERNAME:-civicdash}
+      MATOMO_DATABASE_PASSWORD: ${DB_PASSWORD}
+      MATOMO_DATABASE_DBNAME: matomo
+    depends_on:
+      - postgres
+    networks:
+      - civicdash
+
+# =============================================================================
+# 📦 Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  meilisearch_data:
+    driver: local
+  matomo_data:
+    driver: local
+  # SafeLine volumes
+  safeline_logs:
+    driver: local
+  safeline_resources:
+    driver: local
+  safeline_mgt:
+    driver: local
+  safeline_pg_data:
+    driver: local
+
+# =============================================================================
+# 🌐 Networks
+# =============================================================================
+networks:
+  civicdash:
+    driver: bridge
+  safeline:
+    driver: bridge
+    internal: true

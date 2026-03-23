@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
-import { useEluFollow } from '@/Composables/useEluFollow';
+import { useEluFollow } from '@/composables/useEluFollow';
 
 const props = defineProps({
     followedElus: Array,

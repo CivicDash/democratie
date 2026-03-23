@@ -22,7 +22,7 @@ class NotificationController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $filter = $request->get('filter', 'all'); // all, unread, unacknowledged
+        $filter = $request->input('filter', 'all'); // all, unread, unacknowledged
 
         $query = Notification::forUser($user->id)
             ->orderByDesc('created_at');
@@ -49,7 +49,7 @@ class NotificationController extends Controller
     public function recent(Request $request): JsonResponse
     {
         $user = $request->user();
-        $limit = min($request->get('limit', 10), 50);
+        $limit = min($request->input('limit', 10), 50);
 
         $notifications = $this->notificationService->getNotifications($user, $limit);
         $unreadCount = $this->notificationService->getUnreadCount($user);
@@ -126,7 +126,7 @@ class NotificationController extends Controller
             abort(403);
         }
 
-        $actionType = $request->get('action_type', 'completed');
+        $actionType = $request->input('action_type', 'completed');
         $notification = $this->notificationService->markAsActioned($notification, $actionType);
 
         return response()->json([

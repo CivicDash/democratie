@@ -46,6 +46,8 @@ class ActeurAN extends Model
         'adresses' => 'array',
     ];
 
+    protected $appends = ['photo_url'];
+
     /**
      * Relations
      */
@@ -72,6 +74,16 @@ class ActeurAN extends Model
     public function circonscriptions(): HasMany
     {
         return $this->hasMany(DeputeCirconscription::class, 'acteur_uid', 'uid');
+    }
+
+    public function affairesJudiciaires(): HasMany
+    {
+        return $this->hasMany(AffaireJudiciaire::class, 'acteur_an_uid', 'uid');
+    }
+
+    public function affairesPubliques(): HasMany
+    {
+        return $this->affairesJudiciaires()->publiques();
     }
 
     /**

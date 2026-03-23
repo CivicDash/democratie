@@ -158,6 +158,14 @@ class Ville extends Model
         return $this->hasMany(Ville::class, 'ville_parent_insee', 'code_insee');
     }
 
+    /**
+     * Résultats élections municipales
+     */
+    public function resultatsMunicipaux(): HasMany
+    {
+        return $this->hasMany(ResultatMunicipal::class);
+    }
+
     // ========================================================================
     // SCOPES
     // ========================================================================

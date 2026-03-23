@@ -137,6 +137,22 @@ class Loi extends Model
     // ACCESSORS
     // ==========================================
 
+    /**
+     * Retourne le loicod nettoyé (sans espaces de padding)
+     */
+    public function getLoicodCleanAttribute(): string
+    {
+        return trim($this->loicod ?? '');
+    }
+
+    /**
+     * URL propre pour cette loi
+     */
+    public function getUrlAttribute(): string
+    {
+        return route('lois.show', ['loicod' => $this->loicod_clean]);
+    }
+
     public function getTitreCourtAttribute(): string
     {
         $titre = trim($this->loitit ?? $this->loiint ?? '');

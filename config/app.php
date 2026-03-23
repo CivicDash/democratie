@@ -134,4 +134,15 @@ return [
     */
     'pepper' => env('PEPPER'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo Mode
+    |--------------------------------------------------------------------------
+    */
+    'demo_mode' => env('DEMO_MODE', false),
+    'demo_citizen_email' => env('DEMO_CITIZEN_EMAIL'),
+    'demo_citizen_password' => env('DEMO_CITIZEN_PASSWORD'),
+    'demo_elu_email' => env('DEMO_ELU_EMAIL'),
+    'demo_elu_password' => env('DEMO_ELU_PASSWORD'),
+
 ];

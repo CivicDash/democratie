@@ -35,8 +35,8 @@ class StoreTopicRequest extends FormRequest
             
             // Pour les bills, seuls les législateurs peuvent
             'type.bill' => Rule::requiredIf(function () {
-                return $this->input('type') === 'bill' 
-                    && !$this->user()->hasPermissionTo('topics.bill');
+                return $this->input('type') === 'bill'
+                    && !$this->user()->hasAnyRole(['legislator', 'state', 'admin']);
             }),
         ];
     }

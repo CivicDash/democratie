@@ -423,6 +423,13 @@ const getStatusClass = (status) => {
                                     <span class="text-sm font-medium text-yellow-700 dark:text-yellow-300">Photos</span>
                                 </Link>
                                 <Link
+                                    :href="route('admin.affaires.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition border border-red-200 dark:border-red-700"
+                                >
+                                    <span class="text-2xl">⚖️</span>
+                                    <span class="text-sm font-medium text-red-700 dark:text-red-300">Affaires</span>
+                                </Link>
+                                <Link
                                     :href="route('admin.association.index')"
                                     class="flex flex-col items-center gap-2 p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition border border-indigo-200 dark:border-indigo-700"
                                 >

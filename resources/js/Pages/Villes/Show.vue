@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import NuanceBadge from '@/Components/Municipales/NuanceBadge.vue';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -11,11 +12,15 @@ const props = defineProps({
     budgets: Array,
     stats: Object,
     elus: Object,
+    resultats_municipales_2026: Object,
     villesVoisines: Array,
     breadcrumbs: Array,
 });
 
-// Graphique population simplifié
+const formatNumber = (n) => n?.toLocaleString('fr-FR') ?? '-';
+
+const hasResultats = computed(() => !!props.resultats_municipales_2026?.tours?.length);
+
 const populationChart = computed(() => {
     if (!props.evolutionPopulation?.length) return null;
     const data = [...props.evolutionPopulation].reverse().slice(-10);
@@ -25,6 +30,11 @@ const populationChart = computed(() => {
         height: (d.population / max) * 100,
     }));
 });
+
+const participationBarWidth = (value, total) => {
+    if (!total || !value) return '0%';
+    return Math.round((value / total) * 100) + '%';
+};
 </script>
 
 <template>
@@ -76,6 +86,72 @@ const populationChart = computed(() => {
                 </div>
             </div>
 
+            <!-- Bandeau Élections Municipales 2026 -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+                <!-- Post-électoral : résumé rapide avec résultats -->
+                <div v-if="hasResultats" class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 rounded-2xl p-6 text-white shadow-lg">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center text-3xl">
+                                🗳️
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold">Résultats Municipales 2026</h3>
+                                <p class="text-emerald-100">
+                                    {{ resultats_municipales_2026.tours[0]?.statut_libelle }} — Participation : {{ resultats_municipales_2026.tours[0]?.taux_participation?.toFixed(1) }}%
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div v-if="resultats_municipales_2026.transition?.nouveau_maire" class="text-right hidden md:block">
+                                <div class="text-sm text-emerald-200">Maire élu(e)</div>
+                                <div class="text-lg font-bold">{{ resultats_municipales_2026.transition.nouveau_maire.nom_complet }}</div>
+                            </div>
+                            <Link
+                                :href="route('elections.municipales.resultats.index')"
+                                class="px-6 py-3 bg-white text-teal-600 font-bold rounded-xl hover:bg-emerald-50 transition"
+                            >
+                                Tous les résultats →
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pré-électoral : bandeau découverte -->
+                <Link
+                    v-else
+                    :href="route('elections.municipales.recherche', { q: ville.nom })"
+                    class="block bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] group"
+                >
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center text-3xl">
+                                🗳️
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold">Élections Municipales 2026</h3>
+                                <p class="text-fuchsia-100">
+                                    Découvrez les candidats à la mairie de {{ ville.nom }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <div class="text-center hidden md:block">
+                                <div class="text-2xl font-bold">15 mars</div>
+                                <div class="text-sm text-fuchsia-200">1er tour</div>
+                            </div>
+                            <div class="text-center hidden md:block">
+                                <div class="text-2xl font-bold">22 mars</div>
+                                <div class="text-sm text-fuchsia-200">2nd tour</div>
+                            </div>
+                            <div class="px-6 py-3 bg-white text-purple-600 font-bold rounded-xl group-hover:bg-fuchsia-50 transition">
+                                Voir les listes →
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+            </div>
+
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- Colonne principale -->
@@ -108,6 +184,149 @@ const populationChart = computed(() => {
                                     </span>
                                 </div>
                             </Link>
+                        </div>
+
+                        <!-- Résultats Élections Municipales 2026 -->
+                        <div v-if="hasResultats" class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4">
+                                <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                                    <span class="text-2xl">🗳️</span>
+                                    Résultats — Municipales 2026
+                                </h2>
+                            </div>
+
+                            <div class="p-6 space-y-6">
+                                <!-- Transition maire -->
+                                <div v-if="resultats_municipales_2026.transition?.ancien_maire || resultats_municipales_2026.transition?.nouveau_maire"
+                                    class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50">
+                                    <div v-if="resultats_municipales_2026.transition.ancien_maire" class="flex-1 text-center">
+                                        <div class="text-xs text-slate-500 dark:text-slate-400 mb-1">Sortant</div>
+                                        <div class="text-sm font-semibold text-slate-900 dark:text-white">
+                                            {{ resultats_municipales_2026.transition.ancien_maire.nom_complet }}
+                                        </div>
+                                        <NuanceBadge v-if="resultats_municipales_2026.transition.ancien_maire.nuance_politique"
+                                            :nuance="resultats_municipales_2026.transition.ancien_maire.nuance_politique" size="xs" class="mt-1" />
+                                    </div>
+                                    <div class="text-2xl">
+                                        {{ resultats_municipales_2026.transition.nouveau_maire?.reelu ? '🔄' : '➡️' }}
+                                    </div>
+                                    <div v-if="resultats_municipales_2026.transition.nouveau_maire" class="flex-1 text-center">
+                                        <div class="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">
+                                            {{ resultats_municipales_2026.transition.nouveau_maire.reelu ? 'Réélu(e)' : 'Élu(e)' }}
+                                        </div>
+                                        <div class="text-sm font-bold text-slate-900 dark:text-white">
+                                            {{ resultats_municipales_2026.transition.nouveau_maire.nom_complet }}
+                                        </div>
+                                        <NuanceBadge v-if="resultats_municipales_2026.transition.nouveau_maire.nuance_politique"
+                                            :nuance="resultats_municipales_2026.transition.nouveau_maire.nuance_politique" size="xs" class="mt-1" />
+                                    </div>
+                                </div>
+
+                                <!-- Par tour -->
+                                <div v-for="tour in resultats_municipales_2026.tours" :key="tour.tour" class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="font-bold text-slate-900 dark:text-white text-lg">
+                                            {{ tour.tour === 1 ? '1er tour' : '2nd tour' }}
+                                        </h3>
+                                        <span class="px-3 py-1 rounded-full text-xs font-medium"
+                                            :class="{
+                                                'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': tour.statut_commune?.includes('elu'),
+                                                'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': tour.statut_commune === 'second_tour',
+                                                'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300': !tour.statut_commune?.includes('elu') && tour.statut_commune !== 'second_tour',
+                                            }">
+                                            {{ tour.statut_libelle }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Participation -->
+                                    <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Participation</span>
+                                            <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                                                {{ tour.taux_participation?.toFixed(1) }}%
+                                            </span>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="flex items-center gap-3 text-sm">
+                                                <span class="w-20 text-slate-500 dark:text-slate-400">Inscrits</span>
+                                                <div class="flex-1 bg-slate-200 dark:bg-slate-600 rounded-full h-2.5">
+                                                    <div class="bg-slate-400 dark:bg-slate-300 h-2.5 rounded-full w-full"></div>
+                                                </div>
+                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(tour.inscrits) }}</span>
+                                            </div>
+                                            <div class="flex items-center gap-3 text-sm">
+                                                <span class="w-20 text-slate-500 dark:text-slate-400">Votants</span>
+                                                <div class="flex-1 bg-slate-200 dark:bg-slate-600 rounded-full h-2.5">
+                                                    <div class="bg-blue-500 h-2.5 rounded-full" :style="{ width: participationBarWidth(tour.votants, tour.inscrits) }"></div>
+                                                </div>
+                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(tour.votants) }}</span>
+                                            </div>
+                                            <div class="flex items-center gap-3 text-sm">
+                                                <span class="w-20 text-slate-500 dark:text-slate-400">Exprimés</span>
+                                                <div class="flex-1 bg-slate-200 dark:bg-slate-600 rounded-full h-2.5">
+                                                    <div class="bg-indigo-500 h-2.5 rounded-full" :style="{ width: participationBarWidth(tour.exprimes, tour.inscrits) }"></div>
+                                                </div>
+                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(tour.exprimes) }}</span>
+                                            </div>
+                                        </div>
+                                        <div v-if="tour.blancs || tour.nuls" class="flex gap-4 mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                            <span v-if="tour.blancs">Blancs : {{ formatNumber(tour.blancs) }}</span>
+                                            <span v-if="tour.nuls">Nuls : {{ formatNumber(tour.nuls) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sièges -->
+                                    <div v-if="tour.nb_sieges_a_pourvoir" class="text-sm text-slate-600 dark:text-slate-400">
+                                        {{ tour.nb_sieges_a_pourvoir }} sièges à pourvoir
+                                    </div>
+
+                                    <!-- Tableau des listes -->
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-sm">
+                                            <thead>
+                                                <tr class="border-b border-slate-200 dark:border-slate-700">
+                                                    <th class="text-left py-2 px-2 font-medium text-slate-500 dark:text-slate-400">Liste</th>
+                                                    <th class="text-left py-2 px-2 font-medium text-slate-500 dark:text-slate-400">Nuance</th>
+                                                    <th class="text-right py-2 px-2 font-medium text-slate-500 dark:text-slate-400">Voix</th>
+                                                    <th class="text-right py-2 px-2 font-medium text-slate-500 dark:text-slate-400">%</th>
+                                                    <th class="text-center py-2 px-2 font-medium text-slate-500 dark:text-slate-400">Sièges</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="liste in tour.listes" :key="liste.nom_liste"
+                                                    class="border-b border-slate-100 dark:border-slate-700/50"
+                                                    :class="liste.elu ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''">
+                                                    <td class="py-3 px-2">
+                                                        <div class="font-medium text-slate-900 dark:text-white" :class="{ 'text-emerald-700 dark:text-emerald-400': liste.elu }">
+                                                            {{ liste.elu ? '✓ ' : '' }}{{ liste.tete_de_liste || liste.nom_liste }}
+                                                        </div>
+                                                        <div v-if="liste.tete_de_liste && liste.nom_liste" class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                                                            {{ liste.nom_liste }}
+                                                        </div>
+                                                    </td>
+                                                    <td class="py-3 px-2">
+                                                        <NuanceBadge v-if="liste.nuance_politique" :nuance="liste.nuance_politique" size="xs" />
+                                                    </td>
+                                                    <td class="py-3 px-2 text-right font-medium text-slate-700 dark:text-slate-300">
+                                                        {{ formatNumber(liste.voix) }}
+                                                    </td>
+                                                    <td class="py-3 px-2 text-right font-bold" :class="liste.elu ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'">
+                                                        {{ liste.pourcentage_exprimes?.toFixed(2) }}%
+                                                    </td>
+                                                    <td class="py-3 px-2 text-center">
+                                                        <span v-if="liste.sieges_obtenus != null" class="font-semibold text-slate-900 dark:text-white">
+                                                            {{ liste.sieges_obtenus }}
+                                                        </span>
+                                                        <span v-if="liste.sieges_cc != null" class="text-xs text-slate-500 dark:text-slate-400 ml-1">
+                                                            ({{ liste.sieges_cc }} CC)
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Historique des maires -->

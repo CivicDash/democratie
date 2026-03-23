@@ -35,9 +35,11 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user() ? [
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
+                    'display_name' => $request->user()->display_name,
                     'email' => $request->user()->email,
                     'roles' => $request->user()->roles->pluck('name')->toArray(),
                     'permissions' => $request->user()->getAllPermissions()->pluck('name')->toArray(),
+                    'is_public_figure' => $request->user()->profile?->is_public_figure ?? false,
                     // Champs élu
                     'is_verified_elu' => $request->user()->is_verified_elu ?? false,
                     'elu_type' => $request->user()->elu_type,
@@ -56,6 +58,12 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
             ],
+            'demo' => config('app.demo_mode') ? [
+                'citizen_email' => config('app.demo_citizen_email'),
+                'citizen_password' => config('app.demo_citizen_password'),
+                'elu_email' => config('app.demo_elu_email'),
+                'elu_password' => config('app.demo_elu_password'),
+            ] : null,
         ];
     }
 }

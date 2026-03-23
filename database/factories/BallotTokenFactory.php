@@ -22,9 +22,8 @@ class BallotTokenFactory extends Factory
             'topic_id' => $topic->id,
             'user_id' => User::factory(),
             'token' => BallotToken::generateToken(),
-            'consumed' => fake()->boolean(30), // 30% consommés
-            'consumed_at' => fn (array $attributes) => 
-                $attributes['consumed'] ? fake()->dateTimeBetween('-30 days', 'now') : null,
+            'consumed' => false,
+            'consumed_at' => null,
             'expires_at' => $topic->voting_deadline_at,
         ];
     }

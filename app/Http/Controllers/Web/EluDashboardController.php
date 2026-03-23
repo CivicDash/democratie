@@ -111,7 +111,7 @@ class EluDashboardController extends Controller
         }
 
         // Tri
-        $sort = $request->get('sort', 'recent');
+        $sort = $request->input('sort', 'recent');
         match ($sort) {
             'popular' => $query->join('topics', 'topics.id', '=', 'topic_elus.topic_id')
                 ->orderByDesc('topics.votes_pour'),
@@ -171,7 +171,7 @@ class EluDashboardController extends Controller
                 'published_at' => $interpellation->topic->published_at?->toIso8601String(),
                 'author' => $interpellation->topic->author ? [
                     'id' => $interpellation->topic->author->id,
-                    'name' => $interpellation->topic->author->name,
+                    'name' => $interpellation->topic->author->display_name,
                 ] : null,
                 'tags' => $interpellation->topic->topicTags->map(fn($t) => [
                     'id' => $t->id,
@@ -184,7 +184,7 @@ class EluDashboardController extends Controller
                 'id' => $p->id,
                 'content' => $p->content,
                 'created_at' => $p->created_at->toIso8601String(),
-                'user' => $p->user ? ['id' => $p->user->id, 'name' => $p->user->name] : null,
+                'user' => $p->user ? ['id' => $p->user->id, 'name' => $p->user->display_name] : null,
             ]),
         ]);
     }
@@ -472,7 +472,7 @@ class EluDashboardController extends Controller
                 'published_at' => $i->topic->published_at?->toIso8601String(),
                 'author' => $i->topic->author ? [
                     'id' => $i->topic->author->id,
-                    'name' => $i->topic->author->name,
+                    'name' => $i->topic->author->display_name,
                 ] : null,
             ] : null,
         ];

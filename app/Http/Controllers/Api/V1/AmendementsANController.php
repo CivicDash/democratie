@@ -84,12 +84,13 @@ class AmendementsANController extends Controller
         }
 
         // Tri
-        $sortBy = $request->get('sort_by', 'date_depot');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $allowedSorts = ['date_depot', 'uid', 'sort'];
+        $sortBy = $request->input('sort_by', 'date_depot');
+        $sortOrder = $request->input('sort_order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy(in_array($sortBy, $allowedSorts, true) ? $sortBy : 'date_depot', $sortOrder);
 
         // Pagination
-        $perPage = min($request->get('per_page', 20), 100);
+        $perPage = min($request->input('per_page', 20), 100);
         $amendements = $query->paginate($perPage);
 
         return response()->json($amendements);
@@ -128,7 +129,7 @@ class AmendementsANController extends Controller
      */
     public function stats(Request $request): JsonResponse
     {
-        $legislature = $request->get('legislature', 17);
+        $legislature = $request->input('legislature', 17);
 
         $query = AmendementAN::where('legislature', $legislature);
 

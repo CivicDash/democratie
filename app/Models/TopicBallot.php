@@ -22,6 +22,7 @@ class TopicBallot extends Model
 {
     use HasFactory;
 
+    const CREATED_AT = null; // Pas de created_at pour les bulletins
     const UPDATED_AT = null; // Pas de updated_at pour les bulletins
 
     protected $fillable = [

@@ -66,4 +66,20 @@ return [
         'cache_ttl' => env('LEGIFRANCE_CACHE_TTL', 604800), // 7 jours par défaut
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Dolibarr ERP API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Intégration avec l'ERP Dolibarr (Civis-Consilium) pour la vérification
+    | automatique des membres de l'association lors de l'inscription/connexion.
+    | Explorer: https://erp.civis-consilium.eu/api/index.php/explorer/
+    |
+    */
+    'dolibarr' => [
+        'api_url' => env('DOLIBARR_API_URL'),
+        'api_key' => env('DOLIBARR_API_KEY'),
+        'timeout' => env('DOLIBARR_API_TIMEOUT', 5),
+    ],
+
 ];

@@ -21,6 +21,25 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
         
+        if (import.meta.env.DEV) {
+            // 🔧 Debug: Activer les logs Vue (dev only)
+            app.config.errorHandler = (err, instance, info) => {
+                console.error('🔴 Vue Error:', err);
+                console.error('Component:', instance);
+                console.error('Info:', info);
+            };
+            
+            app.config.warnHandler = (msg, instance, trace) => {
+                console.warn('🟡 Vue Warning:', msg);
+                console.warn('Trace:', trace);
+            };
+            
+            // Performance tracking (dev only)
+            app.config.performance = true;
+            
+            console.log('🚀 Vue App initializing...', { props });
+        }
+        
         return app
             .use(plugin)
             .use(ZiggyVue)

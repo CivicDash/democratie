@@ -70,10 +70,10 @@ docker compose exec app php artisan view:clear
 docker compose exec app php artisan event:clear 2>/dev/null || true
 log_success "Caches cleared"
 
-# 4. Reload Octane Workers (important pour recharger le manifeste Vite)
-log_step "4/6 - Reloading Octane workers..."
-docker compose exec app php artisan octane:reload 2>/dev/null || docker compose restart app
-log_success "Octane workers reloaded"
+# 4. Reload PHP-FPM workers (recharge le manifeste Vite et les fichiers modifiés)
+log_step "4/6 - Reloading PHP-FPM workers..."
+docker compose exec app kill -USR2 1 2>/dev/null || docker compose restart app
+log_success "PHP-FPM workers reloaded"
 
 # 5. Optimize (optionnel en prod)
 if [ "$1" == "--optimize" ] || [ "$2" == "--optimize" ]; then
@@ -99,9 +99,61 @@ echo ""
 echo "🌐 Application disponible sur:"
 echo "   https://demo.objectif2027.fr"
 echo ""
+
+# 7. Vérification des imports nocturnes (optionnel)
+if [ "$1" == "--check-imports" ] || [ "$2" == "--check-imports" ] || [ "$3" == "--check-imports" ]; then
+    echo ""
+    echo "========================================"
+    log_step "Vérification des imports nocturnes..."
+    echo "========================================"
+    echo ""
+    
+    # Date d'aujourd'hui et hier pour les logs
+    TODAY=$(date +%Y-%m-%d)
+    YESTERDAY=$(date -d "yesterday" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)
+    
+    echo -e "${BLUE}📅 Recherche des imports du $YESTERDAY et $TODAY${NC}"
+    echo ""
+    
+    # Vérifier les logs Laravel pour les commandes d'import
+    log_step "Derniers imports exécutés:"
+    docker compose exec -T app grep -E "(import:|sync:|enrich:)" storage/logs/laravel.log 2>/dev/null | tail -30 || echo "Pas de logs d'import récents"
+    echo ""
+    
+    # Vérifier le scheduler
+    log_step "État du scheduler:"
+    docker compose exec -T app php artisan schedule:list 2>/dev/null | head -25
+    echo ""
+    
+    # Statistiques rapides des données
+    log_step "Statistiques des données importées:"
+    docker compose exec -T app php artisan tinker --execute="
+        echo '📊 Statistiques actuelles:' . PHP_EOL;
+        echo '   Acteurs AN (députés): ' . \App\Models\ActeurAN::count() . PHP_EOL;
+        echo '   Sénateurs: ' . \App\Models\Senateur::count() . PHP_EOL;
+        echo '   Dossiers AN: ' . \App\Models\DossierLegislatifAN::count() . PHP_EOL;
+        echo '   Dossiers Sénat: ' . \App\Models\DossierLegislatifSenat::count() . PHP_EOL;
+        echo '   Amendements AN: ' . \App\Models\AmendementAN::count() . PHP_EOL;
+        echo '   Scrutins AN: ' . \App\Models\ScrutinAN::count() . PHP_EOL;
+        echo '   Questions AN: ' . \App\Models\QuestionAN::count() . PHP_EOL;
+        echo '   Événements calendrier: ' . \App\Models\EvenementLegislatif::count() . PHP_EOL;
+        echo '   Débats Sénat: ' . \App\Models\SenatDebat::count() . PHP_EOL;
+        echo '   Budgets communes: ' . \App\Models\CommuneBudget::count() . PHP_EOL;
+    " 2>/dev/null || echo "Erreur lors de la récupération des stats"
+    echo ""
+    
+    # Vérifier les erreurs récentes
+    log_step "Erreurs récentes (dernières 24h):"
+    docker compose exec -T app grep -E "(ERROR|EMERGENCY|CRITICAL)" storage/logs/laravel.log 2>/dev/null | tail -10 || echo "Aucune erreur critique"
+    echo ""
+    
+    log_success "Vérification terminée"
+fi
+
 echo "📝 Options disponibles:"
-echo "   --fresh-db   : Réinitialise la base de données"
-echo "   --optimize   : Active les caches de production"
+echo "   --fresh-db       : Réinitialise la base de données"
+echo "   --optimize       : Active les caches de production"
+echo "   --check-imports  : Vérifie les imports nocturnes"
 echo ""
 echo "📊 Logs en temps réel:"
 echo "   docker compose logs -f app"

@@ -20,7 +20,7 @@ test('user can report a post', function () {
         'reportable_type' => Post::class,
         'reportable_id' => $post->id,
         'reporter_id' => $reporter->id,
-        'reason' => 'Contenu inapproprié',
+        'reason' => 'inappropriate',
     ]);
     
     expect($report->reportable)->toBeInstanceOf(Post::class)
@@ -36,7 +36,7 @@ test('user can report a topic', function () {
         'reportable_type' => Topic::class,
         'reportable_id' => $topic->id,
         'reporter_id' => $reporter->id,
-        'reason' => 'Spam',
+        'reason' => 'spam',
     ]);
     
     expect($report->reportable)->toBeInstanceOf(Topic::class)
@@ -78,7 +78,7 @@ test('moderator can reject report', function () {
     
     $report->reject('Signalement non fondé');
     
-    expect($report->fresh()->status)->toBe('rejected')
+    expect($report->fresh()->status)->toBe('dismissed')
         ->and($report->fresh()->moderator_notes)->toBe('Signalement non fondé');
 });
 

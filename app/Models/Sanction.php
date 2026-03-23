@@ -34,12 +34,14 @@ class Sanction extends Model
         'starts_at',
         'expires_at',
         'is_active',
+        'revoked_at',
     ];
 
     protected $casts = [
         'starts_at' => 'datetime',
         'expires_at' => 'datetime',
         'is_active' => 'boolean',
+        'revoked_at' => 'datetime',
     ];
 
     /**
@@ -99,7 +101,10 @@ class Sanction extends Model
      */
     public function revoke(): void
     {
-        $this->update(['is_active' => false]);
+        $this->update([
+            'is_active' => false,
+            'revoked_at' => now(),
+        ]);
     }
 
     /**

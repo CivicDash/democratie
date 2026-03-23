@@ -197,24 +197,33 @@ const maxActivite = computed(() => {
             <span>📈</span>
             <span>Activité mensuelle (12 derniers mois)</span>
           </h2>
-          <div class="flex items-end justify-between gap-2 h-64">
-            <div
-              v-for="mois in activite_mensuelle"
-              :key="mois.mois"
-              class="flex-1 flex flex-col items-center gap-2"
-            >
-              <div class="flex-1 w-full flex flex-col justify-end">
-                <div
-                  class="w-full bg-gradient-to-t from-purple-600 to-purple-400 rounded-t transition-all hover:from-purple-500 hover:to-purple-300"
-                  :style="{ height: ((mois.total / maxActivite) * 100) + '%' }"
-                  :title="`${mois.total} actions en ${mois.label}`"
-                ></div>
-              </div>
-              <div class="text-xs text-gray-600 dark:text-gray-400 text-center">
-                {{ mois.label }}
-              </div>
-              <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {{ mois.total }}
+          <div class="relative">
+            <!-- Y-axis labels -->
+            <div class="absolute left-0 top-0 bottom-8 w-10 flex flex-col justify-between text-xs text-gray-400">
+              <span>{{ maxActivite }}</span>
+              <span>{{ Math.round(maxActivite / 2) }}</span>
+              <span>0</span>
+            </div>
+            <!-- Chart area -->
+            <div class="ml-12 flex items-end gap-1 sm:gap-2" style="height: 220px;">
+              <div
+                v-for="mois in activite_mensuelle"
+                :key="mois.mois"
+                class="flex-1 flex flex-col items-center"
+              >
+                <div class="w-full relative" style="height: 180px;">
+                  <div
+                    class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-purple-600 to-purple-400 rounded-t transition-all hover:from-purple-500 hover:to-purple-300 cursor-default"
+                    :style="{ height: Math.max((mois.total / maxActivite) * 180, mois.total > 0 ? 4 : 0) + 'px' }"
+                    :title="`${mois.total} actions en ${mois.label}`"
+                  ></div>
+                </div>
+                <div class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 text-center mt-1 truncate w-full">
+                  {{ mois.label }}
+                </div>
+                <div class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {{ mois.total }}
+                </div>
               </div>
             </div>
           </div>
@@ -284,10 +293,13 @@ const maxActivite = computed(() => {
               </Link>
             </div>
             <div class="space-y-3">
-              <div
+              <a
                 v-for="amendement in derniers_amendements"
                 :key="amendement.uid"
-                class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                :href="amendement.url_externe"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md transition cursor-pointer"
               >
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex-1">
@@ -315,8 +327,9 @@ const maxActivite = computed(() => {
                       {{ amendement.texte?.titre_court || amendement.dossier?.titre_court }}
                     </p>
                   </div>
+                  <span class="text-gray-400 text-sm flex-shrink-0">↗️</span>
                 </div>
-              </div>
+              </a>
             </div>
           </Card>
         </div>

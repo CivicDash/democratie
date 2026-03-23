@@ -1,11 +1,9 @@
-FROM php:8.2-fpm
+FROM dunglas/frankenphp:1-php8.4
 
-# Arguments
 ARG user=civicdash
 ARG uid=1000
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     libpng-dev \
@@ -16,14 +14,11 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     wget \
-    vim \
-    nano \
     postgresql-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install \
+RUN install-php-extensions \
     pdo_pgsql \
     pgsql \
     mbstring \
@@ -32,40 +27,33 @@ RUN docker-php-ext-install \
     bcmath \
     gd \
     zip \
-    opcache
+    opcache \
+    redis
 
-# Install Redis extension
-RUN pecl install redis && docker-php-ext-enable redis
-
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install Node.js and npm (for building assets)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g npm@latest
+    && npm install -g npm@latest \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create system user
-RUN useradd -G www-data,root -u $uid -d /home/$user $user
-RUN mkdir -p /home/$user/.composer && \
-    chown -R $user:$user /home/$user
+RUN useradd -G www-data,root -u $uid -d /home/$user $user \
+    && mkdir -p /home/$user/.composer \
+    && chown -R $user:$user /home/$user
 
-# Set working directory
-WORKDIR /var/www
+WORKDIR /app
 
-# Copy application files
-COPY --chown=$user:$user . /var/www
+COPY --chown=$user:$user . /app
 
-# Set permissions
-RUN chown -R $user:$user /var/www \
-    && chmod -R 755 /var/www/storage \
-    && chmod -R 755 /var/www/bootstrap/cache
+RUN mkdir -p /app/storage/app/public \
+             /app/storage/framework/cache \
+             /app/storage/framework/sessions \
+             /app/storage/framework/views \
+             /app/storage/logs \
+             /app/bootstrap/cache \
+    && chmod -R 775 /app/storage /app/bootstrap/cache
 
-# Switch to non-root user
-USER $user
+EXPOSE 8000
 
-# Expose port 9000 for PHP-FPM
-EXPOSE 9000
-
-# Start PHP-FPM
-CMD ["php-fpm"]
+ENTRYPOINT ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000"]

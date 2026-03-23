@@ -58,13 +58,17 @@ class SenatDebat extends Model
     public function getUrlCompteRenduAttribute(): string
     {
         if ($this->url) {
-            return 'https://www.senat.fr' . $this->url;
+            $path = ltrim($this->url, '/');
+            if (!str_starts_with($path, 'seances/')) {
+                $path = 'seances/' . $path;
+            }
+            return 'https://www.senat.fr/' . $path;
         }
         
-        // URL par défaut basée sur la date
         $date = $this->date_seance;
         return sprintf(
-            'https://www.senat.fr/seances/s%s/s%s.html',
+            'https://www.senat.fr/seances/s%s/s%s/s%s.html',
+            $date->format('Ym'),
             $date->format('Ymd'),
             $date->format('Ymd')
         );

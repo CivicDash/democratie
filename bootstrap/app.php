@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Trust all proxies (Nginx reverse proxy)
+        // Security headers (HSTS, X-Frame, etc.)
+        $middleware->prepend(\App\Http\Middleware\SecurityHeaders::class);
+
+        // Trust all proxies (reverse proxy)
         $middleware->trustProxies(at: '*');
 
         // Activer les sessions pour les routes API (Sanctum SPA)

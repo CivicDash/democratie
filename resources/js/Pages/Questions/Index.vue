@@ -75,9 +75,20 @@ function getGroupeColor(sigle) {
     return colors[sigle] || 'bg-slate-600 text-white';
 }
 
+const showMobileFilters = ref(false);
+
 const hasActiveFilters = computed(() => {
     return localFilters.value.search || localFilters.value.rubrique || 
            localFilters.value.ministere || localFilters.value.groupe;
+});
+
+const activeFilterCount = computed(() => {
+    let count = 0;
+    if (localFilters.value.search) count++;
+    if (localFilters.value.rubrique) count++;
+    if (localFilters.value.ministere) count++;
+    if (localFilters.value.groupe) count++;
+    return count;
 });
 
 const breadcrumbs = [
@@ -154,13 +165,60 @@ const breadcrumbs = [
 
             <!-- Content - Full Width -->
             <div class="w-full px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Mobile filter toggle -->
+                <div class="lg:hidden mb-4">
+                    <button
+                        @click="showMobileFilters = !showMobileFilters"
+                        class="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"
+                    >
+                        <span class="flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                            🔍 Filtres
+                            <span v-if="activeFilterCount" class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-indigo-500 rounded-full">
+                                {{ activeFilterCount }}
+                            </span>
+                        </span>
+                        <svg class="w-5 h-5 text-gray-400 transition-transform" :class="{ 'rotate-180': showMobileFilters }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div v-show="showMobileFilters" class="mt-2 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
+                        <input
+                            v-model="localFilters.search"
+                            type="text"
+                            placeholder="Rechercher un sujet..."
+                            class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-400 text-sm"
+                        />
+                        <div class="grid grid-cols-2 gap-2">
+                            <select v-model="localFilters.rubrique" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Rubrique</option>
+                                <option v-for="r in rubriques" :key="r" :value="r">{{ r }}</option>
+                            </select>
+                            <select v-model="localFilters.ministere" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                                <option value="">Ministere</option>
+                                <option v-for="m in ministeres" :key="m" :value="m">{{ m }}</option>
+                            </select>
+                        </div>
+                        <select v-model="localFilters.groupe" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm">
+                            <option value="">Groupe politique</option>
+                            <option v-for="g in groupes" :key="g" :value="g">{{ g }}</option>
+                        </select>
+                        <button
+                            v-if="hasActiveFilters"
+                            @click="clearFilters"
+                            class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm"
+                        >
+                            Reinitialiser les filtres
+                        </button>
+                    </div>
+                </div>
+
                 <div class="flex flex-col lg:flex-row gap-8">
                     
-                    <!-- Filters Sidebar -->
-                    <aside class="lg:w-72 shrink-0 space-y-4">
-                        <!-- Search -->
+                    <!-- Filters Sidebar (desktop only) -->
+                    <aside class="hidden lg:block lg:w-72 shrink-0 space-y-4">
                         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🔍 Rechercher</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rechercher</label>
                             <input
                                 v-model="localFilters.search"
                                 type="text"
@@ -169,9 +227,8 @@ const breadcrumbs = [
                             />
                         </div>
 
-                        <!-- Rubrique -->
                         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📋 Rubrique</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rubrique</label>
                             <select
                                 v-model="localFilters.rubrique"
                                 class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
@@ -181,9 +238,8 @@ const breadcrumbs = [
                             </select>
                         </div>
 
-                        <!-- Ministère -->
                         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🏛️ Ministère</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ministere</label>
                             <select
                                 v-model="localFilters.ministere"
                                 class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
@@ -193,9 +249,8 @@ const breadcrumbs = [
                             </select>
                         </div>
 
-                        <!-- Groupe -->
                         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">👥 Groupe politique</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Groupe politique</label>
                             <select
                                 v-model="localFilters.groupe"
                                 class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
@@ -205,13 +260,12 @@ const breadcrumbs = [
                             </select>
                         </div>
 
-                        <!-- Clear -->
                         <button
                             v-if="hasActiveFilters"
                             @click="clearFilters"
                             class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm transition-colors"
                         >
-                            ✕ Réinitialiser les filtres
+                            Reinitialiser les filtres
                         </button>
                     </aside>
 
@@ -232,8 +286,8 @@ const breadcrumbs = [
                                     <!-- Député photo -->
                                     <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-2xl shrink-0 overflow-hidden">
                                         <img 
-                                            v-if="q.acteur?.photo_wikipedia_url" 
-                                            :src="q.acteur.photo_wikipedia_url" 
+                                            v-if="q.acteur?.photo_url || q.acteur?.photo_wikipedia_url" 
+                                            :src="q.acteur.photo_url || q.acteur.photo_wikipedia_url" 
                                             :alt="q.acteur.nom"
                                             class="w-full h-full object-cover"
                                         />

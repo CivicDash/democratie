@@ -31,15 +31,17 @@ const resetFilters = () => {
 
 const getResultatColor = (resultat) => {
   if (!resultat) return 'gray';
-  if (resultat.includes('adopté')) return 'green';
-  if (resultat.includes('rejeté')) return 'red';
+  const r = resultat.toLowerCase();
+  if (r.includes('adopté')) return 'green';
+  if (r.includes('rejeté')) return 'red';
   return 'gray';
 };
 
 const getResultatBadgeClass = (resultat) => {
   if (!resultat) return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-  if (resultat.includes('adopté')) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
-  if (resultat.includes('rejeté')) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+  const r = resultat.toLowerCase();
+  if (r.includes('adopté')) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
+  if (r.includes('rejeté')) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
   return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
 };
 
@@ -189,14 +191,14 @@ const hasActiveFilters = computed(() => search.value || legislature.value !== '1
                     N° {{ scrutin.numero }}
                   </span>
                   <span class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ formatDate(scrutin.date) }}
+                    {{ scrutin.date || 'Date inconnue' }}
                   </span>
                   <span
                     v-if="scrutin.resultat_libelle"
                     class="px-3 py-1 rounded-full text-sm font-medium"
                     :class="getResultatBadgeClass(scrutin.resultat_libelle)"
                   >
-                    {{ scrutin.resultat_libelle.includes('adopté') ? '✅' : '❌' }} 
+                    {{ scrutin.resultat_libelle?.toLowerCase().includes('adopté') ? '✅' : '❌' }} 
                     {{ scrutin.resultat_libelle }}
                   </span>
                 </div>

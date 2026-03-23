@@ -152,14 +152,14 @@ class TopicController extends Controller
                 'updated_at' => $post->updated_at->diffForHumans(),
                 'author' => [
                     'id' => $post->author->id,
-                    'name' => $post->author->name,
+                    'name' => $post->author->display_name,
                 ],
                 'parent' => $post->parent ? [
                     'id' => $post->parent->id,
                     'content' => $post->parent->content,
                     'author' => [
                         'id' => $post->parent->author->id,
-                        'name' => $post->parent->author->name,
+                        'name' => $post->parent->author->display_name,
                     ],
                 ] : null,
                 'user_vote' => $post->votes->first()?->vote, // up/down/null

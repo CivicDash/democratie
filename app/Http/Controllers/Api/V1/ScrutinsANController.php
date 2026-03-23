@@ -57,12 +57,13 @@ class ScrutinsANController extends Controller
         }
 
         // Tri
-        $sortBy = $request->get('sort_by', 'date_scrutin');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $allowedSorts = ['date_scrutin', 'uid', 'titre'];
+        $sortBy = $request->input('sort_by', 'date_scrutin');
+        $sortOrder = $request->input('sort_order', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy(in_array($sortBy, $allowedSorts, true) ? $sortBy : 'date_scrutin', $sortOrder);
 
         // Pagination
-        $perPage = min($request->get('per_page', 20), 100);
+        $perPage = min($request->input('per_page', 20), 100);
         $scrutins = $query->paginate($perPage);
 
         return response()->json($scrutins);
@@ -122,7 +123,7 @@ class ScrutinsANController extends Controller
         $query->orderBy('acteur_ref');
 
         // Pagination
-        $perPage = min($request->get('per_page', 50), 200);
+        $perPage = min($request->input('per_page', 50), 200);
         $votes = $query->paginate($perPage);
 
         return response()->json($votes);
@@ -138,24 +139,39 @@ class ScrutinsANController extends Controller
     {
         $scrutin = ScrutinAN::findOrFail($uid);
 
-        $stats = $scrutin->votesIndividuels()
-            ->with('groupe')
-            ->get()
+        $rawStats = $scrutin->votesIndividuels()
+            ->selectRaw("
+                groupe_ref,
+                position_groupe,
+                COUNT(*) as total,
+                SUM(CASE WHEN position = 'pour' THEN 1 ELSE 0 END) as pour,
+                SUM(CASE WHEN position = 'contre' THEN 1 ELSE 0 END) as contre,
+                SUM(CASE WHEN position = 'abstention' THEN 1 ELSE 0 END) as abstention,
+                SUM(CASE WHEN position = 'non_votant' THEN 1 ELSE 0 END) as non_votant
+            ")
+            ->groupBy('groupe_ref', 'position_groupe')
+            ->get();
+
+        $groupRefs = $rawStats->pluck('groupe_ref')->filter()->unique()->values();
+        $groupLabels = \App\Models\OrganeAN::whereIn('uid', $groupRefs)
+            ->pluck('libelle_abrege', 'uid');
+
+        $stats = $rawStats
             ->groupBy('groupe_ref')
-            ->map(function($votes, $groupeRef) {
-                $groupe = $votes->first()->groupe;
-                
+            ->map(function ($rows, $groupeRef) use ($groupLabels) {
+                $row = $rows->first();
+
                 return [
                     'groupe' => [
                         'uid' => $groupeRef,
-                        'libelle' => $groupe ? $groupe->libelle_abrege : 'Inconnu',
+                        'libelle' => $groupLabels[$groupeRef] ?? 'Inconnu',
                     ],
-                    'total' => $votes->count(),
-                    'pour' => $votes->where('position', 'pour')->count(),
-                    'contre' => $votes->where('position', 'contre')->count(),
-                    'abstention' => $votes->where('position', 'abstention')->count(),
-                    'non_votant' => $votes->where('position', 'non_votant')->count(),
-                    'position_majoritaire' => $votes->first()->position_groupe,
+                    'total' => (int) $row->total,
+                    'pour' => (int) $row->pour,
+                    'contre' => (int) $row->contre,
+                    'abstention' => (int) $row->abstention,
+                    'non_votant' => (int) $row->non_votant,
+                    'position_majoritaire' => $row->position_groupe,
                 ];
             })
             ->values();

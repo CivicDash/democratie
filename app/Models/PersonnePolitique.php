@@ -35,15 +35,20 @@ class PersonnePolitique extends Model
         'linkedin_url',
         'instagram_url',
         'site_web',
+        'url_hatvp',
+        'hatvp_type_mandat',
         'uid_an',
         'uid_senat',
         'maire_id',
+        'wikidata_id',
+        'wikipedia_last_sync',
         'metadata',
     ];
 
     protected $casts = [
         'date_naissance' => 'date',
         'date_deces' => 'date',
+        'wikipedia_last_sync' => 'datetime',
         'metadata' => 'array',
     ];
 
@@ -99,9 +104,87 @@ class PersonnePolitique extends Model
         return $this->belongsTo(Maire::class, 'maire_id');
     }
 
+    public function affairesJudiciaires(): HasMany
+    {
+        return $this->hasMany(AffaireJudiciaire::class, 'personne_politique_id');
+    }
+
+    public function affairesPubliques(): HasMany
+    {
+        return $this->affairesJudiciaires()->publiques();
+    }
+
+    /**
+     * Toutes les affaires publiques, toutes casquettes confondues
+     * (personne_politique + depute + senateur + maire)
+     */
+    public function toutesAffairesPubliques()
+    {
+        return AffaireJudiciaire::publiques()
+            ->where(function ($q) {
+                $q->where('personne_politique_id', $this->id);
+
+                if ($this->uid_an) {
+                    $q->orWhere('acteur_an_uid', $this->uid_an);
+                }
+                if ($this->uid_senat) {
+                    $q->orWhere('senateur_matricule', $this->uid_senat);
+                }
+                if ($this->maire_id) {
+                    $q->orWhere('maire_id', $this->maire_id);
+                }
+            })
+            ->orderByRaw("CASE statut_judiciaire
+                WHEN 'condamne_definitif' THEN 1
+                WHEN 'condamne_appel' THEN 2
+                WHEN 'condamne_premiere_instance' THEN 3
+                WHEN 'mis_en_examen' THEN 4
+                ELSE 5 END");
+    }
+
+    /**
+     * Declarations HATVP multi-criteres :
+     * match par nom/prenom + par uid depute/senateur si applicable
+     */
+    public function declarationsHatvp()
+    {
+        return HatvpDeclaration::where(function ($q) {
+            $q->where(function ($q2) {
+                $q2->where('nom', 'ILIKE', $this->nom)
+                   ->where('prenom', 'ILIKE', $this->prenom);
+            });
+
+            if ($this->uid_an) {
+                $q->orWhere(function ($q2) {
+                    $q2->where('parlementaire_type', 'depute')
+                       ->where('parlementaire_id', $this->uid_an);
+                });
+            }
+
+            if ($this->uid_senat) {
+                $q->orWhere(function ($q2) {
+                    $q2->where('parlementaire_type', 'senateur')
+                       ->where('parlementaire_id', $this->uid_senat);
+                });
+            }
+        })->orderByDesc('date_depot');
+    }
+
     /**
      * Accessors
      */
+
+    public function getNbAffairesAttribute(): int
+    {
+        return $this->toutesAffairesPubliques()->count();
+    }
+
+    public function getACondamnationDefinitiveAttribute(): bool
+    {
+        return $this->toutesAffairesPubliques()
+            ->where('statut_judiciaire', 'condamne_definitif')
+            ->exists();
+    }
     public function getNomCompletAttribute(): string
     {
         $civilite = $this->civilite ? $this->civilite . ' ' : '';
@@ -114,7 +197,7 @@ class PersonnePolitique extends Model
             return null;
         }
         $endDate = $this->date_deces ?? now();
-        return $this->date_naissance->diffInYears($endDate);
+        return (int) $this->date_naissance->diffInYears($endDate);
     }
 
     public function getPhotoAttribute(): ?string

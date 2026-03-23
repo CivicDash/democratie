@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles, SoftDeletes;
@@ -24,6 +24,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'date_of_birth',
         'password',
         'profile_photo_path',
         'franceconnect_sub',
@@ -85,6 +86,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'date_of_birth' => 'date',
             'password' => 'hashed',
             'is_public_profile' => 'boolean',
             'is_verified_elu' => 'boolean',
@@ -536,12 +538,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Compte les signalements actifs contre l'user
+     * Compte les signalements actifs créés par l'user
      */
     public function activeReportsCount(): int
     {
-        return Report::where('reportable_type', Post::class)
-            ->whereIn('reportable_id', $this->posts->pluck('id'))
+        return Report::where('reporter_id', $this->id)
             ->whereIn('status', ['pending', 'reviewing'])
             ->count();
     }

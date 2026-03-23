@@ -76,7 +76,7 @@ class DebatSenatController extends Controller
                 'id' => $s->id,
                 'type' => $s->type_section,
                 'objet' => $s->objet,
-                'url' => $s->url ? 'https://www.senat.fr' . $s->url : null,
+                'url' => $s->url ? 'https://www.senat.fr/seances/' . ltrim($s->url, '/') : null,
             ]);
 
         // Top intervenants de la séance

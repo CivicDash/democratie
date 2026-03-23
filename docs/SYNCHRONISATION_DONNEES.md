@@ -59,11 +59,22 @@ php artisan sync:all --dry-run        # Simulation sans exécution
 ### Installation du cron
 
 ```bash
-# Installation interactive
+# ⚠️ Si le scheduler Laravel est actif, ne pas installer ce cron.
+# Installation interactive (usage manuel uniquement)
 ./scripts/install-cron.sh
 
 # Ou manuellement (crontab -e) :
-0 3 * * * /var/www/demoscratos/scripts/sync-all-data.sh >> /var/log/demoscratos/sync.log 2>&1
+0 3 * * * cd /opt/civicdash && ./scripts/sync-all-data.sh >> /opt/civicdash/storage/logs/sync.log 2>&1
+
+### Scheduler Laravel (recommandé en production)
+
+Le scheduler Laravel peut être exécuté via cron système :
+
+```bash
+* * * * * cd /opt/civicdash && docker compose exec -T app php artisan schedule:run >> /opt/civicdash/storage/logs/scheduler.log 2>&1
+```
+
+Si vous utilisez ce mode, évitez d’installer un cron séparé pour `sync-all-data.sh`.
 ```
 
 ---

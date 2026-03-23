@@ -84,6 +84,16 @@ class Senateur extends Model
         return $this->hasMany(AmendementSenat::class, 'senateur_matricule', 'matricule');
     }
 
+    public function affairesJudiciaires(): HasMany
+    {
+        return $this->hasMany(AffaireJudiciaire::class, 'senateur_matricule', 'matricule');
+    }
+
+    public function affairesPubliques(): HasMany
+    {
+        return $this->affairesJudiciaires()->publiques();
+    }
+
     /**
      * Scopes
      */

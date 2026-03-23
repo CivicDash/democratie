@@ -197,7 +197,7 @@ class AchievementController extends Controller
                     'rank' => $index + 1,
                     'user' => [
                         'id' => $stats->user->id,
-                        'name' => $stats->user->name,
+                        'name' => $stats->user->display_name,
                         'avatar' => $stats->user->avatar_url ?? null,
                     ],
                     'level' => $stats->level,

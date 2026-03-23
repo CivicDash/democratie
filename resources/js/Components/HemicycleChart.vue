@@ -23,59 +23,110 @@ const props = defineProps({
 const hoveredGroupe = ref(null);
 const selectedGroupe = ref(null);
 
-// Calculer le total des sièges
 const totalSieges = computed(() => {
     return props.groupes.reduce((sum, g) => sum + g.nombre_membres, 0);
 });
 
-// Générer les positions des sièges en arc (amélioré)
+const seatDotBase = computed(() => {
+    const t = totalSieges.value;
+    if (t > 500) return 2.8;
+    if (t > 300) return 3.4;
+    if (t > 150) return 4;
+    if (t > 50) return 5;
+    return 6;
+});
+
 const sieges = computed(() => {
-    const seats = [];
+    const total = totalSieges.value;
+    if (total === 0) return [];
+
     const centerX = props.width / 2;
-    const centerY = props.height - 30;
-    const rows = 8; // Augmenté pour plus de réalisme
-    const maxRadius = Math.min(props.width, props.height * 1.6) / 2 - 30;
+    const centerY = props.height - 25;
+    const maxRadius = Math.min(props.width / 2 - 10, props.height - 35);
     const minRadius = maxRadius * 0.35;
 
-    let currentSeat = 0;
+    const numRows = Math.max(3, Math.min(15, Math.ceil(Math.sqrt(total / 2.5))));
 
-    props.groupes.forEach(groupe => {
-        for (let i = 0; i < groupe.nombre_membres; i++) {
-            // Progression globale
-            const progress = currentSeat / totalSieges.value;
-            
-            // Déterminer la rangée (répartition progressive)
-            const row = Math.floor(Math.sqrt(currentSeat / totalSieges.value * rows * rows));
-            const radius = minRadius + (row / rows) * (maxRadius - minRadius);
-            
-            // Calculer l'angle pour l'hémicycle
-            const seatsInThisRow = Math.ceil(totalSieges.value * (row + 1) / rows) - Math.ceil(totalSieges.value * row / rows);
-            const seatIndexInRow = currentSeat % seatsInThisRow;
-            const angle = Math.PI * (1 - seatIndexInRow / Math.max(1, seatsInThisRow - 1));
-            
-            const x = centerX + radius * Math.cos(angle);
-            const y = centerY + radius * Math.sin(angle);
+    const rowData = [];
+    let totalArc = 0;
+    for (let r = 0; r < numRows; r++) {
+        const t = numRows === 1 ? 0.5 : r / (numRows - 1);
+        const radius = minRadius + t * (maxRadius - minRadius);
+        const arc = Math.PI * radius;
+        rowData.push({ radius, arc });
+        totalArc += arc;
+    }
 
-            seats.push({
-                x,
-                y,
-                groupe,
-                index: currentSeat,
-                row,
-            });
+    const seatsPerRow = [];
+    let assigned = 0;
+    for (let r = 0; r < numRows; r++) {
+        const n = Math.round((rowData[r].arc / totalArc) * total);
+        seatsPerRow.push(n);
+        assigned += n;
+    }
 
-            currentSeat++;
+    let diff = total - assigned;
+    let ri = numRows - 1;
+    while (diff > 0) {
+        seatsPerRow[ri]++;
+        diff--;
+        ri = (ri - 1 + numRows) % numRows;
+    }
+    while (diff < 0) {
+        if (seatsPerRow[ri] > 1) {
+            seatsPerRow[ri]--;
+            diff++;
         }
+        ri = (ri + 1) % numRows;
+    }
+
+    const pad = 0.03;
+    const allPositions = [];
+
+    for (let r = 0; r < numRows; r++) {
+        const n = seatsPerRow[r];
+        const radius = rowData[r].radius;
+        for (let s = 0; s < n; s++) {
+            const fraction = n === 1 ? 0.5 : s / (n - 1);
+            const angle = Math.PI * (1 - pad) - fraction * Math.PI * (1 - 2 * pad);
+            allPositions.push({
+                x: centerX + radius * Math.cos(angle),
+                y: centerY - radius * Math.sin(angle),
+                row: r,
+                fraction,
+            });
+        }
+    }
+
+    allPositions.sort((a, b) => {
+        const df = a.fraction - b.fraction;
+        if (Math.abs(df) > 0.0001) return df;
+        return a.row - b.row;
     });
+
+    const seats = [];
+    let seatIdx = 0;
+    for (const groupe of props.groupes) {
+        for (let i = 0; i < groupe.nombre_membres && seatIdx < allPositions.length; i++) {
+            const pos = allPositions[seatIdx];
+            seats.push({
+                x: pos.x,
+                y: pos.y,
+                groupe,
+                index: seatIdx,
+                row: pos.row,
+            });
+            seatIdx++;
+        }
+    }
 
     return seats;
 });
 
-// Calculer la légende avec animations
 const legende = computed(() => {
     return props.groupes.map(groupe => ({
         ...groupe,
-        pourcentage: totalSieges.value > 0 
+        pourcentage: totalSieges.value > 0
             ? ((groupe.nombre_membres / totalSieges.value) * 100).toFixed(1)
             : 0,
         isHovered: hoveredGroupe.value?.id === groupe.id,
@@ -83,7 +134,6 @@ const legende = computed(() => {
     }));
 });
 
-// Gestion des interactions
 const handleSiegeHover = (siege) => {
     if (props.interactive) {
         hoveredGroupe.value = siege.groupe;
@@ -100,19 +150,17 @@ const handleSiegeClick = (siege) => {
     }
 };
 
-// Filtrer les sièges visibles selon le groupe survolé/sélectionné
 const getSiegeOpacity = (siege) => {
     if (!hoveredGroupe.value && !selectedGroupe.value) return 1;
-    
     const targetGroupe = selectedGroupe.value || hoveredGroupe.value;
     return siege.groupe.id === targetGroupe.id ? 1 : 0.2;
 };
 
 const getSiegeRadius = (siege) => {
-    if (!hoveredGroupe.value && !selectedGroupe.value) return 4;
-    
+    const base = seatDotBase.value;
+    if (!hoveredGroupe.value && !selectedGroupe.value) return base;
     const targetGroupe = selectedGroupe.value || hoveredGroupe.value;
-    return siege.groupe.id === targetGroupe.id ? 5.5 : 3.5;
+    return siege.groupe.id === targetGroupe.id ? base * 1.4 : base * 0.85;
 };
 </script>
 
@@ -146,18 +194,28 @@ const getSiegeRadius = (siege) => {
 
         <!-- SVG de l'hémicycle avec animations -->
         <svg
-            :width="width"
-            :height="height"
             :viewBox="`0 0 ${width} ${height}`"
-            class="mx-auto"
+            class="mx-auto w-full"
+            :style="{ maxWidth: width + 'px' }"
+            preserveAspectRatio="xMidYMid meet"
         >
-            <!-- Background arc -->
+            <!-- Background arcs (inner + outer) -->
             <path
-                :d="`M ${width * 0.1} ${height - 30} A ${(width * 0.8) / 2} ${(width * 0.8) / 2} 0 0 1 ${width * 0.9} ${height - 30}`"
+                :d="`M ${width / 2 - (Math.min(width / 2 - 10, height - 35))} ${height - 25} A ${Math.min(width / 2 - 10, height - 35)} ${Math.min(width / 2 - 10, height - 35)} 0 0 1 ${width / 2 + (Math.min(width / 2 - 10, height - 35))} ${height - 25}`"
                 fill="none"
                 stroke="#e5e7eb"
-                stroke-width="2"
-                stroke-dasharray="5,5"
+                stroke-width="1"
+                stroke-dasharray="4,4"
+                opacity="0.5"
+                class="dark:stroke-gray-700"
+            />
+            <path
+                :d="`M ${width / 2 - (Math.min(width / 2 - 10, height - 35) * 0.35)} ${height - 25} A ${Math.min(width / 2 - 10, height - 35) * 0.35} ${Math.min(width / 2 - 10, height - 35) * 0.35} 0 0 1 ${width / 2 + (Math.min(width / 2 - 10, height - 35) * 0.35)} ${height - 25}`"
+                fill="none"
+                stroke="#e5e7eb"
+                stroke-width="1"
+                stroke-dasharray="4,4"
+                opacity="0.3"
                 class="dark:stroke-gray-700"
             />
 
@@ -192,19 +250,19 @@ const getSiegeRadius = (siege) => {
                 </circle>
             </g>
 
-            <!-- Texte central animé -->
+            <!-- Texte central -->
             <text
                 :x="width / 2"
-                :y="height - 15"
+                :y="height - 8"
                 text-anchor="middle"
-                class="fill-gray-700 dark:fill-gray-300 text-lg font-bold transition-all duration-300"
-                :class="{ 'text-2xl': selectedGroupe || hoveredGroupe }"
+                class="fill-gray-700 dark:fill-gray-300 font-bold transition-all duration-300"
+                font-size="14"
             >
-                {{ selectedGroupe 
-                    ? `${selectedGroupe.nombre_membres} sièges ${selectedGroupe.sigle}` 
+                {{ selectedGroupe
+                    ? `${selectedGroupe.nombre_membres} sièges ${selectedGroupe.sigle}`
                     : hoveredGroupe
                         ? `${hoveredGroupe.nombre_membres} sièges ${hoveredGroupe.sigle}`
-                        : `${totalSieges} sièges total`
+                        : `${totalSieges} sièges`
                 }}
             </text>
         </svg>

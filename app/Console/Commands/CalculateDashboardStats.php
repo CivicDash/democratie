@@ -38,7 +38,7 @@ class CalculateDashboardStats extends Command
                 return [
                     'uid' => $item->acteur_ref,
                     'nom' => $acteur ? ($acteur->prenom . ' ' . $acteur->nom) : 'Inconnu',
-                    'photo' => $acteur?->photo_wikipedia_url,
+                    'photo' => $acteur?->photo_url,
                     'groupe' => null,
                     'groupe_couleur' => '#6B7280',
                     'nb_votes' => $item->nb_votes,
@@ -62,7 +62,7 @@ class CalculateDashboardStats extends Command
                 return [
                     'matricule' => $item->senateur_matricule,
                     'nom' => $senateur ? ($senateur->prenom . ' ' . ($senateur->nom_usuel ?? $senateur->nom)) : 'Inconnu',
-                    'photo' => $senateur?->photo_wikipedia_url,
+                    'photo' => $senateur?->photo_url,
                     'groupe' => $senateur?->groupe_politique_code,
                     'groupe_couleur' => '#DC2626',
                     'nb_amendements' => $item->nb_amendements,
@@ -130,11 +130,17 @@ class CalculateDashboardStats extends Command
 
         // 📈 STATS GLOBALES
         $this->info('📊 Calcul stats globales...');
+        $allScrutins = ScrutinAN::get();
+        $nbAdoptes = $allScrutins->filter(fn($s) => $s->pour_calcule > $s->contre_calcule)->count();
         $globalStats = [
             'nb_deputes' => ActeurAN::count(),
             'nb_senateurs' => Senateur::where('etat', 'ACTIF')->count(),
-            'nb_scrutins' => ScrutinAN::count(),
+            'nb_scrutins' => $allScrutins->count(),
             'nb_amendements_an' => DB::table('amendements_an')->count(),
+            'nb_maires' => DB::table('maires')->count(),
+            'nb_gouvernements' => DB::table('gouvernements')->count(),
+            'nb_scrutins_adoptes' => $nbAdoptes,
+            'nb_scrutins_rejetes' => $allScrutins->count() - $nbAdoptes,
         ];
         DashboardStat::set('global_stats', $globalStats);
         $this->info('  ✓ Stats globales calculées');

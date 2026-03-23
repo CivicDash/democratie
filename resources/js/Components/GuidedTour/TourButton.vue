@@ -1,5 +1,5 @@
 <script setup>
-import { useGuidedTour } from '@/Composables/useGuidedTour';
+import { useGuidedTour } from '@/composables/useGuidedTour';
 
 const props = defineProps({
     tourId: {
