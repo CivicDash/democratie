@@ -359,6 +359,9 @@ const participationBarWidth = (value, total) => {
                                             <span v-if="mandat.est_actuel" class="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
                                                 En exercice
                                             </span>
+                                            <span v-if="mandat.reelu" class="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-full">
+                                                Réélu(e)
+                                            </span>
                                         </div>
                                         <div class="text-sm text-slate-500 dark:text-slate-400">
                                             {{ mandat.periode }} · {{ mandat.duree }}

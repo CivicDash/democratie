@@ -182,6 +182,11 @@ class HatvpDeclaration extends Model
         return $query->where('parlementaire_type', 'depute');
     }
 
+    public function scopeMaires($query)
+    {
+        return $query->where('parlementaire_type', 'maire');
+    }
+
     public function scopeRecentes($query, int $jours = 30)
     {
         return $query->where('date_depot', '>=', now()->subDays($jours));

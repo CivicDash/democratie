@@ -26,7 +26,7 @@ class AffairesNotifyModerators extends Command
             return self::SUCCESS;
         }
 
-        $moderators = User::where('role', 'admin')->get();
+        $moderators = User::role('admin')->get();
 
         if ($moderators->isEmpty()) {
             $this->warn('Aucun modérateur trouvé.');

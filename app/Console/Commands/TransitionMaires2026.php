@@ -90,6 +90,36 @@ class TransitionMaires2026 extends Command
             return;
         }
 
+        $teteNom = $listeGagnante->tete_de_liste_nom;
+        $tetePrenom = $listeGagnante->tete_de_liste_prenom;
+
+        if (!$teteNom) {
+            $teteListe = $listeGagnante->liste?->candidats()
+                ->where('est_tete_de_liste', true)
+                ->first();
+            $teteNom = $teteListe?->nom;
+            $tetePrenom = $teteListe?->prenom;
+        }
+
+        if (!$teteNom) {
+            $this->sansSuccesseur++;
+            return;
+        }
+
+        // Idempotence: si un maire 2026-2032 en exercice existe déjà pour cette commune, skip
+        $dejaTraite = Maire::where('code_commune', $codeCommune)
+            ->where('mandature', '2026-2032')
+            ->where('en_exercice', true)
+            ->first();
+
+        if ($dejaTraite) {
+            if ($this->output->isVerbose()) {
+                $this->line("  ⏭ {$codeCommune} déjà traité ({$dejaTraite->nom_complet})");
+            }
+            return;
+        }
+
+        // Chercher l'ancien maire sortant (2020-2026 encore en exercice)
         $ancienMaire = Maire::where('code_commune', $codeCommune)
             ->where('mandature', '2020-2026')
             ->where('en_exercice', true)
@@ -109,22 +139,6 @@ class TransitionMaires2026 extends Command
                 ]);
 
             $this->sortantsClotures++;
-        }
-
-        $teteNom = $listeGagnante->tete_de_liste_nom;
-        $tetePrenom = $listeGagnante->tete_de_liste_prenom;
-
-        if (!$teteNom) {
-            $teteListe = $listeGagnante->liste?->candidats()
-                ->where('est_tete_de_liste', true)
-                ->first();
-            $teteNom = $teteListe?->nom;
-            $tetePrenom = $teteListe?->prenom;
-        }
-
-        if (!$teteNom) {
-            $this->sansSuccesseur++;
-            return;
         }
 
         $estReelu = false;
@@ -172,7 +186,7 @@ class TransitionMaires2026 extends Command
                 'liste_id' => $listeElectorale?->id,
             ]);
 
-            $this->createMandat($maireExistant, $ville, $dateInstallation, $score, $tourElection);
+            $this->createOrUpdateMandat($maireExistant, $ville, $dateInstallation, $score, $tourElection);
             $this->reelus++;
         } else {
             $sexe = $listeGagnante->tete_de_liste_sexe;
@@ -207,7 +221,7 @@ class TransitionMaires2026 extends Command
                 'population_commune' => $ville?->population,
             ]);
 
-            $this->createMandat($nouveauMaire, $ville, $dateInstallation, $score, $tourElection);
+            $this->createOrUpdateMandat($nouveauMaire, $ville, $dateInstallation, $score, $tourElection);
             $maireExistant = $nouveauMaire;
             $this->nouveaux++;
         }
@@ -217,22 +231,26 @@ class TransitionMaires2026 extends Command
         }
     }
 
-    private function createMandat(Maire $maire, ?Ville $ville, Carbon $dateInstallation, $score, int $tour): void
+    private function createOrUpdateMandat(Maire $maire, ?Ville $ville, Carbon $dateInstallation, $score, int $tour): void
     {
-        MaireMandat::create([
-            'ville_id' => $ville?->id,
-            'maire_id' => $maire->id,
-            'nom' => $maire->nom,
-            'prenom' => $maire->prenom,
-            'sexe' => $maire->civilite === 'Mme' ? 'F' : 'M',
-            'date_debut' => $dateInstallation,
-            'annee_election' => 2026,
-            'nuance_politique' => $maire->nuance_politique,
-            'score_election_pct' => $score,
-            'tour_election' => $tour,
-            'mandature' => '2026-2032',
-            'est_actuel' => true,
-        ]);
+        MaireMandat::updateOrCreate(
+            [
+                'maire_id' => $maire->id,
+                'mandature' => '2026-2032',
+            ],
+            [
+                'ville_id' => $ville?->id,
+                'nom' => $maire->nom,
+                'prenom' => $maire->prenom,
+                'sexe' => $maire->civilite === 'Mme' ? 'F' : 'M',
+                'date_debut' => $dateInstallation,
+                'annee_election' => 2026,
+                'nuance_politique' => $maire->nuance_politique,
+                'score_election_pct' => $score,
+                'tour_election' => $tour,
+                'est_actuel' => true,
+            ]
+        );
     }
 
     private function simulateCommune(string $codeCommune, $resultats): void

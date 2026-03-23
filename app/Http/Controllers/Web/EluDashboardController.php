@@ -3,12 +3,20 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\AffaireJudiciaire;
+use App\Models\EluFollower;
+use App\Models\HatvpDeclaration;
+use App\Models\Maire;
+use App\Models\MaireMandat;
+use App\Models\ResultatMunicipal;
 use App\Models\TopicElu;
 use App\Models\Topic;
+use App\Models\TerritoryDepartment;
 use App\Services\NotificationService;
 use App\Services\ContentModerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -292,11 +300,13 @@ class EluDashboardController extends Controller
      */
     public function publicProfile(string $type, string $ref): Response
     {
-        // Trouver l'élu dans les données parlementaires
+        if ($type === 'maire') {
+            return $this->renderMaireProfile($ref);
+        }
+
         $eluData = match ($type) {
             'depute' => \App\Models\ActeurAN::find($ref),
             'senateur' => \App\Models\Senateur::where('matricule', $ref)->first(),
-            'maire' => \App\Models\Maire::find($ref),
             default => null,
         };
 
@@ -304,14 +314,12 @@ class EluDashboardController extends Controller
             abort(404, 'Élu non trouvé.');
         }
 
-        // Trouver le compte utilisateur lié (s'il existe)
         $userAccount = \App\Models\User::where('elu_type', $type)
             ->where('elu_ref', $ref)
             ->where('is_verified_elu', true)
             ->where('is_public_profile', true)
             ->first();
 
-        // Interpellations publiques
         $interpellations = TopicElu::where('elu_type', $type)
             ->where('elu_id', $ref)
             ->where('is_interpellation', true)
@@ -321,7 +329,6 @@ class EluDashboardController extends Controller
             ->get()
             ->map(fn($i) => $this->formatInterpellation($i));
 
-        // Stats
         $stats = [
             'total_interpellations' => TopicElu::where('elu_type', $type)->where('elu_id', $ref)->where('is_interpellation', true)->count(),
             'answered' => TopicElu::where('elu_type', $type)->where('elu_id', $ref)->where('response_status', 'answered')->count(),
@@ -350,6 +357,79 @@ class EluDashboardController extends Controller
     }
 
     /**
+     * Index des maires
+     */
+    public function maires(Request $request): Response
+    {
+        $query = $request->input('q', '');
+        $departement = $request->input('departement');
+        $nuance = $request->input('nuance');
+
+        $mairesQuery = Maire::enExercice();
+
+        if ($query) {
+            $mairesQuery->search($query);
+        }
+        if ($departement) {
+            $mairesQuery->byDepartement($departement);
+        }
+        if ($nuance) {
+            $mairesQuery->where('nuance_politique', $nuance);
+        }
+
+        $maires = $mairesQuery
+            ->orderByDesc('population_commune')
+            ->paginate(50)
+            ->withQueryString()
+            ->through(fn(Maire $m) => [
+                'id' => $m->id,
+                'uid' => $m->uid,
+                'nom_complet' => $m->nom_complet,
+                'civilite' => $m->civilite,
+                'photo' => $m->photo,
+                'commune' => $m->nom_commune,
+                'code_commune' => $m->code_commune,
+                'departement' => $m->nom_departement,
+                'code_departement' => $m->code_departement,
+                'population' => $m->population_commune,
+                'nuance' => $m->nuance_politique ? [
+                    'code' => $m->nuance_politique,
+                    'libelle' => $m->nuance_libelle,
+                    'couleur' => $m->nuance_couleur,
+                ] : null,
+                'debut_mandat' => $m->debut_mandat?->format('d/m/Y'),
+                'reelu' => $m->reelu,
+                'url' => route('elus.public-profile', ['type' => 'maire', 'ref' => $m->id]),
+            ]);
+
+        $totalMaires = Maire::enExercice()->count();
+
+        $departements = TerritoryDepartment::orderBy('code')
+            ->get(['code', 'name'])
+            ->map(fn($d) => ['code' => $d->code, 'nom' => $d->name]);
+
+        $nuances = Maire::enExercice()
+            ->whereNotNull('nuance_politique')
+            ->selectRaw('nuance_politique, COUNT(*) as total')
+            ->groupBy('nuance_politique')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn($n) => [
+                'code' => $n->nuance_politique,
+                'libelle' => (new Maire(['nuance_politique' => $n->nuance_politique]))->nuance_libelle,
+                'total' => $n->total,
+            ]);
+
+        return Inertia::render('Elus/Maires/Index', [
+            'maires' => $maires,
+            'totalMaires' => $totalMaires,
+            'filters' => compact('query', 'departement', 'nuance'),
+            'departements' => $departements,
+            'nuances' => $nuances,
+        ]);
+    }
+
+    /**
      * Page "Ma fiche" - Lien vers le profil public de l'élu
      */
     public function maFiche()
@@ -364,7 +444,7 @@ class EluDashboardController extends Controller
         return match ($user->elu_type) {
             'depute' => redirect()->route('representants.deputes.show', $user->elu_ref),
             'senateur' => redirect()->route('representants.senateurs.show', $user->elu_ref),
-            'maire' => redirect()->route('collectivites.maires.show', $user->elu_ref),
+            'maire' => redirect()->route('elus.public-profile', ['type' => 'maire', 'ref' => $user->elu_ref]),
             default => redirect()->route('elu.dashboard')->with('error', 'Type d\'élu non reconnu'),
         };
     }
@@ -446,6 +526,254 @@ class EluDashboardController extends Controller
     // ========================================================================
     // PRIVATE HELPERS
     // ========================================================================
+
+    private function renderMaireProfile(string $ref): Response
+    {
+        $maire = Maire::with([
+            'ville',
+            'mandats',
+            'personnePolitique.postes.gouvernement',
+        ])->findOrFail($ref);
+
+        $affaires = $maire->toutesAffairesPubliques()
+            ->with('sources')
+            ->get()
+            ->map(fn($a) => [
+                'id' => $a->id,
+                'titre' => $a->titre,
+                'description' => $a->description,
+                'type_affaire' => $a->type_affaire,
+                'type_affaire_libelle' => $a->type_affaire_libelle,
+                'categorie' => $a->categorie,
+                'statut_judiciaire' => $a->statut_judiciaire,
+                'statut_libelle' => $a->statut_judiciaire_libelle,
+                'statut_couleur' => $a->statut_judiciaire_couleur,
+                'date_condamnation' => $a->date_condamnation_definitive?->format('d/m/Y'),
+                'date_mise_en_examen' => $a->date_mise_en_examen?->format('d/m/Y'),
+                'peine_resume' => $a->peine_resume,
+                'juridiction' => $a->juridiction,
+                'sources' => $a->sources->map(fn($s) => [
+                    'media' => $s->media,
+                    'url' => $s->url,
+                    'date' => $s->date_publication?->format('d/m/Y'),
+                    'type' => $s->type_source,
+                ]),
+            ]);
+
+        $hatvpData = ['declarations' => [], 'summary' => null];
+        if ($maire->est_soumis_hatvp) {
+            $hatvpData = Cache::remember("hatvp_maire_{$maire->id}", 3600, function () use ($maire) {
+                $declarations = $maire->declarationsHatvp()
+                    ->with([
+                        'mandatsElectifs.remunerations',
+                        'activitesProfessionnelles.remunerations',
+                        'participationsDirigeantes.remunerations',
+                        'collaborateurs',
+                        'fonctionsBenevoles',
+                    ])
+                    ->get();
+
+                $formatted = $declarations->map(fn($d) => [
+                    'uuid' => $d->uuid,
+                    'type' => $d->type_declaration,
+                    'type_label' => $d->type_declaration_label,
+                    'date_depot' => $d->date_depot?->format('d/m/Y'),
+                    'type_mandat' => $d->type_mandat,
+                    'url' => $maire->url_hatvp ?? 'https://www.hatvp.fr/fiche-nominative/?declarant='
+                             . urlencode(strtolower($maire->nom) . '-' . strtolower($maire->prenom)),
+                ]);
+
+                $summary = null;
+                $latest = $declarations->first();
+                if ($latest) {
+                    $mandatsElectifs = $latest->mandatsElectifs ?? collect();
+                    $activitesPro = $latest->activitesProfessionnelles ?? collect();
+                    $participations = $latest->participationsDirigeantes ?? collect();
+
+                    $totalRemunerations = 0;
+                    foreach ([$mandatsElectifs, $activitesPro, $participations] as $group) {
+                        foreach ($group as $item) {
+                            foreach ($item->remunerations ?? [] as $rem) {
+                                $totalRemunerations += (float) ($rem->montant_brut ?? 0);
+                            }
+                        }
+                    }
+
+                    $summary = [
+                        'nb_mandats_electifs' => $mandatsElectifs->count(),
+                        'nb_activites_pro' => $activitesPro->count(),
+                        'nb_participations' => $participations->count(),
+                        'nb_collaborateurs' => ($latest->collaborateurs ?? collect())->count(),
+                        'total_remunerations_brut' => $totalRemunerations,
+                        'derniere_declaration' => $latest->date_depot?->format('d/m/Y'),
+                    ];
+                }
+
+                return ['declarations' => $formatted->toArray(), 'summary' => $summary];
+            });
+        }
+
+        $resultatsElection = $maire->resultatsElection()
+            ->with('listes')
+            ->get()
+            ->map(fn($r) => [
+                'tour' => (int) $r->tour,
+                'inscrits' => (int) $r->inscrits,
+                'votants' => (int) $r->votants,
+                'taux_participation' => (float) $r->taux_participation,
+                'exprimes' => (int) ($r->exprimes ?? 0),
+                'listes' => $r->listes->map(fn($l) => [
+                    'nom_liste' => $l->nom_liste,
+                    'tete_de_liste' => trim(($l->tete_de_liste_prenom ?? '') . ' ' . ($l->tete_de_liste_nom ?? '')),
+                    'nuance' => $l->nuance_liste,
+                    'voix' => (int) $l->voix,
+                    'pourcentage' => (float) ($l->pourcentage_exprimes ?? 0),
+                    'elu' => (bool) $l->elu,
+                    'sieges' => (int) ($l->sieges_obtenus ?? 0),
+                ]),
+            ]);
+
+        $mandats = $maire->mandats->map(fn($m) => [
+            'id' => $m->id,
+            'date_debut' => $m->date_debut?->format('d/m/Y'),
+            'date_fin' => $m->date_fin?->format('d/m/Y'),
+            'periode' => $m->periode,
+            'duree' => $m->duree_formate,
+            'nuance_politique' => $m->nuance_politique,
+            'parti' => $m->parti,
+            'score_election' => $m->score_election_pct,
+            'tour_election' => $m->tour_election,
+            'est_actuel' => (bool) $m->est_actuel,
+        ]);
+
+        $elusRattaches = $this->getElusCommune($maire);
+
+        $isFollowed = Auth::check() && EluFollower::where('user_id', Auth::id())
+            ->where('elu_type', 'maire')
+            ->where('elu_id', (string) $maire->id)
+            ->exists();
+
+        return Inertia::render('Elus/Maires/Show', [
+            'maire' => [
+                'id' => $maire->id,
+                'uid' => $maire->uid,
+                'nom_complet' => $maire->nom_complet,
+                'civilite' => $maire->civilite,
+                'prenom' => $maire->prenom,
+                'nom' => $maire->nom,
+                'photo' => $maire->photo,
+                'date_naissance' => $maire->date_naissance?->format('d/m/Y'),
+                'age' => $maire->age,
+                'lieu_naissance' => $maire->lieu_naissance,
+                'profession' => $maire->profession,
+                'formation' => $maire->formation,
+                'nuance' => $maire->nuance_politique ? [
+                    'code' => $maire->nuance_politique,
+                    'libelle' => $maire->nuance_libelle,
+                    'couleur' => $maire->nuance_couleur,
+                ] : null,
+                'mandat' => [
+                    'debut' => $maire->debut_mandat?->format('d/m/Y'),
+                    'debut_fonction' => $maire->debut_fonction?->format('d/m/Y'),
+                    'mandature' => $maire->mandature,
+                    'duree' => $maire->duree_mandat,
+                    'reelu' => $maire->reelu,
+                    'score' => $maire->score_election_pct,
+                    'tour' => $maire->tour_election,
+                ],
+                'commune' => [
+                    'code' => $maire->code_commune,
+                    'nom' => $maire->nom_commune,
+                    'departement' => $maire->nom_departement,
+                    'code_departement' => $maire->code_departement,
+                    'region' => $maire->nom_region,
+                    'population' => $maire->population_commune,
+                    'ville_slug' => $maire->ville?->slug,
+                ],
+                'wikipedia' => [
+                    'url' => $maire->wikipedia_url,
+                    'extract' => $maire->wikipedia_extract,
+                ],
+                'contact' => array_filter([
+                    'email' => $maire->email,
+                    'telephone' => $maire->telephone,
+                    'site_web' => $maire->site_web,
+                    'adresse_mairie' => $maire->adresse_mairie,
+                ]),
+                'reseaux_sociaux' => array_filter([
+                    'twitter' => $maire->twitter_url,
+                    'facebook' => $maire->facebook_url,
+                    'instagram' => $maire->instagram_url,
+                    'linkedin' => $maire->linkedin_url,
+                ]),
+                'est_soumis_hatvp' => $maire->est_soumis_hatvp,
+                'est_fiche_riche' => $maire->est_fiche_riche,
+                'est_aussi_depute' => $maire->personnePolitique?->uid_an !== null,
+                'est_aussi_senateur' => $maire->personnePolitique?->uid_senat !== null,
+                'postes_gouvernement' => $maire->personnePolitique?->postes
+                    ?->map(fn($p) => $p->fonction . ' (' . ($p->gouvernement?->nom_complet ?? 'Gouvernement') . ')')
+                    ->toArray() ?? [],
+                'is_followed' => $isFollowed,
+            ],
+            'mandats_historiques' => $mandats,
+            'resultats_election' => $resultatsElection,
+            'affaires_judiciaires' => $affaires,
+            'declarations_hatvp' => $hatvpData['declarations'],
+            'hatvp_summary' => $hatvpData['summary'],
+            'elus_rattaches' => $elusRattaches,
+            'budget_commune' => $maire->ville?->budgets?->take(5)->map(fn($b) => [
+                'annee' => $b->annee,
+                'recettes' => $b->recettes_fonctionnement ?? 0,
+                'depenses' => $b->depenses_fonctionnement ?? 0,
+                'dette' => $b->encours_dette ?? 0,
+            ]) ?? [],
+        ]);
+    }
+
+    private function getElusCommune(Maire $maire): array
+    {
+        $elus = [];
+        $deptCode = $maire->code_departement;
+
+        $deputeUids = \App\Models\DeputeCirconscription::where('num_departement', $deptCode)
+            ->whereNull('date_fin')
+            ->pluck('acteur_uid')
+            ->unique();
+
+        if ($deputeUids->isNotEmpty()) {
+            $deputes = \App\Models\ActeurAN::whereIn('uid', $deputeUids)
+                ->limit(10)
+                ->get();
+
+            foreach ($deputes as $d) {
+                $groupe = $d->groupe_politique_actuel;
+                $elus[] = [
+                    'type' => 'depute',
+                    'nom' => $d->nom_complet,
+                    'photo' => $d->photo_url,
+                    'detail' => $groupe?->libelle_abrege ?? $groupe?->libelle ?? null,
+                    'url' => route('representants.deputes.show', $d->uid),
+                ];
+            }
+        }
+
+        $senateurs = \App\Models\Senateur::actifs()
+            ->where('circonscription', 'ILIKE', '%' . ($maire->nom_departement ?? '') . '%')
+            ->limit(10)
+            ->get();
+
+        foreach ($senateurs as $s) {
+            $elus[] = [
+                'type' => 'senateur',
+                'nom' => $s->nom_complet,
+                'photo' => $s->photo_url,
+                'detail' => $s->groupe_politique,
+                'url' => route('representants.senateurs.show', $s->matricule),
+            ];
+        }
+
+        return $elus;
+    }
 
     private function getInterpellationsQuery($user)
     {

@@ -6,6 +6,7 @@ import Card from '@/Components/Card.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
 import AffairesSection from '@/Components/AffairesJudiciaires/AffairesSection.vue';
+import AffairesHeroBadges from '@/Components/AffairesJudiciaires/AffairesHeroBadges.vue';
 import HatvpSection from '@/Components/Hatvp/HatvpSection.vue';
 
 const props = defineProps({
@@ -94,6 +95,7 @@ const getPartiCouleur = (parti) => {
                             >
                                 {{ personne.parti_politique }}
                             </span>
+                            <AffairesHeroBadges :affaires="affaires_judiciaires" variant="dark" />
                         </div>
                         
                         <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
@@ -242,7 +244,7 @@ const getPartiCouleur = (parti) => {
                         />
 
                         <!-- Affaires judiciaires -->
-                        <Card v-if="affaires_judiciaires?.length">
+                        <Card v-if="affaires_judiciaires?.length" id="affaires-section">
                             <AffairesSection :affaires="affaires_judiciaires" />
                         </Card>
                     </div>

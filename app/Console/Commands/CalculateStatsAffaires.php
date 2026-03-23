@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ActeurAN;
 use App\Models\AffaireJudiciaire;
+use App\Models\Maire;
 use App\Models\Senateur;
 use App\Models\StatsAffaireJudiciaire;
 use Illuminate\Console\Command;
@@ -152,6 +153,10 @@ class CalculateStatsAffaires extends Command
             'ministre' => [
                 'total_elus' => \App\Models\PersonnePolitique::actifs()->count(),
                 'query' => fn () => AffaireJudiciaire::publiques()->whereNotNull('personne_politique_id'),
+            ],
+            'maire' => [
+                'total_elus' => Maire::enExercice()->count(),
+                'query' => fn () => AffaireJudiciaire::publiques()->whereNotNull('maire_id'),
             ],
         ];
 

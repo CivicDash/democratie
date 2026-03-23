@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ActeurAN;
 use App\Models\AffaireJudiciaire;
+use App\Models\Maire;
 use App\Models\PersonnePolitique;
 use App\Models\Senateur;
 use Illuminate\Console\Command;
@@ -13,7 +14,7 @@ use Illuminate\Support\Str;
 class DetectAffairesWikidata extends Command
 {
     protected $signature = 'affaires:detect-wikidata
-        {--type=all : depute|senateur|gouvernement|all}
+        {--type=all : depute|senateur|gouvernement|maire|all}
         {--limit=500 : Nombre max d\'entités à traiter}
         {--dry-run : Simuler sans écrire}';
 
@@ -42,6 +43,9 @@ class DetectAffairesWikidata extends Command
         }
         if (in_array($type, ['all', 'gouvernement'])) {
             $this->detectForGouvernement($dryRun);
+        }
+        if (in_array($type, ['all', 'maire'])) {
+            $this->detectForMaires($dryRun);
         }
 
         $this->newLine();
@@ -143,6 +147,37 @@ class DetectAffairesWikidata extends Command
         }
     }
 
+    private function detectForMaires(bool $dryRun): void
+    {
+        $this->info('Scan des maires via SPARQL...');
+
+        $results = $this->queryFrenchParliamentarians('maire');
+        $this->info("  Résultats SPARQL : " . count($results));
+
+        $maires = Maire::enExercice()
+            ->whereNotNull('wikipedia_url')
+            ->where('population_commune', '>=', 10000)
+            ->get()
+            ->keyBy(fn ($m) => $this->normalizeWpUrl($m->wikipedia_url));
+
+        foreach ($results as $result) {
+            $wpUrl = $this->normalizeWpUrl($result['article']['value'] ?? '');
+            $maire = $maires->get($wpUrl);
+
+            if (!$maire) {
+                continue;
+            }
+
+            $this->processResult($result, [
+                'maire_id' => $maire->id,
+                'nom' => $maire->nom,
+                'prenom' => $maire->prenom,
+                'parti_politique' => $maire->nuance_libelle,
+                'fonction_au_moment' => 'Maire de ' . $maire->nom_commune,
+            ], $dryRun);
+        }
+    }
+
     private function normalizeWpUrl(?string $url): string
     {
         if (!$url) return '';
@@ -210,6 +245,8 @@ SPARQL;
                 $q->where('senateur_matricule', $eluData['senateur_matricule']);
             } elseif (isset($eluData['personne_politique_id'])) {
                 $q->where('personne_politique_id', $eluData['personne_politique_id']);
+            } elseif (isset($eluData['maire_id'])) {
+                $q->where('maire_id', $eluData['maire_id']);
             }
         })->where('titre', $titre)->exists();
 

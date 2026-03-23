@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Scout\Searchable;
 
@@ -85,6 +86,14 @@ class Maire extends Model
         'tour_election',
         'reelu',
         'liste_id',
+        'personne_politique_id',
+        'hatvp_type_mandat',
+        'url_hatvp',
+        'twitter_url',
+        'facebook_url',
+        'instagram_url',
+        'linkedin_url',
+        'fiche_enrichie',
     ];
 
     protected $casts = [
@@ -101,6 +110,8 @@ class Maire extends Model
         'score_election_pct' => 'decimal:2',
         'tour_election' => 'integer',
         'reelu' => 'boolean',
+        'fiche_enrichie' => 'boolean',
+        'personne_politique_id' => 'integer',
     ];
 
     // ========================================================================
@@ -145,6 +156,93 @@ class Maire extends Model
     public function liste(): BelongsTo
     {
         return $this->belongsTo(ListeElectorale::class, 'liste_id');
+    }
+
+    public function personnePolitique(): BelongsTo
+    {
+        return $this->belongsTo(PersonnePolitique::class);
+    }
+
+    public function ville(): BelongsTo
+    {
+        return $this->belongsTo(Ville::class, 'code_commune', 'code_insee');
+    }
+
+    public function mandats(): HasMany
+    {
+        return $this->hasMany(MaireMandat::class)->orderByDesc('date_debut');
+    }
+
+    public function affairesJudiciaires(): HasMany
+    {
+        return $this->hasMany(AffaireJudiciaire::class, 'maire_id');
+    }
+
+    public function affairesPubliques(): HasMany
+    {
+        return $this->affairesJudiciaires()->publiques();
+    }
+
+    /**
+     * Toutes les affaires publiques, toutes casquettes confondues
+     * (maire + eventuellement depute/senateur/ministre via PersonnePolitique)
+     */
+    public function toutesAffairesPubliques()
+    {
+        return AffaireJudiciaire::publiques()
+            ->where(function ($q) {
+                $q->where('maire_id', $this->id);
+
+                if ($this->personne_politique_id) {
+                    $pp = $this->personnePolitique;
+                    if ($pp) {
+                        $q->orWhere('personne_politique_id', $pp->id);
+                        if ($pp->uid_an) {
+                            $q->orWhere('acteur_an_uid', $pp->uid_an);
+                        }
+                        if ($pp->uid_senat) {
+                            $q->orWhere('senateur_matricule', $pp->uid_senat);
+                        }
+                    }
+                }
+            })
+            ->orderByRaw("CASE statut_judiciaire
+                WHEN 'condamne_definitif' THEN 1
+                WHEN 'condamne_appel' THEN 2
+                WHEN 'condamne_premiere_instance' THEN 3
+                WHEN 'mis_en_examen' THEN 4
+                ELSE 5 END");
+    }
+
+    /**
+     * Declarations HATVP (maires de communes > 20 000 hab)
+     */
+    public function declarationsHatvp()
+    {
+        return HatvpDeclaration::where(function ($q) {
+            $q->where(function ($q2) {
+                $q2->where('nom', 'ILIKE', $this->nom)
+                   ->where('prenom', 'ILIKE', $this->prenom);
+            });
+
+            if ($this->personnePolitique?->uid_an) {
+                $q->orWhere(function ($q2) {
+                    $q2->where('parlementaire_type', 'depute')
+                       ->where('parlementaire_id', $this->personnePolitique->uid_an);
+                });
+            }
+            if ($this->personnePolitique?->uid_senat) {
+                $q->orWhere(function ($q2) {
+                    $q2->where('parlementaire_type', 'senateur')
+                       ->where('parlementaire_id', $this->personnePolitique->uid_senat);
+                });
+            }
+        })->orderByDesc('date_depot');
+    }
+
+    public function resultatsElection()
+    {
+        return ResultatMunicipal::where('code_commune', $this->code_commune);
     }
 
     // ========================================================================
@@ -278,6 +376,18 @@ class Maire extends Model
             'LRN', 'LREC', 'LEXT' => '#1E3A5F', // Bleu marine
             default => '#6B7280', // Gris
         };
+    }
+
+    public function getEstSoumisHatvpAttribute(): bool
+    {
+        return ($this->population_commune ?? 0) >= 20000;
+    }
+
+    public function getEstFicheRicheAttribute(): bool
+    {
+        return $this->wikipedia_extract
+            && $this->photo
+            && ($this->population_commune ?? 0) >= 10000;
     }
 
     public function toApiArray(): array

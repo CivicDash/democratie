@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ActeurAN;
 use App\Models\AffaireJudiciaire;
+use App\Models\Maire;
 use App\Models\PersonnePolitique;
 use App\Models\Senateur;
 use Illuminate\Console\Command;
@@ -12,7 +13,7 @@ use Illuminate\Support\Str;
 class DetectAffairesWikipedia extends Command
 {
     protected $signature = 'affaires:detect-wikipedia
-        {--type=all : depute|senateur|gouvernement|all}
+        {--type=all : depute|senateur|gouvernement|maire|all}
         {--limit=200 : Nombre max d\'entités à scanner}
         {--dry-run : Simuler sans écrire}';
 
@@ -55,6 +56,9 @@ class DetectAffairesWikipedia extends Command
         }
         if (in_array($type, ['all', 'gouvernement'])) {
             $this->scanGouvernement($limit, $dryRun);
+        }
+        if (in_array($type, ['all', 'maire'])) {
+            $this->scanMaires($limit, $dryRun);
         }
 
         $this->newLine();
@@ -149,6 +153,33 @@ class DetectAffairesWikipedia extends Command
         $this->newLine();
     }
 
+    private function scanMaires(int $limit, bool $dryRun): void
+    {
+        $this->info('Scan des maires (communes >= 10 000 hab.)...');
+        $maires = Maire::enExercice()
+            ->whereNotNull('wikipedia_extract')
+            ->where('wikipedia_extract', '!=', '')
+            ->where('population_commune', '>=', 10000)
+            ->limit($limit)
+            ->get();
+
+        $bar = $this->output->createProgressBar($maires->count());
+
+        foreach ($maires as $maire) {
+            $this->analyzeExtract($maire->wikipedia_extract, [
+                'maire_id' => $maire->id,
+                'nom' => $maire->nom,
+                'prenom' => $maire->prenom,
+                'parti_politique' => $maire->nuance_libelle,
+                'fonction_au_moment' => 'Maire de ' . $maire->nom_commune,
+            ], $maire->wikipedia_url, $dryRun);
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->newLine();
+    }
+
     private function analyzeExtract(string $extract, array $eluData, ?string $sourceUrl, bool $dryRun): void
     {
         $allPatterns = array_merge(self::PATTERNS_HAUTE, self::PATTERNS_MOYENNE);
@@ -171,6 +202,8 @@ class DetectAffairesWikipedia extends Command
                         $q->where('senateur_matricule', $eluData['senateur_matricule']);
                     } elseif (isset($eluData['personne_politique_id'])) {
                         $q->where('personne_politique_id', $eluData['personne_politique_id']);
+                    } elseif (isset($eluData['maire_id'])) {
+                        $q->where('maire_id', $eluData['maire_id']);
                     }
                 })->where('source_detection', 'wikipedia_nlp')
                   ->where('titre', $titre)

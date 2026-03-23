@@ -894,6 +894,21 @@ class SyncHatvpDataCommand extends Command
                     'parlementaire_id' => $depute->uid,
                 ]);
             }
+        } elseif (in_array($type, ['maire', 'conseiller municipal', '']) || str_contains($type, 'maire') || str_contains($type, 'municipal')) {
+            $typeMandat = strtolower($declaration->type_mandat ?? '');
+            if (str_contains($typeMandat, 'maire') || str_contains($typeMandat, 'municipal')) {
+                $maire = \App\Models\Maire::where('nom', 'ILIKE', $declaration->nom)
+                    ->where('prenom', 'ILIKE', $declaration->prenom)
+                    ->enExercice()
+                    ->first();
+
+                if ($maire) {
+                    $declaration->update([
+                        'parlementaire_type' => 'maire',
+                        'parlementaire_id' => $maire->uid,
+                    ]);
+                }
+            }
         }
     }
 

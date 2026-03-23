@@ -28,93 +28,6 @@ class ElectionsMunicipalesController extends Controller
     // =========================================================================
 
     /**
-     * Carte interactive des listes par département
-     */
-    public function carte()
-    {
-        $cacheTtl = 300;
-
-        // Statistiques par département
-        $parDepartement = Cache::remember('municipales:carte:par_departement', $cacheTtl, function () {
-            return ListeElectorale::valide()
-                ->selectRaw('departement_code, COUNT(*) as nb_listes, COUNT(DISTINCT commune_code_insee) as nb_communes')
-                ->groupBy('departement_code')
-                ->get()
-                ->keyBy('departement_code')
-                ->map(fn($row) => [
-                    'nb_listes' => $row->nb_listes,
-                    'nb_communes' => $row->nb_communes,
-                ]);
-        });
-
-        // Top communes (les plus de listes)
-        $topCommunes = Cache::remember('municipales:carte:top_communes', $cacheTtl, function () {
-            return ListeElectorale::valide()
-                ->selectRaw('commune_code_insee, commune_nom, departement_code, COUNT(*) as nb_listes')
-                ->groupBy('commune_code_insee', 'commune_nom', 'departement_code')
-                ->orderByDesc('nb_listes')
-                ->limit(20)
-                ->get();
-        });
-
-        // Stats globales
-        $stats = Cache::remember('municipales:carte:stats', $cacheTtl, function () {
-            return [
-                'total_listes' => ListeElectorale::valide()->count(),
-                'total_communes' => ListeElectorale::valide()->distinct('commune_code_insee')->count(),
-                'total_departements' => ListeElectorale::valide()->distinct('departement_code')->count(),
-            ];
-        });
-
-        return Inertia::render('Elections/Municipales/Carte', [
-            'par_departement' => $parDepartement,
-            'top_communes' => $topCommunes,
-            'stats' => $stats,
-        ]);
-    }
-
-    /**
-     * API : Listes par département (pour la carte)
-     */
-    public function apiListesParDepartement(string $departement)
-    {
-        $cacheTtl = 300;
-        $cacheKey = "municipales:departement:{$departement}";
-
-        [$listes, $communes] = Cache::remember($cacheKey, $cacheTtl, function () use ($departement) {
-            $listes = ListeElectorale::valide()
-                ->where('departement_code', $departement)
-                ->with(['candidats' => fn($q) => $q->teteDeListe()])
-                ->orderBy('commune_nom')
-                ->get()
-                ->map(fn($liste) => [
-                    'uuid' => $liste->uuid,
-                    'nom_liste' => $liste->nom_liste,
-                    'commune_nom' => $liste->commune_nom,
-                    'commune_code_insee' => $liste->commune_code_insee,
-                    'tete_de_liste' => $liste->candidats->first()?->nom_complet,
-                    'nuance_politique' => $liste->nuance_politique,
-                    'couleur' => $liste->couleur_principale,
-                ]);
-
-            $communes = $listes->groupBy('commune_code_insee')->map(fn($group) => [
-                'commune_nom' => $group->first()['commune_nom'],
-                'nb_listes' => $group->count(),
-                'listes' => $group->values(),
-            ]);
-
-            return [$listes, $communes];
-        });
-
-        return response()->json([
-            'departement' => $departement,
-            'nb_listes' => $listes->count(),
-            'nb_communes' => $communes->count(),
-            'communes' => $communes,
-        ]);
-    }
-
-    /**
      * Page principale des élections municipales
      */
     public function index()
@@ -435,9 +348,16 @@ class ElectionsMunicipalesController extends Controller
             ];
         });
 
+        $departements = StatsElectionMunicipale::where('scope', 'departement')
+            ->where('annee', 2026)
+            ->get()
+            ->keyBy('scope_code')
+            ->map(fn($s) => $s->data);
+
         return Inertia::render('Elections/Municipales/Resultats', [
             'stats_nationales' => $statsData,
             'top_communes' => $topCommunesMapped,
+            'stats_departements' => $departements,
         ]);
     }
 
@@ -480,33 +400,18 @@ class ElectionsMunicipalesController extends Controller
         ]);
     }
 
-    public function statistiques()
-    {
-        $nationale = StatsElectionMunicipale::national()->first();
-
-        $departements = StatsElectionMunicipale::where('scope', 'departement')
-            ->where('annee', 2026)
-            ->get()
-            ->keyBy('scope_code')
-            ->map(fn($s) => $s->data);
-
-        return Inertia::render('Elections/Municipales/Statistiques', [
-            'stats_nationales' => $nationale?->data,
-            'stats_departements' => $departements,
-        ]);
-    }
-
     public function transitionMaires()
     {
         $stats = StatsElectionMunicipale::national()->first();
 
         $grandesVilles = Maire::where('mandature', '2026-2032')
             ->where('en_exercice', true)
-            ->where('population_commune', '>=', 30000)
+            ->where('population_commune', '>=', 10000)
             ->with('predecesseur')
             ->orderByDesc('population_commune')
             ->get()
             ->map(fn($m) => [
+                'id' => $m->id,
                 'nom_complet' => $m->nom_complet,
                 'commune' => $m->nom_commune,
                 'code_commune' => $m->code_commune,
@@ -517,11 +422,14 @@ class ElectionsMunicipalesController extends Controller
                 'score' => $m->score_election_pct,
                 'tour' => $m->tour_election,
                 'photo' => $m->photo,
+                'url' => route('elus.public-profile', ['type' => 'maire', 'ref' => $m->id]),
                 'predecesseur' => $m->predecesseur ? [
+                    'id' => $m->predecesseur->id,
                     'nom_complet' => $m->predecesseur->nom_complet,
                     'nuance' => $m->predecesseur->nuance_politique,
                     'nuance_libelle' => $m->predecesseur->nuance_libelle,
                     'photo' => $m->predecesseur->photo,
+                    'url' => route('elus.public-profile', ['type' => 'maire', 'ref' => $m->predecesseur->id]),
                 ] : null,
             ]);
 
@@ -549,34 +457,6 @@ class ElectionsMunicipalesController extends Controller
     {
         $stats = StatsElectionMunicipale::national()->first();
         return response()->json($stats?->data['nuances'] ?? []);
-    }
-
-    public function apiCarteParticipation()
-    {
-        $data = ResultatMunicipal::where('tour', 1)
-            ->select('code_departement')
-            ->selectRaw('AVG(taux_participation) as taux_moyen')
-            ->selectRaw('COUNT(*) as nb_communes')
-            ->groupBy('code_departement')
-            ->get()
-            ->keyBy('code_departement');
-
-        return response()->json($data);
-    }
-
-    public function apiCarteNuances()
-    {
-        $data = DB::table('resultats_listes_municipales as rlm')
-            ->join('resultats_municipaux as rm', 'rlm.resultat_commune_id', '=', 'rm.id')
-            ->where('rlm.elu', true)
-            ->select('rm.code_departement')
-            ->selectRaw("rlm.nuance_politique, COUNT(*) as nb")
-            ->groupBy('rm.code_departement', 'rlm.nuance_politique')
-            ->get()
-            ->groupBy('code_departement')
-            ->map(fn($rows) => $rows->sortByDesc('nb')->first());
-
-        return response()->json($data);
     }
 
     public function apiTransitionMaire(string $codeInsee)

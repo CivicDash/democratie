@@ -122,20 +122,34 @@ class VilleController extends Controller
             ])
             ->firstOrFail();
 
-        // Maires historiques
-        $mandatsMaires = $ville->mandatsMaires->map(fn($m) => [
-            'id' => $m->id,
-            'nom_complet' => $m->nom_complet,
-            'sexe' => $m->sexe,
-            'date_debut' => $m->date_debut?->format('d/m/Y'),
-            'date_fin' => $m->date_fin?->format('d/m/Y'),
-            'periode' => $m->periode,
-            'duree' => $m->duree_formate,
-            'nuance_politique' => $m->nuance_politique,
-            'parti' => $m->parti,
-            'score_election' => $m->score_election_pct,
-            'est_actuel' => $m->est_actuel,
-        ]);
+        // Maires historiques — dédupliquer et marquer les réélections
+        $mandatsSorted = $ville->mandatsMaires->sortByDesc('date_debut')->values();
+        $mandatsMaires = $mandatsSorted->map(function ($m, $index) use ($mandatsSorted) {
+            $reelu = false;
+            if ($index + 1 < $mandatsSorted->count()) {
+                $precedent = $mandatsSorted[$index + 1];
+                $reelu = mb_strtolower(trim($m->nom)) === mb_strtolower(trim($precedent->nom))
+                      && mb_strtolower(trim($m->prenom)) === mb_strtolower(trim($precedent->prenom));
+            }
+
+            return [
+                'id' => $m->id,
+                'nom_complet' => $m->nom_complet,
+                'sexe' => $m->sexe,
+                'date_debut' => $m->date_debut?->format('d/m/Y'),
+                'date_fin' => $m->date_fin?->format('d/m/Y'),
+                'periode' => $m->periode,
+                'duree' => $m->duree_formate,
+                'nuance_politique' => $m->nuance_politique,
+                'parti' => $m->parti,
+                'score_election' => $m->score_election_pct,
+                'est_actuel' => $m->est_actuel,
+                'reelu' => $reelu,
+                'maire_url' => $m->maire_id
+                    ? route('elus.public-profile', ['type' => 'maire', 'ref' => $m->maire_id])
+                    : null,
+            ];
+        });
 
         // Évolution population
         $evolutionPopulation = $ville->historiquePopulation->map(fn($p) => [
@@ -222,7 +236,7 @@ class VilleController extends Controller
                 'photo_url' => $ville->maireActuel->photo_url,
                 'debut_mandat' => $ville->maireActuel->debut_mandat?->locale('fr')->isoFormat('D MMMM YYYY'),
                 'nuance_politique' => $ville->maireActuel->nuance_politique,
-                'url' => $ville->maireActuel->url ?? null,
+                'url' => route('elus.public-profile', ['type' => 'maire', 'ref' => $ville->maireActuel->id]),
             ] : null,
             'mandatsMaires' => $mandatsMaires,
             'evolutionPopulation' => $evolutionPopulation,

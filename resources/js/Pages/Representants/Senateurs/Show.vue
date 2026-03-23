@@ -8,6 +8,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import HatvpSection from '@/Components/Hatvp/HatvpSection.vue';
 import EluFollowButton from '@/Components/EluFollowButton.vue';
 import AffairesSection from '@/Components/AffairesJudiciaires/AffairesSection.vue';
+import AffairesHeroBadges from '@/Components/AffairesJudiciaires/AffairesHeroBadges.vue';
 
 const props = defineProps({
   senateur: Object,
@@ -153,6 +154,7 @@ const getSegmentHeight = (value, total) => {
                   </p>
                 </div>
                 <div class="flex items-center gap-3">
+                  <AffairesHeroBadges :affaires="senateur.affaires_judiciaires ?? []" variant="light" />
                   <Badge
                     v-if="senateur.etat"
                     :class="[
@@ -534,7 +536,7 @@ const getSegmentHeight = (value, total) => {
         />
 
         <!-- Affaires judiciaires -->
-        <Card v-if="senateur.affaires_judiciaires?.length">
+        <Card v-if="senateur.affaires_judiciaires?.length" id="affaires-section">
           <AffairesSection :affaires="senateur.affaires_judiciaires" />
         </Card>
 
