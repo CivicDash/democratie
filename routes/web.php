@@ -245,19 +245,15 @@ Route::prefix('elections')->name('elections.')->middleware('auth')->group(functi
     Route::prefix('municipales')->name('municipales.')->group(function () {
         // Pages publiques
         Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'index'])->name('index');
-        Route::get('/carte', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'carte'])->name('carte');
         Route::get('/recherche', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'recherche'])->name('recherche');
         Route::get('/tutoriel', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'tutoriel'])->name('tutoriel');
         Route::get('/liste/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'showListe'])->name('liste');
         Route::get('/candidat/{uuid}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'showCandidat'])->name('candidat');
         
-        // API pour la carte
-        Route::get('/api/departement/{departement}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiListesParDepartement'])->name('api.departement');
-        
         // Résultats électoraux
         Route::prefix('resultats')->name('resultats.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultats'])->name('index');
-            Route::get('/statistiques', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'statistiques'])->name('statistiques');
+            Route::get('/statistiques', fn() => redirect()->route('elections.municipales.resultats.index', [], 301))->name('statistiques');
             Route::get('/transition-maires', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'transitionMaires'])->name('transition');
             Route::get('/commune/{code}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultatCommune'])->name('commune');
             Route::get('/departement/{code}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'resultatDepartement'])->name('departement');
@@ -267,8 +263,6 @@ Route::prefix('elections')->name('elections.')->middleware('auth')->group(functi
         Route::prefix('api/resultats')->name('api.resultats.')->group(function () {
             Route::get('/commune/{code}/{tour}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiResultatsCommune'])->name('commune');
             Route::get('/stats/nuances', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiStatsNuances'])->name('nuances');
-            Route::get('/carte/participation', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiCarteParticipation'])->name('carte-participation');
-            Route::get('/carte/nuances', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiCarteNuances'])->name('carte-nuances');
             Route::get('/transition/{codeInsee}', [\App\Http\Controllers\Web\ElectionsMunicipalesController::class, 'apiTransitionMaire'])->name('transition');
         });
         
@@ -521,6 +515,11 @@ Route::prefix('participation')->name('participation.')->middleware('auth')->grou
     });
 });
 
+
+// Index des maires (doit etre avant la route {type}/{ref} pour eviter la capture)
+Route::get('/elus/maires', [\App\Http\Controllers\Web\EluDashboardController::class, 'maires'])
+    ->middleware('auth')
+    ->name('elus.maires.index');
 
 // Profil public des élus (accessible à tous les utilisateurs connectés)
 Route::get('/elus/{type}/{ref}', [\App\Http\Controllers\Web\EluDashboardController::class, 'publicProfile'])

@@ -395,6 +395,7 @@ class RepresentantController extends Controller
             'telephone' => $maire->telephone,
             'site_web' => $maire->site_web,
             'population_commune' => $maire->population_commune,
+            'url' => route('elus.public-profile', ['type' => 'maire', 'ref' => $maire->id]),
         ];
     }
 

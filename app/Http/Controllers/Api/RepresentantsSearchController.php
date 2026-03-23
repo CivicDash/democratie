@@ -238,10 +238,14 @@ class RepresentantsSearchController extends Controller
             ],
             'representants' => [
                 'maire' => $maire ? [
+                    'id' => $maire->id,
                     'nom' => $maire->nom,
                     'prenom' => $maire->prenom,
+                    'nom_complet' => $maire->nom_complet ?? trim("{$maire->prenom} {$maire->nom}"),
                     'email' => $maire->email,
-                    'commune' => $maire->commune,
+                    'commune' => $maire->nom_commune ?? $maire->commune,
+                    'civilite' => $maire->civilite,
+                    'url' => route('elus.public-profile', ['type' => 'maire', 'ref' => $maire->id]),
                 ] : null,
                 'depute' => $deputeResponse,
                 'senateurs' => $senateurs->isNotEmpty() 

@@ -168,10 +168,11 @@ const loadRepresentants = async (data) => {
   if (data.representants.maire) {
     const m = data.representants.maire;
     dynamicMaire.value = {
-      nom_complet: `${m.prenom} ${m.nom}`,
+      nom_complet: m.nom_complet || `${m.prenom} ${m.nom}`,
       commune: m.commune,
       email: m.email,
-      civilite: m.prenom?.endsWith('e') ? 'Mme' : 'M.',
+      civilite: m.civilite || (m.prenom?.endsWith('e') ? 'Mme' : 'M.'),
+      url: m.url,
     };
   } else {
     dynamicMaire.value = null;
@@ -549,14 +550,18 @@ const breadcrumbs = [
               <p class="text-gray-600 dark:text-gray-400">{{ currentMaire.commune }} ({{ currentMaire.code_departement || currentLocation?.department }})</p>
             </div>
 
-            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
+            <Link
+              v-if="currentMaire.url"
+              :href="currentMaire.url"
+              class="block bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800 hover:shadow-lg hover:border-emerald-400 dark:hover:border-emerald-600 transition-all group"
+            >
               <div class="flex items-start gap-4">
                 <div class="w-16 h-16 rounded-full bg-emerald-200 dark:bg-emerald-800 flex items-center justify-center text-3xl flex-shrink-0">
                   {{ currentMaire.civilite === 'Mme' ? '👩' : '👨' }}
                 </div>
                 
                 <div class="flex-1">
-                  <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                  <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
                     {{ currentMaire.nom_complet }}
                   </h3>
                   
@@ -585,29 +590,32 @@ const breadcrumbs = [
                     </div>
                   </div>
                   
-                  <!-- Contacts -->
-                  <div class="flex flex-wrap gap-2">
+                  <div class="flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                    Voir la fiche complète
+                    <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            <div v-else class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
+              <div class="flex items-start gap-4">
+                <div class="w-16 h-16 rounded-full bg-emerald-200 dark:bg-emerald-800 flex items-center justify-center text-3xl flex-shrink-0">
+                  {{ currentMaire.civilite === 'Mme' ? '👩' : '👨' }}
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                    {{ currentMaire.nom_complet }}
+                  </h3>
+                  <div class="flex flex-wrap gap-2 mt-3">
                     <a 
                       v-if="currentMaire.email"
                       :href="`mailto:${currentMaire.email}`"
                       class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700 transition"
                     >
                       ✉️ Email
-                    </a>
-                    <a 
-                      v-if="currentMaire.telephone"
-                      :href="`tel:${currentMaire.telephone}`"
-                      class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 text-sm rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition"
-                    >
-                      📞 {{ currentMaire.telephone }}
-                    </a>
-                    <a 
-                      v-if="currentMaire.site_web"
-                      :href="currentMaire.site_web"
-                      target="_blank"
-                      class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-                    >
-                      🌐 Site web
                     </a>
                   </div>
                 </div>

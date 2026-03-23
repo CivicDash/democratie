@@ -16,7 +16,7 @@ class AffaireJudiciaire extends Model
     protected $table = 'affaires_judiciaires';
 
     protected $fillable = [
-        'uuid', 'personne_politique_id', 'acteur_an_uid', 'senateur_matricule',
+        'uuid', 'personne_politique_id', 'acteur_an_uid', 'senateur_matricule', 'maire_id',
         'nom', 'prenom', 'parti_politique', 'fonction_au_moment',
         'titre', 'description', 'type_affaire', 'categorie',
         'date_faits', 'date_mise_en_examen', 'date_jugement_premiere_instance',
@@ -66,6 +66,11 @@ class AffaireJudiciaire extends Model
     public function senateur(): BelongsTo
     {
         return $this->belongsTo(Senateur::class, 'senateur_matricule', 'matricule');
+    }
+
+    public function maire(): BelongsTo
+    {
+        return $this->belongsTo(Maire::class, 'maire_id');
     }
 
     public function validateur(): BelongsTo
@@ -147,6 +152,11 @@ class AffaireJudiciaire extends Model
     public function scopeForPersonne($q, int $id)
     {
         return $q->where('personne_politique_id', $id);
+    }
+
+    public function scopeForMaire($q, int $id)
+    {
+        return $q->where('maire_id', $id);
     }
 
     // ── Accessors ──

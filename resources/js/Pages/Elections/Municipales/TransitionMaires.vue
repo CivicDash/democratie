@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import TransitionMaireCard from '@/Components/Municipales/TransitionMaireCard.vue';
+import NuanceBadge from '@/Components/Municipales/NuanceBadge.vue';
 
 const props = defineProps({
     stats: Object,
@@ -68,8 +68,11 @@ const sortedVilles = computed(() => {
                     <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
                         Transition des <span class="text-fuchsia-300">maires</span>
                     </h1>
-                    <p class="text-lg text-purple-200 max-w-2xl mx-auto mb-10">
+                    <p class="text-lg text-purple-200 max-w-2xl mx-auto mb-4">
                         Mandature 2020-2026 vers 2026-2032 : qui succède à qui dans les grandes villes ?
+                    </p>
+                    <p class="text-sm text-amber-300/80 max-w-xl mx-auto mb-10 bg-amber-500/10 rounded-lg px-4 py-2 border border-amber-400/20">
+                        Données provisoires basées sur les têtes de liste gagnantes. Le maire définitif est élu par le conseil municipal.
                     </p>
 
                     <!-- Compteurs renouvellement -->
@@ -116,22 +119,55 @@ const sortedVilles = computed(() => {
                         <option :value="null">Toutes les nuances</option>
                         <option v-for="n in nuances" :key="n" :value="n">{{ n }}</option>
                     </select>
+                    <span class="text-sm text-gray-500 dark:text-gray-400 self-center ml-auto">{{ sortedVilles.length }} villes</span>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div v-for="maire in sortedVilles" :key="maire.code_commune">
-                        <TransitionMaireCard
-                            :ancien="maire.predecesseur"
-                            :nouveau="{
-                                nom_complet: maire.nom_complet,
-                                nuance_politique: maire.nuance,
-                                photo: maire.photo,
-                                reelu: maire.reelu,
-                                score: maire.score,
-                                mandature: '2026-2032',
-                            }"
-                            :commune-nom="`${maire.commune} (${formatNumber(maire.population)} hab.)`"
-                        />
+                    <div
+                        v-for="maire in sortedVilles"
+                        :key="maire.code_commune"
+                        class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-lg transition-shadow"
+                    >
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-gray-900 dark:text-gray-100 text-lg">{{ maire.commune }}</h3>
+                            <span class="text-xs text-gray-400">{{ formatNumber(maire.population) }} hab.</span>
+                        </div>
+
+                        <!-- Nouveau maire -->
+                        <Link :href="maire.url" class="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 mb-3 group hover:border-emerald-400 dark:hover:border-emerald-600 transition">
+                            <div class="w-10 h-10 rounded-full bg-emerald-200 dark:bg-emerald-800 flex items-center justify-center text-lg flex-shrink-0">
+                                {{ maire.photo ? '' : '👤' }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                                    {{ maire.nom_complet }}
+                                </div>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <NuanceBadge v-if="maire.nuance" :nuance="maire.nuance" size="xs" />
+                                    <span v-if="maire.score" class="text-xs text-gray-500">{{ maire.score?.toFixed(1) }}%</span>
+                                    <span v-if="maire.tour === 2" class="text-xs text-amber-600 font-medium">T2</span>
+                                </div>
+                            </div>
+                            <span v-if="maire.reelu" class="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                                Réélu
+                            </span>
+                            <span v-else class="px-2 py-0.5 text-xs font-medium rounded-full bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/50 dark:text-fuchsia-300">
+                                Nouveau
+                            </span>
+                        </Link>
+
+                        <!-- Prédécesseur -->
+                        <div v-if="maire.predecesseur && !maire.reelu" class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-sm flex-shrink-0">
+                                👤
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                    Succède à <span class="font-medium text-gray-700 dark:text-gray-300">{{ maire.predecesseur.nom_complet }}</span>
+                                </div>
+                                <NuanceBadge v-if="maire.predecesseur.nuance" :nuance="maire.predecesseur.nuance" size="xs" class="mt-0.5" />
+                            </div>
+                        </div>
                     </div>
                 </div>
 

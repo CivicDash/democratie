@@ -151,7 +151,7 @@ class EluFollower extends Model
         return match($this->elu_type) {
             'depute' => route('representants.deputes.show', $this->elu_id),
             'senateur' => route('representants.senateurs.show', $this->elu_id),
-            'maire' => null, // Les maires sont liés aux villes
+            'maire' => route('elus.public-profile', ['type' => 'maire', 'ref' => $this->elu_id]),
             'ministre' => route('gouvernement.ministre', $this->elu_id),
             default => null,
         };
