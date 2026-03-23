@@ -76,6 +76,7 @@ services:
       - "5433:5432"
     networks:
       - civicdash
+      - civicdash_shared
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-civicdash}"]
       interval: 10s
@@ -150,5 +151,7 @@ volumes:
 networks:
   civicdash:
     driver: bridge
+  civicdash_shared:
+    external: true
   mailu_default:
     external: true

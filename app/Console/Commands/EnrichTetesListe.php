@@ -118,6 +118,7 @@ class EnrichTetesListe extends Command
                     ->update([
                         'tete_de_liste_nom' => $tete['nom'],
                         'tete_de_liste_prenom' => $tete['prenom'],
+                        'tete_de_liste_sexe' => $tete['sexe'] ?: null,
                     ]);
 
                 if ($updated > 0) {

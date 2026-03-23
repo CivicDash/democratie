@@ -76,6 +76,16 @@ class ActeurAN extends Model
         return $this->hasMany(DeputeCirconscription::class, 'acteur_uid', 'uid');
     }
 
+    public function affairesJudiciaires(): HasMany
+    {
+        return $this->hasMany(AffaireJudiciaire::class, 'acteur_an_uid', 'uid');
+    }
+
+    public function affairesPubliques(): HasMany
+    {
+        return $this->affairesJudiciaires()->publiques();
+    }
+
     /**
      * Scopes
      */

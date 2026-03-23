@@ -16,6 +16,7 @@ use App\Models\QuestionAN;
 use App\Services\GroupeParlementaireService;
 use App\Services\DisciplineGroupeService;
 use App\Models\EluFollower;
+use App\Models\AffaireJudiciaire;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -378,6 +379,7 @@ class RepresentantANController extends Controller
                 'url_hatvp' => $acteur->url_hatvp,
                 'declarations_hatvp' => $declarationsHatvp,
                 'hatvp_summary' => $hatvpSummary,
+                'affaires_judiciaires' => $this->getAffairesJudiciaires('depute', $uid),
                 'reseaux_sociaux' => [
                     'twitter' => $acteur->twitter_url,
                     'facebook' => $acteur->facebook_url,
@@ -1185,6 +1187,7 @@ class RepresentantANController extends Controller
                 'statistiques' => $stats,
                 'declarations_hatvp' => $declarationsHatvp,
                 'hatvp_summary' => $hatvpSummary,
+                'affaires_judiciaires' => $this->getAffairesJudiciaires('senateur', $matricule),
                 'derniers_votes' => $derniersVotes,
                 'is_followed' => Auth::check() && EluFollower::where('user_id', Auth::id())
                     ->where('elu_type', 'senateur')
@@ -1482,6 +1485,49 @@ class RepresentantANController extends Controller
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         return $text;
+    }
+
+    private function getAffairesJudiciaires(string $type, string $id): array
+    {
+        $query = AffaireJudiciaire::publiques()
+            ->with(['sources' => fn ($q) => $q->orderByRaw("CASE fiabilite WHEN 'haute' THEN 1 WHEN 'moyenne' THEN 2 ELSE 3 END")])
+            ->orderByRaw("CASE statut_judiciaire
+                WHEN 'condamne_definitif' THEN 1
+                WHEN 'condamne_appel' THEN 2
+                WHEN 'condamne_premiere_instance' THEN 3
+                WHEN 'mis_en_examen' THEN 4
+                ELSE 5 END");
+
+        if ($type === 'depute') {
+            $query->forDepute($id);
+        } else {
+            $query->forSenateur($id);
+        }
+
+        return $query->get()->map(fn ($a) => [
+            'id' => $a->id,
+            'titre' => $a->titre,
+            'description' => $a->description,
+            'type_affaire' => $a->type_affaire,
+            'type_affaire_libelle' => $a->type_affaire_libelle,
+            'categorie' => $a->categorie,
+            'statut_judiciaire' => $a->statut_judiciaire,
+            'statut_libelle' => $a->statut_judiciaire_libelle,
+            'statut_couleur' => $a->statut_judiciaire_couleur,
+            'statut_validation' => $a->statut_validation,
+            'date_condamnation' => $a->date_condamnation_definitive?->format('d/m/Y'),
+            'date_mise_en_examen' => $a->date_mise_en_examen?->format('d/m/Y'),
+            'peine_resume' => $a->peine_resume,
+            'juridiction' => $a->juridiction,
+            'valide_at' => $a->valide_at?->format('d/m/Y'),
+            'sources' => $a->sources->map(fn ($s) => [
+                'media' => $s->media,
+                'url' => $s->url,
+                'date' => $s->date_publication?->format('d/m/Y'),
+                'type' => $s->type_source,
+                'fiabilite' => $s->fiabilite,
+            ])->toArray(),
+        ])->toArray();
     }
 }
 

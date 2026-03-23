@@ -386,6 +386,7 @@ onUnmounted(() => { document.removeEventListener('click', onDocClick); });
                             <h4 class="text-white font-semibold mb-4">A propos</h4>
                             <ul class="space-y-2 text-sm">
                                 <li><a href="/about" class="hover:text-white transition-colors">A propos</a></li>
+                                <li><Link :href="route('transparence.demarche')" class="hover:text-white transition-colors">Notre demarche</Link></li>
                                 <li><a href="/privacy" class="hover:text-white transition-colors">Confidentialite</a></li>
                                 <li><a href="https://github.com/CivicDash/democratie" target="_blank" class="hover:text-white transition-colors">GitHub</a></li>
                             </ul>

@@ -8,7 +8,10 @@ use App\Models\Gouvernement;
 use App\Models\Ministere;
 use App\Models\PersonnePolitique;
 use App\Models\PosteMinisteriel;
+use App\Models\AffaireJudiciaire;
+use App\Models\HatvpDeclaration;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -158,6 +161,139 @@ class GouvernementController extends Controller
             ];
         });
 
+        $affairesJudiciaires = $personne->toutesAffairesPubliques()
+            ->with(['sources' => fn ($q) => $q->orderByRaw("CASE fiabilite WHEN 'haute' THEN 1 WHEN 'moyenne' THEN 2 ELSE 3 END")])
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'titre' => $a->titre,
+                'description' => $a->description,
+                'type_affaire' => $a->type_affaire,
+                'type_affaire_libelle' => $a->type_affaire_libelle,
+                'categorie' => $a->categorie,
+                'statut_judiciaire' => $a->statut_judiciaire,
+                'statut_libelle' => $a->statut_judiciaire_libelle,
+                'statut_couleur' => $a->statut_judiciaire_couleur,
+                'statut_validation' => $a->statut_validation,
+                'date_condamnation' => $a->date_condamnation_definitive?->format('d/m/Y'),
+                'date_mise_en_examen' => $a->date_mise_en_examen?->format('d/m/Y'),
+                'peine_resume' => $a->peine_resume,
+                'juridiction' => $a->juridiction,
+                'valide_at' => $a->valide_at?->format('d/m/Y'),
+                'sources' => $a->sources->map(fn ($s) => [
+                    'media' => $s->media,
+                    'url' => $s->url,
+                    'date' => $s->date_publication?->format('d/m/Y'),
+                    'type' => $s->type_source,
+                    'fiabilite' => $s->fiabilite,
+                ])->toArray(),
+            ])->toArray();
+
+        $hatvpData = Cache::remember("hatvp_personne_{$personne->id}", 3600, function () use ($personne) {
+            $declarationsHatvp = [];
+            $hatvpSummary = null;
+            try {
+                $declarations = $personne->declarationsHatvp()
+                    ->with([
+                        'mandatsElectifs.remunerations',
+                        'activitesProfessionnelles.remunerations',
+                        'activitesConsultant.remunerations',
+                        'participationsDirigeantes.remunerations',
+                        'collaborateurs',
+                        'fonctionsBenevoles',
+                    ])
+                    ->get();
+
+                $declarationsHatvp = $declarations->map(fn($d) => [
+                    'uuid' => $d->uuid,
+                    'type' => $d->type_declaration,
+                    'type_label' => $d->type_declaration_label,
+                    'date_depot' => $d->date_depot?->format('d/m/Y'),
+                    'type_mandat' => $d->type_mandat,
+                    'url' => $personne->url_hatvp
+                        ?? 'https://www.hatvp.fr/fiche-nominative/?declarant='
+                        . urlencode(strtolower($personne->nom) . '-' . strtolower($personne->prenom)),
+                ])->toArray();
+
+                $latestDeclaration = $declarations->first();
+                if ($latestDeclaration) {
+                    $revenusParAnnee = $latestDeclaration->revenus_par_annee ?? [];
+
+                    $mandatsElectifs = $latestDeclaration->mandatsElectifs->map(fn($m) => [
+                        'description' => $m->description_mandat ?? $m->description ?? 'Mandat électif',
+                        'date_debut' => $m->date_debut instanceof \Carbon\Carbon ? $m->date_debut->format('d/m/Y') : ($m->date_debut ? \Carbon\Carbon::parse($m->date_debut)->format('d/m/Y') : null),
+                        'date_fin' => $m->date_fin instanceof \Carbon\Carbon ? $m->date_fin->format('d/m/Y') : ($m->date_fin ? \Carbon\Carbon::parse($m->date_fin)->format('d/m/Y') : null),
+                        'conserve' => $m->conservee,
+                        'remunerations' => $m->remunerations->map(fn($r) => [
+                            'annee' => $r->annee,
+                            'montant' => $r->montant,
+                            'brut_net' => $r->brut_net,
+                        ])->sortByDesc('annee')->values()->toArray(),
+                        'total_remunerations' => $m->remunerations->sum('montant'),
+                    ])->toArray();
+
+                    $activitesPro = $latestDeclaration->activitesProfessionnelles->map(fn($a) => [
+                        'description' => $a->description ?? 'Activité professionnelle',
+                        'employeur' => $a->employeur,
+                        'date_debut' => $a->date_debut instanceof \Carbon\Carbon ? $a->date_debut->format('d/m/Y') : ($a->date_debut ? \Carbon\Carbon::parse($a->date_debut)->format('d/m/Y') : null),
+                        'date_fin' => $a->date_fin instanceof \Carbon\Carbon ? $a->date_fin->format('d/m/Y') : ($a->date_fin ? \Carbon\Carbon::parse($a->date_fin)->format('d/m/Y') : null),
+                        'conservee' => $a->conservee,
+                        'remunerations' => $a->remunerations->map(fn($r) => [
+                            'annee' => $r->annee,
+                            'montant' => $r->montant,
+                            'brut_net' => $r->brut_net,
+                        ])->sortByDesc('annee')->values()->toArray(),
+                        'total_remunerations' => $a->remunerations->sum('montant'),
+                    ])->toArray();
+
+                    $activitesConsultant = $latestDeclaration->activitesConsultant->map(fn($a) => [
+                        'description' => $a->description ?? 'Activité de conseil',
+                        'date_debut' => $a->date_debut instanceof \Carbon\Carbon ? $a->date_debut->format('d/m/Y') : ($a->date_debut ? \Carbon\Carbon::parse($a->date_debut)->format('d/m/Y') : null),
+                        'date_fin' => $a->date_fin instanceof \Carbon\Carbon ? $a->date_fin->format('d/m/Y') : ($a->date_fin ? \Carbon\Carbon::parse($a->date_fin)->format('d/m/Y') : null),
+                        'remunerations' => $a->remunerations->map(fn($r) => [
+                            'annee' => $r->annee,
+                            'montant' => $r->montant,
+                            'brut_net' => $r->brut_net,
+                        ])->sortByDesc('annee')->values()->toArray(),
+                        'total_remunerations' => $a->remunerations->sum('montant'),
+                    ])->toArray();
+
+                    $participationsDirigeantes = $latestDeclaration->participationsDirigeantes->map(fn($p) => [
+                        'societe' => $p->nom_societe ?? $p->societe ?? 'Société',
+                        'activite' => $p->activite,
+                        'date_debut' => $p->date_debut instanceof \Carbon\Carbon ? $p->date_debut->format('d/m/Y') : ($p->date_debut ? \Carbon\Carbon::parse($p->date_debut)->format('d/m/Y') : null),
+                        'date_fin' => $p->date_fin instanceof \Carbon\Carbon ? $p->date_fin->format('d/m/Y') : ($p->date_fin ? \Carbon\Carbon::parse($p->date_fin)->format('d/m/Y') : null),
+                        'remunerations' => $p->remunerations->map(fn($r) => [
+                            'annee' => $r->annee,
+                            'montant' => $r->montant,
+                            'brut_net' => $r->brut_net,
+                        ])->sortByDesc('annee')->values()->toArray(),
+                        'total_remunerations' => $p->remunerations->sum('montant'),
+                    ])->toArray();
+
+                    $hatvpSummary = [
+                        'declaration_date' => $latestDeclaration->date_depot?->format('d/m/Y'),
+                        'declaration_type' => $latestDeclaration->type_declaration_label,
+                        'nombre_mandats' => $latestDeclaration->mandatsElectifs->count(),
+                        'nombre_emplois' => $latestDeclaration->activitesProfessionnelles->count(),
+                        'nombre_collaborateurs' => $latestDeclaration->collaborateurs->count(),
+                        'revenus_par_annee' => $revenusParAnnee,
+                        'mandats_electifs' => $mandatsElectifs,
+                        'activites_professionnelles' => $activitesPro,
+                        'activites_consultant' => $activitesConsultant,
+                        'participations_dirigeantes' => $participationsDirigeantes,
+                        'fonctions_benevoles' => $latestDeclaration->fonctionsBenevoles->map(fn($f) => [
+                            'description' => $f->description,
+                            'organisme' => $f->organisme,
+                        ])->toArray(),
+                    ];
+                }
+            } catch (\Exception $e) {
+                // Table HATVP peut ne pas exister encore
+            }
+            return ['declarations' => $declarationsHatvp, 'summary' => $hatvpSummary];
+        });
+
         return Inertia::render('Gouvernement/Personne', [
             'personne' => [
                 'id' => $personne->id,
@@ -173,6 +309,7 @@ class GouvernementController extends Controller
                 'parti_politique' => $personne->parti_politique,
                 'wikipedia_url' => $personne->wikipedia_url,
                 'wikipedia_extract' => $personne->wikipedia_extract,
+                'url_hatvp' => $personne->url_hatvp,
             ],
             'historique' => $historique,
             'stats' => [
@@ -182,7 +319,54 @@ class GouvernementController extends Controller
                 'est_actif' => $personne->postes->filter(fn($p) => $p->est_actif)->isNotEmpty(),
                 'poste_actuel' => $personne->postes->filter(fn($p) => $p->est_actif)->first()?->fonction,
             ],
+            'affaires_judiciaires' => $affairesJudiciaires,
+            'declarations_hatvp' => $hatvpData['declarations'],
+            'hatvp_summary' => $hatvpData['summary'],
         ]);
+    }
+
+    private function getAffairesPersonne(PersonnePolitique $personne): array
+    {
+        return AffaireJudiciaire::publiques()
+            ->where(function ($q) use ($personne) {
+                $q->where('personne_politique_id', $personne->id)
+                    ->when($personne->uid_an, fn ($q2, $uid) =>
+                        $q2->orWhere('acteur_an_uid', $uid))
+                    ->when($personne->uid_senat, fn ($q2, $mat) =>
+                        $q2->orWhere('senateur_matricule', $mat));
+            })
+            ->with(['sources' => fn ($q) => $q->orderByRaw("CASE fiabilite WHEN 'haute' THEN 1 WHEN 'moyenne' THEN 2 ELSE 3 END")])
+            ->orderByRaw("CASE statut_judiciaire
+                WHEN 'condamne_definitif' THEN 1
+                WHEN 'condamne_appel' THEN 2
+                WHEN 'condamne_premiere_instance' THEN 3
+                WHEN 'mis_en_examen' THEN 4
+                ELSE 5 END")
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'titre' => $a->titre,
+                'description' => $a->description,
+                'type_affaire' => $a->type_affaire,
+                'type_affaire_libelle' => $a->type_affaire_libelle,
+                'categorie' => $a->categorie,
+                'statut_judiciaire' => $a->statut_judiciaire,
+                'statut_libelle' => $a->statut_judiciaire_libelle,
+                'statut_couleur' => $a->statut_judiciaire_couleur,
+                'statut_validation' => $a->statut_validation,
+                'date_condamnation' => $a->date_condamnation_definitive?->format('d/m/Y'),
+                'date_mise_en_examen' => $a->date_mise_en_examen?->format('d/m/Y'),
+                'peine_resume' => $a->peine_resume,
+                'juridiction' => $a->juridiction,
+                'valide_at' => $a->valide_at?->format('d/m/Y'),
+                'sources' => $a->sources->map(fn ($s) => [
+                    'media' => $s->media,
+                    'url' => $s->url,
+                    'date' => $s->date_publication?->format('d/m/Y'),
+                    'type' => $s->type_source,
+                    'fiabilite' => $s->fiabilite,
+                ])->toArray(),
+            ])->toArray();
     }
 
     /**

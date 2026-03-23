@@ -23,7 +23,14 @@ Artisan::command('inspire', function () {
 | 5. 04h00-04h30 : Recalcul des statistiques
 | 6. 05h00-06h00 : Agenda et calendrier
 | 7. 06h00-07h00 : Questions gouvernement
+|
+| IMPORTANT : Les imports auto sont desactives sur l'environnement dev
+| Pour forcer un import en dev : php artisan <commande> manuellement
 */
+
+if (app()->environment('local', 'development', 'testing') && env('DISABLE_SCHEDULED_IMPORTS', false)) {
+    return;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -290,4 +297,44 @@ Schedule::command('senat:import-debats --download')
 Schedule::command('candidatures:send-reminders')
     ->dailyAt('09:00')
     ->description('Envoi rappels candidatures municipales')
+    ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| AFFAIRES JUDICIAIRES (détection + stats + notifications)
+|--------------------------------------------------------------------------
+*/
+
+Schedule::command('affaires:detect-wikidata')
+    ->weekly()
+    ->description('Détection Wikidata des affaires judiciaires (P1399)')
+    ->withoutOverlapping();
+
+Schedule::command('affaires:detect-wikipedia')
+    ->twiceMonthly(1, 15)
+    ->description('Détection Wikipedia NLP des affaires judiciaires')
+    ->withoutOverlapping();
+
+Schedule::command('affaires:detect-hatvp')
+    ->monthly()
+    ->description('Détection HATVP des manquements/signalements')
+    ->withoutOverlapping();
+
+Schedule::command('affaires:calculate-stats')
+    ->dailyAt('04:55')
+    ->description('Recalcul des statistiques affaires judiciaires');
+
+Schedule::command('affaires:notify-moderators')
+    ->dailyAt('09:00')
+    ->description('Notification modérateurs pour affaires en attente');
+
+/*
+|--------------------------------------------------------------------------
+| ENRICHISSEMENT WIKIDATA - PersonnePolitique
+|--------------------------------------------------------------------------
+*/
+
+Schedule::command('enrich:personnes-wikidata')
+    ->monthly()
+    ->description('Enrichissement Wikidata ID des PersonnePolitique')
     ->withoutOverlapping();

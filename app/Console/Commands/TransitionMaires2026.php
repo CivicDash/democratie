@@ -175,8 +175,8 @@ class TransitionMaires2026 extends Command
             $this->createMandat($maireExistant, $ville, $dateInstallation, $score, $tourElection);
             $this->reelus++;
         } else {
-            $sexe = null;
-            if ($listeGagnante->liste) {
+            $sexe = $listeGagnante->tete_de_liste_sexe;
+            if (!$sexe && $listeGagnante->liste) {
                 $teteCand = $listeGagnante->liste->candidats()
                     ->where('est_tete_de_liste', true)->first();
                 $sexe = $teteCand?->sexe;

@@ -30,6 +30,22 @@ use Illuminate\Support\Facades\Route;
 
 
 // ============================================================================
+// CADDY ON_DEMAND TLS - Verification sous-domaine commune
+// ============================================================================
+Route::get('/verify-subdomain', function (\Illuminate\Http\Request $request) {
+    $domain = $request->query('domain', '');
+    if (!str_ends_with($domain, '.civicdash.fr')) {
+        return response('', 404);
+    }
+    $slug = str_replace('.civicdash.fr', '', $domain);
+    if (empty($slug) || $slug === 'www') {
+        return response('', 404);
+    }
+    $exists = \App\Models\Ville::where('slug', $slug)->exists();
+    return response('', $exists ? 200 : 404);
+});
+
+// ============================================================================
 // ROUTES PUBLIQUES (sans authentification)
 // ============================================================================
 

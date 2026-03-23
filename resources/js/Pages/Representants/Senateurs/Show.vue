@@ -5,8 +5,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
-import HatvpDeclarationCard from '@/Components/HatvpDeclarationCard.vue';
+import HatvpSection from '@/Components/Hatvp/HatvpSection.vue';
 import EluFollowButton from '@/Components/EluFollowButton.vue';
+import AffairesSection from '@/Components/AffairesJudiciaires/AffairesSection.vue';
 
 const props = defineProps({
   senateur: Object,
@@ -525,72 +526,16 @@ const getSegmentHeight = (value, total) => {
           </div>
         </Card>
 
-        <!-- Déclarations HATVP - Composant standardisé -->
-        <HatvpDeclarationCard 
-          v-if="senateur.hatvp_summary" 
+        <!-- Declarations HATVP -->
+        <HatvpSection
+          :declarations="senateur.declarations_hatvp ?? []"
           :summary="senateur.hatvp_summary"
           parlementaire-type="senateur"
         />
 
-        <!-- Historique des déclarations HATVP -->
-        <Card v-if="senateur.declarations_hatvp && senateur.declarations_hatvp.length > 0">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span>📜</span>
-            <span>Historique des déclarations</span>
-            <Badge class="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs">
-              {{ senateur.declarations_hatvp.length }}
-            </Badge>
-          </h2>
-
-          <!-- Liste des déclarations -->
-          <div class="space-y-3">
-            <a
-              v-for="(declaration, index) in senateur.declarations_hatvp"
-              :key="index"
-              :href="declaration.url"
-              target="_blank"
-              class="block p-4 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 hover:shadow-md transition"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    <span v-if="declaration.type === 'DIA' || declaration.type === 'DIAI' || declaration.type === 'DIAC'">📝</span>
-                    <span v-else>💰</span>
-                    {{ declaration.type_label }}
-                  </div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Déposée le {{ declaration.date_depot }}
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <Badge 
-                    :class="[
-                      declaration.type.startsWith('D') && declaration.type.includes('I') 
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                    ]"
-                  >
-                    {{ declaration.type }}
-                  </Badge>
-                  <span class="text-amber-600 dark:text-amber-400">→</span>
-                </div>
-              </div>
-            </a>
-          </div>
-
-          <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
-            <p>
-              💡 <strong>DIA</strong> = Déclaration d'Intérêts et d'Activités • 
-              <strong>DSP</strong> = Déclaration de Situation Patrimoniale
-            </p>
-            <a 
-              href="https://www.hatvp.fr" 
-              target="_blank"
-              class="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 mt-2 inline-block"
-            >
-              En savoir plus sur la HATVP →
-            </a>
-          </div>
+        <!-- Affaires judiciaires -->
+        <Card v-if="senateur.affaires_judiciaires?.length">
+          <AffairesSection :affaires="senateur.affaires_judiciaires" />
         </Card>
 
         <!-- Historique des groupes - Version compacte -->

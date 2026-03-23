@@ -819,6 +819,22 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
         Route::get('/history', [App\Http\Controllers\Admin\PhotoModerationController::class, 'history'])->name('history');
     });
 
+    // Affaires judiciaires — modération
+    Route::prefix('affaires-judiciaires')->name('affaires.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'index'])->name('index');
+        Route::get('/stats', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'stats'])->name('stats');
+        Route::get('/create', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'store'])->name('store');
+        Route::get('/{affaire}', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'show'])->name('show');
+        Route::post('/{affaire}/prendre-en-charge', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'prendreEnCharge'])->name('prendre');
+        Route::put('/{affaire}/valider', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'valider'])->name('valider');
+        Route::put('/{affaire}/rejeter', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'rejeter'])->name('rejeter');
+        Route::put('/{affaire}/completer', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'completer'])->name('completer');
+        Route::put('/{affaire}/archiver', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'archiver'])->name('archiver');
+        Route::post('/{affaire}/sources', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'ajouterSource'])->name('source.add');
+        Route::delete('/sources/{source}', [App\Http\Controllers\Admin\AdminAffairesJudiciairesController::class, 'supprimerSource'])->name('source.delete');
+    });
+
     // Membres de l'association Civis-Consilium
     Route::prefix('association')->name('association.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\AssociationMembersController::class, 'index'])->name('index');
@@ -853,6 +869,16 @@ Route::middleware('auth')->prefix('representants')->name('representants.')->grou
     Route::get('/senateurs/{matricule}/votes', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurVotes'])->name('senateurs.votes');
     Route::get('/senateurs/{matricule}/amendements', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurAmendements'])->name('senateurs.amendements');
     Route::get('/senateurs/{matricule}/activite', [App\Http\Controllers\Web\RepresentantANController::class, 'senateurActivite'])->name('senateurs.activite');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Transparence (Affaires judiciaires — pages publiques)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('transparence')->name('transparence.')->group(function () {
+    Route::get('/affaires-judiciaires', [App\Http\Controllers\Web\TransparenceController::class, 'affairesJudiciaires'])->name('affaires');
+    Route::get('/notre-demarche', [App\Http\Controllers\Web\TransparenceController::class, 'notreDemarche'])->name('demarche');
 });
 
 /*

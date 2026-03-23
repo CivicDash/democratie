@@ -5,10 +5,16 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
 
+import AffairesSection from '@/Components/AffairesJudiciaires/AffairesSection.vue';
+import HatvpSection from '@/Components/Hatvp/HatvpSection.vue';
+
 const props = defineProps({
     personne: Object,
     historique: Array,
     stats: Object,
+    affaires_judiciaires: { type: Array, default: () => [] },
+    declarations_hatvp: { type: Array, default: () => [] },
+    hatvp_summary: { type: Object, default: null },
 });
 
 const breadcrumbs = [
@@ -227,6 +233,18 @@ const getPartiCouleur = (parti) => {
                                 📚 Lire sur Wikipedia →
                             </a>
                         </Card>
+
+                        <!-- Declarations HATVP -->
+                        <HatvpSection
+                            :declarations="declarations_hatvp ?? []"
+                            :summary="hatvp_summary"
+                            parlementaire-type="ministre"
+                        />
+
+                        <!-- Affaires judiciaires -->
+                        <Card v-if="affaires_judiciaires?.length">
+                            <AffairesSection :affaires="affaires_judiciaires" />
+                        </Card>
                     </div>
                     
                     <!-- Sidebar -->
@@ -282,16 +300,26 @@ const getPartiCouleur = (parti) => {
                         </Card>
                         
                         <!-- Liens externes -->
-                        <Card v-if="personne.wikipedia_url">
+                        <Card v-if="personne.wikipedia_url || personne.url_hatvp">
                             <h3 class="font-bold text-gray-900 dark:text-gray-100 mb-4">🔗 Liens</h3>
                             <div class="space-y-2">
                                 <a 
+                                    v-if="personne.wikipedia_url"
                                     :href="personne.wikipedia_url" 
                                     target="_blank"
                                     class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                                 >
                                     <span class="text-xl">📚</span>
                                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Wikipedia</span>
+                                </a>
+                                <a 
+                                    v-if="personne.url_hatvp"
+                                    :href="personne.url_hatvp" 
+                                    target="_blank"
+                                    class="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition"
+                                >
+                                    <span class="text-xl">📋</span>
+                                    <span class="text-sm font-medium text-amber-700 dark:text-amber-300">Fiche HATVP</span>
                                 </a>
                             </div>
                         </Card>
