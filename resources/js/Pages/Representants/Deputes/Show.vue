@@ -8,6 +8,7 @@ import Breadcrumb from '@/Components/Breadcrumb.vue';
 import HatvpSection from '@/Components/Hatvp/HatvpSection.vue';
 import EluFollowButton from '@/Components/EluFollowButton.vue';
 import AffairesSection from '@/Components/AffairesJudiciaires/AffairesSection.vue';
+import AffairesHeroBadges from '@/Components/AffairesJudiciaires/AffairesHeroBadges.vue';
 
 const props = defineProps({
   depute: Object,
@@ -134,6 +135,7 @@ const formatMontant = (montant) => {
                   </p>
                 </div>
                 <div class="flex items-center gap-3">
+                  <AffairesHeroBadges :affaires="depute.affaires_judiciaires ?? []" variant="light" />
                   <Badge
                     v-if="depute.trigramme"
                     class="text-lg px-4 py-2"
@@ -477,7 +479,7 @@ const formatMontant = (montant) => {
         />
 
         <!-- Affaires judiciaires -->
-        <Card v-if="depute.affaires_judiciaires?.length">
+        <Card v-if="depute.affaires_judiciaires?.length" id="affaires-section">
           <AffairesSection :affaires="depute.affaires_judiciaires" />
         </Card>
 

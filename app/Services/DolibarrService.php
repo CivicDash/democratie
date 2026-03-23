@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Log;
 
 class DolibarrService
 {
-    protected string $apiUrl;
-    protected string $apiKey;
-    protected int $timeout;
+    protected string $apiUrl = '';
+    protected string $apiKey = '';
+    protected int $timeout = 5;
 
     protected const MEMBER_TYPE_MAP = [
         '1' => 'adherent',
@@ -26,9 +26,9 @@ class DolibarrService
 
     public function __construct()
     {
-        $this->apiUrl = config('services.dolibarr.api_url', '');
-        $this->apiKey = config('services.dolibarr.api_key', '');
-        $this->timeout = (int) config('services.dolibarr.timeout', 5);
+        $this->apiUrl = config('services.dolibarr.api_url') ?? '';
+        $this->apiKey = config('services.dolibarr.api_key') ?? '';
+        $this->timeout = (int) (config('services.dolibarr.timeout') ?? 5);
     }
 
     public function isConfigured(): bool
