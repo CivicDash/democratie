@@ -21,8 +21,7 @@ class ImportCandidaturesOfficielles extends Command
     protected $description = 'Importe les candidatures officielles municipales depuis data.gouv.fr';
 
     private const DATAGOUV_T1 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-premier-tour/20260320-164339/municipales-2026-resultats-communes-2026-03-20.csv';
-    // TODO: Mettre à jour avec l'URL réelle quand data.gouv.fr publie les candidatures T2
-    private const DATAGOUV_T2 = '';
+    private const DATAGOUV_T2 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-scond-tour/20260323-180124/municipales-2026-resultats-communes-2026-03-23-16h14.csv';
 
     private const FIXED_COLS = 18;
     private const LIST_BLOCK_SIZE = 13;
