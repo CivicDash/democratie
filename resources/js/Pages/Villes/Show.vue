@@ -2,7 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import NuanceBadge from '@/Components/Municipales/NuanceBadge.vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     ville: Object,
@@ -20,6 +20,22 @@ const props = defineProps({
 const formatNumber = (n) => n?.toLocaleString('fr-FR') ?? '-';
 
 const hasResultats = computed(() => !!props.resultats_municipales_2026?.tours?.length);
+const hasTwoTours = computed(() => (props.resultats_municipales_2026?.tours?.length ?? 0) >= 2);
+const defaultTour = computed(() => hasTwoTours.value ? 2 : 1);
+const selectedTour = ref(null);
+const activeTour = computed(() => selectedTour.value ?? defaultTour.value);
+
+const lastTour = computed(() => {
+    if (!hasResultats.value) return null;
+    const tours = props.resultats_municipales_2026.tours;
+    return tours[tours.length - 1];
+});
+
+const activeTourData = computed(() => {
+    if (!hasResultats.value) return null;
+    return props.resultats_municipales_2026.tours.find(t => t.tour === activeTour.value)
+        ?? props.resultats_municipales_2026.tours[0];
+});
 
 const populationChart = computed(() => {
     if (!props.evolutionPopulation?.length) return null;
@@ -96,9 +112,12 @@ const participationBarWidth = (value, total) => {
                                 🗳️
                             </div>
                             <div>
-                                <h3 class="text-xl font-bold">Résultats Municipales 2026</h3>
+                                <h3 class="text-xl font-bold">
+                                    Résultats Municipales 2026
+                                    <span v-if="hasTwoTours" class="text-sm font-normal text-emerald-200 ml-2">(2 tours)</span>
+                                </h3>
                                 <p class="text-emerald-100">
-                                    {{ resultats_municipales_2026.tours[0]?.statut_libelle }} — Participation : {{ resultats_municipales_2026.tours[0]?.taux_participation?.toFixed(1) }}%
+                                    {{ lastTour?.statut_libelle }} — Participation {{ hasTwoTours ? lastTour.tour === 2 ? 'T2' : 'T1' : '' }} : {{ lastTour?.taux_participation?.toFixed(1) }}%
                                 </p>
                             </div>
                         </div>
@@ -222,28 +241,52 @@ const participationBarWidth = (value, total) => {
                                     </div>
                                 </div>
 
-                                <!-- Par tour -->
-                                <div v-for="tour in resultats_municipales_2026.tours" :key="tour.tour" class="space-y-4">
-                                    <div class="flex items-center justify-between">
-                                        <h3 class="font-bold text-slate-900 dark:text-white text-lg">
-                                            {{ tour.tour === 1 ? '1er tour' : '2nd tour' }}
-                                        </h3>
-                                        <span class="px-3 py-1 rounded-full text-xs font-medium"
-                                            :class="{
-                                                'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': tour.statut_commune?.includes('elu'),
-                                                'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': tour.statut_commune === 'second_tour',
-                                                'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300': !tour.statut_commune?.includes('elu') && tour.statut_commune !== 'second_tour',
-                                            }">
+                                <!-- Onglets 1er / 2nd tour -->
+                                <div v-if="hasTwoTours" class="flex border-b border-slate-200 dark:border-slate-700">
+                                    <button
+                                        v-for="tour in resultats_municipales_2026.tours" :key="'tab-' + tour.tour"
+                                        @click="selectedTour = tour.tour"
+                                        class="flex-1 py-3 px-4 text-sm font-semibold transition-colors relative"
+                                        :class="activeTour === tour.tour
+                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'"
+                                    >
+                                        {{ tour.tour === 1 ? '1er tour' : '2nd tour' }}
+                                        <span class="ml-2 px-2 py-0.5 rounded-full text-xs"
+                                            :class="tour.statut_commune?.includes('elu')
+                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                : tour.statut_commune === 'second_tour'
+                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'">
                                             {{ tour.statut_libelle }}
                                         </span>
-                                    </div>
+                                        <div v-if="activeTour === tour.tour" class="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 dark:bg-emerald-400"></div>
+                                    </button>
+                                </div>
 
+                                <!-- Titre tour unique (si un seul tour) -->
+                                <div v-if="!hasTwoTours && activeTourData" class="flex items-center justify-between">
+                                    <h3 class="font-bold text-slate-900 dark:text-white text-lg">
+                                        {{ activeTourData.tour === 1 ? '1er tour' : '2nd tour' }}
+                                    </h3>
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium"
+                                        :class="{
+                                            'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': activeTourData.statut_commune?.includes('elu'),
+                                            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': activeTourData.statut_commune === 'second_tour',
+                                            'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300': !activeTourData.statut_commune?.includes('elu') && activeTourData.statut_commune !== 'second_tour',
+                                        }">
+                                        {{ activeTourData.statut_libelle }}
+                                    </span>
+                                </div>
+
+                                <!-- Contenu du tour actif -->
+                                <div v-if="activeTourData" class="space-y-4">
                                     <!-- Participation -->
                                     <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
                                         <div class="flex items-center justify-between mb-3">
                                             <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Participation</span>
                                             <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                                                {{ tour.taux_participation?.toFixed(1) }}%
+                                                {{ activeTourData.taux_participation?.toFixed(1) }}%
                                             </span>
                                         </div>
                                         <div class="space-y-2">
@@ -252,32 +295,44 @@ const participationBarWidth = (value, total) => {
                                                 <div class="flex-1 bg-slate-200 dark:bg-slate-600 rounded-full h-2.5">
                                                     <div class="bg-slate-400 dark:bg-slate-300 h-2.5 rounded-full w-full"></div>
                                                 </div>
-                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(tour.inscrits) }}</span>
+                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(activeTourData.inscrits) }}</span>
                                             </div>
                                             <div class="flex items-center gap-3 text-sm">
                                                 <span class="w-20 text-slate-500 dark:text-slate-400">Votants</span>
                                                 <div class="flex-1 bg-slate-200 dark:bg-slate-600 rounded-full h-2.5">
-                                                    <div class="bg-blue-500 h-2.5 rounded-full" :style="{ width: participationBarWidth(tour.votants, tour.inscrits) }"></div>
+                                                    <div class="bg-blue-500 h-2.5 rounded-full" :style="{ width: participationBarWidth(activeTourData.votants, activeTourData.inscrits) }"></div>
                                                 </div>
-                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(tour.votants) }}</span>
+                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(activeTourData.votants) }}</span>
                                             </div>
                                             <div class="flex items-center gap-3 text-sm">
                                                 <span class="w-20 text-slate-500 dark:text-slate-400">Exprimés</span>
                                                 <div class="flex-1 bg-slate-200 dark:bg-slate-600 rounded-full h-2.5">
-                                                    <div class="bg-indigo-500 h-2.5 rounded-full" :style="{ width: participationBarWidth(tour.exprimes, tour.inscrits) }"></div>
+                                                    <div class="bg-indigo-500 h-2.5 rounded-full" :style="{ width: participationBarWidth(activeTourData.exprimes, activeTourData.inscrits) }"></div>
                                                 </div>
-                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(tour.exprimes) }}</span>
+                                                <span class="w-20 text-right font-medium text-slate-700 dark:text-slate-300">{{ formatNumber(activeTourData.exprimes) }}</span>
                                             </div>
                                         </div>
-                                        <div v-if="tour.blancs || tour.nuls" class="flex gap-4 mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                            <span v-if="tour.blancs">Blancs : {{ formatNumber(tour.blancs) }}</span>
-                                            <span v-if="tour.nuls">Nuls : {{ formatNumber(tour.nuls) }}</span>
+                                        <div v-if="activeTourData.blancs || activeTourData.nuls" class="flex gap-4 mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                            <span v-if="activeTourData.blancs">Blancs : {{ formatNumber(activeTourData.blancs) }}</span>
+                                            <span v-if="activeTourData.nuls">Nuls : {{ formatNumber(activeTourData.nuls) }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Comparaison participation T1/T2 (affiché sur T2 uniquement) -->
+                                    <div v-if="hasTwoTours && activeTour === 2" class="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4">
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-indigo-700 dark:text-indigo-300 font-medium">Évolution participation vs T1</span>
+                                            <span class="font-bold" :class="(activeTourData.taux_participation - resultats_municipales_2026.tours[0].taux_participation) >= 0
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : 'text-red-600 dark:text-red-400'">
+                                                {{ (activeTourData.taux_participation - resultats_municipales_2026.tours[0].taux_participation) >= 0 ? '+' : '' }}{{ (activeTourData.taux_participation - resultats_municipales_2026.tours[0].taux_participation).toFixed(1) }} pts
+                                            </span>
                                         </div>
                                     </div>
 
                                     <!-- Sièges -->
-                                    <div v-if="tour.nb_sieges_a_pourvoir" class="text-sm text-slate-600 dark:text-slate-400">
-                                        {{ tour.nb_sieges_a_pourvoir }} sièges à pourvoir
+                                    <div v-if="activeTourData.nb_sieges_a_pourvoir" class="text-sm text-slate-600 dark:text-slate-400">
+                                        {{ activeTourData.nb_sieges_a_pourvoir }} sièges à pourvoir
                                     </div>
 
                                     <!-- Tableau des listes -->
@@ -293,7 +348,7 @@ const participationBarWidth = (value, total) => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr v-for="liste in tour.listes" :key="liste.nom_liste"
+                                                <tr v-for="liste in activeTourData.listes" :key="liste.numero_panneau"
                                                     class="border-b border-slate-100 dark:border-slate-700/50"
                                                     :class="liste.elu ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''">
                                                     <td class="py-3 px-2">

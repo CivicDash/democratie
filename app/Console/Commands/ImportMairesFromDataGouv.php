@@ -169,8 +169,10 @@ class ImportMairesFromDataGouv extends Command
         // Civilité selon le code sexe
         $civilite = $sexeCode === 'F' ? 'Mme' : 'M.';
 
-        // Générer un UID unique
-        $uid = 'MAIRE-' . $codeCommune;
+        $parsedDebutMandat = $this->parseDate($dateDebutMandat);
+        $isPost2026 = $parsedDebutMandat && $parsedDebutMandat >= '2026-03-15';
+        $mandature = $isPost2026 ? '2026-2032' : '2020-2026';
+        $uid = $isPost2026 ? "MAIRE-2026-{$codeCommune}" : "MAIRE-{$codeCommune}";
 
         return [
             'uid' => $uid,
@@ -185,10 +187,10 @@ class ImportMairesFromDataGouv extends Command
             'nom_departement' => $deptName,
             'profession' => $profession,
             'categorie_socio_pro' => $professionCode,
-            'debut_mandat' => $this->parseDate($dateDebutMandat),
+            'debut_mandat' => $parsedDebutMandat,
             'debut_fonction' => $this->parseDate($dateDebutFonction),
             'en_exercice' => true,
-            'mandature' => '2020-2026',
+            'mandature' => $mandature,
             'updated_at' => now(),
         ];
     }
@@ -212,13 +214,17 @@ class ImportMairesFromDataGouv extends Command
 
     private function upsertBatch(array $batch): void
     {
+        $preservedFields = ['nuance_politique', 'telephone', 'site_web', 'adresse_mairie', 'latitude', 'longitude',
+            'photo_url', 'photo_wikipedia_url', 'wikipedia_url', 'wikidata_id', 'wikipedia_extract',
+            'wikipedia_last_sync', 'personne_politique_id', 'twitter_url', 'facebook_url',
+            'instagram_url', 'linkedin_url', 'fiche_enrichie', 'url_hatvp', 'hatvp_type_mandat'];
+
         foreach ($batch as $maireData) {
-            $existing = Maire::where('code_commune', $maireData['code_commune'])->first();
+            $existing = Maire::where('uid', $maireData['uid'])->first();
 
             if ($existing) {
-                // Conserver les données enrichies existantes (nuance, tel, etc.)
                 $dataToUpdate = array_filter($maireData, fn($v, $k) => 
-                    $v !== null && !in_array($k, ['nuance_politique', 'telephone', 'site_web', 'adresse_mairie', 'latitude', 'longitude']),
+                    $v !== null && !in_array($k, array_merge(['uid'], $preservedFields)),
                     ARRAY_FILTER_USE_BOTH
                 );
                 $existing->update($dataToUpdate);

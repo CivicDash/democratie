@@ -67,6 +67,11 @@ class MunicipalesFullPipeline extends Command
                 'command' => 'municipales:import-resultats',
                 'args' => ['tour' => 1, '--dry-run' => false],
             ];
+            $steps[] = [
+                'label' => 'Enrichissement têtes de liste T1',
+                'command' => 'municipales:enrich-tetes-liste',
+                'args' => ['tour' => 1, '--dry-run' => false],
+            ];
         }
 
         if ($tour === 'all' || $tour === '2') {
@@ -78,6 +83,11 @@ class MunicipalesFullPipeline extends Command
             $steps[] = [
                 'label' => 'Import résultats T2',
                 'command' => 'municipales:import-resultats',
+                'args' => ['tour' => 2, '--dry-run' => false],
+            ];
+            $steps[] = [
+                'label' => 'Enrichissement têtes de liste T2',
+                'command' => 'municipales:enrich-tetes-liste',
                 'args' => ['tour' => 2, '--dry-run' => false],
             ];
         }

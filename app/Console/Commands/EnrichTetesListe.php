@@ -10,12 +10,14 @@ use Illuminate\Support\Facades\DB;
 class EnrichTetesListe extends Command
 {
     protected $signature = 'municipales:enrich-tetes-liste
-                            {--url= : URL du CSV candidatures (par défaut: data.gouv.fr T1)}
+                            {tour=1 : Tour de l\'élection (1 ou 2)}
+                            {--url= : URL du CSV candidatures (par défaut: data.gouv.fr)}
                             {--dry-run : Simuler sans écrire}';
 
     protected $description = 'Enrichit les résultats municipaux avec les noms/sexe des têtes de liste depuis le CSV candidatures';
 
-    private const CANDIDATURES_URL = 'https://static.data.gouv.fr/resources/elections-municipales-2026-listes-candidates-au-premier-tour/20260313-152615/municipales-2026-candidatures-france-entiere-tour-1-2026-03-13.csv';
+    private const CANDIDATURES_T1 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-listes-candidates-au-premier-tour/20260313-152615/municipales-2026-candidatures-france-entiere-tour-1-2026-03-13.csv';
+    private const CANDIDATURES_T2 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-listes-candidates-au-second-tour/20260320-141955/municipales-2026-candidatures-france-entiere-tour-2-2026-03-20.csv';
 
     private int $matched = 0;
     private int $notFound = 0;
@@ -23,10 +25,11 @@ class EnrichTetesListe extends Command
 
     public function handle(): int
     {
-        $url = $this->option('url') ?: self::CANDIDATURES_URL;
+        $tour = (int) $this->argument('tour');
+        $url = $this->option('url') ?: ($tour === 2 ? self::CANDIDATURES_T2 : self::CANDIDATURES_T1);
         $dryRun = $this->option('dry-run');
 
-        $this->info('Enrichissement des têtes de liste depuis le CSV candidatures');
+        $this->info("Enrichissement des têtes de liste T{$tour} depuis le CSV candidatures");
         $this->info("URL: {$url}");
         if ($dryRun) {
             $this->warn('Mode DRY RUN');
@@ -87,7 +90,7 @@ class EnrichTetesListe extends Command
         $this->newLine();
 
         $resultatsIndex = [];
-        ResultatMunicipal::where('tour', 1)
+        ResultatMunicipal::where('tour', $tour)
             ->select('id', 'code_commune')
             ->chunk(5000, function ($chunk) use (&$resultatsIndex) {
                 foreach ($chunk as $r) {
