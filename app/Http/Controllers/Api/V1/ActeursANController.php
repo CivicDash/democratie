@@ -11,9 +11,6 @@ class ActeursANController extends Controller
 {
     /**
      * Liste des acteurs avec filtres
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -21,18 +18,18 @@ class ActeursANController extends Controller
 
         // Filtres
         if ($request->has('nom')) {
-            $query->where('nom', 'ILIKE', '%' . $request->nom . '%');
+            $query->where('nom', 'ILIKE', '%'.$request->nom.'%');
         }
 
         if ($request->has('prenom')) {
-            $query->where('prenom', 'ILIKE', '%' . $request->prenom . '%');
+            $query->where('prenom', 'ILIKE', '%'.$request->prenom.'%');
         }
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('nom', 'ILIKE', '%' . $search . '%')
-                  ->orWhere('prenom', 'ILIKE', '%' . $search . '%');
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'ILIKE', '%'.$search.'%')
+                    ->orWhere('prenom', 'ILIKE', '%'.$search.'%');
             });
         }
 
@@ -49,7 +46,7 @@ class ActeursANController extends Controller
             $with[] = 'mandats.organe';
         }
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $query->with($with);
         }
 
@@ -62,17 +59,14 @@ class ActeursANController extends Controller
 
     /**
      * Détails d'un acteur
-     * 
-     * @param string $uid
-     * @return JsonResponse
      */
     public function show(string $uid): JsonResponse
     {
         $acteur = ActeurAN::with([
-            'mandats' => function($query) {
+            'mandats' => function ($query) {
                 $query->orderBy('date_debut', 'desc');
             },
-            'mandats.organe'
+            'mandats.organe',
         ])->findOrFail($uid);
 
         return response()->json([
@@ -90,10 +84,6 @@ class ActeursANController extends Controller
 
     /**
      * Votes d'un acteur
-     * 
-     * @param string $uid
-     * @param Request $request
-     * @return JsonResponse
      */
     public function votes(string $uid, Request $request): JsonResponse
     {
@@ -104,7 +94,7 @@ class ActeursANController extends Controller
 
         // Filtres
         if ($request->has('legislature')) {
-            $query->whereHas('scrutin', function($q) use ($request) {
+            $query->whereHas('scrutin', function ($q) use ($request) {
                 $q->where('legislature', $request->legislature);
             });
         }
@@ -114,13 +104,13 @@ class ActeursANController extends Controller
         }
 
         if ($request->has('date_min')) {
-            $query->whereHas('scrutin', function($q) use ($request) {
+            $query->whereHas('scrutin', function ($q) use ($request) {
                 $q->where('date_scrutin', '>=', $request->date_min);
             });
         }
 
         if ($request->has('date_max')) {
-            $query->whereHas('scrutin', function($q) use ($request) {
+            $query->whereHas('scrutin', function ($q) use ($request) {
                 $q->where('date_scrutin', '<=', $request->date_max);
             });
         }
@@ -149,10 +139,6 @@ class ActeursANController extends Controller
 
     /**
      * Amendements d'un acteur
-     * 
-     * @param string $uid
-     * @param Request $request
-     * @return JsonResponse
      */
     public function amendements(string $uid, Request $request): JsonResponse
     {
@@ -205,10 +191,6 @@ class ActeursANController extends Controller
 
     /**
      * Statistiques d'activité d'un acteur
-     * 
-     * @param string $uid
-     * @param Request $request
-     * @return JsonResponse
      */
     public function stats(string $uid, Request $request): JsonResponse
     {
@@ -217,7 +199,7 @@ class ActeursANController extends Controller
 
         // Votes
         $votesQuery = $acteur->votesIndividuels()
-            ->whereHas('scrutin', function($q) use ($legislature) {
+            ->whereHas('scrutin', function ($q) use ($legislature) {
                 $q->where('legislature', $legislature);
             });
 
@@ -263,4 +245,3 @@ class ActeursANController extends Controller
         ]);
     }
 }
-

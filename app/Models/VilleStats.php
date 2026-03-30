@@ -72,35 +72,63 @@ class VilleStats extends Model
 
     public function getDetteParHabitantFormateAttribute(): string
     {
-        if (!$this->dette_par_habitant) return 'N/A';
-        return number_format($this->dette_par_habitant, 0, ',', ' ') . ' €/hab.';
+        if (! $this->dette_par_habitant) {
+            return 'N/A';
+        }
+
+        return number_format($this->dette_par_habitant, 0, ',', ' ').' €/hab.';
     }
 
     public function getTauxEndettementFormateAttribute(): string
     {
-        if ($this->taux_endettement_pct === null) return 'N/A';
-        return number_format($this->taux_endettement_pct, 1, ',', ' ') . '%';
+        if ($this->taux_endettement_pct === null) {
+            return 'N/A';
+        }
+
+        return number_format($this->taux_endettement_pct, 1, ',', ' ').'%';
     }
 
     public function getScoreSanteFinanciereLibelleAttribute(): string
     {
         $score = $this->score_sante_financiere;
-        if ($score === null) return 'Non évalué';
-        if ($score >= 80) return 'Excellente';
-        if ($score >= 60) return 'Bonne';
-        if ($score >= 40) return 'Correcte';
-        if ($score >= 20) return 'Fragile';
+        if ($score === null) {
+            return 'Non évalué';
+        }
+        if ($score >= 80) {
+            return 'Excellente';
+        }
+        if ($score >= 60) {
+            return 'Bonne';
+        }
+        if ($score >= 40) {
+            return 'Correcte';
+        }
+        if ($score >= 20) {
+            return 'Fragile';
+        }
+
         return 'Critique';
     }
 
     public function getScoreSanteFinanciereColorAttribute(): string
     {
         $score = $this->score_sante_financiere;
-        if ($score === null) return 'gray';
-        if ($score >= 80) return 'emerald';
-        if ($score >= 60) return 'green';
-        if ($score >= 40) return 'yellow';
-        if ($score >= 20) return 'orange';
+        if ($score === null) {
+            return 'gray';
+        }
+        if ($score >= 80) {
+            return 'emerald';
+        }
+        if ($score >= 60) {
+            return 'green';
+        }
+        if ($score >= 40) {
+            return 'yellow';
+        }
+        if ($score >= 20) {
+            return 'orange';
+        }
+
         return 'red';
     }
 }

@@ -39,28 +39,29 @@ class PreviewEmail extends Command
             if ($sendTo) {
                 $this->info("📤 Envoi à {$sendTo}...");
                 Mail::to($sendTo)->send($mailable);
-                $this->info("✅ Email envoyé !");
+                $this->info('✅ Email envoyé !');
             }
 
             if ($save) {
                 $html = $mailable->render();
-                $filename = "email-previews/{$template}-" . now()->format('Y-m-d-His') . ".html";
+                $filename = "email-previews/{$template}-".now()->format('Y-m-d-His').'.html';
                 \Storage::put($filename, $html);
                 $this->info("💾 Sauvegardé dans storage/app/{$filename}");
             }
 
-            if (!$sendTo && !$save) {
+            if (! $sendTo && ! $save) {
                 // Afficher un aperçu dans la console
                 $this->newLine();
-                $this->info("📋 Sujet: " . $mailable->envelope()->subject);
+                $this->info('📋 Sujet: '.$mailable->envelope()->subject);
                 $this->newLine();
-                $this->line("Pour voir le rendu HTML, utilisez --save ou --send=email@example.com");
+                $this->line('Pour voir le rendu HTML, utilisez --save ou --send=email@example.com');
             }
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error("❌ Erreur: " . $e->getMessage());
+            $this->error('❌ Erreur: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -70,46 +71,46 @@ class PreviewEmail extends Command
         // Créer des données de test
         $testUser = $this->getTestUser();
 
-        return match($template) {
+        return match ($template) {
             'welcome' => new WelcomeMail($testUser),
-            
+
             'invitation-elu' => new InvitationEluMail(
                 eluName: 'Jean Dupont',
                 eluType: 'depute',
                 inviterName: 'Admin CivicDash',
-                registerUrl: config('app.url') . '/register?invitation=test123',
+                registerUrl: config('app.url').'/register?invitation=test123',
                 personalMessage: 'Bonjour Monsieur le Député, nous serions honorés de vous compter parmi les élus actifs sur CivicDash.'
             ),
-            
+
             'invitation-association' => new InvitationAssociationMail(
                 recipientName: 'Marie Martin',
                 associationName: 'Association des Citoyens Engagés',
                 inviterName: 'Pierre Durand',
-                registerUrl: config('app.url') . '/register?invitation=assoc456',
+                registerUrl: config('app.url').'/register?invitation=assoc456',
                 personalMessage: 'Rejoins-nous pour suivre ensemble l\'actualité politique !',
                 role: 'membre'
             ),
-            
+
             'mention' => new UserMentionMail(
                 mentionedUser: $testUser,
                 author: $this->getTestUser('Auteur Test'),
                 contentType: 'topic',
                 contentTitle: 'Débat sur la transition énergétique',
                 contentExcerpt: 'Comme le suggère @utilisateur, nous devrions envisager une approche plus progressive pour la transition énergétique. Les enjeux sont multiples et concernent aussi bien les particuliers que les entreprises...',
-                contentUrl: config('app.url') . '/participation/ideas/test-topic'
+                contentUrl: config('app.url').'/participation/ideas/test-topic'
             ),
-            
+
             'elu-response' => new EluResponseMail(
                 citizen: $testUser,
                 eluName: 'Marie Leblanc',
                 eluType: 'depute',
                 topic: $this->getTestTopic(),
                 responseExcerpt: 'Merci pour votre interpellation pertinente. Je suis pleinement engagée sur ce sujet et travaille actuellement sur une proposition de loi visant à améliorer la situation. Je vous invite à suivre mes prochaines interventions à l\'Assemblée Nationale.',
-                topicUrl: config('app.url') . '/participation/ideas/test-interpellation'
+                topicUrl: config('app.url').'/participation/ideas/test-interpellation'
             ),
-            
+
             'interpellation' => $this->buildInterpellationMail(),
-            
+
             'digest' => new DigestMail(
                 user: $testUser,
                 period: 'daily',
@@ -120,7 +121,7 @@ class PreviewEmail extends Command
                     'Réponses d\'élus' => 3,
                 ]
             ),
-            
+
             default => throw new \InvalidArgumentException("Template inconnu: {$template}"),
         };
     }

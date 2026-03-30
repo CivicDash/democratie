@@ -65,6 +65,7 @@ class ScrutinSenat extends Model
     public function getTauxAdoptionAttribute(): ?float
     {
         $exprimes = $this->pour + $this->contre;
+
         return $exprimes > 0 ? round(($this->pour / $exprimes) * 100, 2) : null;
     }
 
@@ -73,4 +74,3 @@ class ScrutinSenat extends Model
         return $this->resultat === 'Adopté';
     }
 }
-

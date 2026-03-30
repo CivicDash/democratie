@@ -22,7 +22,7 @@ class ScrutinSenatController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('intitule', 'ilike', "%{$search}%")
-                  ->orWhere('intitule_complet', 'ilike', "%{$search}%");
+                    ->orWhere('intitule_complet', 'ilike', "%{$search}%");
             });
         }
 
@@ -82,7 +82,7 @@ class ScrutinSenatController extends Controller
                     ] : null,
                     'position' => $vote->position,
                 ];
-            })->filter(fn($v) => $v['senateur'] !== null);
+            })->filter(fn ($v) => $v['senateur'] !== null);
         });
 
         return Inertia::render('Legislation/ScrutinsSenat/Show', [

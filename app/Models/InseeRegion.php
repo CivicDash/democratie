@@ -35,13 +35,19 @@ class InseeRegion extends Model
     // Accessors
     public function getPopulationFormateAttribute(): string
     {
-        if (!$this->population) return 'N/A';
-        return number_format($this->population / 1_000_000, 1, ',', ' ') . 'M hab.';
+        if (! $this->population) {
+            return 'N/A';
+        }
+
+        return number_format($this->population / 1_000_000, 1, ',', ' ').'M hab.';
     }
 
     public function getPibFormateAttribute(): string
     {
-        if (!$this->pib) return 'N/A';
-        return number_format($this->pib / 1_000, 0, ',', ' ') . ' Md€';
+        if (! $this->pib) {
+            return 'N/A';
+        }
+
+        return number_format($this->pib / 1_000, 0, ',', ' ').' Md€';
     }
 }

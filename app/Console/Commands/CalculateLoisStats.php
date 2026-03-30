@@ -6,7 +6,6 @@ use App\Models\Loi;
 use App\Models\LoiStats;
 use App\Models\ScrutinAN;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class CalculateLoisStats extends Command
 {
@@ -18,7 +17,7 @@ class CalculateLoisStats extends Command
 
     public function handle(): int
     {
-        $this->info("🔄 Calcul des statistiques des lois...");
+        $this->info('🔄 Calcul des statistiques des lois...');
         $startTime = now();
 
         $query = Loi::query();
@@ -36,11 +35,12 @@ class CalculateLoisStats extends Command
 
         foreach ($lois as $loi) {
             // Vérifier si les stats sont récentes (sauf si --force)
-            if (!$force) {
+            if (! $force) {
                 $existing = LoiStats::forLoi($loi->loicod);
-                if ($existing && !$existing->isStale()) {
+                if ($existing && ! $existing->isStale()) {
                     $skipped++;
                     $this->output->progressAdvance();
+
                     continue;
                 }
             }
@@ -71,7 +71,7 @@ class CalculateLoisStats extends Command
         // Charger le parcours via la méthode existante
         $parcours = $loi->getParcours();
         $etapesTotal = count($parcours);
-        
+
         // Compter les étapes par chambre
         $etapesAN = 0;
         $etapesSenat = 0;
@@ -79,7 +79,7 @@ class CalculateLoisStats extends Command
         $amendementsAdoptes = 0;
         $datePremiereEtape = null;
         $dateDerniereEtape = null;
-        
+
         foreach ($parcours as $etape) {
             $chambre = strtolower($etape['chambre'] ?? '');
             if (str_contains($chambre, 'assemblée') || $chambre === 'an') {
@@ -87,42 +87,42 @@ class CalculateLoisStats extends Command
             } elseif (str_contains($chambre, 'sénat') || $chambre === 'senat') {
                 $etapesSenat++;
             }
-            
+
             // Amendements
             $amendementsTotal += $etape['nb_amendements'] ?? 0;
             $amendementsAdoptes += $etape['amendements_adoptes'] ?? 0;
-            
+
             // Dates
             if (isset($etape['date'])) {
                 $date = $etape['date'];
-                if (!$datePremiereEtape || $date < $datePremiereEtape) {
+                if (! $datePremiereEtape || $date < $datePremiereEtape) {
                     $datePremiereEtape = $date;
                 }
-                if (!$dateDerniereEtape || $date > $dateDerniereEtape) {
+                if (! $dateDerniereEtape || $date > $dateDerniereEtape) {
                     $dateDerniereEtape = $date;
                 }
             }
         }
 
         // Fallback sur date_depot si pas de dates
-        if (!$datePremiereEtape) {
+        if (! $datePremiereEtape) {
             $datePremiereEtape = $loi->datloi;
         }
-        
+
         // Calcul de durée
         $dureeJours = null;
         if ($datePremiereEtape) {
-            $debut = $datePremiereEtape instanceof \Carbon\Carbon 
-                ? $datePremiereEtape 
+            $debut = $datePremiereEtape instanceof \Carbon\Carbon
+                ? $datePremiereEtape
                 : \Carbon\Carbon::parse($datePremiereEtape);
-            $fin = $dateDerniereEtape 
+            $fin = $dateDerniereEtape
                 ? ($dateDerniereEtape instanceof \Carbon\Carbon ? $dateDerniereEtape : \Carbon\Carbon::parse($dateDerniereEtape))
                 : now();
             $dureeJours = $debut->diffInDays($fin);
         }
 
-        $tauxAdoption = $amendementsTotal > 0 
-            ? ($amendementsAdoptes / $amendementsTotal) * 100 
+        $tauxAdoption = $amendementsTotal > 0
+            ? ($amendementsAdoptes / $amendementsTotal) * 100
             : 0;
 
         // Scrutins liés (recherche par dossier_ref ou numéro de loi)
@@ -135,11 +135,9 @@ class CalculateLoisStats extends Command
             if ($loi->dossier_ref) {
                 $scrutins = ScrutinAN::where('dossier_legislatif_uid', $loi->dossier_ref)->get();
                 $scrutinsTotal = $scrutins->count();
-                $scrutinsAdoptes = $scrutins->filter(fn($s) => 
-                    $s->resultat_code === 'adopté' || str_contains(strtolower($s->resultat_libelle ?? ''), 'adopt')
+                $scrutinsAdoptes = $scrutins->filter(fn ($s) => $s->resultat_code === 'adopté' || str_contains(strtolower($s->resultat_libelle ?? ''), 'adopt')
                 )->count();
-                $scrutinsRejetes = $scrutins->filter(fn($s) => 
-                    $s->resultat_code === 'rejeté' || str_contains(strtolower($s->resultat_libelle ?? ''), 'rejet')
+                $scrutinsRejetes = $scrutins->filter(fn ($s) => $s->resultat_code === 'rejeté' || str_contains(strtolower($s->resultat_libelle ?? ''), 'rejet')
                 )->count();
             }
 
@@ -147,11 +145,9 @@ class CalculateLoisStats extends Command
             if ($scrutinsTotal === 0 && $loi->numcod) {
                 $scrutins = ScrutinAN::where('titre', 'ILIKE', "%{$loi->numcod}%")->get();
                 $scrutinsTotal = $scrutins->count();
-                $scrutinsAdoptes = $scrutins->filter(fn($s) => 
-                    str_contains(strtolower($s->resultat_libelle ?? $s->resultat_code ?? ''), 'adopt')
+                $scrutinsAdoptes = $scrutins->filter(fn ($s) => str_contains(strtolower($s->resultat_libelle ?? $s->resultat_code ?? ''), 'adopt')
                 )->count();
-                $scrutinsRejetes = $scrutins->filter(fn($s) => 
-                    str_contains(strtolower($s->resultat_libelle ?? $s->resultat_code ?? ''), 'rejet')
+                $scrutinsRejetes = $scrutins->filter(fn ($s) => str_contains(strtolower($s->resultat_libelle ?? $s->resultat_code ?? ''), 'rejet')
                 )->count();
             }
         } catch (\Exception $e) {
@@ -159,7 +155,7 @@ class CalculateLoisStats extends Command
         }
 
         // Score d'engagement (mesure pondérée de l'activité)
-        $scoreEngagement = 
+        $scoreEngagement =
             ($amendementsTotal * 1) +           // Chaque amendement = 1 point
             ($amendementsAdoptes * 2) +          // Bonus pour amendements adoptés
             ($scrutinsTotal * 10) +              // Chaque scrutin = 10 points

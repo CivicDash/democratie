@@ -21,7 +21,7 @@ class AdminGouvernementController extends Controller
         $gouvernements = Gouvernement::withCount('postes')
             ->orderByDesc('date_debut')
             ->get()
-            ->map(fn($g) => [
+            ->map(fn ($g) => [
                 ...$g->toArray(),
                 'ministres_count' => $g->postes_count,
                 'date_debut' => $g->date_debut?->format('d/m/Y'),
@@ -74,7 +74,7 @@ class AdminGouvernementController extends Controller
 
         $gouvernement = Gouvernement::create([
             ...$validated,
-            'slug' => Str::slug($validated['nom'] . ($validated['suffixe'] ?? '')),
+            'slug' => Str::slug($validated['nom'].($validated['suffixe'] ?? '')),
         ]);
 
         return redirect()
@@ -90,9 +90,9 @@ class AdminGouvernementController extends Controller
         // Charger les postes avec les personnes et ministères
         $gouvernement->load(['postes' => function ($q) {
             $q->with(['personne', 'ministere'])
-              ->orderBy('ordre')
-              ->orderBy('type_fonction')
-              ->orderBy('date_debut');
+                ->orderBy('ordre')
+                ->orderBy('type_fonction')
+                ->orderBy('date_debut');
         }]);
 
         // Grouper par type de fonction
@@ -137,13 +137,13 @@ class AdminGouvernementController extends Controller
         ]);
 
         // Si actif, désactiver les autres
-        if (($validated['actif'] ?? false) && !$gouvernement->actif) {
+        if (($validated['actif'] ?? false) && ! $gouvernement->actif) {
             Gouvernement::where('actif', true)->update(['actif' => false]);
         }
 
         $gouvernement->update([
             ...$validated,
-            'slug' => Str::slug($validated['nom'] . ($validated['suffixe'] ?? '')),
+            'slug' => Str::slug($validated['nom'].($validated['suffixe'] ?? '')),
         ]);
 
         return back()->with('success', 'Gouvernement mis à jour');
@@ -183,10 +183,10 @@ class AdminGouvernementController extends Controller
 
         $personne = PersonnePolitique::create([
             ...$validated,
-            'slug' => Str::slug($validated['prenom'] . '-' . $validated['nom']),
+            'slug' => Str::slug($validated['prenom'].'-'.$validated['nom']),
         ]);
 
-        return back()->with('success', 'Personne créée : ' . $personne->nom_complet);
+        return back()->with('success', 'Personne créée : '.$personne->nom_complet);
     }
 
     /**
@@ -208,13 +208,13 @@ class AdminGouvernementController extends Controller
         // Régénérer le slug seulement si le nom/prénom a changé
         $newSlug = $personne->slug;
         if ($personne->prenom !== $validated['prenom'] || $personne->nom !== $validated['nom']) {
-            $baseSlug = Str::slug($validated['prenom'] . '-' . $validated['nom']);
+            $baseSlug = Str::slug($validated['prenom'].'-'.$validated['nom']);
             $newSlug = $baseSlug;
             $counter = 1;
-            
+
             // S'assurer que le slug est unique (sauf pour cette personne)
             while (PersonnePolitique::where('slug', $newSlug)->where('id', '!=', $personne->id)->exists()) {
-                $newSlug = $baseSlug . '-' . $counter;
+                $newSlug = $baseSlug.'-'.$counter;
                 $counter++;
             }
         }
@@ -237,10 +237,10 @@ class AdminGouvernementController extends Controller
     public function addPoste(Request $request, Gouvernement $gouvernement)
     {
         // Déterminer si on crée une nouvelle personne
-        $hasNouvellePersonne = $request->has('nouvelle_personne') 
+        $hasNouvellePersonne = $request->has('nouvelle_personne')
             && is_array($request->input('nouvelle_personne'))
-            && !empty($request->input('nouvelle_personne.prenom'))
-            && !empty($request->input('nouvelle_personne.nom'));
+            && ! empty($request->input('nouvelle_personne.prenom'))
+            && ! empty($request->input('nouvelle_personne.nom'));
 
         $rules = [
             // Infos du poste (toujours requis)
@@ -275,7 +275,7 @@ class AdminGouvernementController extends Controller
 
         // Créer ou récupérer la personne
         $personneId = $validated['personne_id'] ?? null;
-        
+
         if ($hasNouvellePersonne) {
             $personne = PersonnePolitique::create([
                 'prenom' => $validated['nouvelle_personne']['prenom'],
@@ -283,7 +283,7 @@ class AdminGouvernementController extends Controller
                 'civilite' => $validated['nouvelle_personne']['civilite'] ?? null,
                 'parti_politique' => $validated['nouvelle_personne']['parti_politique'] ?? null,
                 'photo_url' => $validated['nouvelle_personne']['photo_url'] ?? null,
-                'slug' => Str::slug($validated['nouvelle_personne']['prenom'] . '-' . $validated['nouvelle_personne']['nom']),
+                'slug' => Str::slug($validated['nouvelle_personne']['prenom'].'-'.$validated['nouvelle_personne']['nom']),
             ]);
             $personneId = $personne->id;
         }
@@ -301,8 +301,8 @@ class AdminGouvernementController extends Controller
         ]);
 
         $personne = PersonnePolitique::find($personneId);
-        
-        return back()->with('success', 'Poste ajouté : ' . $personne->nom_complet . ' - ' . $validated['fonction']);
+
+        return back()->with('success', 'Poste ajouté : '.$personne->nom_complet.' - '.$validated['fonction']);
     }
 
     /**
@@ -321,9 +321,9 @@ class AdminGouvernementController extends Controller
         ]);
 
         // Convertir les chaînes vides en null pour les dates
-        $dateDebut = !empty($validated['date_debut']) ? $validated['date_debut'] : null;
-        $dateFin = !empty($validated['date_fin']) ? $validated['date_fin'] : null;
-        
+        $dateDebut = ! empty($validated['date_debut']) ? $validated['date_debut'] : null;
+        $dateFin = ! empty($validated['date_fin']) ? $validated['date_fin'] : null;
+
         // Déterminer si actif (si pas de date_fin, alors actif)
         $actif = $validated['actif'] ?? ($dateFin === null);
 
@@ -337,7 +337,7 @@ class AdminGouvernementController extends Controller
             'actif' => $actif,
         ]);
 
-        return back()->with('success', 'Poste mis à jour : ' . $poste->personne?->nom_complet);
+        return back()->with('success', 'Poste mis à jour : '.$poste->personne?->nom_complet);
     }
 
     /**
@@ -348,7 +348,7 @@ class AdminGouvernementController extends Controller
         $nom = $poste->personne?->nom_complet ?? 'Inconnu';
         $poste->delete();
 
-        return back()->with('success', 'Poste supprimé : ' . $nom);
+        return back()->with('success', 'Poste supprimé : '.$nom);
     }
 
     /**
@@ -361,7 +361,7 @@ class AdminGouvernementController extends Controller
             'actif' => false,
         ]);
 
-        return back()->with('success', 'Poste terminé : ' . $poste->personne?->nom_complet);
+        return back()->with('success', 'Poste terminé : '.$poste->personne?->nom_complet);
     }
 
     // =====================================================
@@ -389,7 +389,7 @@ class AdminGouvernementController extends Controller
             'actif' => true,
         ]);
 
-        return back()->with('success', 'Ministère créé : ' . $ministere->nom);
+        return back()->with('success', 'Ministère créé : '.$ministere->nom);
     }
 
     /**
@@ -437,14 +437,14 @@ class AdminGouvernementController extends Controller
     {
         $query = PersonnePolitique::with(['postes' => function ($q) {
             $q->with('gouvernement', 'ministere')
-              ->orderByDesc('date_debut');
+                ->orderByDesc('date_debut');
         }]);
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ilike', "%{$search}%")
-                  ->orWhere('prenom', 'ilike', "%{$search}%");
+                    ->orWhere('prenom', 'ilike', "%{$search}%");
             });
         }
 
@@ -481,7 +481,7 @@ class AdminGouvernementController extends Controller
                 'date_debut' => $gouvernement->date_debut?->format('Y-m-d'),
                 'date_fin' => $gouvernement->date_fin?->format('Y-m-d'),
             ],
-            'postes' => $gouvernement->postes->map(fn($p) => [
+            'postes' => $gouvernement->postes->map(fn ($p) => [
                 'personne' => [
                     'prenom' => $p->personne?->prenom,
                     'nom' => $p->personne?->nom,
@@ -499,27 +499,30 @@ class AdminGouvernementController extends Controller
             ])->toArray(),
         ];
 
-        $filename = 'gouvernement_' . Str::slug($gouvernement->nom) . '.json';
+        $filename = 'gouvernement_'.Str::slug($gouvernement->nom).'.json';
 
         return response()->json($data)
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function calculateDuree($debut, $fin): string
     {
-        if (!$debut) return '-';
-        
+        if (! $debut) {
+            return '-';
+        }
+
         $start = \Carbon\Carbon::parse($debut);
         $end = $fin ? \Carbon\Carbon::parse($fin) : now();
-        
+
         $diff = $start->diff($end);
-        
+
         if ($diff->y > 0) {
-            return $diff->y . ' an' . ($diff->y > 1 ? 's' : '') . ', ' . $diff->m . ' mois';
+            return $diff->y.' an'.($diff->y > 1 ? 's' : '').', '.$diff->m.' mois';
         }
         if ($diff->m > 0) {
-            return $diff->m . ' mois, ' . $diff->d . ' jours';
+            return $diff->m.' mois, '.$diff->d.' jours';
         }
-        return $diff->d . ' jours';
+
+        return $diff->d.' jours';
     }
 }

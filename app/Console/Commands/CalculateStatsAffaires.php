@@ -245,8 +245,8 @@ class CalculateStatsAffaires extends Command
         $deputes = ActeurAN::deputes()
             ->whereHas('mandats', function ($q) use ($parti) {
                 $q->where('type_organe', 'GP')
-                  ->whereNull('date_fin')
-                  ->whereHas('organe', fn ($o) => $o->where('libelle_abrege', $parti));
+                    ->whereNull('date_fin')
+                    ->whereHas('organe', fn ($o) => $o->where('libelle_abrege', $parti));
             })
             ->count();
 

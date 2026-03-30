@@ -16,13 +16,13 @@ class HashtagController extends Controller
 {
     /**
      * Liste des hashtags tendance (24h)
-     * 
+     *
      * GET /api/hashtags/trending
      */
     public function trending(Request $request): JsonResponse
     {
         $limit = $request->query('limit', 20);
-        
+
         $hashtags = Hashtag::trending()
             ->limit($limit)
             ->get(['id', 'slug', 'display_name', 'usage_count', 'last_used_at']);
@@ -35,13 +35,13 @@ class HashtagController extends Controller
 
     /**
      * Liste des hashtags populaires (all-time)
-     * 
+     *
      * GET /api/hashtags/popular
      */
     public function popular(Request $request): JsonResponse
     {
         $limit = $request->query('limit', 50);
-        
+
         $hashtags = Hashtag::popular($limit)
             ->get(['id', 'slug', 'display_name', 'usage_count', 'is_official', 'description']);
 
@@ -52,13 +52,13 @@ class HashtagController extends Controller
 
     /**
      * Recherche d'hashtags (autocomplete)
-     * 
+     *
      * GET /api/hashtags/search?q=climat
      */
     public function search(Request $request): JsonResponse
     {
         $query = $request->query('q', '');
-        
+
         if (strlen($query) < 2) {
             return response()->json(['hashtags' => []]);
         }
@@ -75,14 +75,14 @@ class HashtagController extends Controller
 
     /**
      * Détails d'un hashtag + contenu associé
-     * 
+     *
      * GET /api/hashtags/:slug
      */
     public function show(Request $request, string $slug): JsonResponse
     {
         $hashtag = Hashtag::where('slug', Hashtag::normalize($slug))->first();
 
-        if (!$hashtag) {
+        if (! $hashtag) {
             return response()->json(['error' => 'Hashtag not found'], 404);
         }
 
@@ -126,7 +126,7 @@ class HashtagController extends Controller
 
     /**
      * Hashtags officiels (thématiques)
-     * 
+     *
      * GET /api/hashtags/official
      */
     public function official(): JsonResponse

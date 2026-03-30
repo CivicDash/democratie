@@ -2,8 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\CandidatMunicipal;
-use App\Models\ListeElectorale;
 use App\Models\Maire;
 use App\Models\MaireMandat;
 use App\Models\ResultatListeMunicipale;
@@ -22,9 +20,13 @@ class TransitionMaires2026 extends Command
     protected $description = 'Effectue la transition maires 2020-2026 → 2026-2032 à partir des résultats importés';
 
     private int $sortantsClotures = 0;
+
     private int $reelus = 0;
+
     private int $nouveaux = 0;
+
     private int $sansSuccesseur = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -42,7 +44,7 @@ class TransitionMaires2026 extends Command
             ->get()
             ->groupBy('code_commune');
 
-        $this->info($resultats->count() . ' communes avec un résultat définitif');
+        $this->info($resultats->count().' communes avec un résultat définitif');
 
         $bar = $this->output->createProgressBar($resultats->count());
         $bar->setFormat('verbose');
@@ -50,8 +52,8 @@ class TransitionMaires2026 extends Command
 
         foreach ($resultats as $codeCommune => $communeResultats) {
             try {
-                if (!$dryRun) {
-                    DB::transaction(fn() => $this->processCommune(
+                if (! $dryRun) {
+                    DB::transaction(fn () => $this->processCommune(
                         $codeCommune,
                         $communeResultats,
                         $dateInstallation
@@ -85,15 +87,16 @@ class TransitionMaires2026 extends Command
             ->orderByDesc('voix')
             ->first();
 
-        if (!$listeGagnante) {
+        if (! $listeGagnante) {
             $this->sansSuccesseur++;
+
             return;
         }
 
         $teteNom = $listeGagnante->tete_de_liste_nom;
         $tetePrenom = $listeGagnante->tete_de_liste_prenom;
 
-        if (!$teteNom) {
+        if (! $teteNom) {
             $teteListe = $listeGagnante->liste?->candidats()
                 ->where('est_tete_de_liste', true)
                 ->first();
@@ -101,8 +104,9 @@ class TransitionMaires2026 extends Command
             $tetePrenom = $teteListe?->prenom;
         }
 
-        if (!$teteNom) {
+        if (! $teteNom) {
             $this->sansSuccesseur++;
+
             return;
         }
 
@@ -116,6 +120,7 @@ class TransitionMaires2026 extends Command
             if ($this->output->isVerbose()) {
                 $this->line("  ⏭ {$codeCommune} déjà traité ({$dejaTraite->nom_complet})");
             }
+
             return;
         }
 
@@ -155,11 +160,11 @@ class TransitionMaires2026 extends Command
             }
         }
 
-        if (!$maireExistant) {
+        if (! $maireExistant) {
             $maireExistant = Maire::where('code_commune', $codeCommune)
                 ->where(function ($q) use ($teteNom, $tetePrenom) {
                     $q->where('nom', 'ILIKE', $teteNom)
-                      ->where('prenom', 'ILIKE', $tetePrenom);
+                        ->where('prenom', 'ILIKE', $tetePrenom);
                 })
                 ->first();
 
@@ -190,19 +195,19 @@ class TransitionMaires2026 extends Command
             $this->reelus++;
         } else {
             $sexe = $listeGagnante->tete_de_liste_sexe;
-            if (!$sexe && $listeGagnante->liste) {
+            if (! $sexe && $listeGagnante->liste) {
                 $teteCand = $listeGagnante->liste->candidats()
                     ->where('est_tete_de_liste', true)->first();
                 $sexe = $teteCand?->sexe;
             }
 
             $nouveauMaire = Maire::create([
-                'uid' => 'MAIRE-2026-' . $codeCommune,
+                'uid' => 'MAIRE-2026-'.$codeCommune,
                 'nom' => mb_convert_case($teteNom, MB_CASE_TITLE, 'UTF-8'),
                 'prenom' => mb_convert_case($tetePrenom, MB_CASE_TITLE, 'UTF-8'),
                 'nom_complet' => ($sexe === 'F' ? 'Mme ' : 'M. ')
-                    . mb_convert_case($tetePrenom, MB_CASE_TITLE, 'UTF-8') . ' '
-                    . mb_convert_case($teteNom, MB_CASE_TITLE, 'UTF-8'),
+                    .mb_convert_case($tetePrenom, MB_CASE_TITLE, 'UTF-8').' '
+                    .mb_convert_case($teteNom, MB_CASE_TITLE, 'UTF-8'),
                 'civilite' => $sexe === 'F' ? 'Mme' : 'M.',
                 'code_commune' => $codeCommune,
                 'nom_commune' => $dernierResultat->nom_commune,
@@ -261,8 +266,9 @@ class TransitionMaires2026 extends Command
             ->orderByDesc('voix')
             ->first();
 
-        if (!$listeGagnante) {
+        if (! $listeGagnante) {
             $this->sansSuccesseur++;
+
             return;
         }
 

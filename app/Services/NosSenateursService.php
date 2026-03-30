@@ -2,20 +2,17 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class NosSenateursService
 {
     private const API_BASE_URL = 'https://www.nosenateurs.fr/api';
+
     private const CACHE_TTL = 3600; // 1 heure
 
     /**
      * Récupère la liste des scrutins
-     * 
-     * @param int $page
-     * @param int $limit
-     * @return array
      */
     public function getScrutins(int $page = 1, int $limit = 50): array
     {
@@ -23,13 +20,13 @@ class NosSenateursService
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($page, $limit) {
             $response = Http::timeout(30)
-                ->get(self::API_BASE_URL . '/scrutins', [
+                ->get(self::API_BASE_URL.'/scrutins', [
                     'page' => $page,
                     'limit' => $limit,
                 ]);
 
-            if (!$response->successful()) {
-                throw new \Exception("Erreur API NosSénateurs.fr: " . $response->status());
+            if (! $response->successful()) {
+                throw new \Exception('Erreur API NosSénateurs.fr: '.$response->status());
             }
 
             return $response->json();
@@ -38,9 +35,6 @@ class NosSenateursService
 
     /**
      * Récupère les détails d'un scrutin
-     * 
-     * @param string $scrutinId
-     * @return array
      */
     public function getScrutin(string $scrutinId): array
     {
@@ -48,9 +42,9 @@ class NosSenateursService
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($scrutinId) {
             $response = Http::timeout(30)
-                ->get(self::API_BASE_URL . "/scrutins/{$scrutinId}");
+                ->get(self::API_BASE_URL."/scrutins/{$scrutinId}");
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 throw new \Exception("Scrutin introuvable: {$scrutinId}");
             }
 
@@ -60,9 +54,6 @@ class NosSenateursService
 
     /**
      * Récupère les votes d'un sénateur
-     * 
-     * @param string $senateurSlug
-     * @return array
      */
     public function getVotesSenateur(string $senateurSlug): array
     {
@@ -70,9 +61,9 @@ class NosSenateursService
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($senateurSlug) {
             $response = Http::timeout(30)
-                ->get(self::API_BASE_URL . "/senateurs/{$senateurSlug}/votes");
+                ->get(self::API_BASE_URL."/senateurs/{$senateurSlug}/votes");
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return [];
             }
 
@@ -82,9 +73,6 @@ class NosSenateursService
 
     /**
      * Récupère le profil d'un sénateur
-     * 
-     * @param string $senateurSlug
-     * @return array|null
      */
     public function getSenateur(string $senateurSlug): ?array
     {
@@ -92,9 +80,9 @@ class NosSenateursService
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($senateurSlug) {
             $response = Http::timeout(30)
-                ->get(self::API_BASE_URL . "/senateurs/{$senateurSlug}");
+                ->get(self::API_BASE_URL."/senateurs/{$senateurSlug}");
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return null;
             }
 
@@ -110,4 +98,3 @@ class NosSenateursService
         Cache::flush();
     }
 }
-

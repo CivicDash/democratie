@@ -12,8 +12,11 @@ class DossierLegislatifAN extends Model
     use HasFactory;
 
     protected $table = 'dossiers_legislatifs_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -76,4 +79,3 @@ class DossierLegislatifAN extends Model
         })->count();
     }
 }
-

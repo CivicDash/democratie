@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Taggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,11 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
-use App\Traits\Taggable;
 
 /**
  * Message de débat (avec threading)
- * 
+ *
  * @property int $id
  * @property int $topic_id
  * @property int $user_id
@@ -31,7 +31,7 @@ use App\Traits\Taggable;
  */
 class Post extends Model
 {
-    use HasFactory, SoftDeletes, Searchable, Taggable;
+    use HasFactory, Searchable, SoftDeletes, Taggable;
 
     protected $fillable = [
         'topic_id',
@@ -75,10 +75,10 @@ class Post extends Model
      */
     public function getDebatePositionInfoAttribute(): ?array
     {
-        if (!$this->debate_position) {
+        if (! $this->debate_position) {
             return null;
         }
-        
+
         return self::DEBATE_POSITIONS[$this->debate_position] ?? null;
     }
 
@@ -253,7 +253,7 @@ class Post extends Model
      */
     public function scopeOrderByScore($query, string $direction = 'desc')
     {
-        return $query->orderByRaw('(upvotes - downvotes) ' . $direction);
+        return $query->orderByRaw('(upvotes - downvotes) '.$direction);
     }
 
     /**
@@ -308,8 +308,6 @@ class Post extends Model
      */
     public function shouldBeSearchable(): bool
     {
-        return !$this->is_hidden && !$this->trashed();
+        return ! $this->is_hidden && ! $this->trashed();
     }
 }
-
-

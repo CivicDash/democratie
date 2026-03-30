@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 class CalculateElusGlobalStats extends Command
 {
     protected $signature = 'calculate:elus-global-stats {--force : Forcer le recalcul même si récent}';
+
     protected $description = 'Calcule les statistiques globales des élus (députés, sénateurs, maires)';
 
     public function handle(): int
@@ -21,8 +22,9 @@ class CalculateElusGlobalStats extends Command
 
         // Vérifier si les stats sont récentes (moins de 6h)
         $lastStat = ElusGlobalStats::orderBy('calculated_at', 'desc')->first();
-        if (!$this->option('force') && $lastStat && $lastStat->calculated_at > now()->subHours(6)) {
+        if (! $this->option('force') && $lastStat && $lastStat->calculated_at > now()->subHours(6)) {
             $this->info('Les statistiques sont à jour (calculées il y a moins de 6h)');
+
             return Command::SUCCESS;
         }
 
@@ -31,6 +33,7 @@ class CalculateElusGlobalStats extends Command
         $this->calculateMairesStats();
 
         $this->info('✅ Statistiques globales calculées avec succès !');
+
         return Command::SUCCESS;
     }
 
@@ -53,7 +56,7 @@ class CalculateElusGlobalStats extends Command
         $femmes = $deputes->where('civilite', 'Mme')->count();
 
         // Âges
-        $ages = $deputes->map(fn($d) => $d->date_naissance ? Carbon::parse($d->date_naissance)->age : null)
+        $ages = $deputes->map(fn ($d) => $d->date_naissance ? Carbon::parse($d->date_naissance)->age : null)
             ->filter()
             ->values();
 
@@ -61,7 +64,7 @@ class CalculateElusGlobalStats extends Command
 
         // Professions
         $professions = $deputes->groupBy('profession')
-            ->map(fn($group, $key) => ['nom' => $key ?: 'Non renseigné', 'count' => $group->count()])
+            ->map(fn ($group, $key) => ['nom' => $key ?: 'Non renseigné', 'count' => $group->count()])
             ->sortByDesc('count')
             ->take(10)
             ->values()
@@ -77,13 +80,14 @@ class CalculateElusGlobalStats extends Command
                     ->where('organe_ref', $groupe->uid)
                     ->whereNull('date_fin')
                     ->count();
+
                 return [
                     'nom' => $groupe->libelle_abrege ?: $groupe->libelle,
                     'count' => $count,
                     'couleur' => $groupe->couleur ?? '#6B7280',
                 ];
             })
-            ->filter(fn($g) => $g['count'] > 0)
+            ->filter(fn ($g) => $g['count'] > 0)
             ->sortByDesc('count')
             ->take(10)
             ->values()
@@ -123,7 +127,7 @@ class CalculateElusGlobalStats extends Command
         $femmes = $senateurs->where('civilite', 'Mme')->count();
 
         // Âges
-        $ages = $senateurs->map(fn($s) => $s->date_naissance ? Carbon::parse($s->date_naissance)->age : null)
+        $ages = $senateurs->map(fn ($s) => $s->date_naissance ? Carbon::parse($s->date_naissance)->age : null)
             ->filter()
             ->values();
 
@@ -131,7 +135,7 @@ class CalculateElusGlobalStats extends Command
 
         // Professions
         $professions = $senateurs->groupBy('profession')
-            ->map(fn($group, $key) => ['nom' => $key ?: 'Non renseigné', 'count' => $group->count()])
+            ->map(fn ($group, $key) => ['nom' => $key ?: 'Non renseigné', 'count' => $group->count()])
             ->sortByDesc('count')
             ->take(10)
             ->values()
@@ -139,7 +143,7 @@ class CalculateElusGlobalStats extends Command
 
         // Groupes politiques
         $groupes = $senateurs->groupBy('groupe_politique')
-            ->map(fn($group, $key) => [
+            ->map(fn ($group, $key) => [
                 'nom' => $key ?: 'Non inscrit',
                 'count' => $group->count(),
                 'couleur' => $this->getGroupeCouleur($key),
@@ -183,7 +187,7 @@ class CalculateElusGlobalStats extends Command
 
         // Âges des maires (si disponible)
         $maires = Maire::where('en_exercice', true)->whereNotNull('date_naissance')->get();
-        $ages = $maires->map(fn($m) => Carbon::parse($m->date_naissance)->age)->filter()->values();
+        $ages = $maires->map(fn ($m) => Carbon::parse($m->date_naissance)->age)->filter()->values();
         $tranchesAge = $this->calculateTrancheAges($ages->toArray());
 
         // Professions (catégorie socio-professionnelle)
@@ -195,7 +199,7 @@ class CalculateElusGlobalStats extends Command
             ->orderByDesc('count')
             ->limit(10)
             ->get()
-            ->map(fn($p) => ['nom' => $p->profession, 'count' => $p->count])
+            ->map(fn ($p) => ['nom' => $p->profession, 'count' => $p->count])
             ->toArray();
 
         // Nuances politiques
@@ -207,7 +211,7 @@ class CalculateElusGlobalStats extends Command
             ->orderByDesc('count')
             ->limit(10)
             ->get()
-            ->map(fn($n) => [
+            ->map(fn ($n) => [
                 'nom' => $this->getNuanceLibelle($n->nuance_politique),
                 'count' => $n->count,
                 'couleur' => $this->getNuanceCouleur($n->nuance_politique),
@@ -248,12 +252,19 @@ class CalculateElusGlobalStats extends Command
         ];
 
         foreach ($ages as $age) {
-            if ($age < 30) $tranches['< 30 ans']++;
-            elseif ($age < 40) $tranches['30-39 ans']++;
-            elseif ($age < 50) $tranches['40-49 ans']++;
-            elseif ($age < 60) $tranches['50-59 ans']++;
-            elseif ($age < 70) $tranches['60-69 ans']++;
-            else $tranches['70+ ans']++;
+            if ($age < 30) {
+                $tranches['< 30 ans']++;
+            } elseif ($age < 40) {
+                $tranches['30-39 ans']++;
+            } elseif ($age < 50) {
+                $tranches['40-49 ans']++;
+            } elseif ($age < 60) {
+                $tranches['50-59 ans']++;
+            } elseif ($age < 70) {
+                $tranches['60-69 ans']++;
+            } else {
+                $tranches['70+ ans']++;
+            }
         }
 
         return $tranches;

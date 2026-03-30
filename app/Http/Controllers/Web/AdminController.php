@@ -3,18 +3,16 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\ImportLog;
-use App\Models\User;
 use App\Models\ActeurAN;
-use App\Models\Senateur;
 use App\Models\AmendementAN;
-use App\Models\ScrutinAN;
 use App\Models\EvenementLegislatif;
+use App\Models\ImportLog;
 use App\Models\Report;
+use App\Models\ScrutinAN;
+use App\Models\Senateur;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class AdminController extends Controller
@@ -55,7 +53,7 @@ class AdminController extends Controller
             ->orderByDesc('started_at')
             ->limit(10)
             ->get()
-            ->map(fn($log) => [
+            ->map(fn ($log) => [
                 'id' => $log->id,
                 'command' => $log->command,
                 'source' => $log->source,
@@ -92,13 +90,13 @@ class AdminController extends Controller
         $availableCommands = [
             // === SYNC GLOBAL ===
             ['name' => 'sync:all', 'label' => 'Sync complète', 'description' => 'Toutes les données (AN, Sénat, HATVP, Wikipedia)', 'icon' => '🔄', 'category' => 'global', 'dangerous' => false],
-            
+
             // === CALENDRIER / AGENDA ===
             ['name' => 'import:reunions-an', 'label' => 'Réunions AN', 'description' => 'Agenda de l\'Assemblée nationale', 'icon' => '🔵', 'category' => 'calendrier', 'dangerous' => false],
             ['name' => 'import:agenda-senat', 'label' => 'Agenda Sénat', 'description' => 'Flux iCal du Sénat', 'icon' => '🔴', 'category' => 'calendrier', 'dangerous' => false],
             ['name' => 'import:agenda-elysee', 'label' => 'Agenda Élysée', 'description' => 'Agenda présidentiel (scraping)', 'icon' => '🟡', 'category' => 'calendrier', 'dangerous' => false],
             ['name' => 'sync:evenements-an', 'label' => 'Sync événements', 'description' => 'Réunions AN → table unifiée', 'icon' => '📅', 'category' => 'calendrier', 'dangerous' => false],
-            
+
             // === ASSEMBLÉE NATIONALE ===
             ['name' => 'import:acteurs-an', 'label' => 'Acteurs AN', 'description' => 'Députés depuis JSON AN', 'icon' => '👤', 'category' => 'an', 'dangerous' => false],
             ['name' => 'import:organes-an', 'label' => 'Organes AN', 'description' => 'Groupes, commissions, délégations', 'icon' => '🏛️', 'category' => 'an', 'dangerous' => false],
@@ -108,7 +106,7 @@ class AdminController extends Controller
             ['name' => 'import:amendements-an', 'label' => 'Amendements AN', 'description' => 'Tous les amendements AN', 'icon' => '📝', 'category' => 'an', 'dangerous' => false],
             ['name' => 'import:dossiers-textes-an', 'label' => 'Dossiers/Textes AN', 'description' => 'Dossiers législatifs AN', 'icon' => '📁', 'category' => 'an', 'dangerous' => false],
             ['name' => 'import:questions-an', 'label' => 'Questions AN', 'description' => 'Questions au Gouvernement', 'icon' => '❓', 'category' => 'an', 'dangerous' => false],
-            
+
             // === SÉNAT ===
             ['name' => 'import:senateurs', 'label' => 'Sénateurs (CSV)', 'description' => 'Import depuis CSV local', 'icon' => '👤', 'category' => 'senat', 'dangerous' => false],
             ['name' => 'import:senateurs-complet', 'label' => 'Sénateurs (API)', 'description' => 'Import complet API data.senat.fr', 'icon' => '👥', 'category' => 'senat', 'dangerous' => false],
@@ -118,7 +116,7 @@ class AdminController extends Controller
             ['name' => 'import:senateurs-mandats-locaux', 'label' => 'Mandats locaux', 'description' => 'Mandats locaux sénateurs', 'icon' => '🗺️', 'category' => 'senat', 'dangerous' => false],
             ['name' => 'import:senateurs-etudes', 'label' => 'Formations', 'description' => 'Études/formations sénateurs', 'icon' => '🎓', 'category' => 'senat', 'dangerous' => false],
             ['name' => 'import:senat-sql', 'label' => 'Import SQL Sénat', 'description' => 'Bases PostgreSQL du Sénat', 'icon' => '🗄️', 'category' => 'senat', 'dangerous' => true],
-            
+
             // === ENRICHISSEMENT ===
             ['name' => 'enrich:deputes', 'label' => 'Enrichir députés', 'description' => 'API NosDéputés.fr (groupes, photos)', 'icon' => '✨', 'category' => 'enrich', 'dangerous' => false],
             ['name' => 'enrich:deputes-votes', 'label' => 'Votes députés', 'description' => 'Votes, interventions, questions', 'icon' => '🗳️', 'category' => 'enrich', 'dangerous' => false],
@@ -127,14 +125,14 @@ class AdminController extends Controller
             ['name' => 'enrich:amendements', 'label' => 'Enrichir amendements', 'description' => 'APIs NosDéputés/NosSénateurs', 'icon' => '📝', 'category' => 'enrich', 'dangerous' => false],
             ['name' => 'import:deputes-wikipedia', 'label' => 'Wikipedia députés', 'description' => 'Photos et extraits Wikipedia', 'icon' => '📚', 'category' => 'enrich', 'dangerous' => false],
             ['name' => 'enrich:senateurs-wikipedia', 'label' => 'Wikipedia sénateurs', 'description' => 'Photos et extraits Wikipedia', 'icon' => '📚', 'category' => 'enrich', 'dangerous' => false],
-            
+
             // === AUTRES ===
             ['name' => 'import:deputes', 'label' => 'Députés (CSV)', 'description' => 'Import depuis CSV local', 'icon' => '👤', 'category' => 'autres', 'dangerous' => false],
             ['name' => 'import:maires', 'label' => 'Maires (CSV)', 'description' => 'Import depuis CSV local', 'icon' => '🏘️', 'category' => 'autres', 'dangerous' => false],
             ['name' => 'import:maires-datagouv', 'label' => 'Maires (data.gouv)', 'description' => 'Enrichir avec nuance, contact, GPS', 'icon' => '🏛️', 'category' => 'autres', 'dangerous' => false],
             ['name' => 'import:organes-parlementaires', 'label' => 'Organes parlementaires', 'description' => 'Groupes, commissions, membres', 'icon' => '🏛️', 'category' => 'autres', 'dangerous' => false],
             ['name' => 'import:akoma-ntoso', 'label' => 'Textes Akoma Ntoso', 'description' => 'Format législatif Sénat', 'icon' => '📜', 'category' => 'autres', 'dangerous' => false],
-            
+
             // === SYSTÈME ===
             ['name' => 'dashboard:calculate-stats', 'label' => 'Stats dashboard', 'description' => 'Recalculer statistiques', 'icon' => '📊', 'category' => 'system', 'dangerous' => false],
             ['name' => 'calculate:parlementaires-stats', 'label' => 'Stats parlementaires', 'description' => 'Pré-calcul stats députés/sénateurs', 'icon' => '📈', 'category' => 'system', 'dangerous' => false],
@@ -190,7 +188,7 @@ class AdminController extends Controller
             'dashboard:calculate-stats', 'calculate:parlementaires-stats', 'calculate:lois-stats', 'calculate:elus-global-stats', 'cache:clear', 'optimize:clear',
         ];
 
-        if (!in_array($command, $allowedCommands)) {
+        if (! in_array($command, $allowedCommands)) {
             return back()->with('error', 'Commande non autorisée');
         }
 
@@ -278,10 +276,10 @@ class AdminController extends Controller
      */
     private function parseOutputStat(string $output, string $pattern): int
     {
-        if (preg_match('/(\d+)\s*(' . $pattern . ')/ui', $output, $matches)) {
+        if (preg_match('/(\d+)\s*('.$pattern.')/ui', $output, $matches)) {
             return (int) $matches[1];
         }
+
         return 0;
     }
 }
-

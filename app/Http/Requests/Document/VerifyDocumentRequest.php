@@ -13,6 +13,7 @@ class VerifyDocumentRequest extends FormRequest
     public function authorize(): bool
     {
         $document = $this->route('document');
+
         return $this->user()->can('verify', $document);
     }
 
@@ -52,4 +53,3 @@ class VerifyDocumentRequest extends FormRequest
         });
     }
 }
-

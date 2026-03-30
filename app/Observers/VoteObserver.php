@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\Vote;
 use App\Models\Achievement;
+use App\Models\Vote;
 use App\Services\GamificationService;
 
 class VoteObserver
@@ -17,7 +17,7 @@ class VoteObserver
      */
     public function created(Vote $vote): void
     {
-        if (!$vote->user_id) {
+        if (! $vote->user_id) {
             return;
         }
 

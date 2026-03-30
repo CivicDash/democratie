@@ -12,6 +12,7 @@ class ResolveReportRequest extends FormRequest
     public function authorize(): bool
     {
         $report = $this->route('report');
+
         return $this->user()->can('resolve', $report);
     }
 
@@ -36,4 +37,3 @@ class ResolveReportRequest extends FormRequest
         ];
     }
 }
-

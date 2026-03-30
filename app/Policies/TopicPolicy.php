@@ -48,8 +48,8 @@ class TopicPolicy
     {
         // Citoyens et législateurs peuvent créer des topics
         return $user->hasPermissionTo('create_topics') &&
-               !$user->isMuted() &&
-               !$user->isBanned();
+               ! $user->isMuted() &&
+               ! $user->isBanned();
     }
 
     /**
@@ -58,7 +58,7 @@ class TopicPolicy
     public function createBill(User $user): bool
     {
         // Seuls les législateurs peuvent créer des bills
-        return $user->hasAnyRole(['legislator', 'state', 'admin']) && !$user->isMuted() && !$user->isBanned();
+        return $user->hasAnyRole(['legislator', 'state', 'admin']) && ! $user->isMuted() && ! $user->isBanned();
     }
 
     /**
@@ -68,7 +68,7 @@ class TopicPolicy
     {
         // L'auteur peut modifier son topic (si draft ou open)
         if ($topic->author_id === $user->id && in_array($topic->status, ['draft', 'open'])) {
-            return !$user->isMuted() && !$user->isBanned();
+            return ! $user->isMuted() && ! $user->isBanned();
         }
 
         // Admin et modérateurs peuvent toujours modifier
@@ -116,7 +116,7 @@ class TopicPolicy
         // L'auteur du topic peut créer un scrutin
         // OU les législateurs/admins
         return ($topic->author_id === $user->id || $user->hasPermissionTo('create_ballots')) &&
-               !$topic->has_ballot;
+               ! $topic->has_ballot;
     }
 
     /**
@@ -125,12 +125,12 @@ class TopicPolicy
     public function vote(User $user, Topic $topic): bool
     {
         // Vérifier que le topic a un scrutin et qu'il est ouvert
-        if (!$topic->has_ballot || !$topic->isVotingOpen()) {
+        if (! $topic->has_ballot || ! $topic->isVotingOpen()) {
             return false;
         }
 
         // User doit avoir la permission de voter
-        if (!$user->hasPermissionTo('vote_in_ballots')) {
+        if (! $user->hasPermissionTo('vote_in_ballots')) {
             return false;
         }
 
@@ -140,7 +140,7 @@ class TopicPolicy
         }
 
         // User ne doit pas avoir déjà voté
-        return !$user->hasVotedOn($topic);
+        return ! $user->hasVotedOn($topic);
     }
 
     /**
@@ -149,7 +149,7 @@ class TopicPolicy
     public function viewResults(?User $user, Topic $topic): bool
     {
         // Résultats visibles seulement après la deadline
-        if (!$topic->canRevealResults()) {
+        if (! $topic->canRevealResults()) {
             // Sauf pour admins et l'auteur
             return $user && (
                 $user->hasRole('admin') ||
@@ -172,12 +172,12 @@ class TopicPolicy
         }
 
         // User doit avoir la permission de créer des posts
-        if (!$user->hasPermissionTo('create_posts')) {
+        if (! $user->hasPermissionTo('create_posts')) {
             return false;
         }
 
         // User ne doit pas être muted/banned
-        return !$user->isMuted() && !$user->isBanned();
+        return ! $user->isMuted() && ! $user->isBanned();
     }
 
     /**
@@ -189,4 +189,3 @@ class TopicPolicy
         return $user->hasAnyRole(['moderator', 'admin']);
     }
 }
-

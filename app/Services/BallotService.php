@@ -13,7 +13,7 @@ use RuntimeException;
 
 /**
  * Service CRITIQUE pour gérer le vote anonyme
- * 
+ *
  * Ce service garantit qu'aucun lien entre l'identité de l'utilisateur
  * et son vote ne peut être établi.
  */
@@ -22,15 +22,16 @@ class BallotService
     public function __construct(
         protected CacheService $cacheService
     ) {}
+
     /**
      * Génère un token de vote unique pour un utilisateur sur un topic.
-     * 
+     *
      * @throws RuntimeException Si le user a déjà un token ou ne peut pas voter
      */
     public function generateToken(User $user, Topic $topic): BallotToken
     {
         // Vérifier que le user peut voter
-        if (!$user->can('vote', $topic)) {
+        if (! $user->can('vote', $topic)) {
             throw new RuntimeException('User cannot vote on this topic.');
         }
 
@@ -45,7 +46,7 @@ class BallotService
 
         return DB::transaction(function () use ($user, $topic) {
             // Générer un token unique (SHA512)
-            $tokenValue = hash('sha512', Str::random(128) . time() . $user->id);
+            $tokenValue = hash('sha512', Str::random(128).time().$user->id);
             $tokenHash = hash('sha512', $tokenValue);
 
             // Créer le token
@@ -63,13 +64,13 @@ class BallotService
 
     /**
      * Caste un vote de manière anonyme.
-     * 
+     *
      * CRITIQUE : Cette méthode ne stocke AUCUNE référence au user_id
      * dans la table topic_ballots.
-     * 
-     * @param string $tokenValue Le token de vote (fourni par l'utilisateur)
-     * @param array $vote Les données du vote (ex: ['choice' => 'yes'])
-     * 
+     *
+     * @param  string  $tokenValue  Le token de vote (fourni par l'utilisateur)
+     * @param  array  $vote  Les données du vote (ex: ['choice' => 'yes'])
+     *
      * @throws RuntimeException Si le token est invalide ou expiré
      */
     public function castVote(string $tokenValue, array $vote): TopicBallot
@@ -79,18 +80,18 @@ class BallotService
             $tokenHash = hash('sha512', $tokenValue);
             $ballotToken = BallotToken::where('token_hash', $tokenHash)->first();
 
-            if (!$ballotToken) {
+            if (! $ballotToken) {
                 throw new RuntimeException('Invalid ballot token.');
             }
 
             // Vérifier que le token est valide
-            if (!$ballotToken->isValid()) {
+            if (! $ballotToken->isValid()) {
                 throw new RuntimeException('Ballot token is expired or already consumed.');
             }
 
             // Vérifier que le scrutin est ouvert
             $topic = $ballotToken->topic;
-            if (!$topic->isVotingOpen()) {
+            if (! $topic->isVotingOpen()) {
                 throw new RuntimeException('Voting is not open for this topic.');
             }
 
@@ -98,7 +99,7 @@ class BallotService
             $encryptedVote = Crypt::encryptString(json_encode($vote));
 
             // Générer un hash unique pour le vote (différent du token)
-            $voteHash = hash('sha512', $encryptedVote . time() . Str::random(64));
+            $voteHash = hash('sha512', $encryptedVote.time().Str::random(64));
 
             // Créer le bulletin SANS user_id
             $ballot = TopicBallot::create([
@@ -142,12 +143,12 @@ class BallotService
 
     /**
      * Calcule les résultats d'un scrutin.
-     * 
+     *
      * @throws RuntimeException Si les résultats ne peuvent pas encore être révélés
      */
     public function calculateResults(Topic $topic): array
     {
-        if (!$topic->canRevealResults()) {
+        if (! $topic->canRevealResults()) {
             throw new RuntimeException('Results cannot be revealed yet.');
         }
 
@@ -170,7 +171,7 @@ class BallotService
 
                 $choice = $decryptedVote['choice'] ?? 'unknown';
 
-                if (!isset($results[$choice])) {
+                if (! isset($results[$choice])) {
                     $results[$choice] = 0;
                 }
 
@@ -195,7 +196,7 @@ class BallotService
 
     /**
      * Vérifie l'intégrité d'un scrutin.
-     * 
+     *
      * Vérifie que :
      * - Tous les votes ont un hash unique
      * - Aucun vote ne contient de user_id
@@ -282,4 +283,3 @@ class BallotService
         ];
     }
 }
-

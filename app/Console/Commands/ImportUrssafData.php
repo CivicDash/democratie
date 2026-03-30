@@ -3,14 +3,14 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Importe les données URSSAF depuis leur API Open Data
- * 
+ *
  * Source : https://open.urssaf.fr
- * 
+ *
  * Datasets disponibles :
  * - Cotisations dues par secteur d'activité
  * - Effectifs salariés
@@ -62,8 +62,8 @@ class ImportUrssafData extends Command
         $year = $this->option('year') ?? date('Y');
         $limit = (int) $this->option('limit');
 
-        $this->info("🏥 Import des données URSSAF");
-        $this->info("   Source : https://open.urssaf.fr");
+        $this->info('🏥 Import des données URSSAF');
+        $this->info('   Source : https://open.urssaf.fr');
         $this->newLine();
 
         if ($dataset === 'all') {
@@ -74,12 +74,13 @@ class ImportUrssafData extends Command
             $this->importDataset($dataset, self::DATASETS[$dataset], $year, $limit);
         } else {
             $this->error("Dataset inconnu : {$dataset}");
-            $this->info("Datasets disponibles : " . implode(', ', array_keys(self::DATASETS)));
+            $this->info('Datasets disponibles : '.implode(', ', array_keys(self::DATASETS)));
+
             return Command::FAILURE;
         }
 
         $this->newLine();
-        $this->info("✅ Import terminé !");
+        $this->info('✅ Import terminé !');
 
         return Command::SUCCESS;
     }
@@ -98,16 +99,16 @@ class ImportUrssafData extends Command
 
             // Paginer les résultats
             do {
-                $url = self::BASE_URL . "/{$config['id']}/records";
-                
+                $url = self::BASE_URL."/{$config['id']}/records";
+
                 $response = Http::timeout(60)->get($url, [
                     'limit' => $pageSize,
                     'offset' => $offset,
                     'order_by' => 'annee desc',
                 ]);
 
-                if (!$response->successful()) {
-                    $this->warn("   ⚠️ Erreur API : " . $response->status());
+                if (! $response->successful()) {
+                    $this->warn('   ⚠️ Erreur API : '.$response->status());
                     break;
                 }
 
@@ -124,26 +125,27 @@ class ImportUrssafData extends Command
 
                 // Afficher la progression
                 if ($offset % 500 === 0 || $offset >= min($limit, $totalAvailable)) {
-                    $this->info("   ⬇️ Téléchargé " . count($allRecords) . " / " . min($limit, $totalAvailable) . " lignes...");
+                    $this->info('   ⬇️ Téléchargé '.count($allRecords).' / '.min($limit, $totalAvailable).' lignes...');
                 }
 
             } while (count($records) === $pageSize && count($allRecords) < $limit);
 
             if (empty($allRecords)) {
-                $this->warn("   ⚠️ Aucune donnée trouvée");
+                $this->warn('   ⚠️ Aucune donnée trouvée');
+
                 return;
             }
 
             $this->info("   📦 {$totalAvailable} enregistrements disponibles sur l'API");
-            $this->info("   ⬇️ Import de " . count($allRecords) . " lignes...");
+            $this->info('   ⬇️ Import de '.count($allRecords).' lignes...');
 
             // Sauvegarder dans une table dédiée
             $this->saveToDatabase($config['table'], $allRecords, $key);
 
-            $this->info("   ✅ Importé avec succès");
+            $this->info('   ✅ Importé avec succès');
 
         } catch (\Exception $e) {
-            $this->error("   ❌ Erreur : " . $e->getMessage());
+            $this->error('   ❌ Erreur : '.$e->getMessage());
         }
     }
 
@@ -157,7 +159,7 @@ class ImportUrssafData extends Command
         foreach ($records as $record) {
             try {
                 $data = $this->mapRecord($record, $type);
-                
+
                 DB::table($table)->updateOrInsert(
                     ['hash' => md5(json_encode($data))],
                     array_merge($data, [
@@ -180,7 +182,7 @@ class ImportUrssafData extends Command
             return;
         }
 
-        \Schema::create($table, function ($t) use ($type) {
+        \Schema::create($table, function ($t) {
             $t->id();
             $t->string('hash', 32)->unique();
             $t->integer('annee')->nullable();
@@ -212,7 +214,7 @@ class ImportUrssafData extends Command
         $grandSecteur = $record['grand_secteur_d_activite'] ?? null;
         $secteurNa88 = $record['secteur_na88i'] ?? null;
         $secteurNa38 = $record['secteur_na38i'] ?? null;
-        
+
         return [
             'annee' => isset($record['annee']) ? (int) $record['annee'] : null,
             'trimestre' => $record['trimestre'] ?? $record['mois'] ?? null,
@@ -225,10 +227,10 @@ class ImportUrssafData extends Command
             // Stocker aussi le secteur NA38 pour agrégation intermédiaire
             'secteur_na38' => $secteurNa38,
             'montant' => isset($record['masse_salariale']) ? (float) $record['masse_salariale'] : null,
-            'effectif' => isset($record['effectifs_salaries_moyens']) ? (int) $record['effectifs_salaries_moyens'] : 
+            'effectif' => isset($record['effectifs_salaries_moyens']) ? (int) $record['effectifs_salaries_moyens'] :
                          (isset($record['effectifs']) ? (int) $record['effectifs'] : null),
             'masse_salariale' => isset($record['masse_salariale']) ? (float) $record['masse_salariale'] : null,
-            'nombre' => isset($record['nombre_d_etablissements']) ? (int) $record['nombre_d_etablissements'] : 
+            'nombre' => isset($record['nombre_d_etablissements']) ? (int) $record['nombre_d_etablissements'] :
                        (isset($record['nombre']) ? (int) $record['nombre'] : null),
         ];
     }

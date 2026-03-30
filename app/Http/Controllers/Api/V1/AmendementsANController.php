@@ -11,9 +11,6 @@ class AmendementsANController extends Controller
 {
     /**
      * Liste des amendements avec filtres
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -79,7 +76,7 @@ class AmendementsANController extends Controller
             $with[] = 'texteLegislatif';
         }
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $query->with($with);
         }
 
@@ -98,16 +95,13 @@ class AmendementsANController extends Controller
 
     /**
      * Détails d'un amendement
-     * 
-     * @param string $uid
-     * @return JsonResponse
      */
     public function show(string $uid): JsonResponse
     {
         $amendement = AmendementAN::with([
             'auteurActeur',
             'auteurGroupe',
-            'texteLegislatif.dossier'
+            'texteLegislatif.dossier',
         ])->findOrFail($uid);
 
         return response()->json([
@@ -123,9 +117,6 @@ class AmendementsANController extends Controller
 
     /**
      * Statistiques générales des amendements
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function stats(Request $request): JsonResponse
     {
@@ -155,7 +146,7 @@ class AmendementsANController extends Controller
             ->limit(10)
             ->with('auteurActeur')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'acteur' => $item->auteurActeur ? [
                         'uid' => $item->auteurActeur->uid,
@@ -172,4 +163,3 @@ class AmendementsANController extends Controller
         ]);
     }
 }
-

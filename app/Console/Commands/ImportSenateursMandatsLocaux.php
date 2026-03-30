@@ -26,7 +26,7 @@ class ImportSenateursMandatsLocaux extends Command
     public function handle(): int
     {
         $this->info('🏛️  Import des mandats locaux des sénateurs...');
-        
+
         if ($this->option('fresh')) {
             $this->warn('⚠️  Mode --fresh : suppression des mandats existants...');
             SenateurMandatLocal::truncate();
@@ -41,25 +41,27 @@ class ImportSenateursMandatsLocaux extends Command
 
         foreach (self::API_URLS as $type => $url) {
             $this->info("\n📥 Import des mandats de type : {$type}");
-            
+
             try {
                 $response = Http::timeout(30)->get($url);
-                
-                if (!$response->successful()) {
+
+                if (! $response->successful()) {
                     $this->error("❌ Erreur HTTP {$response->status()} pour {$type}");
+
                     continue;
                 }
 
                 $data = $response->json();
-                
+
                 if (empty($data['Senateurs'])) {
                     $this->warn("⚠️  Aucune donnée pour {$type}");
+
                     continue;
                 }
 
                 $mandatsData = $data['Senateurs'];
                 $limit = $this->option('limit');
-                
+
                 if ($limit) {
                     $mandatsData = array_slice($mandatsData, 0, (int) $limit);
                     $this->warn("⚠️  Mode TEST : {$limit} mandats maximum");
@@ -74,17 +76,18 @@ class ImportSenateursMandatsLocaux extends Command
                     } catch (\Exception $e) {
                         $stats['erreurs']++;
                         $this->newLine();
-                        $this->error("❌ Erreur : " . $e->getMessage());
+                        $this->error('❌ Erreur : '.$e->getMessage());
                     }
-                    
+
                     $progressBar->advance();
                 }
 
                 $progressBar->finish();
                 $this->newLine();
-                
+
             } catch (\Exception $e) {
-                $this->error("❌ Erreur générale pour {$type} : " . $e->getMessage());
+                $this->error("❌ Erreur générale pour {$type} : ".$e->getMessage());
+
                 continue;
             }
         }
@@ -111,13 +114,13 @@ class ImportSenateursMandatsLocaux extends Command
     private function importMandat(array $data, string $type, array &$stats): void
     {
         $matricule = $data['Matricule'] ?? null;
-        
-        if (!$matricule) {
+
+        if (! $matricule) {
             throw new \Exception('Matricule manquant');
         }
 
         // Vérifier que le sénateur existe
-        if (!Senateur::where('matricule', $matricule)->exists()) {
+        if (! Senateur::where('matricule', $matricule)->exists()) {
             return; // Skipper si le sénateur n'est pas importé
         }
 
@@ -183,7 +186,7 @@ class ImportSenateursMandatsLocaux extends Command
 
     private function parseDate(?string $date): ?string
     {
-        if (!$date || $date === '0000-00-00' || $date === '0000-00-00 00:00:00') {
+        if (! $date || $date === '0000-00-00' || $date === '0000-00-00 00:00:00') {
             return null;
         }
 
@@ -194,4 +197,3 @@ class ImportSenateursMandatsLocaux extends Command
         }
     }
 }
-

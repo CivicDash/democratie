@@ -49,7 +49,7 @@ class SanctionPolicy
     public function create(User $user, User $targetUser): bool
     {
         // Seuls modérateurs et admins peuvent créer des sanctions
-        if (!$user->hasPermissionTo('create_sanctions')) {
+        if (! $user->hasPermissionTo('create_sanctions')) {
             return false;
         }
 
@@ -59,12 +59,12 @@ class SanctionPolicy
         }
 
         // Ne peut pas sanctionner un admin (sauf si on est admin)
-        if ($targetUser->hasRole('admin') && !$user->hasRole('admin')) {
+        if ($targetUser->hasRole('admin') && ! $user->hasRole('admin')) {
             return false;
         }
 
         // Modérateur ne peut pas sanctionner un autre modérateur
-        if ($targetUser->hasRole('moderator') && $user->hasRole('moderator') && !$user->hasRole('admin')) {
+        if ($targetUser->hasRole('moderator') && $user->hasRole('moderator') && ! $user->hasRole('admin')) {
             return false;
         }
 
@@ -93,7 +93,7 @@ class SanctionPolicy
     public function createBan(User $user, User $targetUser): bool
     {
         // Seuls admins peuvent ban définitivement
-        if (!$user->hasRole('admin')) {
+        if (! $user->hasRole('admin')) {
             return false;
         }
 
@@ -119,7 +119,7 @@ class SanctionPolicy
     public function revoke(User $user, Sanction $sanction): bool
     {
         // La sanction doit être active
-        if (!$sanction->is_active) {
+        if (! $sanction->is_active) {
             return false;
         }
 
@@ -150,4 +150,3 @@ class SanctionPolicy
         return $user->hasAnyRole(['moderator', 'admin']);
     }
 }
-

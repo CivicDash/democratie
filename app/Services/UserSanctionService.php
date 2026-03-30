@@ -56,7 +56,7 @@ class UserSanctionService
                 $endsAt
             ));
         } catch (\Exception $e) {
-            \Log::error("Erreur envoi email suspension: " . $e->getMessage());
+            \Log::error('Erreur envoi email suspension: '.$e->getMessage());
         }
 
         return $sanction;
@@ -102,7 +102,7 @@ class UserSanctionService
                 $reason
             ));
         } catch (\Exception $e) {
-            \Log::error("Erreur envoi email bannissement: " . $e->getMessage());
+            \Log::error('Erreur envoi email bannissement: '.$e->getMessage());
         }
 
         return $sanction;

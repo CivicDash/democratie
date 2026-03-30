@@ -11,8 +11,11 @@ class OrganeAN extends Model
     use HasFactory;
 
     protected $table = 'organes_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -105,4 +108,3 @@ class OrganeAN extends Model
             ->count('acteur_ref');
     }
 }
-

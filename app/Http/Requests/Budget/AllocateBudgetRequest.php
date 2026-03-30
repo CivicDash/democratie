@@ -49,10 +49,10 @@ class AllocateBudgetRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $sector = Sector::find($this->sector_id);
-            
+
             if ($sector) {
                 $percent = $this->allocated_percent;
-                
+
                 // Vérifier les contraintes min/max du secteur
                 if ($percent < $sector->min_allocation_percent) {
                     $validator->errors()->add(
@@ -60,19 +60,19 @@ class AllocateBudgetRequest extends FormRequest
                         "Le pourcentage minimum pour {$sector->name} est {$sector->min_allocation_percent}%."
                     );
                 }
-                
+
                 if ($percent > $sector->max_allocation_percent) {
                     $validator->errors()->add(
                         'allocated_percent',
                         "Le pourcentage maximum pour {$sector->name} est {$sector->max_allocation_percent}%."
                     );
                 }
-                
+
                 // Vérifier que le total ne dépasse pas 100%
                 $currentTotal = UserAllocation::where('user_id', $this->user()->id)
                     ->where('sector_id', '!=', $this->sector_id)
                     ->sum('allocated_percent');
-                
+
                 if ($currentTotal + $percent > 100) {
                     $validator->errors()->add(
                         'allocated_percent',
@@ -83,4 +83,3 @@ class AllocateBudgetRequest extends FormRequest
         });
     }
 }
-

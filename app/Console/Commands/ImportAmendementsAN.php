@@ -17,18 +17,22 @@ class ImportAmendementsAN extends Command
     protected $description = 'Importe les amendements depuis la structure amendements/ (parsing récursif)';
 
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
+
     private int $processed = 0;
 
     public function handle(): int
     {
         $legislature = $this->option('legislature');
         $importAll = $this->option('all');
-        
+
         $this->info('📝 Import des amendements AN...');
-        
+
         if ($importAll) {
             $this->warn('⚠️  Mode --all : import de TOUS les amendements (TRÈS LONG !)');
         } else {
@@ -36,9 +40,10 @@ class ImportAmendementsAN extends Command
         }
 
         $basePath = public_path('data/amendements');
-        
-        if (!is_dir($basePath)) {
+
+        if (! is_dir($basePath)) {
             $this->error("❌ Répertoire introuvable : {$basePath}");
+
             return self::FAILURE;
         }
 
@@ -50,17 +55,18 @@ class ImportAmendementsAN extends Command
         // Récupération récursive de tous les fichiers JSON d'amendements
         $this->info('🔍 Recherche des fichiers amendements...');
         $files = $this->findAmendementFiles($basePath, $legislature, $importAll);
-        
+
         $limit = $this->option('limit');
         if ($limit) {
-            $files = array_slice($files, 0, (int)$limit);
+            $files = array_slice($files, 0, (int) $limit);
             $this->warn("⚠️  Mode TEST : {$limit} amendements maximum");
         }
 
-        $this->info("📊 " . count($files) . " fichiers trouvés");
-        
+        $this->info('📊 '.count($files).' fichiers trouvés');
+
         if (count($files) === 0) {
             $this->warn('⚠️  Aucun amendement trouvé');
+
             return self::SUCCESS;
         }
 
@@ -71,7 +77,7 @@ class ImportAmendementsAN extends Command
             try {
                 $this->importAmendement($file);
                 $this->processed++;
-                
+
                 // Affichage intermédiaire tous les 1000 amendements
                 if ($this->processed % 1000 === 0) {
                     $bar->clear();
@@ -81,12 +87,12 @@ class ImportAmendementsAN extends Command
                 }
             } catch (\Exception $e) {
                 $this->errors++;
-                
+
                 // Afficher les 5 premières erreurs pour debug
                 if ($this->errors <= 5) {
                     $bar->clear();
                     $this->newLine();
-                    $this->error("❌ Erreur dans " . basename($file) . ": " . $e->getMessage());
+                    $this->error('❌ Erreur dans '.basename($file).': '.$e->getMessage());
                     $bar->display();
                 }
             }
@@ -104,49 +110,50 @@ class ImportAmendementsAN extends Command
     private function findAmendementFiles(string $basePath, int $legislature, bool $importAll): array
     {
         $files = [];
-        
+
         // Parcourir les dossiers DLR*
         $dossierDirs = File::directories($basePath);
-        $dossierDirs = array_filter($dossierDirs, function($dir) use ($legislature, $importAll) {
+        $dossierDirs = array_filter($dossierDirs, function ($dir) use ($legislature, $importAll) {
             $dirname = basename($dir);
-            if (!str_starts_with($dirname, 'DLR')) {
+            if (! str_starts_with($dirname, 'DLR')) {
                 return false;
             }
-            
+
             // Filtrage législature
-            if (!$importAll) {
+            if (! $importAll) {
                 preg_match('/L(\d+)N/', $dirname, $matches);
-                $dosLeg = isset($matches[1]) ? (int)$matches[1] : null;
-                return $dosLeg === (int)$legislature;
+                $dosLeg = isset($matches[1]) ? (int) $matches[1] : null;
+
+                return $dosLeg === (int) $legislature;
             }
-            
+
             return true;
         });
 
         foreach ($dossierDirs as $dossierDir) {
             // Parcourir les textes (PIONANR5L17B0263)
             $texteDirs = File::directories($dossierDir);
-            
+
             foreach ($texteDirs as $texteDir) {
                 // Les fichiers AMAN*.json sont DIRECTEMENT dans le dossier texte
-                $amendementFiles = File::glob($texteDir . '/AMAN*.json');
+                $amendementFiles = File::glob($texteDir.'/AMAN*.json');
                 $files = array_merge($files, $amendementFiles);
-                
+
                 // Mais on vérifie aussi les anciennes structures avec phases/divisions
                 // au cas où certains dossiers utilisent encore cette structure
                 $phaseDirs = File::directories($texteDir);
-                
+
                 foreach ($phaseDirs as $phaseDir) {
                     // Si c'est un dossier de phase (P0D1, P1D1, etc.)
                     if (preg_match('/^P\d+D\d+$/', basename($phaseDir))) {
-                        $amendementFiles = File::glob($phaseDir . '/AMAN*.json');
+                        $amendementFiles = File::glob($phaseDir.'/AMAN*.json');
                         $files = array_merge($files, $amendementFiles);
                     }
-                    
+
                     // Ancienne structure avec phases puis divisions séparées
                     $divisionDirs = File::directories($phaseDir);
                     foreach ($divisionDirs as $divisionDir) {
-                        $amendementFiles = File::glob($divisionDir . '/AMAN*.json');
+                        $amendementFiles = File::glob($divisionDir.'/AMAN*.json');
                         $files = array_merge($files, $amendementFiles);
                     }
                 }
@@ -161,20 +168,20 @@ class ImportAmendementsAN extends Command
         $content = File::get($filePath);
         $data = json_decode($content, true);
 
-        if (!isset($data['amendement'])) {
-            throw new \Exception("Structure JSON invalide");
+        if (! isset($data['amendement'])) {
+            throw new \Exception('Structure JSON invalide');
         }
 
         $amendement = $data['amendement'];
         $uid = $amendement['uid'] ?? null;
 
-        if (!$uid) {
-            throw new \Exception("UID manquant");
+        if (! $uid) {
+            throw new \Exception('UID manquant');
         }
 
         // Extraction legislature depuis l'UID
         preg_match('/L(\d+)/', $uid, $matches);
-        $legislature = isset($matches[1]) ? (int)$matches[1] : null;
+        $legislature = isset($matches[1]) ? (int) $matches[1] : null;
 
         // Extraction des données
         $identificationAmd = $amendement['identification'] ?? [];
@@ -196,12 +203,12 @@ class ImportAmendementsAN extends Command
             $acteurExists = \App\Models\ActeurAN::where('uid', $auteur['acteurRef'])->exists();
             $auteurActeurRef = $acteurExists ? $auteur['acteurRef'] : null;
         }
-        
+
         // groupePolitiqueRef pour le groupe
         if (isset($auteur['groupePolitiqueRef']) && is_string($auteur['groupePolitiqueRef'])) {
             $auteurGroupeRef = $auteur['groupePolitiqueRef'];
         }
-        
+
         // Le libellé est dans signataires.libelle
         $auteurLibelle = $signataires['libelle'] ?? null;
 
@@ -209,16 +216,16 @@ class ImportAmendementsAN extends Command
         $cosignataires = [];
         $nombreCosignataires = 0;
         $cosignatairesData = $signataires['cosignataires'] ?? null;
-        
+
         // Vérifier que ce n'est pas un @xsi:nil
-        if ($cosignatairesData && is_array($cosignatairesData) && !isset($cosignatairesData['@xsi:nil'])) {
+        if ($cosignatairesData && is_array($cosignatairesData) && ! isset($cosignatairesData['@xsi:nil'])) {
             $cosigsData = $cosignatairesData['cosignataire'] ?? $cosignatairesData;
-            
+
             // Si c'est un seul cosignataire (pas un array de cosignataires)
             if (isset($cosigsData['acteurRef'])) {
                 $cosigsData = [$cosigsData];
             }
-            
+
             if (is_array($cosigsData)) {
                 foreach ($cosigsData as $cosig) {
                     if (isset($cosig['acteurRef']) && is_string($cosig['acteurRef'])) {
@@ -239,40 +246,40 @@ class ImportAmendementsAN extends Command
                 'numero_long' => $identificationAmd['numeroLong'] ?? null,
                 'numero_ordre_depot' => $identificationAmd['numeroOrdreDepot'] ?? null,
                 'prefixe_organe_examen' => $identificationAmd['prefixeOrganeExamen'] ?? null,
-                
+
                 // Auteur
                 'auteur_type' => $auteurType,
                 'auteur_acteur_ref' => $auteurActeurRef,
                 'auteur_groupe_ref' => $auteurGroupeRef,
                 'auteur_libelle' => $auteurLibelle,
-                
+
                 // Cosignataires
                 'cosignataires_acteur_refs' => $cosignataires,
                 'nombre_cosignataires' => $nombreCosignataires,
-                
+
                 // Article visé
                 'article_designation' => $pointeurFragmentTexte['division']['articleDesignation'] ?? null,
                 'article_designation_courte' => $pointeurFragmentTexte['division']['articleDesignationCourte'] ?? null,
                 'division_titre' => $pointeurFragmentTexte['division']['titre'] ?? null,
                 'division_type' => $pointeurFragmentTexte['division']['type'] ?? null,
-                
+
                 // Contenu - Le texte est dans contenuAuteur (nouvelle structure AN)
                 'cartouche_informatif' => $this->extractText($corps['cartoucheInformatif'] ?? null),
                 'dispositif' => $this->extractText(
-                    $corps['contenuAuteur']['dispositif'] 
-                    ?? $corps['dispositif'] 
+                    $corps['contenuAuteur']['dispositif']
+                    ?? $corps['dispositif']
                     ?? null
                 ),
                 'expose' => $this->extractText(
-                    $corps['contenuAuteur']['exposeSommaire'] 
-                    ?? $corps['exposeSommaire'] 
+                    $corps['contenuAuteur']['exposeSommaire']
+                    ?? $corps['exposeSommaire']
                     ?? null
                 ),
-                
+
                 // Cycle de vie
                 'date_depot' => $this->parseDate($cycleDeVie['dateDepot'] ?? null),
                 'date_publication' => $this->parseDate($cycleDeVie['datePublication'] ?? null),
-                'soumis_article_40' => (bool)($cycleDeVie['soumisArticle40'] ?? false),
+                'soumis_article_40' => (bool) ($cycleDeVie['soumisArticle40'] ?? false),
                 'etat_code' => $this->extractStateCode($cycleDeVie['etatDesTraitements']['etat'] ?? null),
                 'etat_libelle' => $this->extractStateLibelle($cycleDeVie['etatDesTraitements']['etat'] ?? null),
                 'sous_etat_code' => $this->extractStateCode($cycleDeVie['etatDesTraitements']['sousEtat'] ?? null),
@@ -308,18 +315,18 @@ class ImportAmendementsAN extends Command
         $total = AmendementAN::count();
         $adoptes = AmendementAN::adoptes()->count();
         $rejetes = AmendementAN::rejetes()->count();
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $totalLeg = AmendementAN::legislature($legislature)->count();
             $adoptesLeg = AmendementAN::legislature($legislature)->adoptes()->count();
         }
-        
+
         $this->newLine();
         $this->info("📊 Total en base de données : {$total} amendements");
         $this->info("   - Adoptés : {$adoptes}");
         $this->info("   - Rejetés : {$rejetes}");
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $this->newLine();
             $this->info("📊 Législature {$legislature} : {$totalLeg} amendements");
             $this->info("   - Adoptés : {$adoptesLeg}");
@@ -378,7 +385,7 @@ class ImportAmendementsAN extends Command
             if (isset($value['texte'])) {
                 return $this->extractText($value['texte']);
             }
-            
+
             // Si c'est un array avec une clé 'p' (paragraphe)
             if (isset($value['p'])) {
                 if (is_string($value['p'])) {
@@ -386,15 +393,15 @@ class ImportAmendementsAN extends Command
                 }
                 if (is_array($value['p'])) {
                     // Joindre les paragraphes
-                    return implode("\n\n", array_map(fn($p) => is_string($p) ? $p : json_encode($p), $value['p']));
+                    return implode("\n\n", array_map(fn ($p) => is_string($p) ? $p : json_encode($p), $value['p']));
                 }
             }
-            
+
             // Si c'est un array de strings, les joindre
             if (array_is_list($value) && count($value) > 0 && is_string($value[0])) {
                 return implode("\n", $value);
             }
-            
+
             // Sinon, convertir en JSON pour ne pas perdre l'info
             return json_encode($value, JSON_UNESCAPED_UNICODE);
         }
@@ -511,4 +518,3 @@ class ImportAmendementsAN extends Command
         return $mapping[$libelle] ?? $libelle;
     }
 }
-

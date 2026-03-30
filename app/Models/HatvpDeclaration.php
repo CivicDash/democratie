@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Déclaration HATVP (intérêts ou patrimoine)
- * 
+ *
  * @property int $id
  * @property string $uuid
  * @property \Carbon\Carbon $date_depot
@@ -222,6 +222,7 @@ class HatvpDeclaration extends Model
         if ($this->parlementaire_type === 'depute') {
             return $this->depute;
         }
+
         return null;
     }
 
@@ -233,11 +234,11 @@ class HatvpDeclaration extends Model
     public function getTotalRevenus(?int $annee = null): float
     {
         $query = $this->revenus();
-        
+
         if ($annee) {
             $query->where('annee', $annee);
         }
-        
+
         return $query->sum('montant_elu') ?? 0;
     }
 
@@ -263,7 +264,7 @@ class HatvpDeclaration extends Model
     public function getTotalRemunerationsMandats(?int $annee = null): float
     {
         $total = 0;
-        
+
         foreach ($this->mandatsElectifs as $mandat) {
             $query = $mandat->remunerations();
             if ($annee) {
@@ -271,7 +272,7 @@ class HatvpDeclaration extends Model
             }
             $total += $query->sum('montant') ?? 0;
         }
-        
+
         return $total;
     }
 
@@ -281,7 +282,7 @@ class HatvpDeclaration extends Model
     public function getTotalRemunerationsActivitesPro(?int $annee = null): float
     {
         $total = 0;
-        
+
         foreach ($this->activitesProfessionnelles as $activite) {
             $query = $activite->remunerations();
             if ($annee) {
@@ -289,7 +290,7 @@ class HatvpDeclaration extends Model
             }
             $total += $query->sum('montant') ?? 0;
         }
-        
+
         return $total;
     }
 
@@ -299,7 +300,7 @@ class HatvpDeclaration extends Model
     public function getTotalRemunerationsConsultant(?int $annee = null): float
     {
         $total = 0;
-        
+
         foreach ($this->activitesConsultant as $activite) {
             $query = $activite->remunerations();
             if ($annee) {
@@ -307,7 +308,7 @@ class HatvpDeclaration extends Model
             }
             $total += $query->sum('montant') ?? 0;
         }
-        
+
         return $total;
     }
 
@@ -317,7 +318,7 @@ class HatvpDeclaration extends Model
     public function getTotalRemunerationsDirigeant(?int $annee = null): float
     {
         $total = 0;
-        
+
         foreach ($this->participationsDirigeantes as $participation) {
             $query = $participation->remunerations();
             if ($annee) {
@@ -325,7 +326,7 @@ class HatvpDeclaration extends Model
             }
             $total += $query->sum('montant') ?? 0;
         }
-        
+
         return $total;
     }
 
@@ -346,10 +347,10 @@ class HatvpDeclaration extends Model
     public function getRevenusParAnneeAttribute(): array
     {
         $revenusParAnnee = [];
-        
+
         // Collecter toutes les années disponibles
         $annees = collect();
-        
+
         foreach ($this->mandatsElectifs as $mandat) {
             $annees = $annees->merge($mandat->remunerations->pluck('annee'));
         }
@@ -362,7 +363,7 @@ class HatvpDeclaration extends Model
         foreach ($this->participationsDirigeantes as $participation) {
             $annees = $annees->merge($participation->remunerations->pluck('annee'));
         }
-        
+
         // Calculer le total pour chaque année
         foreach ($annees->unique()->sortDesc() as $annee) {
             $revenusParAnnee[$annee] = [
@@ -373,7 +374,7 @@ class HatvpDeclaration extends Model
                 'total' => $this->getTotalRevenusConsolides($annee),
             ];
         }
-        
+
         return $revenusParAnnee;
     }
 
@@ -411,7 +412,7 @@ class HatvpDeclaration extends Model
     public function getUrlHatvpAttribute(): string
     {
         $slug = strtolower(str_replace(' ', '-', "{$this->nom}-{$this->prenom}"));
+
         return "https://www.hatvp.fr/fiche-nominative/?declarant={$slug}";
     }
 }
-

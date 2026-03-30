@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Amendement parlementaire déposé par un député ou sénateur
- * 
+ *
  * @property int $id
  * @property int $depute_senateur_id
  * @property string $numero
@@ -157,11 +157,11 @@ class AmendementParlementaire extends Model
      */
     public function getSortLabelAttribute(): ?string
     {
-        if (!$this->sort) {
+        if (! $this->sort) {
             return null;
         }
 
-        return match($this->sort) {
+        return match ($this->sort) {
             'adopte' => 'Adopté',
             'rejete' => 'Rejeté',
             'retire' => 'Retiré',
@@ -176,7 +176,7 @@ class AmendementParlementaire extends Model
      */
     public function getSortColorAttribute(): string
     {
-        return match($this->sort) {
+        return match ($this->sort) {
             'adopte' => 'green',
             'rejete' => 'red',
             'retire' => 'orange',
@@ -203,8 +203,7 @@ class AmendementParlementaire extends Model
             $this->expose ?? '',
             $this->dispositif ?? '',
         ]);
-        
+
         return str_word_count(strip_tags($texteComplet));
     }
 }
-

@@ -11,8 +11,11 @@ class DeportAN extends Model
     use HasFactory;
 
     protected $table = 'deports_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -55,4 +58,3 @@ class DeportAN extends Model
         return $query->where('acteur_ref', $acteurUid);
     }
 }
-

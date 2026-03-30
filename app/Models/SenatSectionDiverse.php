@@ -8,13 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Section de discussion non-législative au Sénat
- * 
+ *
  * Questions au gouvernement, hommages, déclarations, etc.
  */
 class SenatSectionDiverse extends Model
 {
     protected $table = 'senat_sections_diverses';
+
     protected $primaryKey = 'id';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -67,9 +69,10 @@ class SenatSectionDiverse extends Model
      */
     public function getUrlCompletAttribute(): ?string
     {
-        if (!$this->url) {
+        if (! $this->url) {
             return null;
         }
-        return 'https://www.senat.fr/seances/' . ltrim($this->url, '/');
+
+        return 'https://www.senat.fr/seances/'.ltrim($this->url, '/');
     }
 }

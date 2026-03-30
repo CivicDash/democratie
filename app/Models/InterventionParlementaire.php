@@ -41,10 +41,10 @@ class InterventionParlementaire extends Model
 
     public function getDureeMinutesAttribute(): ?int
     {
-        if (!$this->duree_secondes) {
+        if (! $this->duree_secondes) {
             return null;
         }
+
         return (int) round($this->duree_secondes / 60);
     }
 }
-

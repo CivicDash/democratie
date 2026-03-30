@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\FrenchPostalCode;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
 
 class ImportFrenchPostalCodes extends Command
 {
@@ -45,27 +44,29 @@ class ImportFrenchPostalCodes extends Command
         // Étape 2 : Pour chaque département, récupérer les communes
         $bar = $this->output->createProgressBar($departments->count());
         $bar->setFormat('verbose');
-        
+
         $totalCities = 0;
         $totalPostalCodes = 0;
 
         foreach ($departments as $department) {
             $deptCode = $department['code'];
             $deptName = $department['nom'];
-            
+
             // Récupérer les communes du département
             $communes = $this->getCommunesByDepartment($deptCode);
-            
+
             foreach ($communes as $commune) {
                 // Chaque commune peut avoir plusieurs codes postaux
                 $codesPostaux = $commune['codesPostaux'] ?? [$commune['codePostal'] ?? null];
-                
+
                 foreach ($codesPostaux as $codePostal) {
-                    if (!$codePostal) continue;
-                    
+                    if (! $codePostal) {
+                        continue;
+                    }
+
                     // Déterminer la circonscription (simplifié pour l'instant)
                     $circonscription = $this->guessCirconscription($deptCode, $commune);
-                    
+
                     FrenchPostalCode::updateOrCreate(
                         [
                             'postal_code' => $codePostal,
@@ -83,23 +84,23 @@ class ImportFrenchPostalCodes extends Command
                             'population' => $commune['population'] ?? null,
                         ]
                     );
-                    
+
                     $totalPostalCodes++;
                 }
-                
+
                 $totalCities++;
             }
-            
+
             $bar->advance();
         }
 
         $bar->finish();
         $this->newLine(2);
 
-        $this->info("✅ Import terminé !");
+        $this->info('✅ Import terminé !');
         $this->info("   📊 {$totalCities} communes importées");
         $this->info("   📮 {$totalPostalCodes} codes postaux créés");
-        
+
         return Command::SUCCESS;
     }
 
@@ -114,6 +115,7 @@ class ImportFrenchPostalCodes extends Command
 
         if ($response->failed()) {
             $this->error('❌ Erreur lors de la récupération des départements');
+
             return collect();
         }
 
@@ -133,6 +135,7 @@ class ImportFrenchPostalCodes extends Command
 
         if ($response->failed()) {
             $this->warn("⚠️  Erreur pour le département {$departmentCode}");
+
             return [];
         }
 
@@ -148,9 +151,9 @@ class ImportFrenchPostalCodes extends Command
         // Pour l'instant, on met juste le département
         // Il faudrait une vraie table de correspondance commune -> circonscription
         // qui peut être obtenue via l'API de l'Assemblée Nationale
-        
+
         // Format: 75-01, 13-05, etc.
         // On va mettre 01 par défaut, mais c'est à affiner
-        return $deptCode . '-01';
+        return $deptCode.'-01';
     }
 }

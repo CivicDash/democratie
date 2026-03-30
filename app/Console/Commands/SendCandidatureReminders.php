@@ -13,22 +13,25 @@ use Illuminate\Console\Command;
 class SendCandidatureReminders extends Command
 {
     protected $signature = 'candidatures:send-reminders {--dry-run : Simuler sans envoyer}';
+
     protected $description = 'Envoie des rappels aux candidats à J-7, J-3 et J-1 avant la date limite';
 
     private const DATE_LIMITE_DEPOT = '2026-02-27';
+
     private const JOURS_RAPPEL = [7, 3, 1];
 
     public function handle(): int
     {
         $dateLimite = Carbon::parse(self::DATE_LIMITE_DEPOT);
         $joursRestants = now()->startOfDay()->diffInDays($dateLimite, false);
-        
+
         $this->info("📅 Date limite de dépôt : {$dateLimite->format('d/m/Y')}");
         $this->info("📊 Jours restants : {$joursRestants}");
 
         // Vérifier si c'est un jour de rappel
-        if (!in_array($joursRestants, self::JOURS_RAPPEL)) {
+        if (! in_array($joursRestants, self::JOURS_RAPPEL)) {
             $this->info("ℹ️  Pas de rappel prévu aujourd'hui (rappels à J-7, J-3, J-1)");
+
             return self::SUCCESS;
         }
 
@@ -47,7 +50,7 @@ class SendCandidatureReminders extends Command
         $errors = 0;
 
         foreach ($listes as $liste) {
-            if (!$liste->createur) {
+            if (! $liste->createur) {
                 continue;
             }
 

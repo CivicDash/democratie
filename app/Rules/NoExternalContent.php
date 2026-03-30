@@ -54,6 +54,7 @@ class NoExternalContent implements ValidationRule
         foreach ($this->blockedPatterns as $pattern) {
             if (preg_match($pattern, $value)) {
                 $fail($this->getMessage($pattern));
+
                 return;
             }
         }
@@ -62,8 +63,9 @@ class NoExternalContent implements ValidationRule
         if (preg_match_all('/https?:\/\/([^\s<>\[\]\/]+)/i', $value, $matches)) {
             foreach ($matches[1] as $domain) {
                 $domain = strtolower(preg_replace('/:\d+$/', '', $domain)); // Enlever le port
-                if (!$this->isDomainAllowed($domain)) {
+                if (! $this->isDomainAllowed($domain)) {
                     $fail('Les liens externes ne sont pas autorisés dans les discussions. Utilisez uniquement des liens vers le site.');
+
                     return;
                 }
             }
@@ -76,10 +78,11 @@ class NoExternalContent implements ValidationRule
     protected function isDomainAllowed(string $domain): bool
     {
         foreach ($this->allowedDomains as $allowed) {
-            if ($domain === $allowed || str_ends_with($domain, '.' . $allowed)) {
+            if ($domain === $allowed || str_ends_with($domain, '.'.$allowed)) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -94,6 +97,7 @@ class NoExternalContent implements ValidationRule
         if (str_contains($pattern, 'iframe') || str_contains($pattern, 'embed') || str_contains($pattern, 'object')) {
             return 'Les contenus embarqués (vidéos, iframes) ne sont pas autorisés dans les discussions.';
         }
+
         return 'Les liens externes ne sont pas autorisés dans les discussions. Utilisez uniquement des liens vers le site.';
     }
 }

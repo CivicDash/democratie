@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Service de détection et classification automatique des thématiques
  * pour les propositions de loi.
- * 
+ *
  * Utilise une approche par mots-clés avec scoring de pertinence.
  */
 class ThematiqueDetectionService
@@ -27,10 +27,9 @@ class ThematiqueDetectionService
 
     /**
      * Détecte automatiquement les thématiques d'une proposition de loi
-     * 
-     * @param PropositionLoi $proposition
-     * @param bool $principal Si true, retourne uniquement la thématique principale
-     * @param bool $attach Si true, attache les thématiques détectées à la proposition
+     *
+     * @param  bool  $principal  Si true, retourne uniquement la thématique principale
+     * @param  bool  $attach  Si true, attache les thématiques détectées à la proposition
      * @return Collection Collection de thématiques avec leur score
      */
     public function detecter(PropositionLoi $proposition, bool $principal = false, bool $attach = true): Collection
@@ -43,10 +42,10 @@ class ThematiqueDetectionService
 
         // Calculer le score pour chaque thématique
         $scores = collect();
-        
+
         foreach ($thematiques as $thematique) {
             $score = $thematique->calculerScore($texte);
-            
+
             if ($score >= self::SCORE_MINIMUM) {
                 $scores->push([
                     'thematique' => $thematique,
@@ -67,11 +66,11 @@ class ThematiqueDetectionService
         // Si aucune thématique détectée, essayer une détection moins stricte
         if ($scores->isEmpty()) {
             Log::warning("Aucune thématique détectée pour proposition {$proposition->id}: {$proposition->titre}");
-            
+
             // Fallback: prendre la thématique avec le meilleur score même si < SCORE_MINIMUM
             $fallback = null;
             $bestScore = 0;
-            
+
             foreach ($thematiques as $thematique) {
                 $score = $thematique->calculerScore($texte);
                 if ($score > $bestScore) {
@@ -79,7 +78,7 @@ class ThematiqueDetectionService
                     $fallback = $thematique;
                 }
             }
-            
+
             if ($fallback && $bestScore > 0) {
                 $scores->push([
                     'thematique' => $fallback,
@@ -99,8 +98,7 @@ class ThematiqueDetectionService
 
     /**
      * Détecte et attache les thématiques pour plusieurs propositions en batch
-     * 
-     * @param Collection $propositions
+     *
      * @return array Statistiques du traitement
      */
     public function detecterBatch(Collection $propositions): array
@@ -115,7 +113,7 @@ class ThematiqueDetectionService
         foreach ($propositions as $proposition) {
             try {
                 $thematiques = $this->detecter($proposition, false, true);
-                
+
                 if ($thematiques->isNotEmpty()) {
                     $stats['avec_thematique']++;
                 } else {
@@ -135,9 +133,6 @@ class ThematiqueDetectionService
     /**
      * Recalcule les thématiques d'une proposition
      * (supprime les anciennes et détecte de nouvelles)
-     * 
-     * @param PropositionLoi $proposition
-     * @return Collection
      */
     public function recalculer(PropositionLoi $proposition): Collection
     {
@@ -152,12 +147,6 @@ class ThematiqueDetectionService
 
     /**
      * Attache manuellement une thématique à une proposition
-     * 
-     * @param PropositionLoi $proposition
-     * @param ThematiqueLegislation $thematique
-     * @param bool $estPrincipal
-     * @param int|null $userId
-     * @return void
      */
     public function attacherManuellement(
         PropositionLoi $proposition,
@@ -190,9 +179,6 @@ class ThematiqueDetectionService
 
     /**
      * Construit le texte à analyser à partir d'une proposition
-     * 
-     * @param PropositionLoi $proposition
-     * @return string
      */
     private function construireTexteAnalyse(PropositionLoi $proposition): string
     {
@@ -200,12 +186,12 @@ class ThematiqueDetectionService
 
         // Titre (poids 3x)
         if ($proposition->titre) {
-            $parties[] = str_repeat($proposition->titre . ' ', 3);
+            $parties[] = str_repeat($proposition->titre.' ', 3);
         }
 
         // Résumé (poids 2x)
         if ($proposition->resume) {
-            $parties[] = str_repeat($proposition->resume . ' ', 2);
+            $parties[] = str_repeat($proposition->resume.' ', 2);
         }
 
         // Texte intégral (poids 1x, limité à 5000 caractères pour perf)
@@ -215,7 +201,7 @@ class ThematiqueDetectionService
 
         // Thème (si existe déjà, poids 2x)
         if ($proposition->theme) {
-            $parties[] = str_repeat($proposition->theme . ' ', 2);
+            $parties[] = str_repeat($proposition->theme.' ', 2);
         }
 
         return implode(' ', $parties);
@@ -223,10 +209,6 @@ class ThematiqueDetectionService
 
     /**
      * Attache les thématiques détectées à la proposition
-     * 
-     * @param PropositionLoi $proposition
-     * @param Collection $scores
-     * @return void
      */
     private function attacherThematiques(PropositionLoi $proposition, Collection $scores): void
     {
@@ -264,10 +246,6 @@ class ThematiqueDetectionService
 
     /**
      * Extrait les mots-clés trouvés dans le texte pour une thématique
-     * 
-     * @param PropositionLoi $proposition
-     * @param ThematiqueLegislation $thematique
-     * @return array
      */
     private function extraireMotsCles(PropositionLoi $proposition, ThematiqueLegislation $thematique): array
     {
@@ -286,8 +264,6 @@ class ThematiqueDetectionService
 
     /**
      * Obtient les statistiques de détection pour le dashboard admin
-     * 
-     * @return array
      */
     public function getStatistiques(): array
     {
@@ -307,4 +283,3 @@ class ThematiqueDetectionService
         ];
     }
 }
-

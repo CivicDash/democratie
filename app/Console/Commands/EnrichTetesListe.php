@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\ResultatListeMunicipale;
 use App\Models\ResultatMunicipal;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class EnrichTetesListe extends Command
 {
@@ -17,10 +16,13 @@ class EnrichTetesListe extends Command
     protected $description = 'Enrichit les résultats municipaux avec les noms/sexe des têtes de liste depuis le CSV candidatures';
 
     private const CANDIDATURES_T1 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-listes-candidates-au-premier-tour/20260313-152615/municipales-2026-candidatures-france-entiere-tour-1-2026-03-13.csv';
+
     private const CANDIDATURES_T2 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-listes-candidates-au-second-tour/20260320-141955/municipales-2026-candidatures-france-entiere-tour-2-2026-03-20.csv';
 
     private int $matched = 0;
+
     private int $notFound = 0;
+
     private int $skipped = 0;
 
     public function handle(): int
@@ -39,13 +41,14 @@ class EnrichTetesListe extends Command
         $context = stream_context_create(['http' => ['timeout' => 120]]);
         $handle = fopen($url, 'r', false, $context);
 
-        if (!$handle) {
+        if (! $handle) {
             $this->error('Impossible de télécharger le fichier');
+
             return self::FAILURE;
         }
 
         $header = fgetcsv($handle, 0, ';', '"', '\\');
-        $this->info('Colonnes: ' . count($header));
+        $this->info('Colonnes: '.count($header));
 
         $tetesListe = [];
 
@@ -69,7 +72,7 @@ class EnrichTetesListe extends Command
             $nom = trim($row[12] ?? '');
             $prenom = trim($row[13] ?? '');
 
-            if (!$codeCommune || !$panneau || !$nom) {
+            if (! $codeCommune || ! $panneau || ! $nom) {
                 continue;
             }
 
@@ -86,7 +89,7 @@ class EnrichTetesListe extends Command
         fclose($handle);
 
         $this->info("Lignes CSV lues: {$lineCount}");
-        $this->info('Têtes de liste extraites: ' . count($tetesListe));
+        $this->info('Têtes de liste extraites: '.count($tetesListe));
         $this->newLine();
 
         $resultatsIndex = [];
@@ -98,7 +101,7 @@ class EnrichTetesListe extends Command
                 }
             });
 
-        $this->info('Résultats communaux indexés: ' . count($resultatsIndex));
+        $this->info('Résultats communaux indexés: '.count($resultatsIndex));
 
         $bar = $this->output->createProgressBar(count($tetesListe));
         $bar->setFormat('verbose');
@@ -109,13 +112,14 @@ class EnrichTetesListe extends Command
         foreach ($tetesListe as $key => $tete) {
             $resultatId = $resultatsIndex[$tete['code_commune']] ?? null;
 
-            if (!$resultatId) {
+            if (! $resultatId) {
                 $this->notFound++;
                 $bar->advance();
+
                 continue;
             }
 
-            if (!$dryRun) {
+            if (! $dryRun) {
                 $updated = ResultatListeMunicipale::where('resultat_commune_id', $resultatId)
                     ->where('numero_panneau', $tete['panneau'])
                     ->update([

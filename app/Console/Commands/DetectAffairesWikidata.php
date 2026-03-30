@@ -23,6 +23,7 @@ class DetectAffairesWikidata extends Command
     private const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql';
 
     private int $detected = 0;
+
     private int $duplicates = 0;
 
     public function handle(): int
@@ -59,7 +60,7 @@ class DetectAffairesWikidata extends Command
         $this->info('Scan des députés via SPARQL générique...');
 
         $results = $this->queryFrenchParliamentarians('depute');
-        $this->info("  Résultats SPARQL : " . count($results));
+        $this->info('  Résultats SPARQL : '.count($results));
 
         $deputes = ActeurAN::deputes()->whereNotNull('wikipedia_url')->get()
             ->keyBy(fn ($d) => $this->normalizeWpUrl($d->wikipedia_url));
@@ -68,7 +69,7 @@ class DetectAffairesWikidata extends Command
             $wpUrl = $this->normalizeWpUrl($result['article']['value'] ?? '');
             $depute = $deputes->get($wpUrl);
 
-            if (!$depute) {
+            if (! $depute) {
                 continue;
             }
 
@@ -87,7 +88,7 @@ class DetectAffairesWikidata extends Command
         $this->info('Scan des sénateurs via SPARQL générique...');
 
         $results = $this->queryFrenchParliamentarians('senateur');
-        $this->info("  Résultats SPARQL : " . count($results));
+        $this->info('  Résultats SPARQL : '.count($results));
 
         $senateurs = Senateur::actifs()->whereNotNull('wikipedia_url')->get()
             ->keyBy(fn ($s) => $this->normalizeWpUrl($s->wikipedia_url));
@@ -96,7 +97,7 @@ class DetectAffairesWikidata extends Command
             $wpUrl = $this->normalizeWpUrl($result['article']['value'] ?? '');
             $senateur = $senateurs->get($wpUrl);
 
-            if (!$senateur) {
+            if (! $senateur) {
                 continue;
             }
 
@@ -115,7 +116,7 @@ class DetectAffairesWikidata extends Command
         $this->info('Scan des membres du gouvernement via SPARQL...');
 
         $results = $this->queryFrenchParliamentarians('gouvernement');
-        $this->info("  Résultats SPARQL : " . count($results));
+        $this->info('  Résultats SPARQL : '.count($results));
 
         $personnesById = PersonnePolitique::whereNotNull('wikidata_id')
             ->get()
@@ -133,7 +134,7 @@ class DetectAffairesWikidata extends Command
             $personne = ($qid ? $personnesById->get($qid) : null)
                 ?? $personnesByUrl->get($wpUrl);
 
-            if (!$personne) {
+            if (! $personne) {
                 continue;
             }
 
@@ -152,7 +153,7 @@ class DetectAffairesWikidata extends Command
         $this->info('Scan des maires via SPARQL...');
 
         $results = $this->queryFrenchParliamentarians('maire');
-        $this->info("  Résultats SPARQL : " . count($results));
+        $this->info('  Résultats SPARQL : '.count($results));
 
         $maires = Maire::enExercice()
             ->whereNotNull('wikipedia_url')
@@ -164,7 +165,7 @@ class DetectAffairesWikidata extends Command
             $wpUrl = $this->normalizeWpUrl($result['article']['value'] ?? '');
             $maire = $maires->get($wpUrl);
 
-            if (!$maire) {
+            if (! $maire) {
                 continue;
             }
 
@@ -173,15 +174,18 @@ class DetectAffairesWikidata extends Command
                 'nom' => $maire->nom,
                 'prenom' => $maire->prenom,
                 'parti_politique' => $maire->nuance_libelle,
-                'fonction_au_moment' => 'Maire de ' . $maire->nom_commune,
+                'fonction_au_moment' => 'Maire de '.$maire->nom_commune,
             ], $dryRun);
         }
     }
 
     private function normalizeWpUrl(?string $url): string
     {
-        if (!$url) return '';
+        if (! $url) {
+            return '';
+        }
         $url = str_replace('http://', 'https://', $url);
+
         return rtrim(urldecode($url), '/');
     }
 
@@ -194,7 +198,7 @@ class DetectAffairesWikidata extends Command
             default => 'wd:Q3044918',
         };
 
-        $sparql = <<<SPARQL
+        $sparql = <<<'SPARQL'
 SELECT ?personne ?personneLabel ?article ?condamnation ?condamnationLabel ?date WHERE {
   ?personne wdt:P31 wd:Q5 .
   ?personne wdt:P27 wd:Q142 .
@@ -219,6 +223,7 @@ SPARQL;
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return $data['results']['bindings'] ?? [];
             }
 
@@ -252,12 +257,14 @@ SPARQL;
 
         if ($existing) {
             $this->duplicates++;
+
             return;
         }
 
         if ($dryRun) {
             $this->line("  [DRY] {$eluData['prenom']} {$eluData['nom']} : {$titre}");
             $this->detected++;
+
             return;
         }
 
@@ -285,7 +292,7 @@ SPARQL;
         $affaire->moderationLogs()->create([
             'action' => 'detection',
             'nouveau_statut' => 'detecte',
-            'commentaire' => "Détection Wikidata (P1399), confiance : 0.80",
+            'commentaire' => 'Détection Wikidata (P1399), confiance : 0.80',
             'metadata' => ['source' => 'wikidata', 'confidence' => 0.80],
         ]);
 
@@ -302,12 +309,13 @@ SPARQL;
                 $ids[] = $id;
             }
         }
+
         return array_unique($ids);
     }
 
     private function getWikidataIdFromUrl(?string $url): ?string
     {
-        if (!$url) {
+        if (! $url) {
             return null;
         }
 
@@ -319,7 +327,7 @@ SPARQL;
             $title = basename(parse_url($url, PHP_URL_PATH));
             try {
                 $resp = Http::timeout(10)
-                    ->get("https://fr.wikipedia.org/w/api.php", [
+                    ->get('https://fr.wikipedia.org/w/api.php', [
                         'action' => 'query',
                         'titles' => urldecode($title),
                         'prop' => 'pageprops',
@@ -346,12 +354,13 @@ SPARQL;
         if (preg_match('/(Q\d+)$/', $uri, $m)) {
             return $m[1];
         }
+
         return null;
     }
 
     private function guessTypeAffaire(?string $infraction, string $titre): string
     {
-        $text = mb_strtolower(($infraction ?? '') . ' ' . $titre);
+        $text = mb_strtolower(($infraction ?? '').' '.$titre);
         $mapping = [
             'corruption' => 'corruption',
             'détournement' => 'detournement_fonds',
@@ -381,7 +390,7 @@ SPARQL;
 
     private function guessCategorie(?string $infraction, string $titre): string
     {
-        $text = mb_strtolower(($infraction ?? '') . ' ' . $titre);
+        $text = mb_strtolower(($infraction ?? '').' '.$titre);
         if (preg_match('/corrupt|détournement|fraude|abus|favoritisme|trafic|prise illégale|conflit/u', $text)) {
             return 'probite';
         }
@@ -394,6 +403,7 @@ SPARQL;
         if (preg_match('/manquement|déclaration|probité/u', $text)) {
             return 'manquement';
         }
+
         return 'autre';
     }
 }

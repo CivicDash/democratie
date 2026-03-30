@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Document;
-use App\Services\DocumentService;
 use App\Http\Requests\Document\UploadDocumentRequest;
 use App\Http\Requests\Document\VerifyDocumentRequest;
+use App\Models\Document;
+use App\Services\DocumentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -37,9 +37,9 @@ class DocumentController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'ILIKE', "%{$search}%")
-                  ->orWhere('description', 'ILIKE', "%{$search}%");
+                    ->orWhere('description', 'ILIKE', "%{$search}%");
             });
         }
 
@@ -118,7 +118,7 @@ class DocumentController extends Controller
 
         return Storage::disk('public')->download(
             $document->file_path,
-            $document->title . '.pdf'
+            $document->title.'.pdf'
         );
     }
 
@@ -167,4 +167,3 @@ class DocumentController extends Controller
         ]);
     }
 }
-

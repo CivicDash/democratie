@@ -56,12 +56,15 @@ class Ministre extends Model
     // Accessors
     public function getNomCompletAttribute(): string
     {
-        return trim($this->prenom . ' ' . $this->nom);
+        return trim($this->prenom.' '.$this->nom);
     }
 
     public function getAgeAttribute(): ?int
     {
-        if (!$this->date_naissance) return null;
+        if (! $this->date_naissance) {
+            return null;
+        }
+
         return $this->date_naissance->age;
     }
 
@@ -70,16 +73,20 @@ class Ministre extends Model
         $debut = $this->date_debut;
         $fin = $this->date_fin ?? now();
         $jours = $debut->diffInDays($fin);
-        
-        if ($jours < 30) return $jours . ' jours';
-        if ($jours < 365) return floor($jours / 30) . ' mois';
-        
-        return floor($jours / 365) . ' an(s)';
+
+        if ($jours < 30) {
+            return $jours.' jours';
+        }
+        if ($jours < 365) {
+            return floor($jours / 30).' mois';
+        }
+
+        return floor($jours / 365).' an(s)';
     }
 
     public function getTypeFonctionLibelleAttribute(): string
     {
-        return match($this->type_fonction) {
+        return match ($this->type_fonction) {
             'ministre' => 'Ministre',
             'ministre_delegue' => 'Ministre délégué',
             'secretaire_etat' => 'Secrétaire d\'État',

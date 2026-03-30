@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SeanceLoi extends Model
 {
     protected $table = 'senat_dosleg_date_seance';
+
     protected $primaryKey = null;
+
     public $incrementing = false;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -41,4 +44,3 @@ class SeanceLoi extends Model
         return $this->date_s;
     }
 }
-

@@ -7,18 +7,14 @@ use App\Models\CandidatMunicipal;
 use App\Models\CandidatureDocument;
 use App\Models\ListeElectorale;
 use App\Models\Maire;
-use App\Models\ResultatListeMunicipale;
 use App\Models\ResultatMunicipal;
 use App\Models\StatsElectionMunicipale;
 use App\Models\Ville;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Carbon\Carbon;
 use Inertia\Inertia;
 
 class ElectionsMunicipalesController extends Controller
@@ -51,7 +47,7 @@ class ElectionsMunicipalesController extends Controller
                 : ListeElectorale::valide()->count(),
             'total_candidats' => $totalCandidatsOfficiels > 0
                 ? $totalCandidatsOfficiels
-                : CandidatMunicipal::actif()->whereHas('liste', fn($q) => $q->valide())->count(),
+                : CandidatMunicipal::actif()->whereHas('liste', fn ($q) => $q->valide())->count(),
             'communes_couvertes' => $totalListesOfficielles > 0
                 ? ListeElectorale::officielles()->distinct('commune_code_insee')->count('commune_code_insee')
                 : ListeElectorale::valide()->distinct('commune_code_insee')->count('commune_code_insee'),
@@ -66,13 +62,13 @@ class ElectionsMunicipalesController extends Controller
             $statsNationales = StatsElectionMunicipale::national()->first();
             $statsResultatsT1 = $statsNationales?->data;
 
-            $topCommunesT1 = ResultatMunicipal::with(['listes' => fn($q) => $q->where('elu', true)])
+            $topCommunesT1 = ResultatMunicipal::with(['listes' => fn ($q) => $q->where('elu', true)])
                 ->where('tour', 1)
-                ->whereHas('ville', fn($q) => $q->where('population', '>=', 30000))
+                ->whereHas('ville', fn ($q) => $q->where('population', '>=', 30000))
                 ->orderByDesc('taux_participation')
                 ->limit(5)
                 ->get()
-                ->map(fn($r) => [
+                ->map(fn ($r) => [
                     'code_commune' => $r->code_commune,
                     'nom_commune' => $r->nom_commune,
                     'code_departement' => $r->code_departement,
@@ -88,11 +84,11 @@ class ElectionsMunicipalesController extends Controller
 
         // Dernières listes validées
         $dernieresListes = ListeElectorale::valide()
-            ->with(['candidats' => fn($q) => $q->teteDeListe()])
+            ->with(['candidats' => fn ($q) => $q->teteDeListe()])
             ->latest('validated_at')
             ->limit(6)
             ->get()
-            ->map(fn($liste) => [
+            ->map(fn ($liste) => [
                 'uuid' => $liste->uuid,
                 'nom_liste' => $liste->nom_liste,
                 'commune_nom' => $liste->commune_nom,
@@ -123,14 +119,14 @@ class ElectionsMunicipalesController extends Controller
     {
         $query = $request->input('q', '');
         $departement = $request->input('departement');
-        
+
         $listesQuery = ListeElectorale::valide()
-            ->with(['candidats' => fn($q) => $q->teteDeListe()]);
+            ->with(['candidats' => fn ($q) => $q->teteDeListe()]);
 
         if ($query) {
-            $listesQuery->where(function($q) use ($query) {
+            $listesQuery->where(function ($q) use ($query) {
                 $q->where('commune_nom', 'ilike', "%{$query}%")
-                  ->orWhere('nom_liste', 'ilike', "%{$query}%");
+                    ->orWhere('nom_liste', 'ilike', "%{$query}%");
             });
         }
 
@@ -141,7 +137,7 @@ class ElectionsMunicipalesController extends Controller
         $listes = $listesQuery
             ->orderBy('commune_nom')
             ->paginate(20)
-            ->through(fn($liste) => [
+            ->through(fn ($liste) => [
                 'uuid' => $liste->uuid,
                 'nom_liste' => $liste->nom_liste,
                 'commune_nom' => $liste->commune_nom,
@@ -170,8 +166,8 @@ class ElectionsMunicipalesController extends Controller
         $liste = ListeElectorale::where('uuid', $uuid)
             ->valide()
             ->with([
-                'candidats' => fn($q) => $q->actif()->orderBy('position'),
-                'documents' => fn($q) => $q->valide()->where('type', 'programme_pdf'),
+                'candidats' => fn ($q) => $q->actif()->orderBy('position'),
+                'documents' => fn ($q) => $q->valide()->where('type', 'programme_pdf'),
             ])
             ->firstOrFail();
 
@@ -179,9 +175,9 @@ class ElectionsMunicipalesController extends Controller
         $autresListes = ListeElectorale::valide()
             ->where('commune_code_insee', $liste->commune_code_insee)
             ->where('id', '!=', $liste->id)
-            ->with(['candidats' => fn($q) => $q->teteDeListe()])
+            ->with(['candidats' => fn ($q) => $q->teteDeListe()])
             ->get()
-            ->map(fn($l) => [
+            ->map(fn ($l) => [
                 'uuid' => $l->uuid,
                 'nom_liste' => $l->nom_liste,
                 'tete_de_liste' => $l->candidats->first()?->nom_complet,
@@ -207,7 +203,7 @@ class ElectionsMunicipalesController extends Controller
                 'reseaux_sociaux' => $liste->reseaux_sociaux,
                 'site_web' => $liste->site_web,
                 'email_contact' => $liste->email_contact,
-                'candidats' => $liste->candidats->map(fn($c) => [
+                'candidats' => $liste->candidats->map(fn ($c) => [
                     'uuid' => $c->uuid,
                     'nom_complet' => $c->nom_complet,
                     'position' => $c->position,
@@ -231,7 +227,7 @@ class ElectionsMunicipalesController extends Controller
     {
         $candidat = CandidatMunicipal::where('uuid', $uuid)
             ->actif()
-            ->whereHas('liste', fn($q) => $q->valide())
+            ->whereHas('liste', fn ($q) => $q->valide())
             ->with(['liste'])
             ->firstOrFail();
 
@@ -294,7 +290,7 @@ class ElectionsMunicipalesController extends Controller
 
         $statsData = $statsNationales?->data;
 
-        if (!$statsData) {
+        if (! $statsData) {
             $totalCommunes = ResultatMunicipal::where('tour', 1)->count();
             $eluesT1 = ResultatMunicipal::where('tour', 1)->where('statut_commune', 'elu_t1')->count();
             $secondTour = ResultatMunicipal::where('tour', 1)->where('statut_commune', 'second_tour')->count();
@@ -316,7 +312,7 @@ class ElectionsMunicipalesController extends Controller
 
         $topCommunes = ResultatMunicipal::with('listes')
             ->where('tour', 1)
-            ->whereHas('ville', fn($q) => $q->where('population', '>=', 30000))
+            ->whereHas('ville', fn ($q) => $q->where('population', '>=', 30000))
             ->orderByDesc('taux_participation')
             ->limit(20)
             ->get();
@@ -331,6 +327,7 @@ class ElectionsMunicipalesController extends Controller
 
         $topCommunesMapped = $topCommunes->map(function ($r) {
             $gagnante = $r->listes->where('elu', true)->first();
+
             return [
                 'code_commune' => $r->code_commune,
                 'nom_commune' => $r->nom_commune,
@@ -352,7 +349,7 @@ class ElectionsMunicipalesController extends Controller
             ->where('annee', 2026)
             ->get()
             ->keyBy('scope_code')
-            ->map(fn($s) => $s->data);
+            ->map(fn ($s) => $s->data);
 
         return Inertia::render('Elections/Municipales/Resultats', [
             'stats_nationales' => $statsData,
@@ -378,10 +375,10 @@ class ElectionsMunicipalesController extends Controller
 
         $resultats = ResultatMunicipal::where('code_departement', $codeDept)
             ->where('tour', 1)
-            ->with(['listes' => fn($q) => $q->where('elu', true)])
+            ->with(['listes' => fn ($q) => $q->where('elu', true)])
             ->orderBy('nom_commune')
             ->get()
-            ->map(fn($r) => [
+            ->map(fn ($r) => [
                 'code_commune' => $r->code_commune,
                 'nom_commune' => $r->nom_commune,
                 'taux_participation' => $r->taux_participation,
@@ -410,7 +407,7 @@ class ElectionsMunicipalesController extends Controller
             ->with('predecesseur')
             ->orderByDesc('population_commune')
             ->get()
-            ->map(fn($m) => [
+            ->map(fn ($m) => [
                 'id' => $m->id,
                 'nom_complet' => $m->nom_complet,
                 'commune' => $m->nom_commune,
@@ -456,6 +453,7 @@ class ElectionsMunicipalesController extends Controller
     public function apiStatsNuances()
     {
         $stats = StatsElectionMunicipale::national()->first();
+
         return response()->json($stats?->data['nuances'] ?? []);
     }
 
@@ -490,7 +488,7 @@ class ElectionsMunicipalesController extends Controller
             ->with(['candidats', 'documents'])
             ->latest()
             ->get()
-            ->map(fn($liste) => [
+            ->map(fn ($liste) => [
                 'uuid' => $liste->uuid,
                 'nom_liste' => $liste->nom_liste,
                 'commune_nom' => $liste->commune_nom,
@@ -586,7 +584,7 @@ class ElectionsMunicipalesController extends Controller
             ->with(['candidats', 'documents', 'moderationLogs.moderator'])
             ->firstOrFail();
 
-        if (!$liste->peut_etre_modifiee) {
+        if (! $liste->peut_etre_modifiee) {
             return redirect()
                 ->route('elections.municipales.espace-candidat.index')
                 ->with('error', 'Cette liste ne peut plus être modifiée.');
@@ -619,7 +617,7 @@ class ElectionsMunicipalesController extends Controller
                 'statut_formate' => $liste->statut_formate,
                 'motif_rejet' => $liste->motif_rejet,
             ],
-            'candidats' => $liste->candidats->map(fn($c) => [
+            'candidats' => $liste->candidats->map(fn ($c) => [
                 'uuid' => $c->uuid,
                 'nom' => $c->nom,
                 'prenom' => $c->prenom,
@@ -628,7 +626,7 @@ class ElectionsMunicipalesController extends Controller
                 'photo_url' => $c->photo_url,
                 'initiales' => $c->initiales,
             ]),
-            'documents' => $liste->documents->map(fn($d) => [
+            'documents' => $liste->documents->map(fn ($d) => [
                 'uuid' => $d->uuid,
                 'type' => $d->type,
                 'type_formate' => $d->type_formate,
@@ -639,7 +637,7 @@ class ElectionsMunicipalesController extends Controller
                 'statut_couleur' => $d->statut_couleur,
                 'commentaire' => $d->commentaire_verification,
             ]),
-            'historique' => $liste->moderationLogs->map(fn($log) => [
+            'historique' => $liste->moderationLogs->map(fn ($log) => [
                 'action' => $log->action_formatee,
                 'icone' => $log->action_icone,
                 'couleur' => $log->action_couleur,
@@ -660,7 +658,7 @@ class ElectionsMunicipalesController extends Controller
             ->where('created_by', Auth::id())
             ->firstOrFail();
 
-        if (!$liste->peut_etre_modifiee) {
+        if (! $liste->peut_etre_modifiee) {
             return back()->with('error', 'Cette liste ne peut plus être modifiée.');
         }
 
@@ -797,7 +795,7 @@ class ElectionsMunicipalesController extends Controller
             ->where('created_by', Auth::id())
             ->firstOrFail();
 
-        if (!$liste->peut_etre_modifiee) {
+        if (! $liste->peut_etre_modifiee) {
             return back()->with('error', 'La liste ne peut plus être modifiée.');
         }
 
@@ -822,12 +820,12 @@ class ElectionsMunicipalesController extends Controller
 
         // Calcul de la position
         $maxPosition = $liste->candidats()->max('position') ?? 0;
-        
+
         // Si c'est tête de liste, on doit d'abord retirer le flag des autres
         if ($request->boolean('est_tete_de_liste')) {
             $liste->candidats()->update(['est_tete_de_liste' => false]);
             $validated['position'] = 1;
-            
+
             // Décaler les autres
             $liste->candidats()->where('position', '>=', 1)->increment('position');
         } else {
@@ -853,7 +851,7 @@ class ElectionsMunicipalesController extends Controller
             return back()->with('error', 'Ajoutez au moins un candidat avant de soumettre.');
         }
 
-        if (!$liste->candidats()->where('est_tete_de_liste', true)->exists()) {
+        if (! $liste->candidats()->where('est_tete_de_liste', true)->exists()) {
             return back()->with('error', 'Désignez une tête de liste avant de soumettre.');
         }
 
@@ -862,11 +860,11 @@ class ElectionsMunicipalesController extends Controller
             ->where('type', 'recepisse_prefecture')
             ->exists();
 
-        if (!$hasRecepisse) {
+        if (! $hasRecepisse) {
             return back()->with('error', 'Ajoutez le récépissé de dépôt en préfecture avant de soumettre.');
         }
 
-        if (!$liste->soumettre()) {
+        if (! $liste->soumettre()) {
             return back()->with('error', 'Impossible de soumettre cette liste.');
         }
 
@@ -886,7 +884,7 @@ class ElectionsMunicipalesController extends Controller
             ->with(['candidats', 'documents', 'createur'])
             ->orderBy('created_at')
             ->paginate(20)
-            ->through(fn($liste) => [
+            ->through(fn ($liste) => [
                 'uuid' => $liste->uuid,
                 'nom_liste' => $liste->nom_liste,
                 'commune_nom' => $liste->commune_nom,
@@ -956,7 +954,7 @@ class ElectionsMunicipalesController extends Controller
                 'name' => $liste->createur->name,
                 'email' => $liste->createur->email,
             ] : null,
-            'candidats' => $liste->candidats->map(fn($c) => [
+            'candidats' => $liste->candidats->map(fn ($c) => [
                 'uuid' => $c->uuid,
                 'nom_complet' => $c->nom_complet,
                 'civilite' => $c->civilite,
@@ -970,7 +968,7 @@ class ElectionsMunicipalesController extends Controller
                 'initiales' => $c->initiales,
                 'est_eligible' => $c->est_eligible,
             ]),
-            'documents' => $liste->documents->map(fn($d) => [
+            'documents' => $liste->documents->map(fn ($d) => [
                 'uuid' => $d->uuid,
                 'type' => $d->type,
                 'type_formate' => $d->type_formate,
@@ -991,7 +989,7 @@ class ElectionsMunicipalesController extends Controller
             'historique' => $liste->moderationLogs()
                 ->orderByDesc('created_at')
                 ->get()
-                ->map(fn($log) => [
+                ->map(fn ($log) => [
                     'action' => $log->action_formatee,
                     'icone' => $log->action_icone,
                     'couleur' => $log->action_couleur,

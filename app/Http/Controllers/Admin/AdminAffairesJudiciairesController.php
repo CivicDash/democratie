@@ -25,8 +25,8 @@ class AdminAffairesJudiciairesController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ILIKE', "%{$search}%")
-                  ->orWhere('prenom', 'ILIKE', "%{$search}%")
-                  ->orWhere('titre', 'ILIKE', "%{$search}%");
+                    ->orWhere('prenom', 'ILIKE', "%{$search}%")
+                    ->orWhere('titre', 'ILIKE', "%{$search}%");
             });
         }
 
@@ -192,7 +192,7 @@ class AdminAffairesJudiciairesController extends Controller
 
         $affaire->moderationLogs()->create([
             'action' => 'mise_a_jour',
-            'commentaire' => 'Source ajoutée : ' . ($data['media'] ?? $data['url']),
+            'commentaire' => 'Source ajoutée : '.($data['media'] ?? $data['url']),
             'moderator_id' => $request->user()->id,
         ]);
 

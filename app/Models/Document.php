@@ -12,7 +12,7 @@ use Laravel\Scout\Searchable;
 
 /**
  * Document vérifié (uploadable par legislator/state)
- * 
+ *
  * @property int $id
  * @property string $title
  * @property string|null $description
@@ -32,7 +32,7 @@ use Laravel\Scout\Searchable;
  */
 class Document extends Model
 {
-    use HasFactory, SoftDeletes, Searchable;
+    use HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -100,7 +100,7 @@ class Document extends Model
             $unit++;
         }
 
-        return round($size, 2) . ' ' . $units[$unit];
+        return round($size, 2).' '.$units[$unit];
     }
 
     /**
@@ -211,8 +211,6 @@ class Document extends Model
      */
     public function shouldBeSearchable(): bool
     {
-        return $this->is_public && $this->status === 'verified' && !$this->trashed();
+        return $this->is_public && $this->status === 'verified' && ! $this->trashed();
     }
 }
-
-

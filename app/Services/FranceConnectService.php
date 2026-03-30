@@ -3,17 +3,17 @@
 namespace App\Services;
 
 use App\Models\User;
-use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\User as SocialiteUser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\User as SocialiteUser;
 
 /**
  * Service FranceConnect+ pour authentification État français
- * 
+ *
  * FranceConnect+ est le système d'authentification de l'État français
  * permettant aux citoyens de s'identifier avec leurs comptes administratifs.
- * 
+ *
  * @see https://franceconnect.gouv.fr/
  */
 class FranceConnectService
@@ -60,6 +60,7 @@ class FranceConnectService
             if ($user) {
                 // Mettre à jour les données si elles ont changé
                 $this->updateUserFromFranceConnect($user, $socialiteUser);
+
                 return $user;
             }
 
@@ -144,7 +145,7 @@ class FranceConnectService
      */
     public function isConnectedWithFranceConnect(User $user): bool
     {
-        return !empty($user->franceconnect_sub);
+        return ! empty($user->franceconnect_sub);
     }
 
     /**
@@ -156,17 +157,17 @@ class FranceConnectService
         $logoutUrl = config('services.franceconnect.logout_url');
         $redirectUri = route('home');
 
-        return "{$logoutUrl}?post_logout_redirect_uri=" . urlencode($redirectUri);
+        return "{$logoutUrl}?post_logout_redirect_uri=".urlencode($redirectUri);
     }
 
     /**
      * Chiffre les données FranceConnect+ (RGPD Art. 32)
-     * 
+     *
      * Conforme minimisation des données : Ne stocke que ce qui est nécessaire
      * - birthdate : Pour vérification majorité si nécessaire
      * - gender : Pour statistiques anonymes
      * - birthplace/birthcountry : Pour audit anti-fraude uniquement
-     * 
+     *
      * Note : given_name/family_name → encrypted_real_name (séparé)
      */
     protected function encryptFranceConnectData(array $fcData): string
@@ -187,4 +188,3 @@ class FranceConnectService
         return encrypt(json_encode($dataToEncrypt));
     }
 }
-

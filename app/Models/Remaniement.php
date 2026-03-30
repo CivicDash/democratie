@@ -29,7 +29,7 @@ class Remaniement extends Model
     // Accessors
     public function getTypeLibelleAttribute(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'formation' => 'Formation du gouvernement',
             'remaniement' => 'Remaniement ministériel',
             'demission' => 'Démission',

@@ -4,21 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FrenchPostalCode;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class PostalCodeController extends Controller
 {
     /**
      * Autocomplétion des codes postaux et villes
-     * 
+     *
      * GET /api/postal-codes/search?q=75001
      * GET /api/postal-codes/search?q=Paris
      */
     public function search(Request $request): JsonResponse
     {
         $query = $request->input('q', '');
-        
+
         if (strlen($query) < 2) {
             return response()->json([
                 'results' => [],
@@ -62,7 +62,7 @@ class PostalCodeController extends Controller
 
     /**
      * Obtenir les détails d'un code postal
-     * 
+     *
      * GET /api/postal-codes/{postalCode}
      */
     public function show(string $postalCode): JsonResponse
@@ -98,7 +98,7 @@ class PostalCodeController extends Controller
 
     /**
      * Obtenir toutes les villes d'un département
-     * 
+     *
      * GET /api/postal-codes/department/{departmentCode}
      */
     public function byDepartment(string $departmentCode): JsonResponse
@@ -123,7 +123,7 @@ class PostalCodeController extends Controller
 
     /**
      * Obtenir toutes les villes d'une circonscription
-     * 
+     *
      * GET /api/postal-codes/circonscription/{circonscription}
      */
     public function byCirconscription(string $circonscription): JsonResponse
@@ -146,4 +146,3 @@ class PostalCodeController extends Controller
         ]);
     }
 }
-

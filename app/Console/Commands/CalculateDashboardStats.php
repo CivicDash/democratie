@@ -4,14 +4,15 @@ namespace App\Console\Commands;
 
 use App\Models\ActeurAN;
 use App\Models\DashboardStat;
-use App\Models\Senateur;
 use App\Models\ScrutinAN;
+use App\Models\Senateur;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 class CalculateDashboardStats extends Command
 {
     protected $signature = 'dashboard:calculate-stats {--force : Force recalcul même si frais}';
+
     protected $description = 'Calcule et stocke les statistiques du dashboard (à lancer quotidiennement)';
 
     public function handle(): int
@@ -20,8 +21,9 @@ class CalculateDashboardStats extends Command
         $start = microtime(true);
 
         // Vérifier si les stats sont fraîches (sauf si --force)
-        if (!$this->option('force') && DashboardStat::isFresh('top_deputes', 12)) {
+        if (! $this->option('force') && DashboardStat::isFresh('top_deputes', 12)) {
             $this->info('✅ Les stats sont encore fraîches (< 12h). Utilisez --force pour forcer le recalcul.');
+
             return self::SUCCESS;
         }
 
@@ -35,9 +37,10 @@ class CalculateDashboardStats extends Command
             ->get()
             ->map(function ($item) {
                 $acteur = ActeurAN::find($item->acteur_ref);
+
                 return [
                     'uid' => $item->acteur_ref,
-                    'nom' => $acteur ? ($acteur->prenom . ' ' . $acteur->nom) : 'Inconnu',
+                    'nom' => $acteur ? ($acteur->prenom.' '.$acteur->nom) : 'Inconnu',
                     'photo' => $acteur?->photo_url,
                     'groupe' => null,
                     'groupe_couleur' => '#6B7280',
@@ -45,7 +48,7 @@ class CalculateDashboardStats extends Command
                 ];
             })->toArray();
         DashboardStat::set('top_deputes', $topDeputes);
-        $this->info('  ✓ ' . count($topDeputes) . ' députés');
+        $this->info('  ✓ '.count($topDeputes).' députés');
 
         // 🏆 TOP SÉNATEURS (par amendements)
         $this->info('📊 Calcul top sénateurs...');
@@ -59,9 +62,10 @@ class CalculateDashboardStats extends Command
             ->map(function ($item) {
                 $senateur = Senateur::where('matricule', $item->senateur_matricule)
                     ->first(['matricule', 'prenom', 'nom', 'nom_usuel', 'groupe_politique_code', 'photo_wikipedia_url']);
+
                 return [
                     'matricule' => $item->senateur_matricule,
-                    'nom' => $senateur ? ($senateur->prenom . ' ' . ($senateur->nom_usuel ?? $senateur->nom)) : 'Inconnu',
+                    'nom' => $senateur ? ($senateur->prenom.' '.($senateur->nom_usuel ?? $senateur->nom)) : 'Inconnu',
                     'photo' => $senateur?->photo_url,
                     'groupe' => $senateur?->groupe_politique_code,
                     'groupe_couleur' => '#DC2626',
@@ -69,7 +73,7 @@ class CalculateDashboardStats extends Command
                 ];
             })->toArray();
         DashboardStat::set('top_senateurs', $topSenateurs);
-        $this->info('  ✓ ' . count($topSenateurs) . ' sénateurs');
+        $this->info('  ✓ '.count($topSenateurs).' sénateurs');
 
         // 🏛️ GROUPES ACTIFS
         $this->info('📊 Calcul groupes actifs...');
@@ -80,7 +84,7 @@ class CalculateDashboardStats extends Command
             'HOR' => '#42A5F5', 'NI' => '#757575', 'UDR' => '#1976D2',
             'LFI' => '#CC2443', 'RE' => '#FFD600', 'LR' => '#0066CC',
         ];
-        
+
         $groupesActifs = DB::table('mandats_an')
             ->join('organes_an', 'mandats_an.organe_ref', '=', 'organes_an.uid')
             ->where('organes_an.code_type', 'GP')
@@ -90,7 +94,7 @@ class CalculateDashboardStats extends Command
             ->orderByDesc('nb_membres')
             ->limit(10)
             ->get()
-            ->map(fn($g) => [
+            ->map(fn ($g) => [
                 'uid' => $g->uid,
                 'nom' => $g->libelle,
                 'sigle' => $g->libelle_abrege ?? substr($g->libelle, 0, 10),
@@ -98,7 +102,7 @@ class CalculateDashboardStats extends Command
                 'nb_membres' => $g->nb_membres,
             ])->toArray();
         DashboardStat::set('groupes_actifs', $groupesActifs);
-        $this->info('  ✓ ' . count($groupesActifs) . ' groupes');
+        $this->info('  ✓ '.count($groupesActifs).' groupes');
 
         // 📊 DERNIERS SCRUTINS (avec calcul correct des votes)
         $this->info('📊 Calcul derniers scrutins...');
@@ -110,14 +114,14 @@ class CalculateDashboardStats extends Command
                 $pour = $s->pour_calcule;
                 $contre = $s->contre_calcule;
                 $abstention = $s->abstentions_calcule;
-                
+
                 // Déterminer si adopté basé sur le résultat_code ou le calcul
                 $adopte = $s->resultat_code === 'adopté' || ($pour > $contre);
-                
+
                 return [
                     'uid' => $s->uid,
                     'numero' => $s->numero,
-                    'titre' => \Illuminate\Support\Str::limit($s->titre ?? 'Scrutin n°' . $s->numero, 80),
+                    'titre' => \Illuminate\Support\Str::limit($s->titre ?? 'Scrutin n°'.$s->numero, 80),
                     'date' => $s->date_scrutin?->format('d/m/Y'),
                     'pour' => $pour,
                     'contre' => $contre,
@@ -126,12 +130,12 @@ class CalculateDashboardStats extends Command
                 ];
             })->toArray();
         DashboardStat::set('derniers_scrutins', $derniersScrutins);
-        $this->info('  ✓ ' . count($derniersScrutins) . ' scrutins');
+        $this->info('  ✓ '.count($derniersScrutins).' scrutins');
 
         // 📈 STATS GLOBALES
         $this->info('📊 Calcul stats globales...');
         $allScrutins = ScrutinAN::get();
-        $nbAdoptes = $allScrutins->filter(fn($s) => $s->pour_calcule > $s->contre_calcule)->count();
+        $nbAdoptes = $allScrutins->filter(fn ($s) => $s->pour_calcule > $s->contre_calcule)->count();
         $globalStats = [
             'nb_deputes' => ActeurAN::count(),
             'nb_senateurs' => Senateur::where('etat', 'ACTIF')->count(),
@@ -152,4 +156,3 @@ class CalculateDashboardStats extends Command
         return self::SUCCESS;
     }
 }
-

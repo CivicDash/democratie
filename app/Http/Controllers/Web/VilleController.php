@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Maire;
 use App\Models\ResultatMunicipal;
 use App\Models\Ville;
-use App\Models\MaireMandat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +48,7 @@ class VilleController extends Controller
         $villes = $villesQuery
             ->orderByDesc('population')
             ->paginate($perPage)
-            ->through(fn($v) => $this->formatVilleCard($v));
+            ->through(fn ($v) => $this->formatVilleCard($v));
 
         // Liste des départements
         $departements = Cache::remember('villes_departements', 3600, function () {
@@ -58,9 +57,9 @@ class VilleController extends Controller
                 ->whereNotNull('departement_code')
                 ->orderBy('departement_code')
                 ->get()
-                ->map(fn($d) => [
+                ->map(fn ($d) => [
                     'code' => $d->departement_code,
-                    'nom' => $d->departement_nom ?? 'Département ' . $d->departement_code,
+                    'nom' => $d->departement_nom ?? 'Département '.$d->departement_code,
                 ]);
         });
 
@@ -71,9 +70,9 @@ class VilleController extends Controller
                 ->whereNotNull('region_code')
                 ->orderBy('region_nom')
                 ->get()
-                ->map(fn($r) => [
+                ->map(fn ($r) => [
                     'code' => $r->region_code,
-                    'nom' => $r->region_nom ?? 'Région ' . $r->region_code,
+                    'nom' => $r->region_nom ?? 'Région '.$r->region_code,
                 ]);
         });
 
@@ -152,20 +151,20 @@ class VilleController extends Controller
         });
 
         // Évolution population
-        $evolutionPopulation = $ville->historiquePopulation->map(fn($p) => [
+        $evolutionPopulation = $ville->historiquePopulation->map(fn ($p) => [
             'annee' => $p->annee,
             'population' => $p->population,
             'population_formate' => $p->population_formate,
         ]);
 
         // Budgets
-        $budgets = $ville->budgets->take(10)->map(fn($b) => [
+        $budgets = $ville->budgets->take(10)->map(fn ($b) => [
             'annee' => $b->annee,
             'recettes_fonctionnement' => $b->recettes_fonctionnement_formate,
             'depenses_fonctionnement' => $b->depenses_fonctionnement_formate,
             'dette' => $b->encours_dette_formate,
-            'dette_par_habitant' => $b->euros_par_habitant 
-                ? number_format($b->euros_par_habitant, 0, ',', ' ') . ' €' 
+            'dette_par_habitant' => $b->euros_par_habitant
+                ? number_format($b->euros_par_habitant, 0, ',', ' ').' €'
                 : 'N/A',
         ]);
 
@@ -173,15 +172,15 @@ class VilleController extends Controller
         $statsVille = $ville->stats ? [
             'taux_endettement' => $ville->stats->taux_endettement_formate,
             'dette_par_habitant' => $ville->stats->dette_par_habitant_formate,
-            'evolution_population' => $ville->stats->evolution_population_5ans_pct 
-                ? number_format($ville->stats->evolution_population_5ans_pct, 1) . '%'
+            'evolution_population' => $ville->stats->evolution_population_5ans_pct
+                ? number_format($ville->stats->evolution_population_5ans_pct, 1).'%'
                 : null,
             'score_sante_financiere' => $ville->stats->score_sante_financiere,
             'score_sante_label' => $ville->stats->score_sante_financiere_libelle,
             'score_sante_color' => $ville->stats->score_sante_financiere_color,
             'nb_maires' => $ville->stats->nb_maires_historique,
-            'duree_moy_mandat' => $ville->stats->duree_moyenne_mandat_mois 
-                ? round($ville->stats->duree_moyenne_mandat_mois / 12, 1) . ' ans'
+            'duree_moy_mandat' => $ville->stats->duree_moyenne_mandat_mois
+                ? round($ville->stats->duree_moyenne_mandat_mois / 12, 1).' ans'
                 : null,
         ] : null;
 
@@ -195,7 +194,7 @@ class VilleController extends Controller
             ->orderByRaw('ABS(population - ?) ASC', [$ville->population ?? 0])
             ->limit(5)
             ->get()
-            ->map(fn($v) => $this->formatVilleCard($v));
+            ->map(fn ($v) => $this->formatVilleCard($v));
 
         return Inertia::render('Villes/Show', [
             'ville' => [
@@ -219,7 +218,7 @@ class VilleController extends Controller
                 'est_prefecture' => $ville->est_prefecture,
                 'est_sous_prefecture' => $ville->est_sous_prefecture,
                 'est_chef_lieu_region' => $ville->est_chef_lieu_region,
-                'arrondissements' => $ville->arrondissements->map(fn($a) => [
+                'arrondissements' => $ville->arrondissements->map(fn ($a) => [
                     'nom' => $a->nom,
                     'population' => $a->population_formate,
                     'url' => $a->url,
@@ -231,7 +230,7 @@ class VilleController extends Controller
             ],
             'maire' => $ville->maireActuel ? [
                 'id' => $ville->maireActuel->id,
-                'nom' => $ville->maireActuel->nom_complet ?? trim($ville->maireActuel->prenom . ' ' . $ville->maireActuel->nom),
+                'nom' => $ville->maireActuel->nom_complet ?? trim($ville->maireActuel->prenom.' '.$ville->maireActuel->nom),
                 'civilite' => $ville->maireActuel->civilite,
                 'photo_url' => $ville->maireActuel->photo_url,
                 'debut_mandat' => $ville->maireActuel->debut_mandat?->locale('fr')->isoFormat('D MMMM YYYY'),
@@ -260,7 +259,7 @@ class VilleController extends Controller
     public function search(Request $request)
     {
         $query = $request->input('q', '');
-        
+
         if (strlen($query) < 2) {
             return response()->json([]);
         }
@@ -270,7 +269,7 @@ class VilleController extends Controller
             ->orderByDesc('population')
             ->limit(10)
             ->get()
-            ->map(fn($v) => [
+            ->map(fn ($v) => [
                 'id' => $v->id,
                 'code_insee' => $v->code_insee,
                 'nom' => $v->nom,
@@ -297,7 +296,7 @@ class VilleController extends Controller
         // Députés (via circonscription - format "39-01" = département-numéro)
         if ($ville->circonscription && str_contains($ville->circonscription, '-')) {
             [$numDept, $numCirco] = explode('-', $ville->circonscription, 2);
-            
+
             $deputes = DB::table('deputes_circonscriptions as dc')
                 ->join('acteurs_an as a', 'dc.acteur_uid', '=', 'a.uid')
                 ->where('dc.num_departement', $numDept)
@@ -308,13 +307,14 @@ class VilleController extends Controller
 
             $elus['deputes'] = $deputes->map(function ($d) {
                 $photoUrl = $d->photo_wikipedia_url;
-                if (!$photoUrl) {
+                if (! $photoUrl) {
                     $numericId = preg_replace('/^PA/', '', $d->uid);
                     $photoUrl = "https://www.assemblee-nationale.fr/dyn/static/tribun/17/photos/{$numericId}.jpg";
                 }
+
                 return [
                     'uid' => $d->uid,
-                    'nom' => trim($d->prenom . ' ' . $d->nom),
+                    'nom' => trim($d->prenom.' '.$d->nom),
                     'photo_url' => $photoUrl,
                     'url' => route('representants.deputes.show', $d->uid),
                 ];
@@ -330,7 +330,7 @@ class VilleController extends Controller
                 ->select('matricule', 'nom', 'prenom', 'photo_wikipedia_url')
                 ->get();
 
-            $elus['senateurs'] = $senateurs->map(function($s) {
+            $elus['senateurs'] = $senateurs->map(function ($s) {
                 // Construire l'URL photo avec le format correct du Sénat
                 $photoUrl = null;
                 if ($s->matricule && $s->nom && $s->prenom) {
@@ -339,10 +339,10 @@ class VilleController extends Controller
                     $matricule = strtolower($s->matricule);
                     $photoUrl = "https://www.senat.fr/senimg/{$nom}_{$prenom}{$matricule}_carre.jpg";
                 }
-                
+
                 return [
                     'matricule' => $s->matricule,
-                    'nom' => trim($s->prenom . ' ' . $s->nom),
+                    'nom' => trim($s->prenom.' '.$s->nom),
                     'photo_url' => $photoUrl ?? $s->photo_wikipedia_url,
                     'url' => route('representants.senateurs.show', $s->matricule),
                 ];
@@ -364,13 +364,14 @@ class VilleController extends Controller
         $text = str_replace('-', '_', $text);
         // Supprimer tout ce qui n'est pas alphanumérique ou underscore
         $text = preg_replace('/[^a-z0-9_]/', '', $text);
+
         return $text;
     }
 
     private function getResultatsMunicipales(Ville $ville): ?array
     {
         $resultats = ResultatMunicipal::where('ville_id', $ville->id)
-            ->with(['listes' => fn($q) => $q->orderByDesc('voix')])
+            ->with(['listes' => fn ($q) => $q->orderByDesc('voix')])
             ->orderBy('tour')
             ->get();
 
@@ -385,7 +386,7 @@ class VilleController extends Controller
             ->where('en_exercice', true)->first();
 
         return [
-            'tours' => $resultats->map(fn($r) => [
+            'tours' => $resultats->map(fn ($r) => [
                 'tour' => $r->tour,
                 'inscrits' => (int) $r->inscrits,
                 'votants' => (int) $r->votants,
@@ -396,7 +397,7 @@ class VilleController extends Controller
                 'nb_sieges_a_pourvoir' => $r->nb_sieges_a_pourvoir ? (int) $r->nb_sieges_a_pourvoir : null,
                 'statut_commune' => $r->statut_commune,
                 'statut_libelle' => $r->statut_libelle,
-                'listes' => $r->listes->map(fn($l) => [
+                'listes' => $r->listes->map(fn ($l) => [
                     'numero_panneau' => $l->numero_panneau,
                     'nom_liste' => $l->nom_liste,
                     'nuance_politique' => $l->nuance_politique,
@@ -439,7 +440,7 @@ class VilleController extends Controller
             'url' => $ville->url,
             'est_prefecture' => $ville->est_prefecture,
             'maire' => $ville->maireActuel ? [
-                'nom' => $ville->maireActuel->nom_complet ?? trim($ville->maireActuel->prenom . ' ' . $ville->maireActuel->nom),
+                'nom' => $ville->maireActuel->nom_complet ?? trim($ville->maireActuel->prenom.' '.$ville->maireActuel->nom),
                 'photo_url' => $ville->maireActuel->photo_url,
             ] : null,
         ];

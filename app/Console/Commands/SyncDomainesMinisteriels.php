@@ -31,7 +31,7 @@ class SyncDomainesMinisteriels extends Command
             $this->enrichFromWikipedia();
         }
 
-        if (!$this->option('init') && !$this->option('link') && !$this->option('enrich')) {
+        if (! $this->option('init') && ! $this->option('link') && ! $this->option('enrich')) {
             $this->info('Options disponibles :');
             $this->info('  --init   : Créer les domaines ministériels standards');
             $this->info('  --link   : Lier les postes ministériels aux domaines');
@@ -62,7 +62,7 @@ class SyncDomainesMinisteriels extends Command
             }
         }
 
-        $this->info("✅ {$created} domaines créés, " . (count($domaines) - $created) . " mis à jour");
+        $this->info("✅ {$created} domaines créés, ".(count($domaines) - $created).' mis à jour');
     }
 
     private function linkPostesToDomaines(): void
@@ -114,7 +114,7 @@ class SyncDomainesMinisteriels extends Command
                 }
             }
 
-            if (!$found && $poste->type_fonction !== 'premier_ministre') {
+            if (! $found && $poste->type_fonction !== 'premier_ministre') {
                 $notFound[] = $poste->fonction;
             }
 
@@ -126,13 +126,13 @@ class SyncDomainesMinisteriels extends Command
         $this->info("✅ {$linked} postes liés à leur domaine");
 
         if (count($notFound) > 0) {
-            $this->warn("⚠️  " . count($notFound) . " postes non classés :");
+            $this->warn('⚠️  '.count($notFound).' postes non classés :');
             $uniqueNotFound = array_unique($notFound);
             foreach (array_slice($uniqueNotFound, 0, 20) as $fonction) {
                 $this->line("   - {$fonction}");
             }
             if (count($uniqueNotFound) > 20) {
-                $this->line("   ... et " . (count($uniqueNotFound) - 20) . " autres");
+                $this->line('   ... et '.(count($uniqueNotFound) - 20).' autres');
             }
         }
     }
@@ -142,9 +142,9 @@ class SyncDomainesMinisteriels extends Command
         $this->info('📚 Enrichissement depuis Wikipedia...');
 
         $domaines = DomaineMinisteriel::whereNotNull('wikipedia_url')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereNull('wikipedia_extract')
-                  ->orWhere('wikipedia_extract', '');
+                    ->orWhere('wikipedia_extract', '');
             })
             ->get();
 
@@ -158,26 +158,29 @@ class SyncDomainesMinisteriels extends Command
                 $url = $domaine->wikipedia_url;
                 preg_match('/wikipedia\.org\/wiki\/(.+)$/', $url, $matches);
                 if (empty($matches[1])) {
-                    $this->warn("    ⚠️  URL invalide");
+                    $this->warn('    ⚠️  URL invalide');
+
                     continue;
                 }
 
                 $title = urldecode($matches[1]);
 
                 // Appeler l'API Wikipedia avec Http de Laravel
-                $apiUrl = "https://fr.wikipedia.org/api/rest_v1/page/summary/" . rawurlencode($title);
+                $apiUrl = 'https://fr.wikipedia.org/api/rest_v1/page/summary/'.rawurlencode($title);
                 $response = Http::withUserAgent('CivicDash/1.0 (contact@civicdash.fr)')
                     ->timeout(10)
                     ->get($apiUrl);
-                    
-                if (!$response->successful()) {
-                    $this->warn("    ⚠️  Erreur HTTP: " . $response->status());
+
+                if (! $response->successful()) {
+                    $this->warn('    ⚠️  Erreur HTTP: '.$response->status());
+
                     continue;
                 }
 
                 $data = $response->json();
-                if (!$data || empty($data['extract'])) {
+                if (! $data || empty($data['extract'])) {
                     $this->warn("    ⚠️  Pas d'extrait");
+
                     continue;
                 }
 
@@ -186,12 +189,12 @@ class SyncDomainesMinisteriels extends Command
                     'description' => $domaine->description ?: substr($data['extract'], 0, 500),
                 ]);
 
-                $this->line("    ✅ Enrichi");
+                $this->line('    ✅ Enrichi');
                 $enriched++;
 
                 usleep(200000); // 200ms entre les requêtes
             } catch (\Exception $e) {
-                $this->error("    ❌ Erreur: " . $e->getMessage());
+                $this->error('    ❌ Erreur: '.$e->getMessage());
             }
         }
 

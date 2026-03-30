@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\BannedWord;
-use App\Models\NiceWord;
-use App\Models\ModerationLog;
-use App\Models\Loi;
 use App\Models\ActeurAN;
-use App\Models\Senateur;
+use App\Models\BannedWord;
+use App\Models\Loi;
 use App\Models\Maire;
+use App\Models\ModerationLog;
+use App\Models\NiceWord;
+use App\Models\Senateur;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -37,7 +37,7 @@ class ContentModerationService
         $this->whitelistedDomains = config('moderation.whitelisted_domains', [
             '*.gouv.fr', 'insee.fr', 'assemblee-nationale.fr', 'senat.fr',
         ]);
-        
+
         // Charger les patterns de références
         $patterns = config('moderation.reference_patterns', []);
         $this->internalReferencePatterns = [];
@@ -53,22 +53,22 @@ class ContentModerationService
         // Compliments
         'magnifique', 'merveilleux', 'formidable', 'extraordinaire', 'fantastique',
         'incroyable', 'superbe', 'génial', 'brillant', 'admirable',
-        
+
         // Emojis
         '🌸', '🌈', '✨', '💖', '🦋', '🌻', '🍀', '🎀', '🌟', '💫',
         '🐱', '🐶', '🐰', '🦊', '🐼', '🦄', '🌺', '🍭', '🧁', '🎈',
-        
+
         // Nature
         'petit nuage', 'arc-en-ciel', 'papillon', 'fleur de lotus', 'rayon de soleil',
         'brise légère', 'étoile filante', 'pétale de rose',
-        
+
         // Animaux mignons
         'petit chaton', 'bébé panda', 'petit lapin', 'licorne', 'petit koala',
         'bébé phoque', 'petit renard', 'hamster câlin',
-        
+
         // Nourriture
         'cupcake', 'macaron', 'bonbon', 'guimauve', 'barbe à papa',
-        
+
         // Drôle
         'patate douce', 'chou-fleur de l\'amour', 'cornichon câlin', 'nouille joyeuse',
         'petite crêpe', 'champion du monde des bisous', 'professeur de câlins',
@@ -103,7 +103,7 @@ class ContentModerationService
         ['word' => 'fils de pute', 'category' => 'insulte', 'severity' => 'high'],
         ['word' => 'ta gueule', 'category' => 'insulte', 'severity' => 'medium'],
         ['word' => 'ferme ta gueule', 'category' => 'insulte', 'severity' => 'medium'],
-        
+
         // Racisme (à bloquer, pas remplacer)
         ['word' => 'nègre', 'category' => 'racisme', 'severity' => 'high'],
         ['word' => 'négro', 'category' => 'racisme', 'severity' => 'high'],
@@ -112,7 +112,7 @@ class ContentModerationService
         ['word' => 'feuj', 'category' => 'racisme', 'severity' => 'high'],
         ['word' => 'bicot', 'category' => 'racisme', 'severity' => 'high'],
         ['word' => 'chinetoque', 'category' => 'racisme', 'severity' => 'high'],
-        
+
         // Violence
         ['word' => 'je vais te tuer', 'category' => 'violence', 'severity' => 'high'],
         ['word' => 'je te tue', 'category' => 'violence', 'severity' => 'high'],
@@ -122,10 +122,10 @@ class ContentModerationService
 
     /**
      * Modérer un contenu (texte)
-     * 
-     * @param string $content Le contenu à modérer
-     * @param int|null $userId L'ID de l'utilisateur
-     * @param object|null $model Le modèle associé (Topic, Post, etc.)
+     *
+     * @param  string  $content  Le contenu à modérer
+     * @param  int|null  $userId  L'ID de l'utilisateur
+     * @param  object|null  $model  Le modèle associé (Topic, Post, etc.)
      * @return array ['content' => string, 'replacements' => int, 'blocked' => bool, 'details' => array]
      */
     public function moderate(string $content, ?int $userId = null, ?object $model = null): array
@@ -138,11 +138,11 @@ class ContentModerationService
 
         foreach ($bannedWords as $bannedWord) {
             $pattern = $bannedWord->pattern;
-            
+
             // Compter les occurrences
             preg_match_all($pattern, $moderatedContent, $matches);
             $occurrences = count($matches[0]);
-            
+
             if ($occurrences > 0) {
                 // Si c'est du racisme ou violence grave, on bloque
                 if (in_array($bannedWord->category, ['racisme']) && $bannedWord->severity === 'high') {
@@ -152,25 +152,26 @@ class ContentModerationService
                         'category' => $bannedWord->category,
                         'action' => 'blocked',
                     ];
+
                     continue;
                 }
-                
+
                 // Sinon, on remplace par un mot gentil
                 $moderatedContent = preg_replace_callback(
                     $pattern,
                     function ($match) use ($bannedWord, &$replacementCount, &$details, $userId, $model) {
                         $niceWord = $this->getRandomNiceWord();
                         $replacementCount++;
-                        
+
                         $details[] = [
                             'original' => $match[0],
                             'replacement' => $niceWord,
                             'category' => $bannedWord->category,
                         ];
-                        
+
                         // Logger le remplacement
                         $this->logReplacement($match[0], $niceWord, $bannedWord, $userId, $model);
-                        
+
                         return $niceWord;
                     },
                     $moderatedContent
@@ -233,7 +234,7 @@ class ContentModerationService
             return NiceWord::active()->pluck('word')->toArray();
         });
 
-        if (!empty($niceWords)) {
+        if (! empty($niceWords)) {
             return $niceWords[array_rand($niceWords)];
         }
 
@@ -326,27 +327,27 @@ class ContentModerationService
         if (preg_match('/[\x{1F300}-\x{1F9FF}]/u', $word)) {
             return 'emoji';
         }
-        
+
         // Animaux
         if (preg_match('/chaton|panda|lapin|licorne|koala|phoque|renard|hamster/i', $word)) {
             return 'animal';
         }
-        
+
         // Nature
         if (preg_match('/nuage|arc-en-ciel|papillon|fleur|soleil|brise|étoile|rose/i', $word)) {
             return 'nature';
         }
-        
+
         // Nourriture
         if (preg_match('/cupcake|macaron|bonbon|guimauve|barbe à papa|crêpe/i', $word)) {
             return 'nourriture';
         }
-        
+
         // Drôle
         if (preg_match('/patate|chou-fleur|cornichon|nouille|champion|professeur/i', $word)) {
             return 'drole';
         }
-        
+
         return 'compliment';
     }
 
@@ -383,35 +384,37 @@ class ContentModerationService
      * - Supprime les liens vers des domaines non autorisés
      * - Conserve les liens vers les domaines whitelistés
      * - Conserve les références internes (@loi:, @depute:, etc.)
-     * 
-     * @param string $content Le contenu à nettoyer
+     *
+     * @param  string  $content  Le contenu à nettoyer
      * @return array ['content' => string, 'removed_links' => array, 'kept_links' => array]
      */
     public function sanitizeLinks(string $content): array
     {
         $removedLinks = [];
         $keptLinks = [];
-        
+
         // Pattern pour détecter les URLs
         $urlPattern = '/https?:\/\/[^\s\<\>\"\'\)\]]+/i';
-        
+
         $sanitizedContent = preg_replace_callback($urlPattern, function ($match) use (&$removedLinks, &$keptLinks) {
             $url = $match[0];
-            
+
             // Extraire le domaine
             $parsedUrl = parse_url($url);
             $host = $parsedUrl['host'] ?? '';
-            
+
             if ($this->isDomainWhitelisted($host)) {
                 $keptLinks[] = $url;
+
                 return $url; // Conserver le lien
             }
-            
+
             // Lien non autorisé : le remplacer par un message
             $removedLinks[] = $url;
+
             return '[lien externe supprimé]';
         }, $content);
-        
+
         return [
             'content' => $sanitizedContent,
             'removed_links' => $removedLinks,
@@ -428,7 +431,7 @@ class ContentModerationService
     {
         $removedImages = [];
         $originalContent = $content;
-        
+
         // 1. Images Markdown : ![alt](url)
         $content = preg_replace_callback(
             '/!\[([^\]]*)\]\(([^)]+)\)/i',
@@ -438,11 +441,12 @@ class ContentModerationService
                     'alt' => $match[1],
                     'url' => $match[2],
                 ];
+
                 return '[📷 image supprimée]';
             },
             $content
         );
-        
+
         // 2. Balises <img> HTML
         $content = preg_replace_callback(
             '/<img[^>]*src\s*=\s*["\']([^"\']+)["\'][^>]*\/?>/i',
@@ -451,11 +455,12 @@ class ContentModerationService
                     'type' => 'html',
                     'url' => $match[1],
                 ];
+
                 return '[📷 image supprimée]';
             },
             $content
         );
-        
+
         // 3. URLs directes d'images (jpg, png, gif, webp, svg)
         $content = preg_replace_callback(
             '/(https?:\/\/[^\s<>"\']+\.(jpg|jpeg|png|gif|webp|svg|bmp|ico))(\s|$|[<"\'])/i',
@@ -464,35 +469,37 @@ class ContentModerationService
                     'type' => 'url',
                     'url' => $match[1],
                 ];
-                return '[📷 lien image supprimé]' . $match[3];
+
+                return '[📷 lien image supprimé]'.$match[3];
             },
             $content
         );
-        
+
         // 4. Data URLs (base64)
         $content = preg_replace_callback(
             '/data:image\/[^;]+;base64,[a-zA-Z0-9+\/=]+/i',
             function ($match) use (&$removedImages) {
                 $removedImages[] = [
                     'type' => 'data_url',
-                    'url' => substr($match[0], 0, 50) . '...',
+                    'url' => substr($match[0], 0, 50).'...',
                 ];
+
                 return '[📷 image encodée supprimée]';
             },
             $content
         );
-        
+
         // 5. Balises <picture> et <source>
         $content = preg_replace('/<picture[^>]*>.*?<\/picture>/is', '[📷 image supprimée]', $content);
         $content = preg_replace('/<source[^>]*srcset[^>]*>/is', '', $content);
-        
+
         // 6. Attributs style avec background-image
         $content = preg_replace(
             '/style\s*=\s*["\'][^"\']*background(-image)?\s*:\s*url\([^)]+\)[^"\']*["\']/i',
             '',
             $content
         );
-        
+
         return [
             'content' => $content,
             'removed_images' => $removedImages,
@@ -507,7 +514,7 @@ class ContentModerationService
     public function isDomainWhitelisted(string $host): bool
     {
         $host = strtolower($host);
-        
+
         foreach ($this->whitelistedDomains as $pattern) {
             // Wildcard pattern (*.gouv.fr)
             if (str_starts_with($pattern, '*.')) {
@@ -522,7 +529,7 @@ class ContentModerationService
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -541,23 +548,23 @@ class ContentModerationService
     /**
      * Parse et enrichit les références internes dans le contenu
      * Transforme @loi:2024-123 en lien cliquable avec preview
-     * 
-     * @param string $content Le contenu à parser
+     *
+     * @param  string  $content  Le contenu à parser
      * @return array ['content' => string, 'references' => array]
      */
     public function parseInternalReferences(string $content): array
     {
         $references = [];
         $parsedContent = $content;
-        
+
         foreach ($this->internalReferencePatterns as $type => $pattern) {
             $parsedContent = preg_replace_callback($pattern, function ($match) use ($type, &$references) {
                 $fullMatch = $match[0];
                 $identifier = $match[1];
-                
+
                 // Résoudre la référence
                 $resolved = $this->resolveReference($type, $identifier);
-                
+
                 if ($resolved) {
                     $references[] = [
                         'type' => $type,
@@ -566,7 +573,7 @@ class ContentModerationService
                         'url' => $resolved['url'],
                         'exists' => true,
                     ];
-                    
+
                     // Retourner le format HTML enrichi
                     return sprintf(
                         '<a href="%s" class="internal-ref internal-ref-%s" data-type="%s" data-id="%s" title="%s">%s</a>',
@@ -578,26 +585,26 @@ class ContentModerationService
                         $fullMatch
                     );
                 }
-                
+
                 // Référence non trouvée : marquer comme invalide
                 $references[] = [
                     'type' => $type,
                     'identifier' => $identifier,
                     'exists' => false,
                 ];
-                
+
                 return sprintf(
                     '<span class="internal-ref internal-ref-invalid" title="Référence non trouvée">%s</span>',
                     $fullMatch
                 );
             }, $parsedContent);
         }
-        
+
         return [
             'content' => $parsedContent,
             'references' => $references,
-            'valid_count' => count(array_filter($references, fn($r) => $r['exists'])),
-            'invalid_count' => count(array_filter($references, fn($r) => !$r['exists'])),
+            'valid_count' => count(array_filter($references, fn ($r) => $r['exists'])),
+            'invalid_count' => count(array_filter($references, fn ($r) => ! $r['exists'])),
         ];
     }
 
@@ -608,14 +615,14 @@ class ContentModerationService
     public function extractReferences(string $content): array
     {
         $references = [];
-        
+
         foreach ($this->internalReferencePatterns as $type => $pattern) {
             preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
-            
+
             foreach ($matches as $match) {
                 $identifier = $match[1];
                 $resolved = $this->resolveReference($type, $identifier);
-                
+
                 $references[] = [
                     'type' => $type,
                     'identifier' => $identifier,
@@ -626,7 +633,7 @@ class ContentModerationService
                 ];
             }
         }
-        
+
         return $references;
     }
 
@@ -652,7 +659,7 @@ class ContentModerationService
             $loi = Cache::remember("ref_loi_{$code}", 3600, function () use ($code) {
                 return Loi::where('loicod', $code)->first(['loicod', 'loititre']);
             });
-            
+
             if ($loi) {
                 return [
                     'label' => $loi->loititre,
@@ -662,7 +669,7 @@ class ContentModerationService
         } catch (\Exception $e) {
             Log::debug("Reference loi not found: {$code}");
         }
-        
+
         return null;
     }
 
@@ -672,17 +679,17 @@ class ContentModerationService
             $depute = Cache::remember("ref_depute_{$uid}", 3600, function () use ($uid) {
                 return ActeurAN::where('uid', $uid)->first(['uid', 'prenom', 'nom', 'slug']);
             });
-            
+
             if ($depute) {
                 return [
-                    'label' => $depute->prenom . ' ' . $depute->nom,
+                    'label' => $depute->prenom.' '.$depute->nom,
                     'url' => route('representants.deputes.show', $depute->slug ?? $uid),
                 ];
             }
         } catch (\Exception $e) {
             Log::debug("Reference depute not found: {$uid}");
         }
-        
+
         return null;
     }
 
@@ -692,17 +699,17 @@ class ContentModerationService
             $senateur = Cache::remember("ref_senateur_{$matricule}", 3600, function () use ($matricule) {
                 return Senateur::where('matricule', $matricule)->first(['matricule', 'prenom', 'nom']);
             });
-            
+
             if ($senateur) {
                 return [
-                    'label' => $senateur->prenom . ' ' . $senateur->nom,
+                    'label' => $senateur->prenom.' '.$senateur->nom,
                     'url' => route('representants.senateurs.show', $matricule),
                 ];
             }
         } catch (\Exception $e) {
             Log::debug("Reference senateur not found: {$matricule}");
         }
-        
+
         return null;
     }
 
@@ -712,17 +719,17 @@ class ContentModerationService
             $maire = Cache::remember("ref_maire_{$id}", 3600, function () use ($id) {
                 return Maire::find($id, ['id', 'prenom', 'nom', 'commune']);
             });
-            
+
             if ($maire) {
                 return [
-                    'label' => $maire->prenom . ' ' . $maire->nom . ' (' . $maire->commune . ')',
+                    'label' => $maire->prenom.' '.$maire->nom.' ('.$maire->commune.')',
                     'url' => route('representants.maires.show', $id),
                 ];
             }
         } catch (\Exception $e) {
             Log::debug("Reference maire not found: {$id}");
         }
-        
+
         return null;
     }
 
@@ -754,11 +761,11 @@ class ContentModerationService
      * 1. Remplace les mots bannis par des mots gentils
      * 2. Supprime les liens non autorisés
      * 3. Parse les références internes
-     * 
-     * @param string $content Le contenu à modérer
-     * @param int|null $userId L'ID de l'utilisateur
-     * @param object|null $model Le modèle associé
-     * @param array $options Options de modération
+     *
+     * @param  string  $content  Le contenu à modérer
+     * @param  int|null  $userId  L'ID de l'utilisateur
+     * @param  object|null  $model  Le modèle associé
+     * @param  array  $options  Options de modération
      * @return array Résultat complet de la modération
      */
     public function fullModerate(
@@ -773,7 +780,7 @@ class ContentModerationService
             'blocked' => false,
             'modifications' => [],
         ];
-        
+
         // 1. Modération des mots bannis
         if ($options['moderate_words'] ?? true) {
             $wordResult = $this->moderate($content, $userId, $model);
@@ -781,53 +788,53 @@ class ContentModerationService
             $result['blocked'] = $wordResult['blocked'];
             $result['word_replacements'] = $wordResult['replacements'];
             $result['word_details'] = $wordResult['details'];
-            
+
             if ($wordResult['modified']) {
                 $result['modifications'][] = 'words';
             }
         }
-        
+
         // Si bloqué, on arrête là
         if ($result['blocked']) {
             return $result;
         }
-        
+
         // 2. Suppression des images (TOUJOURS activé pour sécurité)
         if ($options['sanitize_images'] ?? true) {
             $imageResult = $this->sanitizeImages($result['content']);
             $result['content'] = $imageResult['content'];
             $result['removed_images'] = $imageResult['removed_images'];
-            
-            if (!empty($imageResult['removed_images'])) {
+
+            if (! empty($imageResult['removed_images'])) {
                 $result['modifications'][] = 'images';
             }
         }
-        
+
         // 3. Sanitization des liens
         if ($options['sanitize_links'] ?? true) {
             $linkResult = $this->sanitizeLinks($result['content']);
             $result['content'] = $linkResult['content'];
             $result['removed_links'] = $linkResult['removed_links'];
             $result['kept_links'] = $linkResult['kept_links'];
-            
-            if (!empty($linkResult['removed_links'])) {
+
+            if (! empty($linkResult['removed_links'])) {
                 $result['modifications'][] = 'links';
             }
         }
-        
+
         // 4. Parsing des références internes (optionnel, pour l'affichage)
         if ($options['parse_references'] ?? false) {
             $refResult = $this->parseInternalReferences($result['content']);
             $result['content_html'] = $refResult['content'];
             $result['references'] = $refResult['references'];
-            
-            if (!empty($refResult['references'])) {
+
+            if (! empty($refResult['references'])) {
                 $result['modifications'][] = 'references';
             }
         }
-        
-        $result['modified'] = !empty($result['modifications']);
-        
+
+        $result['modified'] = ! empty($result['modifications']);
+
         return $result;
     }
 
@@ -838,32 +845,32 @@ class ContentModerationService
     public function validate(string $content): array
     {
         $issues = [];
-        
+
         // Vérifier les mots bannis
         $wordCheck = $this->check($content);
-        if (!$wordCheck['clean']) {
+        if (! $wordCheck['clean']) {
             $issues['banned_words'] = $wordCheck['found'];
         }
-        
+
         // Vérifier les images (non autorisées)
         $imageResult = $this->sanitizeImages($content);
-        if (!empty($imageResult['removed_images'])) {
+        if (! empty($imageResult['removed_images'])) {
             $issues['images'] = $imageResult['removed_images'];
         }
-        
+
         // Vérifier les liens non autorisés
         $linkResult = $this->sanitizeLinks($content);
-        if (!empty($linkResult['removed_links'])) {
+        if (! empty($linkResult['removed_links'])) {
             $issues['external_links'] = $linkResult['removed_links'];
         }
-        
+
         // Extraire les références pour vérification
         $references = $this->extractReferences($content);
-        $invalidRefs = array_filter($references, fn($r) => !$r['exists']);
-        if (!empty($invalidRefs)) {
+        $invalidRefs = array_filter($references, fn ($r) => ! $r['exists']);
+        if (! empty($invalidRefs)) {
             $issues['invalid_references'] = $invalidRefs;
         }
-        
+
         return [
             'valid' => empty($issues),
             'issues' => $issues,
@@ -888,7 +895,7 @@ class ContentModerationService
             'sanitize_links' => true,
             'parse_references' => false,
         ]);
-        
+
         return $result['content'];
     }
 

@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 
 /**
  * Jeton éphémère pour voter (à usage unique)
- * 
+ *
  * @property int $id
  * @property int $topic_id
  * @property int $user_id
@@ -60,7 +60,7 @@ class BallotToken extends Model
      */
     public static function generateToken(): string
     {
-        return hash('sha512', Str::random(64) . microtime(true) . config('app.key'));
+        return hash('sha512', Str::random(64).microtime(true).config('app.key'));
     }
 
     /**
@@ -68,7 +68,7 @@ class BallotToken extends Model
      */
     public function isValid(): bool
     {
-        return !$this->consumed && now()->lt($this->expires_at);
+        return ! $this->consumed && now()->lt($this->expires_at);
     }
 
     /**
@@ -132,4 +132,3 @@ class BallotToken extends Model
             ->where('topic_id', $topicId);
     }
 }
-

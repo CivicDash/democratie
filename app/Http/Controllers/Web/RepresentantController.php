@@ -8,7 +8,6 @@ use App\Models\DeputeCirconscription;
 use App\Models\DeputeSenateur;
 use App\Models\GroupeParlementaire;
 use App\Models\Maire;
-use App\Models\Profile;
 use App\Models\Senateur;
 use App\Services\GroupeParlementaireService;
 use Illuminate\Http\Request;
@@ -28,6 +27,7 @@ class RepresentantController extends Controller
         if ($exists === null) {
             $exists = Schema::hasTable('deputes_senateurs');
         }
+
         return $exists;
     }
 
@@ -49,17 +49,17 @@ class RepresentantController extends Controller
         ];
 
         $groupeService = app(GroupeParlementaireService::class);
-        
+
         // Mode simulation via paramètre GET
         $simulatePostalCode = $request->input('simulate_postal_code');
-        
+
         if ($simulatePostalCode) {
             $postalData = \App\Models\FrenchPostalCode::where('postal_code', $simulatePostalCode)->first();
-            
+
             if ($postalData) {
                 $data['hasLocation'] = true;
                 $deptCode = substr($postalData->circonscription ?? '', 0, 2);
-                
+
                 $data['location'] = [
                     'city' => $postalData->city_name,
                     'postal_code' => $postalData->postal_code,
@@ -74,16 +74,16 @@ class RepresentantController extends Controller
 
                 // Sénateurs du département (via modèle Senateur)
                 $senateurs = Senateur::actifs()
-                    ->where(function($q) use ($deptCode, $postalData) {
+                    ->where(function ($q) use ($deptCode, $postalData) {
                         $q->where('departement_code', $deptCode)
-                          ->orWhere('circonscription', 'ILIKE', '%' . $postalData->department_name . '%');
+                            ->orWhere('circonscription', 'ILIKE', '%'.$postalData->department_name.'%');
                     })
                     ->get();
 
-                $data['senateurs'] = $senateurs->map(function($senateur) use ($groupeService) {
+                $data['senateurs'] = $senateurs->map(function ($senateur) use ($groupeService) {
                     return [
                         'id' => $senateur->matricule,
-                        'nom_complet' => trim($senateur->prenom_usuel . ' ' . $senateur->nom_usuel),
+                        'nom_complet' => trim($senateur->prenom_usuel.' '.$senateur->nom_usuel),
                         'photo_url' => $senateur->photo_url,
                         'profession' => $senateur->description_profession,
                         'circonscription' => $senateur->circonscription,
@@ -104,7 +104,7 @@ class RepresentantController extends Controller
         } elseif ($profile && $profile->circonscription && $profile->department_id) {
             $data['hasLocation'] = true;
             $deptCode = substr($profile->circonscription ?? '', 0, 2);
-            
+
             $data['location'] = [
                 'city' => $profile->city_name,
                 'postal_code' => $profile->postal_code,
@@ -117,16 +117,16 @@ class RepresentantController extends Controller
 
             // Sénateurs du département (via modèle Senateur)
             $senateurs = Senateur::actifs()
-                ->where(function($q) use ($deptCode, $profile) {
+                ->where(function ($q) use ($deptCode, $profile) {
                     $q->where('departement_code', $deptCode)
-                      ->orWhere('circonscription', 'ILIKE', '%' . ($profile->department?->name ?? '') . '%');
+                        ->orWhere('circonscription', 'ILIKE', '%'.($profile->department?->name ?? '').'%');
                 })
                 ->get();
 
-            $data['senateurs'] = $senateurs->map(function($senateur) use ($groupeService) {
+            $data['senateurs'] = $senateurs->map(function ($senateur) use ($groupeService) {
                 return [
                     'id' => $senateur->matricule,
-                    'nom_complet' => trim($senateur->prenom_usuel . ' ' . $senateur->nom_usuel),
+                    'nom_complet' => trim($senateur->prenom_usuel.' '.$senateur->nom_usuel),
                     'photo_url' => $senateur->photo_url,
                     'profession' => $senateur->description_profession,
                     'circonscription' => $senateur->circonscription,
@@ -175,7 +175,7 @@ class RepresentantController extends Controller
 
             // Compter les sénateurs par région
             $senateursByRegion[$region->code] = Senateur::actifs()
-                ->where(function($q) use ($departments) {
+                ->where(function ($q) use ($departments) {
                     foreach ($departments as $deptCode) {
                         $q->orWhere('departement_code', $deptCode);
                     }
@@ -183,14 +183,14 @@ class RepresentantController extends Controller
                 ->count();
         }
 
-        $data['regions'] = $regions->map(fn($r) => ['code' => $r->code, 'name' => $r->name]);
+        $data['regions'] = $regions->map(fn ($r) => ['code' => $r->code, 'name' => $r->name]);
         $data['deputesByRegion'] = $deputesByRegion;
         $data['senateursByRegion'] = $senateursByRegion;
 
         // Statistiques pour le bandeau hero
         $data['stats'] = Cache::remember('mes_representants_stats', 3600, function () {
             return [
-                'deputes' => ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))->count(),
+                'deputes' => ActeurAN::whereHas('mandats', fn ($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))->count(),
                 'senateurs' => Senateur::actifs()->count(),
                 'maires' => Maire::count(),
                 'discussions' => \App\Models\Topic::published()->count(),
@@ -221,7 +221,7 @@ class RepresentantController extends Controller
         }
 
         if ($request->filled('department')) {
-            $query->where('circonscription', 'like', $request->department . '%');
+            $query->where('circonscription', 'like', $request->department.'%');
         }
 
         // Tri
@@ -240,12 +240,12 @@ class RepresentantController extends Controller
         }
 
         $deputes = $query->paginate(30)->withQueryString();
-        
+
         // Récupérer les groupes parlementaires pour les filtres et l'hémicycle
         $groupes = GroupeParlementaire::where('source', 'assemblee')
             ->where('actif', true)
             ->get(['sigle', 'nom', 'couleur_hex', 'position_politique'])
-            ->map(fn($g) => [
+            ->map(fn ($g) => [
                 'sigle' => $g->sigle,
                 'nom' => $g->nom,
                 'couleur_hex' => $g->couleur_hex,
@@ -308,7 +308,7 @@ class RepresentantController extends Controller
      */
     private function findDeputeByCirconscription(?string $circonscription, GroupeParlementaireService $groupeService): ?array
     {
-        if (!$circonscription) {
+        if (! $circonscription) {
             return null;
         }
 
@@ -322,7 +322,7 @@ class RepresentantController extends Controller
         $numCirco = intval($parts[1]);
 
         // Récupérer le nom du département
-        $postalCode = \App\Models\FrenchPostalCode::where('postal_code', 'LIKE', $deptCode . '%')->first();
+        $postalCode = \App\Models\FrenchPostalCode::where('postal_code', 'LIKE', $deptCode.'%')->first();
         $deptName = $postalCode->department_name ?? '';
 
         // Chercher dans la nouvelle table deputes_circonscriptions (beaucoup plus rapide)
@@ -350,7 +350,7 @@ class RepresentantController extends Controller
                     'couleur' => $groupeService->getCouleurGroupe($groupeActuel->libelle_abrege),
                 ] : null,
                 'nb_amendements' => $acteur->amendementsAuteur()->where('legislature', 17)->count(),
-                'nb_votes' => $acteur->votesIndividuels()->whereHas('scrutin', fn($q) => $q->where('legislature', 17))->count(),
+                'nb_votes' => $acteur->votesIndividuels()->whereHas('scrutin', fn ($q) => $q->where('legislature', 17))->count(),
                 'url_profil' => route('representants.deputes.show', $acteur->uid),
             ];
         }
@@ -358,7 +358,7 @@ class RepresentantController extends Controller
         // Fallback si pas trouvé dans la nouvelle table
         return [
             'not_found' => true,
-            'message' => "Député de la {$numCirco}" . ($numCirco === 1 ? 'ère' : 'ème') . " circonscription " . ($deptName ? "de {$deptName}" : ''),
+            'message' => "Député de la {$numCirco}".($numCirco === 1 ? 'ère' : 'ème').' circonscription '.($deptName ? "de {$deptName}" : ''),
             'circonscription' => $circonscription,
         ];
     }
@@ -372,7 +372,7 @@ class RepresentantController extends Controller
             ->byPostalCode($postalCode)
             ->first();
 
-        if (!$maire) {
+        if (! $maire) {
             return null;
         }
 
@@ -431,4 +431,3 @@ class RepresentantController extends Controller
      * @deprecated La page régions a été fusionnée dans mesRepresentants avec la carte interactive
      */
 }
-

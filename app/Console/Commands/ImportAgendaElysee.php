@@ -17,7 +17,9 @@ class ImportAgendaElysee extends Command
     protected $description = 'Importer l\'agenda du Président depuis elysee.fr (scraping HTML)';
 
     private int $created = 0;
+
     private int $updated = 0;
+
     private int $errors = 0;
 
     // Mapping des mois français
@@ -38,16 +40,16 @@ class ImportAgendaElysee extends Command
         }
 
         $moisOption = $this->option('mois');
-        
+
         if ($moisOption) {
             $this->importMois($moisOption);
         } else {
             // Import du mois courant
             $this->importMois(null);
-            
+
             // Mois précédent
             $moisPrec = now()->subMonth();
-            $this->importMois($this->moisNoms[$moisPrec->month] . '-' . $moisPrec->year);
+            $this->importMois($this->moisNoms[$moisPrec->month].'-'.$moisPrec->year);
         }
 
         // Résumé
@@ -67,8 +69,8 @@ class ImportAgendaElysee extends Command
             $url = "https://www.elysee.fr/agenda-{$mois}";
             $this->info("📥 Import {$mois}...");
         } else {
-            $url = "https://www.elysee.fr/agenda";
-            $this->info("📥 Import mois courant...");
+            $url = 'https://www.elysee.fr/agenda';
+            $this->info('📥 Import mois courant...');
         }
 
         try {
@@ -79,9 +81,10 @@ class ImportAgendaElysee extends Command
                 ])
                 ->get($url);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->error("  ❌ Erreur HTTP {$response->status()}");
                 $this->errors++;
+
                 return;
             }
 
@@ -89,7 +92,7 @@ class ImportAgendaElysee extends Command
             $this->parseHtml($html);
 
         } catch (\Exception $e) {
-            $this->error("  ❌ Erreur: " . $e->getMessage());
+            $this->error('  ❌ Erreur: '.$e->getMessage());
             $this->errors++;
         }
     }
@@ -101,19 +104,19 @@ class ImportAgendaElysee extends Command
 
         // Structure trouvée : div.banner--table avec id="d-YYMMDD"
         // Contient ul.list-table > li avec .list-table__hour et .list-table__type
-        
+
         $crawler->filter('div.banner--table[id^="d-"]')->each(function (Crawler $dayDiv) use (&$count) {
             // Extraire la date depuis l'ID (format: d-YYMMDD)
             $id = $dayDiv->attr('id'); // "d-251202" = 2 décembre 2025
-            
-            if (!$id || !preg_match('/^d-(\d{2})(\d{2})(\d{2})$/', $id, $matches)) {
+
+            if (! $id || ! preg_match('/^d-(\d{2})(\d{2})(\d{2})$/', $id, $matches)) {
                 return;
             }
-            
-            $annee = 2000 + (int)$matches[1]; // 25 -> 2025
-            $mois = (int)$matches[2]; // 12
-            $jour = (int)$matches[3]; // 02
-            
+
+            $annee = 2000 + (int) $matches[1]; // 25 -> 2025
+            $mois = (int) $matches[2]; // 12
+            $jour = (int) $matches[3]; // 02
+
             try {
                 $date = Carbon::createFromDate($annee, $mois, $jour);
             } catch (\Exception $e) {
@@ -136,14 +139,14 @@ class ImportAgendaElysee extends Command
             $heure = null;
             $minute = 0;
             $journeeEntiere = false;
-            
+
             $hourNode = $eventLi->filter('.list-table__hour');
             if ($hourNode->count() > 0) {
                 $heureText = trim($hourNode->text());
-                
+
                 if (preg_match('/^(\d{1,2})h(\d{2})?$/i', $heureText, $matches)) {
-                    $heure = (int)$matches[1];
-                    $minute = (int)($matches[2] ?? 0);
+                    $heure = (int) $matches[1];
+                    $minute = (int) ($matches[2] ?? 0);
                 } elseif (stripos($heureText, 'journée') !== false || stripos($heureText, 'matin') !== false) {
                     $journeeEntiere = true;
                 }
@@ -154,7 +157,7 @@ class ImportAgendaElysee extends Command
             $typeNode = $eventLi->filter('.list-table__type');
             if ($typeNode->count() > 0) {
                 $typeText = strtolower(trim($typeNode->text()));
-                
+
                 if (str_contains($typeText, 'conseil')) {
                     $type = EvenementLegislatif::TYPE_REUNION;
                 } elseif (str_contains($typeText, 'entretien') || str_contains($typeText, 'rencontre')) {
@@ -172,30 +175,30 @@ class ImportAgendaElysee extends Command
             if ($contentNode->count() > 0) {
                 // Le titre est souvent dans .list-table__type ou .m-b-n
                 $typeText = $typeNode->count() > 0 ? trim($typeNode->text()) : '';
-                
+
                 $descNode = $contentNode->filter('.m-b-n, .list-table__description, p');
                 $description = $descNode->count() > 0 ? trim($descNode->text()) : '';
-                
+
                 $titre = $typeText ?: $description;
                 if ($typeText && $description && $typeText !== $description) {
-                    $titre = $typeText . ' - ' . $description;
+                    $titre = $typeText.' - '.$description;
                 }
             }
-            
+
             // Fallback : utiliser tout le texte
             if (empty($titre)) {
                 $titre = trim($eventLi->text());
                 // Nettoyer les heures du titre
                 $titre = preg_replace('/^\d{1,2}h\d{0,2}\s*/i', '', $titre);
             }
-            
+
             if (strlen($titre) < 5) {
                 return;
             }
 
             // Limiter le titre
             if (strlen($titre) > 255) {
-                $titre = substr($titre, 0, 252) . '...';
+                $titre = substr($titre, 0, 252).'...';
             }
 
             // Date de début
@@ -207,20 +210,20 @@ class ImportAgendaElysee extends Command
             }
 
             // UID unique
-            $uid = 'elysee-' . $date->format('Ymd') . '-' . md5($titre);
+            $uid = 'elysee-'.$date->format('Ymd').'-'.md5($titre);
 
             // URL source (liens associés)
             $urlSource = null;
             $linkNode = $eventLi->filter('.list-table__links a, a');
             if ($linkNode->count() > 0) {
                 $href = $linkNode->first()->attr('href');
-                if ($href && !str_starts_with($href, '#')) {
-                    $urlSource = str_starts_with($href, 'http') ? $href : 'https://www.elysee.fr' . $href;
+                if ($href && ! str_starts_with($href, '#')) {
+                    $urlSource = str_starts_with($href, 'http') ? $href : 'https://www.elysee.fr'.$href;
                 }
             }
 
             // Icône selon le type
-            $icone = match($type) {
+            $icone = match ($type) {
                 EvenementLegislatif::TYPE_REUNION => '👔',
                 EvenementLegislatif::TYPE_AUDITION => '🤝',
                 default => '🏛️',
@@ -252,29 +255,29 @@ class ImportAgendaElysee extends Command
             } else {
                 $this->updated++;
             }
-            
+
             $count++;
 
         } catch (\Exception $e) {
-            $this->warn("  ⚠️ Erreur parsing: " . $e->getMessage());
+            $this->warn('  ⚠️ Erreur parsing: '.$e->getMessage());
         }
     }
 
     private function cleanText(?string $text, int $maxLength = 255): ?string
     {
-        if (!$text) {
+        if (! $text) {
             return null;
         }
-        
+
         $text = strip_tags($text);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = preg_replace('/\s+/', ' ', $text);
         $text = trim($text);
-        
+
         if (strlen($text) > $maxLength) {
-            $text = substr($text, 0, $maxLength - 3) . '...';
+            $text = substr($text, 0, $maxLength - 3).'...';
         }
-        
+
         return $text ?: null;
     }
 }

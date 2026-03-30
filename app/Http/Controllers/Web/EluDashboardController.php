@@ -3,17 +3,12 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\AffaireJudiciaire;
 use App\Models\EluFollower;
-use App\Models\HatvpDeclaration;
 use App\Models\Maire;
-use App\Models\MaireMandat;
-use App\Models\ResultatMunicipal;
-use App\Models\TopicElu;
-use App\Models\Topic;
 use App\Models\TerritoryDepartment;
-use App\Services\NotificationService;
+use App\Models\TopicElu;
 use App\Services\ContentModerationService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -32,9 +27,9 @@ class EluDashboardController extends Controller
     public function index(): Response
     {
         $user = Auth::user();
-        
+
         // Vérifier que l'utilisateur est un élu vérifié
-        if (!$user->isVerifiedElu()) {
+        if (! $user->isVerifiedElu()) {
             abort(403, 'Accès réservé aux élus vérifiés.');
         }
 
@@ -43,21 +38,21 @@ class EluDashboardController extends Controller
         $pending = $this->getInterpellationsQuery($user)->where('response_status', 'pending')->count();
         $answered = $this->getInterpellationsQuery($user)->where('response_status', 'answered')->count();
         $declined = $this->getInterpellationsQuery($user)->where('response_status', 'declined')->count();
-        
+
         // Calcul du délai moyen de réponse (en jours)
         $avgResponseTime = $this->getInterpellationsQuery($user)
             ->whereNotNull('answered_at')
             ->selectRaw('AVG(EXTRACT(EPOCH FROM (answered_at - created_at)) / 86400) as avg_days')
             ->value('avg_days');
-        
+
         // % de réponse
         $responseRate = $total > 0 ? round(($answered / $total) * 100, 1) : 0;
-        
+
         // Interpellations cette semaine
         $thisWeek = $this->getInterpellationsQuery($user)
             ->where('created_at', '>=', now()->subWeek())
             ->count();
-        
+
         $stats = [
             'total_interpellations' => $total,
             'pending' => $pending,
@@ -76,7 +71,7 @@ class EluDashboardController extends Controller
             ->orderByDesc('created_at')
             ->limit(10)
             ->get()
-            ->map(fn($i) => $this->formatInterpellation($i));
+            ->map(fn ($i) => $this->formatInterpellation($i));
 
         // Dernières réponses
         $recentResponses = $this->getInterpellationsQuery($user)
@@ -85,7 +80,7 @@ class EluDashboardController extends Controller
             ->orderByDesc('answered_at')
             ->limit(5)
             ->get()
-            ->map(fn($i) => $this->formatInterpellation($i));
+            ->map(fn ($i) => $this->formatInterpellation($i));
 
         return Inertia::render('Elu/Dashboard', [
             'stats' => $stats,
@@ -105,8 +100,8 @@ class EluDashboardController extends Controller
     public function interpellations(Request $request): Response
     {
         $user = Auth::user();
-        
-        if (!$user->isVerifiedElu()) {
+
+        if (! $user->isVerifiedElu()) {
             abort(403, 'Accès réservé aux élus vérifiés.');
         }
 
@@ -130,7 +125,7 @@ class EluDashboardController extends Controller
         $interpellations = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Elu/Interpellations', [
-            'interpellations' => $interpellations->through(fn($i) => $this->formatInterpellation($i)),
+            'interpellations' => $interpellations->through(fn ($i) => $this->formatInterpellation($i)),
             'filters' => $request->only(['status', 'sort']),
             'stats' => [
                 'total' => $this->getInterpellationsQuery($user)->count(),
@@ -146,8 +141,8 @@ class EluDashboardController extends Controller
     public function showInterpellation(TopicElu $interpellation): Response
     {
         $user = Auth::user();
-        
-        if (!$user->isVerifiedElu()) {
+
+        if (! $user->isVerifiedElu()) {
             abort(403, 'Accès réservé aux élus vérifiés.');
         }
 
@@ -157,7 +152,7 @@ class EluDashboardController extends Controller
         }
 
         // Marquer comme vue
-        if (!$interpellation->viewed_at) {
+        if (! $interpellation->viewed_at) {
             $interpellation->update(['viewed_at' => now()]);
         }
 
@@ -181,14 +176,14 @@ class EluDashboardController extends Controller
                     'id' => $interpellation->topic->author->id,
                     'name' => $interpellation->topic->author->display_name,
                 ] : null,
-                'tags' => $interpellation->topic->topicTags->map(fn($t) => [
+                'tags' => $interpellation->topic->topicTags->map(fn ($t) => [
                     'id' => $t->id,
                     'nom' => $t->nom,
                     'icone' => $t->icone,
                 ]),
                 'url' => route('participation.ideas.show', $interpellation->topic->slug),
             ],
-            'comments' => $interpellation->topic->posts->map(fn($p) => [
+            'comments' => $interpellation->topic->posts->map(fn ($p) => [
                 'id' => $p->id,
                 'content' => $p->content,
                 'created_at' => $p->created_at->toIso8601String(),
@@ -203,8 +198,8 @@ class EluDashboardController extends Controller
     public function respond(Request $request, TopicElu $interpellation, ContentModerationService $moderationService)
     {
         $user = Auth::user();
-        
-        if (!$user->isVerifiedElu()) {
+
+        if (! $user->isVerifiedElu()) {
             abort(403, 'Accès réservé aux élus vérifiés.');
         }
 
@@ -249,7 +244,7 @@ class EluDashboardController extends Controller
             app(NotificationService::class)->notify(
                 $topic->author,
                 'response',
-                "✅ Réponse à votre interpellation !",
+                '✅ Réponse à votre interpellation !',
                 "{$eluName} a répondu à votre interpellation \"{$topic->title}\"",
                 route('participation.ideas.show', $topic->slug ?? $topic->id),
                 '✅',
@@ -272,8 +267,8 @@ class EluDashboardController extends Controller
     public function decline(Request $request, TopicElu $interpellation)
     {
         $user = Auth::user();
-        
-        if (!$user->isVerifiedElu()) {
+
+        if (! $user->isVerifiedElu()) {
             abort(403, 'Accès réservé aux élus vérifiés.');
         }
 
@@ -310,7 +305,7 @@ class EluDashboardController extends Controller
             default => null,
         };
 
-        if (!$eluData) {
+        if (! $eluData) {
             abort(404, 'Élu non trouvé.');
         }
 
@@ -327,7 +322,7 @@ class EluDashboardController extends Controller
             ->orderByDesc('created_at')
             ->limit(10)
             ->get()
-            ->map(fn($i) => $this->formatInterpellation($i));
+            ->map(fn ($i) => $this->formatInterpellation($i));
 
         $stats = [
             'total_interpellations' => TopicElu::where('elu_type', $type)->where('elu_id', $ref)->where('is_interpellation', true)->count(),
@@ -338,7 +333,7 @@ class EluDashboardController extends Controller
             'elu' => [
                 'type' => $type,
                 'ref' => $ref,
-                'nom_complet' => $eluData->nom_complet ?? trim(($eluData->prenom ?? '') . ' ' . ($eluData->nom ?? '')),
+                'nom_complet' => $eluData->nom_complet ?? trim(($eluData->prenom ?? '').' '.($eluData->nom ?? '')),
                 'photo_url' => $eluData->photo_url ?? null,
                 'groupe' => $eluData->groupe_politique ?? $eluData->groupe_politique_actuel?->libelle ?? null,
                 'circonscription' => $eluData->circonscription ?? null,
@@ -381,7 +376,7 @@ class EluDashboardController extends Controller
             ->orderByDesc('population_commune')
             ->paginate(50)
             ->withQueryString()
-            ->through(fn(Maire $m) => [
+            ->through(fn (Maire $m) => [
                 'id' => $m->id,
                 'uid' => $m->uid,
                 'nom_complet' => $m->nom_complet,
@@ -406,7 +401,7 @@ class EluDashboardController extends Controller
 
         $departements = TerritoryDepartment::orderBy('code')
             ->get(['code', 'name'])
-            ->map(fn($d) => ['code' => $d->code, 'nom' => $d->name]);
+            ->map(fn ($d) => ['code' => $d->code, 'nom' => $d->name]);
 
         $nuances = Maire::enExercice()
             ->whereNotNull('nuance_politique')
@@ -414,7 +409,7 @@ class EluDashboardController extends Controller
             ->groupBy('nuance_politique')
             ->orderByDesc('total')
             ->get()
-            ->map(fn($n) => [
+            ->map(fn ($n) => [
                 'code' => $n->nuance_politique,
                 'libelle' => (new Maire(['nuance_politique' => $n->nuance_politique]))->nuance_libelle,
                 'total' => $n->total,
@@ -435,8 +430,8 @@ class EluDashboardController extends Controller
     public function maFiche()
     {
         $user = Auth::user();
-        
-        if (!$user->isVerifiedElu()) {
+
+        if (! $user->isVerifiedElu()) {
             abort(403, 'Accès réservé aux élus vérifiés.');
         }
 
@@ -455,8 +450,8 @@ class EluDashboardController extends Controller
     public function stats(): Response
     {
         $user = Auth::user();
-        
-        if (!$user->isVerifiedElu()) {
+
+        if (! $user->isVerifiedElu()) {
             abort(403, 'Accès réservé aux élus vérifiés.');
         }
 
@@ -465,13 +460,13 @@ class EluDashboardController extends Controller
         $answered = $this->getInterpellationsQuery($user)->where('response_status', 'answered')->count();
         $declined = $this->getInterpellationsQuery($user)->where('response_status', 'declined')->count();
         $pending = $this->getInterpellationsQuery($user)->where('response_status', 'pending')->count();
-        
+
         // Délai moyen de réponse
         $avgResponseTime = $this->getInterpellationsQuery($user)
             ->whereNotNull('answered_at')
             ->selectRaw('AVG(EXTRACT(EPOCH FROM (answered_at - created_at)) / 86400) as avg_days')
             ->value('avg_days');
-        
+
         // Évolution par mois (12 derniers mois)
         $evolutionByMonth = $this->getInterpellationsQuery($user)
             ->where('created_at', '>=', now()->subMonths(12))
@@ -480,7 +475,7 @@ class EluDashboardController extends Controller
             ->groupBy('mois')
             ->orderBy('mois')
             ->get();
-        
+
         // Thématiques des interpellations (top 10)
         $topThemes = $this->getInterpellationsQuery($user)
             ->join('topics', 'topics.id', '=', 'topic_elus.topic_id')
@@ -492,7 +487,7 @@ class EluDashboardController extends Controller
             ->orderByDesc('count')
             ->limit(10)
             ->get();
-        
+
         // Temps de réponse par période
         $responseTimeEvolution = $this->getInterpellationsQuery($user)
             ->whereNotNull('answered_at')
@@ -538,7 +533,7 @@ class EluDashboardController extends Controller
         $affaires = $maire->toutesAffairesPubliques()
             ->with('sources')
             ->get()
-            ->map(fn($a) => [
+            ->map(fn ($a) => [
                 'id' => $a->id,
                 'titre' => $a->titre,
                 'description' => $a->description,
@@ -552,7 +547,7 @@ class EluDashboardController extends Controller
                 'date_mise_en_examen' => $a->date_mise_en_examen?->format('d/m/Y'),
                 'peine_resume' => $a->peine_resume,
                 'juridiction' => $a->juridiction,
-                'sources' => $a->sources->map(fn($s) => [
+                'sources' => $a->sources->map(fn ($s) => [
                     'media' => $s->media,
                     'url' => $s->url,
                     'date' => $s->date_publication?->format('d/m/Y'),
@@ -573,14 +568,14 @@ class EluDashboardController extends Controller
                     ])
                     ->get();
 
-                $formatted = $declarations->map(fn($d) => [
+                $formatted = $declarations->map(fn ($d) => [
                     'uuid' => $d->uuid,
                     'type' => $d->type_declaration,
                     'type_label' => $d->type_declaration_label,
                     'date_depot' => $d->date_depot?->format('d/m/Y'),
                     'type_mandat' => $d->type_mandat,
                     'url' => $maire->url_hatvp ?? 'https://www.hatvp.fr/fiche-nominative/?declarant='
-                             . urlencode(strtolower($maire->nom) . '-' . strtolower($maire->prenom)),
+                             .urlencode(strtolower($maire->nom).'-'.strtolower($maire->prenom)),
                 ]);
 
                 $summary = null;
@@ -616,15 +611,15 @@ class EluDashboardController extends Controller
         $resultatsElection = $maire->resultatsElection()
             ->with('listes')
             ->get()
-            ->map(fn($r) => [
+            ->map(fn ($r) => [
                 'tour' => (int) $r->tour,
                 'inscrits' => (int) $r->inscrits,
                 'votants' => (int) $r->votants,
                 'taux_participation' => (float) $r->taux_participation,
                 'exprimes' => (int) ($r->exprimes ?? 0),
-                'listes' => $r->listes->map(fn($l) => [
+                'listes' => $r->listes->map(fn ($l) => [
                     'nom_liste' => $l->nom_liste,
-                    'tete_de_liste' => trim(($l->tete_de_liste_prenom ?? '') . ' ' . ($l->tete_de_liste_nom ?? '')),
+                    'tete_de_liste' => trim(($l->tete_de_liste_prenom ?? '').' '.($l->tete_de_liste_nom ?? '')),
                     'nuance' => $l->nuance_liste,
                     'voix' => (int) $l->voix,
                     'pourcentage' => (float) ($l->pourcentage_exprimes ?? 0),
@@ -633,7 +628,7 @@ class EluDashboardController extends Controller
                 ]),
             ]);
 
-        $mandats = $maire->mandats->map(fn($m) => [
+        $mandats = $maire->mandats->map(fn ($m) => [
             'id' => $m->id,
             'date_debut' => $m->date_debut?->format('d/m/Y'),
             'date_fin' => $m->date_fin?->format('d/m/Y'),
@@ -711,7 +706,7 @@ class EluDashboardController extends Controller
                 'est_aussi_depute' => $maire->personnePolitique?->uid_an !== null,
                 'est_aussi_senateur' => $maire->personnePolitique?->uid_senat !== null,
                 'postes_gouvernement' => $maire->personnePolitique?->postes
-                    ?->map(fn($p) => $p->fonction . ' (' . ($p->gouvernement?->nom_complet ?? 'Gouvernement') . ')')
+                    ?->map(fn ($p) => $p->fonction.' ('.($p->gouvernement?->nom_complet ?? 'Gouvernement').')')
                     ->toArray() ?? [],
                 'is_followed' => $isFollowed,
             ],
@@ -721,7 +716,7 @@ class EluDashboardController extends Controller
             'declarations_hatvp' => $hatvpData['declarations'],
             'hatvp_summary' => $hatvpData['summary'],
             'elus_rattaches' => $elusRattaches,
-            'budget_commune' => $maire->ville?->budgets?->take(5)->map(fn($b) => [
+            'budget_commune' => $maire->ville?->budgets?->take(5)->map(fn ($b) => [
                 'annee' => $b->annee,
                 'recettes' => $b->recettes_fonctionnement ?? 0,
                 'depenses' => $b->depenses_fonctionnement ?? 0,
@@ -758,7 +753,7 @@ class EluDashboardController extends Controller
         }
 
         $senateurs = \App\Models\Senateur::actifs()
-            ->where('circonscription', 'ILIKE', '%' . ($maire->nom_departement ?? '') . '%')
+            ->where('circonscription', 'ILIKE', '%'.($maire->nom_departement ?? '').'%')
             ->limit(10)
             ->get();
 

@@ -21,16 +21,23 @@ class ImportCandidaturesOfficielles extends Command
     protected $description = 'Importe les candidatures officielles municipales depuis data.gouv.fr';
 
     private const DATAGOUV_T1 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-premier-tour/20260320-164339/municipales-2026-resultats-communes-2026-03-20.csv';
+
     private const DATAGOUV_T2 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-scond-tour/20260323-180124/municipales-2026-resultats-communes-2026-03-23-16h14.csv';
 
     private const FIXED_COLS = 18;
+
     private const LIST_BLOCK_SIZE = 13;
 
     private int $listesCreated = 0;
+
     private int $listesUpdated = 0;
+
     private int $candidatsCreated = 0;
+
     private int $candidatsUpdated = 0;
+
     private int $matched = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -46,7 +53,7 @@ class ImportCandidaturesOfficielles extends Command
         }
 
         $lines = $this->parseCsvLines($csvContent);
-        $this->info(count($lines) . ' communes trouvées dans le fichier');
+        $this->info(count($lines).' communes trouvées dans le fichier');
 
         $limit = $this->option('limit');
         if ($limit) {
@@ -63,16 +70,18 @@ class ImportCandidaturesOfficielles extends Command
                 $data = str_getcsv($line, ';', '"');
                 if (count($data) < self::FIXED_COLS + self::LIST_BLOCK_SIZE) {
                     $bar->advance();
+
                     continue;
                 }
 
                 if (trim($data[0], '"') === 'Code département') {
                     $bar->advance();
+
                     continue;
                 }
 
-                if (!$dryRun) {
-                    DB::transaction(fn() => $this->processRow($data, $tour));
+                if (! $dryRun) {
+                    DB::transaction(fn () => $this->processRow($data, $tour));
                 }
             } catch (\Exception $e) {
                 $this->errors++;
@@ -152,7 +161,7 @@ class ImportCandidaturesOfficielles extends Command
                 }
             }
 
-            if (!empty($nomCandidat) && !empty($prenomCandidat)) {
+            if (! empty($nomCandidat) && ! empty($prenomCandidat)) {
                 $this->processCandidat($liste, $nomCandidat, $prenomCandidat, $sexeCandidat);
             }
 
@@ -209,6 +218,7 @@ class ImportCandidaturesOfficielles extends Command
             if ($similarity >= 80) {
                 $officielle->update(['liste_civicdash_id' => $listeCD->id]);
                 $this->matched++;
+
                 return;
             }
         }
@@ -217,8 +227,9 @@ class ImportCandidaturesOfficielles extends Command
     private function loadCsv(int $tour): ?string
     {
         if ($file = $this->option('file')) {
-            if (!file_exists($file)) {
+            if (! file_exists($file)) {
                 $this->error("Fichier introuvable : {$file}");
+
                 return null;
             }
             $this->info("Lecture du fichier local : {$file}");
@@ -227,19 +238,22 @@ class ImportCandidaturesOfficielles extends Command
             $url = $this->option('url') ?? ($tour === 1 ? self::DATAGOUV_T1 : self::DATAGOUV_T2);
             if (empty($url)) {
                 $this->error("Aucune URL configurée pour le tour {$tour}. Utilisez --url= ou --file= pour fournir les données.");
+
                 return null;
             }
             $this->info("Téléchargement depuis : {$url}");
 
             try {
                 $response = Http::timeout(300)->get($url);
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     $this->error("Erreur HTTP : {$response->status()}");
+
                     return null;
                 }
                 $content = $response->body();
             } catch (\Exception $e) {
                 $this->error("Erreur de téléchargement : {$e->getMessage()}");
+
                 return null;
             }
         }
@@ -257,7 +271,8 @@ class ImportCandidaturesOfficielles extends Command
     {
         $lines = explode("\n", $content);
         array_shift($lines);
-        return array_filter($lines, fn($l) => trim($l) !== '');
+
+        return array_filter($lines, fn ($l) => trim($l) !== '');
     }
 
     private function displaySummary(bool $dryRun): void

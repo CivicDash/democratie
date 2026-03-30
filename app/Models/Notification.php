@@ -150,6 +150,7 @@ class Notification extends Model
         if (is_null($this->read_at)) {
             $this->update(['read_at' => now()]);
         }
+
         return $this;
     }
 
@@ -159,6 +160,7 @@ class Notification extends Model
     public function markAsUnread(): self
     {
         $this->update(['read_at' => null]);
+
         return $this;
     }
 
@@ -171,6 +173,7 @@ class Notification extends Model
             'read_at' => $this->read_at ?? now(),
             'acknowledged_at' => now(),
         ]);
+
         return $this;
     }
 
@@ -185,6 +188,7 @@ class Notification extends Model
             'actioned_at' => now(),
             'action_type' => $actionType,
         ]);
+
         return $this;
     }
 
@@ -193,7 +197,7 @@ class Notification extends Model
      */
     public function isRead(): bool
     {
-        return !is_null($this->read_at);
+        return ! is_null($this->read_at);
     }
 
     /**
@@ -201,7 +205,7 @@ class Notification extends Model
      */
     public function isAcknowledged(): bool
     {
-        return !is_null($this->acknowledged_at);
+        return ! is_null($this->acknowledged_at);
     }
 
     /**
@@ -209,7 +213,7 @@ class Notification extends Model
      */
     public function isActioned(): bool
     {
-        return !is_null($this->actioned_at);
+        return ! is_null($this->actioned_at);
     }
 
     /**

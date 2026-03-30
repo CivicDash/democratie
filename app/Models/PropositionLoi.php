@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modèle pour les propositions et projets de loi
- * 
+ *
  * @property int $id
  * @property string $source (assemblee|senat)
  * @property int $legislature
@@ -165,7 +165,7 @@ class PropositionLoi extends Model
      */
     public function hasRealData(): bool
     {
-        return !is_null($this->dossier_legislatif_uid);
+        return ! is_null($this->dossier_legislatif_uid);
     }
 
     // ========================================================================
@@ -216,8 +216,8 @@ class PropositionLoi extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('titre', 'like', "%{$search}%")
-              ->orWhere('resume', 'like', "%{$search}%")
-              ->orWhere('numero', 'like', "%{$search}%");
+                ->orWhere('resume', 'like', "%{$search}%")
+                ->orWhere('numero', 'like', "%{$search}%");
         });
     }
 
@@ -227,7 +227,7 @@ class PropositionLoi extends Model
 
     public function getSourceLabelAttribute(): string
     {
-        return match($this->source) {
+        return match ($this->source) {
             'assemblee' => 'Assemblée nationale',
             'senat' => 'Sénat',
             default => $this->source,
@@ -236,7 +236,7 @@ class PropositionLoi extends Model
 
     public function getStatutLabelAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             'en_cours' => 'En cours',
             'adoptee' => 'Adoptée',
             'rejetee' => 'Rejetée',
@@ -248,7 +248,7 @@ class PropositionLoi extends Model
 
     public function getStatutBadgeAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             'en_cours' => 'info',
             'adoptee' => 'success',
             'rejetee' => 'danger',
@@ -287,12 +287,12 @@ class PropositionLoi extends Model
      */
     public function getDureeProcessus(): ?int
     {
-        if (!$this->date_depot) {
+        if (! $this->date_depot) {
             return null;
         }
 
         $dateFinale = $this->date_adoption ?? $this->date_promulgation ?? now();
-        
+
         return $this->date_depot->diffInDays($dateFinale);
     }
 
@@ -301,12 +301,12 @@ class PropositionLoi extends Model
      */
     public function getAuteurPrincipal(): ?string
     {
-        if (empty($this->auteurs) || !is_array($this->auteurs)) {
+        if (empty($this->auteurs) || ! is_array($this->auteurs)) {
             return null;
         }
 
         $premier = $this->auteurs[0];
-        
+
         return is_string($premier) ? $premier : ($premier['nom'] ?? null);
     }
 
@@ -323,7 +323,7 @@ class PropositionLoi extends Model
      */
     public function getEtapeActuelle(): ?array
     {
-        if (empty($this->etapes) || !is_array($this->etapes)) {
+        if (empty($this->etapes) || ! is_array($this->etapes)) {
             return null;
         }
 
@@ -364,4 +364,3 @@ class PropositionLoi extends Model
         ];
     }
 }
-

@@ -58,7 +58,7 @@ class UserAllocationPolicy
             return true;
         }
 
-        if (!$this->canAllocateBudget($user)) {
+        if (! $this->canAllocateBudget($user)) {
             return false;
         }
 
@@ -131,4 +131,3 @@ class UserAllocationPolicy
         return $user->hasAnyRole(['state', 'admin']);
     }
 }
-

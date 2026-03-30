@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class ParlementaireStats extends Model
 {
@@ -94,9 +93,10 @@ class ParlementaireStats extends Model
      */
     public function isStale(): bool
     {
-        if (!$this->calculated_at) {
+        if (! $this->calculated_at) {
             return true;
         }
+
         return $this->calculated_at->diffInHours(now()) >= 24;
     }
 

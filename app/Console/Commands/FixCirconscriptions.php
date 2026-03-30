@@ -17,8 +17,9 @@ class FixCirconscriptions extends Command
     {
         $csvPath = public_path('data/circo_legislatives_2017.csv');
 
-        if (!file_exists($csvPath)) {
+        if (! file_exists($csvPath)) {
             $this->error("Fichier introuvable : {$csvPath}");
+
             return self::FAILURE;
         }
 
@@ -55,15 +56,15 @@ class FixCirconscriptions extends Command
             $bar->advance();
             $insee = $pc->insee_code;
 
-            if (!isset($mapping[$insee])) {
+            if (! isset($mapping[$insee])) {
                 continue;
             }
 
-            $correctCirco = $pc->department_code . '-' . str_pad($mapping[$insee], 2, '0', STR_PAD_LEFT);
+            $correctCirco = $pc->department_code.'-'.str_pad($mapping[$insee], 2, '0', STR_PAD_LEFT);
 
             if ($pc->circonscription !== $correctCirco) {
                 $mismatchPostal++;
-                if (!$dryRun) {
+                if (! $dryRun) {
                     DB::table('french_postal_codes')
                         ->where('id', $pc->id)
                         ->update(['circonscription' => $correctCirco, 'updated_at' => now()]);
@@ -94,15 +95,15 @@ class FixCirconscriptions extends Command
             $bar2->advance();
             $insee = $ville->code_insee;
 
-            if (!isset($mapping[$insee])) {
+            if (! isset($mapping[$insee])) {
                 continue;
             }
 
-            $correctCirco = $ville->departement_code . '-' . str_pad($mapping[$insee], 2, '0', STR_PAD_LEFT);
+            $correctCirco = $ville->departement_code.'-'.str_pad($mapping[$insee], 2, '0', STR_PAD_LEFT);
 
             if ($ville->circonscription !== $correctCirco) {
                 $mismatchVilles++;
-                if (!$dryRun) {
+                if (! $dryRun) {
                     DB::table('villes')
                         ->where('id', $ville->id)
                         ->update(['circonscription' => $correctCirco, 'updated_at' => now()]);
@@ -144,7 +145,9 @@ class FixCirconscriptions extends Command
         fgetcsv($handle); // skip header
 
         while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 5) continue;
+            if (count($row) < 5) {
+                continue;
+            }
 
             [$deptCode, $deptName, $comCode, $comName, $circo] = $row;
 
@@ -152,11 +155,12 @@ class FixCirconscriptions extends Command
                 continue;
             }
 
-            $insee = $deptCode . $comCode;
+            $insee = $deptCode.$comCode;
             $mapping[$insee] = (int) $circo;
         }
 
         fclose($handle);
+
         return $mapping;
     }
 }

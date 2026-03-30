@@ -19,16 +19,16 @@ class ModerationService
 {
     /**
      * Crée un signalement pour un contenu.
-     * 
-     * @param User $reporter L'utilisateur qui signale
-     * @param Model $reportable Le contenu signalé (Post, Topic, etc.)
-     * @param string $reason La raison du signalement (catégorie)
-     * @param string|null $description Description optionnelle
+     *
+     * @param  User  $reporter  L'utilisateur qui signale
+     * @param  Model  $reportable  Le contenu signalé (Post, Topic, etc.)
+     * @param  string  $reason  La raison du signalement (catégorie)
+     * @param  string|null  $description  Description optionnelle
      */
     public function createReport(User $reporter, Model $reportable, string $reason, ?string $description = null): Report
     {
         // Vérifier que le user peut créer un rapport
-        if (!$reporter->can('create', Report::class)) {
+        if (! $reporter->can('create', Report::class)) {
             throw new RuntimeException('Vous ne pouvez pas créer de signalement.');
         }
 
@@ -63,7 +63,7 @@ class ModerationService
      */
     public function assignReport(Report $report, User $moderator): Report
     {
-        if (!$moderator->can('review', $report)) {
+        if (! $moderator->can('review', $report)) {
             throw new RuntimeException('Moderator cannot review this report.');
         }
 
@@ -78,13 +78,13 @@ class ModerationService
     /**
      * Résout un signalement (valide).
      */
-    public function resolveReport(Report $report, User $moderator, string $notes = null, bool $applyAction = false): Report
+    public function resolveReport(Report $report, User $moderator, ?string $notes = null, bool $applyAction = false): Report
     {
-        if (!$moderator->can('resolve', $report)) {
+        if (! $moderator->can('resolve', $report)) {
             throw new RuntimeException('Moderator cannot resolve this report.');
         }
 
-        return DB::transaction(function () use ($report, $moderator, $notes, $applyAction) {
+        return DB::transaction(function () use ($report, $notes, $applyAction) {
             $report->update([
                 'status' => 'resolved',
                 'moderator_notes' => $notes,
@@ -103,9 +103,9 @@ class ModerationService
     /**
      * Rejette un signalement (non fondé).
      */
-    public function rejectReport(Report $report, User $moderator, string $notes = null): Report
+    public function rejectReport(Report $report, User $moderator, ?string $notes = null): Report
     {
-        if (!$moderator->can('reject', $report)) {
+        if (! $moderator->can('reject', $report)) {
             throw new RuntimeException('Moderator cannot reject this report.');
         }
 
@@ -145,7 +145,7 @@ class ModerationService
         string $reason,
         ?\DateTime $expiresAt = null
     ): Sanction {
-        if (!$moderator->can('create', [Sanction::class, $targetUser])) {
+        if (! $moderator->can('create', [Sanction::class, $targetUser])) {
             throw new RuntimeException('Moderator cannot sanction this user.');
         }
 
@@ -172,6 +172,7 @@ class ModerationService
     public function muteUser(User $targetUser, User $moderator, string $reason, int $durationInDays = 7): Sanction
     {
         $expiresAt = now()->addDays($durationInDays);
+
         return $this->createSanction($targetUser, $moderator, 'mute', $reason, $expiresAt);
     }
 
@@ -181,6 +182,7 @@ class ModerationService
     public function banUser(User $targetUser, User $moderator, string $reason, ?int $durationInDays = null): Sanction
     {
         $expiresAt = $durationInDays ? now()->addDays($durationInDays) : null;
+
         return $this->createSanction($targetUser, $moderator, 'ban', $reason, $expiresAt);
     }
 
@@ -189,7 +191,7 @@ class ModerationService
      */
     public function revokeSanction(Sanction $sanction, User $moderator): Sanction
     {
-        if (!$moderator->can('revoke', $sanction)) {
+        if (! $moderator->can('revoke', $sanction)) {
             throw new RuntimeException('Moderator cannot revoke this sanction.');
         }
 
@@ -309,6 +311,7 @@ class ModerationService
         return collect($moderatorIds)
             ->map(function ($moderatorId) use ($reportModerators, $sanctionModerators) {
                 $moderator = User::find($moderatorId);
+
                 return [
                     'moderator' => $moderator ? $moderator->name : 'Unknown',
                     'reports_handled' => $reportModerators->get($moderatorId, 0),
@@ -370,4 +373,3 @@ class ModerationService
         });
     }
 }
-

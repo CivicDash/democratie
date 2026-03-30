@@ -61,19 +61,19 @@ class DomaineMinisteriel extends Model
         return PersonnePolitique::whereHas('postes', function ($q) {
             $q->where('domaine_ministeriel_id', $this->id);
         })
-        ->with(['postes' => function ($q) {
-            $q->where('domaine_ministeriel_id', $this->id)
-              ->with('gouvernement')
-              ->orderByDesc('date_debut');
-        }])
-        ->get();
+            ->with(['postes' => function ($q) {
+                $q->where('domaine_ministeriel_id', $this->id)
+                    ->with('gouvernement')
+                    ->orderByDesc('date_debut');
+            }])
+            ->get();
     }
 
     public function getMinistreActuelAttribute(): ?PersonnePolitique
     {
         return PersonnePolitique::whereHas('postes', function ($q) {
             $q->where('domaine_ministeriel_id', $this->id)
-              ->where('actif', true);
+                ->where('actif', true);
         })->first();
     }
 
@@ -122,6 +122,7 @@ class DomaineMinisteriel extends Model
                 return $color;
             }
         }
+
         return '#6b7280';
     }
 

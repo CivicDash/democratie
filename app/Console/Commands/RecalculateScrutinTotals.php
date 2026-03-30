@@ -20,12 +20,12 @@ class RecalculateScrutinTotals extends Command
 
         $query = ScrutinAN::query();
 
-        if (!$this->option('all')) {
+        if (! $this->option('all')) {
             $legislature = $this->option('legislature');
             $query->where('legislature', $legislature);
             $this->info("📊 Législature: {$legislature}");
         } else {
-            $this->info("📊 Toutes les législatures");
+            $this->info('📊 Toutes les législatures');
         }
 
         $scrutins = $query->get();
@@ -45,6 +45,7 @@ class RecalculateScrutinTotals extends Command
             if ($votes->isEmpty()) {
                 $skipped++;
                 $bar->advance();
+
                 continue;
             }
 
@@ -65,7 +66,7 @@ class RecalculateScrutinTotals extends Command
             ]);
 
             // Déterminer le résultat si null
-            if (!$scrutin->resultat_code) {
+            if (! $scrutin->resultat_code) {
                 if ($pour > $contre) {
                     $scrutin->update([
                         'resultat_code' => 'adopté',
@@ -86,7 +87,7 @@ class RecalculateScrutinTotals extends Command
         $bar->finish();
         $this->newLine(2);
 
-        $this->info("✅ Recalcul terminé !");
+        $this->info('✅ Recalcul terminé !');
         $this->table(
             ['Métrique', 'Valeur'],
             [
@@ -99,4 +100,3 @@ class RecalculateScrutinTotals extends Command
         return Command::SUCCESS;
     }
 }
-

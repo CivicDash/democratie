@@ -108,8 +108,8 @@ class TagSuggestion extends Model
     protected function attachTagToTaggable(Tag $tag): void
     {
         $taggable = $this->taggable;
-        
-        if (!$taggable) {
+
+        if (! $taggable) {
             return;
         }
 
@@ -120,7 +120,7 @@ class TagSuggestion extends Model
                     'source' => 'user',
                     'validated' => true,
                     'suggested_by' => $this->suggested_by,
-                ]
+                ],
             ]);
         } elseif ($taggable instanceof TexteJO) {
             $tag->textesJo()->syncWithoutDetaching([
@@ -128,17 +128,16 @@ class TagSuggestion extends Model
                     'source' => 'user',
                     'validated' => true,
                     'suggested_by' => $this->suggested_by,
-                ]
+                ],
             ]);
         } elseif ($taggable instanceof Topic) {
             $tag->topics()->syncWithoutDetaching([
                 $taggable->id => [
                     'source' => 'user',
-                ]
+                ],
             ]);
         }
 
         $tag->incrementUsage();
     }
 }
-

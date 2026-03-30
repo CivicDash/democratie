@@ -213,7 +213,7 @@ class DocumentController extends Controller
     {
         $days = $request->input('days', 30);
         $limit = $request->input('limit', 10);
-        
+
         $verifiers = $this->documentService->getTopVerifiers($days, $limit);
 
         return response()->json($verifiers);
@@ -226,9 +226,9 @@ class DocumentController extends Controller
     {
         $this->authorize('download', $document);
 
-        $path = storage_path('app/public/' . $document->file_path);
+        $path = storage_path('app/public/'.$document->file_path);
 
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             return response()->json([
                 'message' => 'Fichier introuvable.',
             ], 404);
@@ -237,4 +237,3 @@ class DocumentController extends Controller
         return response()->download($path, $document->file_name);
     }
 }
-

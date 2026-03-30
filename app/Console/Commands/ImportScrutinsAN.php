@@ -17,17 +17,20 @@ class ImportScrutinsAN extends Command
     protected $description = 'Importe les scrutins (votes publics) depuis les fichiers JSON AN';
 
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
     {
         $legislature = $this->option('legislature');
         $importAll = $this->option('all');
-        
+
         $this->info('🏛️  Import des scrutins AN...');
-        
+
         if ($importAll) {
             $this->warn('⚠️  Mode --all : import de TOUS les scrutins (toutes législatures)');
         } else {
@@ -35,9 +38,10 @@ class ImportScrutinsAN extends Command
         }
 
         $basePath = public_path('data/scrutins');
-        
-        if (!is_dir($basePath)) {
+
+        if (! is_dir($basePath)) {
             $this->error("❌ Répertoire introuvable : {$basePath}");
+
             return self::FAILURE;
         }
 
@@ -46,24 +50,24 @@ class ImportScrutinsAN extends Command
             ScrutinAN::truncate();
         }
 
-        $files = File::glob($basePath . '/*.json');
+        $files = File::glob($basePath.'/*.json');
         $total = count($files);
-        
+
         // Filtrage par législature si nécessaire
-        if (!$importAll) {
-            $files = array_filter($files, function($file) use ($legislature) {
+        if (! $importAll) {
+            $files = array_filter($files, function ($file) use ($legislature) {
                 return str_contains(basename($file), "L{$legislature}V");
             });
             $files = array_values($files);
         }
-        
+
         $limit = $this->option('limit');
         if ($limit) {
-            $files = array_slice($files, 0, (int)$limit);
+            $files = array_slice($files, 0, (int) $limit);
             $this->warn("⚠️  Mode TEST : {$limit} scrutins maximum");
         }
 
-        $this->info("📊 {$total} fichiers trouvés, " . count($files) . " à importer");
+        $this->info("📊 {$total} fichiers trouvés, ".count($files).' à importer');
         $bar = $this->output->createProgressBar(count($files));
         $bar->start();
 
@@ -73,7 +77,7 @@ class ImportScrutinsAN extends Command
             } catch (\Exception $e) {
                 $this->errors++;
                 $this->newLine();
-                $this->warn("⚠️  Erreur dans " . basename($file) . ": {$e->getMessage()}");
+                $this->warn('⚠️  Erreur dans '.basename($file).": {$e->getMessage()}");
             }
             $bar->advance();
         }
@@ -91,15 +95,15 @@ class ImportScrutinsAN extends Command
         $content = File::get($filePath);
         $data = json_decode($content, true);
 
-        if (!isset($data['scrutin'])) {
-            throw new \Exception("Structure JSON invalide");
+        if (! isset($data['scrutin'])) {
+            throw new \Exception('Structure JSON invalide');
         }
 
         $scrutin = $data['scrutin'];
         $uid = $scrutin['uid'] ?? null;
 
-        if (!$uid) {
-            throw new \Exception("UID manquant");
+        if (! $uid) {
+            throw new \Exception('UID manquant');
         }
 
         // Extraction des données
@@ -109,7 +113,7 @@ class ImportScrutinsAN extends Command
 
         // Extraction legislature depuis l'UID (ex: VTANR5L17V1000 -> 17)
         preg_match('/L(\d+)V/', $uid, $matches);
-        $legislature = isset($matches[1]) ? (int)$matches[1] : null;
+        $legislature = isset($matches[1]) ? (int) $matches[1] : null;
 
         // Insert ou update
         $scrutinModel = ScrutinAN::updateOrCreate(
@@ -161,19 +165,19 @@ class ImportScrutinsAN extends Command
         $total = ScrutinAN::count();
         $adoptes = ScrutinAN::adopte()->count();
         $rejetes = ScrutinAN::rejete()->count();
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $totalLeg = ScrutinAN::legislature($legislature)->count();
             $adoptesLeg = ScrutinAN::legislature($legislature)->adopte()->count();
             $rejetesLeg = ScrutinAN::legislature($legislature)->rejete()->count();
         }
-        
+
         $this->newLine();
         $this->info("📊 Total en base de données : {$total} scrutins");
         $this->info("   - Adoptés : {$adoptes}");
         $this->info("   - Rejetés : {$rejetes}");
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $this->newLine();
             $this->info("📊 Législature {$legislature} : {$totalLeg} scrutins");
             $this->info("   - Adoptés : {$adoptesLeg}");
@@ -181,4 +185,3 @@ class ImportScrutinsAN extends Command
         }
     }
 }
-

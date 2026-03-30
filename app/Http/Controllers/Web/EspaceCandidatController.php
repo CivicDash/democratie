@@ -21,7 +21,7 @@ class EspaceCandidatController extends Controller
             ->with(['candidats', 'documents'])
             ->latest()
             ->get()
-            ->map(fn($liste) => [
+            ->map(fn ($liste) => [
                 'uuid' => $liste->uuid,
                 'nom_liste' => $liste->nom_liste,
                 'commune_nom' => $liste->commune_nom,
@@ -106,7 +106,7 @@ class EspaceCandidatController extends Controller
             ->with(['candidats', 'documents', 'moderationLogs.moderator'])
             ->firstOrFail();
 
-        if (!$liste->peut_etre_modifiee) {
+        if (! $liste->peut_etre_modifiee) {
             return redirect()
                 ->route('elections.municipales.espace-candidat.index')
                 ->with('error', 'Cette liste ne peut plus être modifiée.');
@@ -139,7 +139,7 @@ class EspaceCandidatController extends Controller
                 'statut_formate' => $liste->statut_formate,
                 'motif_rejet' => $liste->motif_rejet,
             ],
-            'candidats' => $liste->candidats->map(fn($c) => [
+            'candidats' => $liste->candidats->map(fn ($c) => [
                 'uuid' => $c->uuid,
                 'nom' => $c->nom,
                 'prenom' => $c->prenom,
@@ -148,7 +148,7 @@ class EspaceCandidatController extends Controller
                 'photo_url' => $c->photo_url,
                 'initiales' => $c->initiales,
             ]),
-            'documents' => $liste->documents->map(fn($d) => [
+            'documents' => $liste->documents->map(fn ($d) => [
                 'uuid' => $d->uuid,
                 'type' => $d->type,
                 'type_formate' => $d->type_formate,
@@ -159,7 +159,7 @@ class EspaceCandidatController extends Controller
                 'statut_couleur' => $d->statut_couleur,
                 'commentaire' => $d->commentaire_verification,
             ]),
-            'historique' => $liste->moderationLogs->map(fn($log) => [
+            'historique' => $liste->moderationLogs->map(fn ($log) => [
                 'action' => $log->action_formatee,
                 'icone' => $log->action_icone,
                 'couleur' => $log->action_couleur,
@@ -177,7 +177,7 @@ class EspaceCandidatController extends Controller
             ->where('created_by', Auth::id())
             ->firstOrFail();
 
-        if (!$liste->peut_etre_modifiee) {
+        if (! $liste->peut_etre_modifiee) {
             return back()->with('error', 'Cette liste ne peut plus être modifiée.');
         }
 
@@ -300,7 +300,7 @@ class EspaceCandidatController extends Controller
             ->where('created_by', Auth::id())
             ->firstOrFail();
 
-        if (!$liste->peut_etre_modifiee) {
+        if (! $liste->peut_etre_modifiee) {
             return back()->with('error', 'La liste ne peut plus être modifiée.');
         }
 
@@ -348,7 +348,7 @@ class EspaceCandidatController extends Controller
             return back()->with('error', 'Ajoutez au moins un candidat avant de soumettre.');
         }
 
-        if (!$liste->candidats()->where('est_tete_de_liste', true)->exists()) {
+        if (! $liste->candidats()->where('est_tete_de_liste', true)->exists()) {
             return back()->with('error', 'Désignez une tête de liste avant de soumettre.');
         }
 
@@ -356,11 +356,11 @@ class EspaceCandidatController extends Controller
             ->where('type', 'recepisse_prefecture')
             ->exists();
 
-        if (!$hasRecepisse) {
+        if (! $hasRecepisse) {
             return back()->with('error', 'Ajoutez le récépissé de dépôt en préfecture avant de soumettre.');
         }
 
-        if (!$liste->soumettre()) {
+        if (! $liste->soumettre()) {
             return back()->with('error', 'Impossible de soumettre cette liste.');
         }
 

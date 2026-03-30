@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\Post;
 use App\Models\Achievement;
+use App\Models\Post;
 use App\Services\GamificationService;
 
 class PostObserver
@@ -17,7 +17,7 @@ class PostObserver
      */
     public function created(Post $post): void
     {
-        if (!$post->user_id) {
+        if (! $post->user_id) {
             return;
         }
 

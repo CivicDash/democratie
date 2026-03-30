@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\OrganeParlementaire;
-use App\Models\MembreOrgane;
 use App\Models\DeputeSenateur;
+use App\Models\MembreOrgane;
+use App\Models\OrganeParlementaire;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,11 +14,13 @@ class ImportOrganesFromApi extends Command
     protected $signature = 'import:organes-parlementaires 
                             {--source=both : Source (assemblee/senat/both)}
                             {--type=all : Type (groupe/commission/delegation/all)}';
-    
+
     protected $description = 'Importe les organes parlementaires (groupes, commissions, délégations) et leurs membres';
 
     private int $organesImported = 0;
+
     private int $membresImported = 0;
+
     private int $errors = 0;
 
     public function handle()
@@ -102,9 +104,10 @@ class ImportOrganesFromApi extends Command
         try {
             $response = Http::timeout(30)->get("{$baseUrl}/organismes/groupe/json");
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->error("❌ Erreur API groupes {$source}");
                 $this->errors++;
+
                 return;
             }
 
@@ -114,7 +117,7 @@ class ImportOrganesFromApi extends Command
             foreach ($organismes as $orgData) {
                 try {
                     $org = $orgData['organisme'] ?? $orgData;
-                    
+
                     $organe = OrganeParlementaire::updateOrCreate(
                         [
                             'source' => $source,
@@ -136,7 +139,7 @@ class ImportOrganesFromApi extends Command
 
                     $this->organesImported++;
                 } catch (\Exception $e) {
-                    Log::error("Erreur import groupe", ['error' => $e->getMessage()]);
+                    Log::error('Erreur import groupe', ['error' => $e->getMessage()]);
                 }
             }
         } catch (\Exception $e) {
@@ -153,9 +156,10 @@ class ImportOrganesFromApi extends Command
         try {
             $response = Http::timeout(30)->get("{$baseUrl}/organismes/{$typeApi}/json");
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->error("❌ Erreur API organes {$typeApi} {$source}");
                 $this->errors++;
+
                 return;
             }
 
@@ -165,10 +169,10 @@ class ImportOrganesFromApi extends Command
             foreach ($organismes as $orgData) {
                 try {
                     $org = $orgData['organisme'] ?? $orgData;
-                    
+
                     // Déterminer le type d'organe
                     $type = $this->determineTypeOrgane($org['nom'] ?? '');
-                    
+
                     $organe = OrganeParlementaire::updateOrCreate(
                         [
                             'source' => $source,
@@ -189,7 +193,7 @@ class ImportOrganesFromApi extends Command
 
                     $this->organesImported++;
                 } catch (\Exception $e) {
-                    Log::error("Erreur import organe", ['error' => $e->getMessage()]);
+                    Log::error('Erreur import organe', ['error' => $e->getMessage()]);
                 }
             }
         } catch (\Exception $e) {
@@ -206,7 +210,7 @@ class ImportOrganesFromApi extends Command
         try {
             $response = Http::timeout(30)->get("{$baseUrl}/organisme/{$slug}/json");
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return;
             }
 
@@ -217,22 +221,22 @@ class ImportOrganesFromApi extends Command
             foreach ($parlementaires as $parlData) {
                 try {
                     $parl = $parlData['parlementaire'] ?? $parlData;
-                    
+
                     // Trouver le député/sénateur par slug
                     $deputeSenateur = DeputeSenateur::where('source', $source)
-                        ->where(function($q) use ($parl) {
+                        ->where(function ($q) use ($parl) {
                             $slug = $parl['slug'] ?? '';
                             $nom = explode('-', $slug);
                             if (count($nom) >= 2) {
                                 $prenom = $nom[0];
                                 $nomFamille = implode(' ', array_slice($nom, 1));
                                 $q->where('prenom', 'ILIKE', $prenom)
-                                  ->where('nom', 'ILIKE', $nomFamille);
+                                    ->where('nom', 'ILIKE', $nomFamille);
                             }
                         })
                         ->first();
 
-                    if (!$deputeSenateur) {
+                    if (! $deputeSenateur) {
                         continue;
                     }
 
@@ -270,23 +274,23 @@ class ImportOrganesFromApi extends Command
     private function determineTypeOrgane(string $nom): string
     {
         $nom = strtolower($nom);
-        
+
         if (str_contains($nom, 'commission')) {
             return 'commission';
         }
-        
+
         if (str_contains($nom, 'délégation')) {
             return 'delegation';
         }
-        
+
         if (str_contains($nom, 'mission')) {
             return 'mission';
         }
-        
+
         if (str_contains($nom, 'office')) {
             return 'office';
         }
-        
+
         return 'commission'; // Par défaut
     }
 
@@ -295,7 +299,7 @@ class ImportOrganesFromApi extends Command
      */
     private function parseDate($date)
     {
-        if (!$date) {
+        if (! $date) {
             return null;
         }
 
@@ -311,19 +315,19 @@ class ImportOrganesFromApi extends Command
      */
     private function displaySummary()
     {
-        $this->info("✅ Import terminé !");
+        $this->info('✅ Import terminé !');
         $this->newLine();
-        
-        $this->info("📊 Résumé :");
+
+        $this->info('📊 Résumé :');
         $this->line("   ✓ {$this->organesImported} organes importés");
         $this->line("   👥 {$this->membresImported} membres importés");
-        
+
         if ($this->errors > 0) {
             $this->warn("   ⚠️  {$this->errors} erreurs");
         }
 
         $this->newLine();
-        
+
         // Statistiques
         try {
             $totalOrganes = OrganeParlementaire::count();
@@ -331,12 +335,11 @@ class ImportOrganesFromApi extends Command
             $totalCommissions = OrganeParlementaire::where('type', 'commission')->count();
             $totalMembres = MembreOrgane::where('actif', true)->count();
 
-            $this->info("📈 Total en base de données :");
+            $this->info('📈 Total en base de données :');
             $this->line("   {$totalOrganes} organes ({$totalGroupes} groupes, {$totalCommissions} commissions)");
             $this->line("   {$totalMembres} membres actifs");
         } catch (\Exception $e) {
-            $this->warn("⚠️  Tables non créées. Lancer: php artisan migrate");
+            $this->warn('⚠️  Tables non créées. Lancer: php artisan migrate');
         }
     }
 }
-

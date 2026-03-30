@@ -12,8 +12,11 @@ class TexteLegislatifAN extends Model
     use HasFactory;
 
     protected $table = 'textes_legislatifs_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -84,7 +87,7 @@ class TexteLegislatifAN extends Model
         if ($total === 0) {
             return 0.0;
         }
+
         return round(($this->nombre_amendements_adoptes / $total) * 100, 2);
     }
 }
-

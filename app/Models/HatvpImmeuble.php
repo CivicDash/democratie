@@ -58,4 +58,3 @@ class HatvpImmeuble extends Model
         return ($this->prix_acquisition ?? 0) + ($this->prix_travaux ?? 0);
     }
 }
-

@@ -18,13 +18,8 @@ class DocumentService
 {
     /**
      * Upload un document et l'attache à un contenu.
-     * 
-     * @param User $uploader
-     * @param UploadedFile $file
-     * @param Model $documentable Le contenu auquel attacher le document (Topic, Post, etc.)
-     * @param string|null $description
-     * 
-     * @return Document
+     *
+     * @param  Model  $documentable  Le contenu auquel attacher le document (Topic, Post, etc.)
      */
     public function uploadDocument(
         User $uploader,
@@ -32,7 +27,7 @@ class DocumentService
         Model $documentable,
         ?string $description = null
     ): Document {
-        if (!$uploader->can('upload', Document::class)) {
+        if (! $uploader->can('upload', Document::class)) {
             throw new RuntimeException('User cannot upload documents.');
         }
 
@@ -72,7 +67,7 @@ class DocumentService
      */
     public function updateDescription(Document $document, User $user, string $description): Document
     {
-        if (!$user->can('update', $document)) {
+        if (! $user->can('update', $document)) {
             throw new RuntimeException('User cannot update this document.');
         }
 
@@ -86,7 +81,7 @@ class DocumentService
      */
     public function deleteDocument(Document $document, User $user): bool
     {
-        if (!$user->can('delete', $document)) {
+        if (! $user->can('delete', $document)) {
             throw new RuntimeException('User cannot delete this document.');
         }
 
@@ -109,7 +104,7 @@ class DocumentService
      */
     public function startVerification(Document $document, User $verifier): Verification
     {
-        if (!$verifier->can('verify', $document)) {
+        if (! $verifier->can('verify', $document)) {
             throw new RuntimeException('User cannot verify this document.');
         }
 
@@ -125,7 +120,7 @@ class DocumentService
      */
     public function approveDocument(Document $document, User $verifier, ?string $notes = null): array
     {
-        if (!$verifier->can('verify', $document)) {
+        if (! $verifier->can('verify', $document)) {
             throw new RuntimeException('User cannot verify this document.');
         }
 
@@ -157,7 +152,7 @@ class DocumentService
      */
     public function rejectDocument(Document $document, User $verifier, string $reason): Verification
     {
-        if (!$verifier->can('verify', $document)) {
+        if (! $verifier->can('verify', $document)) {
             throw new RuntimeException('User cannot verify this document.');
         }
 
@@ -245,6 +240,7 @@ class DocumentService
             ->get()
             ->map(function ($item) {
                 $verifier = User::find($item->verifier_id);
+
                 return [
                     'verifier' => $verifier ? $verifier->name : 'Unknown',
                     'verification_count' => $item->verification_count,
@@ -258,9 +254,9 @@ class DocumentService
      */
     public function verifyIntegrity(Document $document): bool
     {
-        $filePath = storage_path('app/public/' . $document->file_path);
+        $filePath = storage_path('app/public/'.$document->file_path);
 
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             return false;
         }
 
@@ -277,4 +273,3 @@ class DocumentService
         return Storage::disk('public')->url($document->file_path);
     }
 }
-

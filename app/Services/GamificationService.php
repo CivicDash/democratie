@@ -3,12 +3,12 @@
 namespace App\Services;
 
 use App\Models\Achievement;
+use App\Models\Notification;
 use App\Models\User;
 use App\Models\UserAchievement;
 use App\Models\UserStats;
-use App\Models\Notification;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class GamificationService
 {
@@ -19,10 +19,10 @@ class GamificationService
     {
         // Créer les stats utilisateur
         UserStats::getForUser($user->id);
-        
+
         // Créer les progressions pour tous les badges actifs
         $achievements = Achievement::active()->get();
-        
+
         foreach ($achievements as $achievement) {
             UserAchievement::firstOrCreate(
                 [
@@ -43,15 +43,15 @@ class GamificationService
     public function processEvent(User $user, string $eventType, int $value = 1, ?array $data = null): array
     {
         $unlockedAchievements = [];
-        
+
         // Mettre à jour les stats
         $this->updateStats($user, $eventType, $value);
-        
+
         // Vérifier les achievements correspondants
         $achievements = Achievement::active()
             ->where('trigger_type', $eventType)
             ->get();
-        
+
         foreach ($achievements as $achievement) {
             $userAchievement = UserAchievement::firstOrCreate(
                 [
@@ -63,12 +63,12 @@ class GamificationService
                     'progress_target' => $achievement->required_value,
                 ]
             );
-            
-            if (!$userAchievement->is_unlocked) {
+
+            if (! $userAchievement->is_unlocked) {
                 // Vérifier les conditions spéciales
                 if ($this->checkConditions($achievement, $user, $data)) {
                     $currentValue = $this->getCurrentValue($achievement, $user);
-                    
+
                     if ($userAchievement->updateProgress($currentValue, $data)) {
                         if ($userAchievement->is_unlocked) {
                             $unlockedAchievements[] = $achievement;
@@ -78,7 +78,7 @@ class GamificationService
                 }
             }
         }
-        
+
         return $unlockedAchievements;
     }
 
@@ -88,10 +88,10 @@ class GamificationService
     private function updateStats(User $user, string $eventType, int $value): void
     {
         $stats = UserStats::getForUser($user->id);
-        
+
         // Mettre à jour le streak
         $stats->updateStreak();
-        
+
         // Incrémenter les compteurs selon l'événement
         $fieldMap = [
             Achievement::TRIGGER_VOTE_COUNT => 'total_votes',
@@ -101,15 +101,15 @@ class GamificationService
             Achievement::TRIGGER_BUDGET_ALLOCATION => 'total_budget_allocations',
             Achievement::TRIGGER_FOLLOW_COUNT => 'total_proposals_followed',
         ];
-        
+
         if (isset($fieldMap[$eventType])) {
             $stats->incrementCounter($fieldMap[$eventType], $value);
         }
-        
+
         // Ajouter de l'XP
         $xpAmount = $this->calculateXp($eventType, $value);
         $stats->addXp($xpAmount);
-        
+
         // Mettre à jour la réputation
         $stats->updateReputation();
     }
@@ -128,7 +128,7 @@ class GamificationService
             Achievement::TRIGGER_FOLLOW_COUNT => 10,
             Achievement::TRIGGER_UPVOTES_RECEIVED => 3,
         ];
-        
+
         return ($xpMap[$eventType] ?? 1) * $value;
     }
 
@@ -140,9 +140,9 @@ class GamificationService
         if (empty($achievement->trigger_conditions)) {
             return true;
         }
-        
+
         $conditions = $achievement->trigger_conditions;
-        
+
         // Vérifier chaque condition
         foreach ($conditions as $key => $value) {
             switch ($key) {
@@ -152,13 +152,13 @@ class GamificationService
                         return false;
                     }
                     break;
-                    
+
                 case 'category':
                     if (isset($data['category']) && $data['category'] !== $value) {
                         return false;
                     }
                     break;
-                    
+
                 case 'rarity':
                     if (isset($data['rarity']) && $data['rarity'] !== $value) {
                         return false;
@@ -166,7 +166,7 @@ class GamificationService
                     break;
             }
         }
-        
+
         return true;
     }
 
@@ -176,8 +176,8 @@ class GamificationService
     private function getCurrentValue(Achievement $achievement, User $user): int
     {
         $stats = UserStats::getForUser($user->id);
-        
-        return match($achievement->trigger_type) {
+
+        return match ($achievement->trigger_type) {
             Achievement::TRIGGER_VOTE_COUNT => $stats->total_votes,
             Achievement::TRIGGER_TOPIC_CREATED => $stats->total_topics_created,
             Achievement::TRIGGER_POST_CREATED => $stats->total_posts_created,
@@ -199,10 +199,10 @@ class GamificationService
         // Ajouter des XP bonus
         $stats = UserStats::getForUser($user->id);
         $stats->addXp($achievement->points);
-        
+
         // Mettre à jour les compteurs d'achievements
         $stats->total_achievements++;
-        
+
         switch ($achievement->rarity) {
             case Achievement::RARITY_RARE:
                 $stats->rare_achievements++;
@@ -214,13 +214,13 @@ class GamificationService
                 $stats->legendary_achievements++;
                 break;
         }
-        
+
         $stats->save();
-        
+
         // Envoyer une notification
         $this->sendAchievementNotification($user, $achievement);
-        
-        Log::info("Achievement unlocked", [
+
+        Log::info('Achievement unlocked', [
             'user_id' => $user->id,
             'achievement' => $achievement->code,
             'rarity' => $achievement->rarity,
@@ -256,11 +256,11 @@ class GamificationService
     {
         $query = UserAchievement::with('achievement')
             ->where('user_id', $user->id);
-        
+
         if ($unlockedOnly) {
             $query->unlocked();
         }
-        
+
         return $query->get();
     }
 
@@ -309,7 +309,7 @@ class GamificationService
     {
         $stats = UserStats::getForUser($user->id);
         $userValue = $stats->$metric;
-        
+
         return UserStats::where($metric, '>', $userValue)->count() + 1;
     }
 
@@ -319,11 +319,10 @@ class GamificationService
     public function recalculateRanks(): void
     {
         $users = UserStats::orderBy('reputation_score', 'desc')->get();
-        
+
         foreach ($users as $index => $stats) {
             $stats->global_rank = $index + 1;
             $stats->save();
         }
     }
 }
-

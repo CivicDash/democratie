@@ -61,4 +61,3 @@ class SenateurQuestion extends Model
         return $query->where('theme', $theme);
     }
 }
-

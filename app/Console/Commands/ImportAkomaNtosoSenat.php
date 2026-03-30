@@ -17,8 +17,11 @@ class ImportAkomaNtosoSenat extends Command
     protected $description = 'Importe les textes législatifs au format Akoma Ntoso depuis le Sénat';
 
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -31,19 +34,20 @@ class ImportAkomaNtosoSenat extends Command
         $this->info("🏛️  Import des textes Akoma Ntoso ({$type})...");
 
         if ($fresh) {
-            $this->warn("⚠️  Mode --fresh : suppression des textes existants...");
+            $this->warn('⚠️  Mode --fresh : suppression des textes existants...');
             TexteAkomaNtoso::truncate();
         }
 
         // URL du flux
-        $fluxUrl = $type === 'adoptions' 
+        $fluxUrl = $type === 'adoptions'
             ? 'https://www.senat.fr/akomantoso/adoptions.xml'
             : 'https://www.senat.fr/akomantoso/depots.xml';
 
         // Récupérer la liste des textes
         $textes = $this->fetchTextList($fluxUrl);
         if (empty($textes)) {
-            $this->error("❌ Aucun texte trouvé dans le flux");
+            $this->error('❌ Aucun texte trouvé dans le flux');
+
             return Command::FAILURE;
         }
 
@@ -53,7 +57,7 @@ class ImportAkomaNtosoSenat extends Command
         if ($since) {
             $cutoff = now()->subDays($since);
             $textes = array_filter($textes, function ($t) use ($cutoff) {
-                return isset($t['lastModifiedDateTime']) 
+                return isset($t['lastModifiedDateTime'])
                     && strtotime($t['lastModifiedDateTime']) >= $cutoff->timestamp;
             });
             $this->info("📅 {$this->count($textes)} textes depuis {$since} jours");
@@ -72,7 +76,7 @@ class ImportAkomaNtosoSenat extends Command
                 $this->processTexte($texte);
             } catch (\Exception $e) {
                 $this->errors++;
-                $this->warn("\n⚠️  Erreur sur {$texte['url']}: " . $e->getMessage());
+                $this->warn("\n⚠️  Erreur sur {$texte['url']}: ".$e->getMessage());
             }
             $bar->advance();
         }
@@ -91,15 +95,17 @@ class ImportAkomaNtosoSenat extends Command
 
         try {
             $response = Http::timeout(30)->get($url);
-            
-            if (!$response->successful()) {
-                $this->error("❌ Erreur HTTP: " . $response->status());
+
+            if (! $response->successful()) {
+                $this->error('❌ Erreur HTTP: '.$response->status());
+
                 return [];
             }
 
             $xml = @simplexml_load_string($response->body());
-            if (!$xml) {
-                $this->error("❌ XML invalide");
+            if (! $xml) {
+                $this->error('❌ XML invalide');
+
                 return [];
             }
 
@@ -114,7 +120,8 @@ class ImportAkomaNtosoSenat extends Command
 
             return $textes;
         } catch (\Exception $e) {
-            $this->error("❌ Erreur: " . $e->getMessage());
+            $this->error('❌ Erreur: '.$e->getMessage());
+
             return [];
         }
     }
@@ -127,13 +134,13 @@ class ImportAkomaNtosoSenat extends Command
     private function processTexte(array $texteInfo): void
     {
         $url = $texteInfo['url'];
-        
+
         // Extraire l'UID depuis l'URL
         // https://www.senat.fr/akomantoso/ppl25-171.akn.xml -> ppl25-171
         preg_match('/\/([^\/]+)\.akn\.xml$/', $url, $matches);
         $uid = $matches[1] ?? null;
-        
-        if (!$uid) {
+
+        if (! $uid) {
             throw new \Exception("Impossible d'extraire l'UID");
         }
 
@@ -143,14 +150,15 @@ class ImportAkomaNtosoSenat extends Command
             $newModified = strtotime($texteInfo['lastModifiedDateTime'] ?? '');
             if ($newModified && $existing->last_modified->timestamp >= $newModified) {
                 $this->skipped++;
+
                 return;
             }
         }
 
         // Télécharger et parser le XML
         $response = Http::timeout(30)->get($url);
-        if (!$response->successful()) {
-            throw new \Exception("Erreur HTTP " . $response->status());
+        if (! $response->successful()) {
+            throw new \Exception('Erreur HTTP '.$response->status());
         }
 
         $data = $this->parseAkomaNtoso($response->body(), $uid);
@@ -173,10 +181,10 @@ class ImportAkomaNtosoSenat extends Command
         $content = preg_replace('/xmlns[^=]*="[^"]*"/', '', $content);
         $content = preg_replace('/xsi:[^=]*="[^"]*"/', '', $content);
         $content = preg_replace('/data:/', '', $content);
-        
+
         $xml = @simplexml_load_string($content);
-        if (!$xml) {
-            throw new \Exception("XML invalide");
+        if (! $xml) {
+            throw new \Exception('XML invalide');
         }
 
         // Extraire type et numéro depuis l'UID (ppl25-171)
@@ -197,7 +205,7 @@ class ImportAkomaNtosoSenat extends Command
         if ($bill->preamble && $bill->preamble->docTitle) {
             $titre = (string) $bill->preamble->docTitle;
         }
-        
+
         // Chercher dans les alias
         if ($work) {
             foreach ($work->FRBRalias ?? [] as $alias) {
@@ -229,7 +237,7 @@ class ImportAkomaNtosoSenat extends Command
         $datePresentation = null;
         $dateAdoption = null;
         $datePublicationXml = null;
-        
+
         if ($work && $work->FRBRdate) {
             foreach ($work->FRBRdate ?? [] as $date) {
                 $name = (string) ($date['name'] ?? '');
@@ -241,7 +249,7 @@ class ImportAkomaNtosoSenat extends Command
                 }
             }
         }
-        
+
         if ($identification && $identification->FRBRExpression && $identification->FRBRExpression->FRBRdate) {
             $date = $identification->FRBRExpression->FRBRdate;
             $name = (string) ($date['name'] ?? '');
@@ -341,6 +349,7 @@ class ImportAkomaNtosoSenat extends Command
         $text = strip_tags($element->asXML());
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = preg_replace('/\s+/', ' ', $text);
+
         return trim($text);
     }
 
@@ -363,10 +372,9 @@ class ImportAkomaNtosoSenat extends Command
         $ppl = TexteAkomaNtoso::where('type', 'ppl')->count();
         $pjl = TexteAkomaNtoso::where('type', 'pjl')->count();
         $this->newLine();
-        $this->info("📈 Base de données :");
+        $this->info('📈 Base de données :');
         $this->info("   Total textes : {$total}");
         $this->info("   Propositions de loi : {$ppl}");
         $this->info("   Projets de loi : {$pjl}");
     }
 }
-

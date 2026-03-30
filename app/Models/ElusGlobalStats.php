@@ -62,7 +62,7 @@ class ElusGlobalStats extends Model
 
         foreach (['deputes', 'senateurs', 'maires'] as $type) {
             $stat = $stats->get($type);
-            
+
             if ($stat) {
                 $effectifs[$type] = [
                     'total' => $stat->total,

@@ -16,9 +16,13 @@ class InterpellationNotificationMail extends Mailable
     use Queueable, SerializesModels;
 
     public Topic $topic;
+
     public TopicElu $topicElu;
+
     public User $author;
+
     public string $eluName;
+
     public string $dashboardUrl;
 
     /**
@@ -39,7 +43,7 @@ class InterpellationNotificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "🏛️ Nouvelle interpellation citoyenne sur CivicDash",
+            subject: '🏛️ Nouvelle interpellation citoyenne sur CivicDash',
         );
     }
 

@@ -18,7 +18,7 @@ class BallotResultResource extends JsonResource
             'topic' => new TopicResource($this->whenLoaded('topic')),
             'ballot_type' => $this->resource['ballot_type'] ?? null,
             'total_votes' => $this->resource['total_votes'] ?? 0,
-            
+
             // Binary results
             'yes' => $this->when(
                 isset($this->resource['yes']),
@@ -28,24 +28,24 @@ class BallotResultResource extends JsonResource
                 isset($this->resource['no']),
                 $this->resource['no']
             ),
-            
+
             // Multiple choice results
             'choices' => $this->when(
                 isset($this->resource['choices']),
                 $this->resource['choices']
             ),
-            
+
             // Percentages
             'percentages' => $this->when(
                 $this->resource['total_votes'] > 0,
                 $this->calculatePercentages()
             ),
-            
+
             // Metadata
             'ballot_ends_at' => $this->resource['ballot_ends_at'] ?? null,
             'is_ended' => $this->when(
                 isset($this->resource['ballot_ends_at']),
-                fn() => now()->gt($this->resource['ballot_ends_at'])
+                fn () => now()->gt($this->resource['ballot_ends_at'])
             ),
         ];
     }
@@ -56,7 +56,7 @@ class BallotResultResource extends JsonResource
     protected function calculatePercentages(): array
     {
         $total = $this->resource['total_votes'];
-        
+
         if ($total === 0) {
             return [];
         }
@@ -75,6 +75,7 @@ class BallotResultResource extends JsonResource
             foreach ($this->resource['choices'] as $choice => $count) {
                 $percentages[$choice] = round(($count / $total) * 100, 2);
             }
+
             return $percentages;
         }
 

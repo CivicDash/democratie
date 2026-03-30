@@ -55,4 +55,3 @@ class HatvpActiviteProfessionnelle extends Model
             ->toArray();
     }
 }
-

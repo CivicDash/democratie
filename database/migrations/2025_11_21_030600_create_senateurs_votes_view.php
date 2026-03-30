@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasTable('senat_senateurs_votes')) {
+            return;
+        }
+
         DB::statement("
             CREATE OR REPLACE VIEW senateurs_votes AS
             SELECT 
@@ -43,7 +48,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS senateurs_votes");
+        DB::statement('DROP VIEW IF EXISTS senateurs_votes');
     }
 };
-

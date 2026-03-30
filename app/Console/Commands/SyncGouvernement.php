@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\Gouvernement;
 use App\Models\Ministere;
 use App\Models\Ministre;
-use App\Models\Remaniement;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -31,28 +30,30 @@ class SyncGouvernement extends Command
 
         // 1. Requête SPARQL pour le gouvernement français actuel
         $this->info('📥 Requête Wikidata (gouvernement français actuel)...');
-        
+
         try {
             $membres = $this->fetchFromWikidata();
 
             if (empty($membres)) {
                 $this->warn('⚠️ Aucun membre trouvé via Wikidata.');
                 $this->info('💡 Vérifiez manuellement : https://www.wikidata.org/wiki/Q16');
+
                 return Command::FAILURE;
             }
 
-            $this->info('   → ' . count($membres) . ' membres trouvés');
+            $this->info('   → '.count($membres).' membres trouvés');
             $this->newLine();
 
         } catch (\Exception $e) {
-            $this->error('❌ Erreur : ' . $e->getMessage());
+            $this->error('❌ Erreur : '.$e->getMessage());
+
             return Command::FAILURE;
         }
 
         // 2. Afficher les résultats
         $this->table(
             ['#', 'Fonction', 'Nom', 'Photo'],
-            collect($membres)->map(fn($m, $i) => [
+            collect($membres)->map(fn ($m, $i) => [
                 $i + 1,
                 Str::limit($m['fonction'], 50),
                 $m['nom'],
@@ -63,6 +64,7 @@ class SyncGouvernement extends Command
         if ($dryRun) {
             $this->newLine();
             $this->info('🔄 Mode simulation - Aucune modification effectuée');
+
             return Command::SUCCESS;
         }
 
@@ -121,8 +123,8 @@ SPARQL;
                 'format' => 'json',
             ]);
 
-        if (!$response->successful()) {
-            throw new \Exception('Erreur Wikidata: ' . $response->status());
+        if (! $response->successful()) {
+            throw new \Exception('Erreur Wikidata: '.$response->status());
         }
 
         $data = $response->json();
@@ -146,7 +148,7 @@ SPARQL;
 
         // Utiliser DOMDocument pour parser le HTML
         libxml_use_internal_errors(true);
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         $dom->loadHTML(mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'));
         libxml_clear_errors();
 
@@ -168,7 +170,7 @@ SPARQL;
         // Pattern 2: Chercher les cartes avec structure nom + fonction
         if (empty($membres)) {
             $cards = $xpath->query("//div[contains(@class, 'card')] | //article | //section//div[.//h2 or .//h3]");
-            
+
             foreach ($cards as $card) {
                 $membre = $this->extractMemberFromGenericCard($card, $xpath);
                 if ($membre) {
@@ -180,11 +182,11 @@ SPARQL;
         // Pattern 3: Chercher les images avec alt contenant "ministre"
         if (empty($membres)) {
             $images = $xpath->query("//img[contains(@alt, 'Ministre') or contains(@alt, 'ministre') or contains(@alt, 'Secrétaire')]");
-            
+
             foreach ($images as $img) {
                 $alt = $img->getAttribute('alt');
                 $src = $img->getAttribute('src');
-                
+
                 // Essayer d'extraire nom et fonction de l'alt
                 if (preg_match('/^(.+?)\s*[-–]\s*(.+)$/u', $alt, $matches)) {
                     $membres[] = [
@@ -195,7 +197,7 @@ SPARQL;
                 } elseif (preg_match('/^(Ministre|Secrétaire).+$/u', $alt)) {
                     // L'alt est la fonction, chercher le nom à proximité
                     $parent = $img->parentNode;
-                    $nomNode = $xpath->query(".//span | .//p | .//h3", $parent)->item(0);
+                    $nomNode = $xpath->query('.//span | .//p | .//h3', $parent)->item(0);
                     if ($nomNode) {
                         $membres[] = [
                             'nom' => trim($nomNode->textContent),
@@ -209,7 +211,7 @@ SPARQL;
 
         // Dédupliquer et nettoyer
         $membres = collect($membres)
-            ->filter(fn($m) => !empty($m['nom']) && strlen($m['nom']) > 2)
+            ->filter(fn ($m) => ! empty($m['nom']) && strlen($m['nom']) > 2)
             ->unique('nom')
             ->values()
             ->toArray();
@@ -228,7 +230,7 @@ SPARQL;
         $function = $functionNode ? trim($functionNode->textContent) : null;
 
         // Chercher la photo
-        $imgNode = $xpath->query(".//img", $card)->item(0);
+        $imgNode = $xpath->query('.//img', $card)->item(0);
         $photo = $imgNode ? $imgNode->getAttribute('src') : null;
 
         if ($name && $function && strlen($name) > 2) {
@@ -245,7 +247,7 @@ SPARQL;
     private function extractMemberFromGenericCard(\DOMNode $card, \DOMXPath $xpath): ?array
     {
         $text = trim($card->textContent);
-        
+
         // Filtrer les blocs trop longs ou trop courts
         if (strlen($text) < 10 || strlen($text) > 500) {
             return null;
@@ -253,7 +255,7 @@ SPARQL;
 
         // Chercher un pattern "Prénom Nom" suivi d'une fonction
         $lines = preg_split('/\n+/', $text);
-        $lines = array_filter($lines, fn($l) => strlen(trim($l)) > 2);
+        $lines = array_filter($lines, fn ($l) => strlen(trim($l)) > 2);
         $lines = array_values($lines);
 
         if (count($lines) >= 2) {
@@ -264,7 +266,7 @@ SPARQL;
             // Vérifier que le nom ressemble à un nom (2-4 mots, pas trop long)
             if (preg_match('/^[A-ZÀ-Ü][a-zà-ü]+(\s+[A-ZÀ-Ü][a-zà-ü]+){1,3}$/', $potentialName)) {
                 // Chercher une photo
-                $imgNode = $xpath->query(".//img", $card)->item(0);
+                $imgNode = $xpath->query('.//img', $card)->item(0);
                 $photo = $imgNode ? $imgNode->getAttribute('src') : null;
 
                 return [
@@ -280,13 +282,15 @@ SPARQL;
 
     private function normalizePhotoUrl(?string $url): ?string
     {
-        if (!$url) return null;
-        
+        if (! $url) {
+            return null;
+        }
+
         // Convertir en URL absolue si relative
         if (str_starts_with($url, '/')) {
-            $url = 'https://www.info.gouv.fr' . $url;
+            $url = 'https://www.info.gouv.fr'.$url;
         }
-        
+
         // Ignorer les placeholders
         if (str_contains($url, 'placeholder') || str_contains($url, 'default')) {
             return null;
@@ -323,7 +327,7 @@ SPARQL;
         foreach ($membres as $membre) {
             // Identifier le type de fonction
             $type = $this->identifyFunctionType($membre['fonction']);
-            
+
             // Créer ou trouver le ministère
             $ministere = Ministere::firstOrCreate(
                 [
@@ -363,9 +367,9 @@ SPARQL;
         }
 
         // Stats finales
-        $this->info('   → Gouvernement: ' . $gouvernement->nom);
-        $this->info('   → Ministères: ' . Ministere::where('gouvernement_id', $gouvernement->id)->count());
-        $this->info('   → Ministres actifs: ' . Ministre::where('gouvernement_id', $gouvernement->id)->where('actif', true)->count());
+        $this->info('   → Gouvernement: '.$gouvernement->nom);
+        $this->info('   → Ministères: '.Ministere::where('gouvernement_id', $gouvernement->id)->count());
+        $this->info('   → Ministres actifs: '.Ministre::where('gouvernement_id', $gouvernement->id)->where('actif', true)->count());
     }
 
     private function identifyFunctionType(string $fonction): string
@@ -381,6 +385,7 @@ SPARQL;
         if (str_contains($fonctionLower, 'ministre délégué') || str_contains($fonctionLower, 'ministre déléguée')) {
             return 'ministre_delegue';
         }
+
         return 'ministre';
     }
 
@@ -388,6 +393,7 @@ SPARQL;
     {
         // Nettoyer la fonction pour en extraire le nom du ministère
         $fonction = preg_replace('/^(Ministre|Secrétaire d\'État|Ministre délégué[e]?)\s*(de la|du|des|de l\'|auprès|,|chargé[e]? de)?\s*/iu', '', $fonction);
+
         return trim($fonction) ?: $fonction;
     }
 
@@ -395,29 +401,29 @@ SPARQL;
     {
         // Générer un sigle à partir de la fonction
         $mots = preg_split('/[\s,]+/', $fonction);
-        $mots = array_filter($mots, fn($m) => strlen($m) > 3 && !in_array(strtolower($m), ['de', 'la', 'le', 'les', 'du', 'des', 'et', 'auprès', 'chargé', 'chargée']));
-        
+        $mots = array_filter($mots, fn ($m) => strlen($m) > 3 && ! in_array(strtolower($m), ['de', 'la', 'le', 'les', 'du', 'des', 'et', 'auprès', 'chargé', 'chargée']));
+
         $sigle = '';
         foreach (array_slice($mots, 0, 4) as $mot) {
             $sigle .= strtoupper(mb_substr($mot, 0, 1));
         }
-        
+
         return $sigle ?: 'MIN';
     }
 
     private function splitName(string $fullName): array
     {
         $parts = preg_split('/\s+/', trim($fullName));
-        
+
         if (count($parts) === 1) {
             return ['', $parts[0]];
         }
-        
+
         // Généralement: Prénom Nom ou Prénom Prénom Nom
         // Le dernier mot est souvent le nom de famille
         $nom = array_pop($parts);
         $prenom = implode(' ', $parts);
-        
+
         return [$prenom, $nom];
     }
 }

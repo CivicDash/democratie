@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\EvenementLegislatif;
 use App\Models\ReunionAN;
-use App\Models\OrganeAN;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class CalendrierController extends Controller
@@ -22,25 +20,25 @@ class CalendrierController extends Controller
         $annee = $request->input('annee', now()->year);
         $source = $request->input('source'); // 'an', 'senat', ou null pour tous
         $type = $request->input('type'); // 'seance', 'commission', etc.
-        
+
         // Date de référence
         $dateRef = Carbon::createFromDate($annee, $mois, 1);
-        
+
         // Événements du mois depuis la table unifiée
         $evenements = EvenementLegislatif::query()
             ->mois($dateRef)
             ->confirmes()
-            ->when($source, fn($q) => $q->source($source))
-            ->when($type, fn($q) => $q->type($type))
+            ->when($source, fn ($q) => $q->source($source))
+            ->when($type, fn ($q) => $q->type($type))
             ->orderBy('date_debut')
             ->get()
-            ->map(fn($e) => $e->toCalendarEvent());
-        
+            ->map(fn ($e) => $e->toCalendarEvent());
+
         // Grouper par jour pour le calendrier (convertir en tableau pour Inertia)
         $evenementsParJour = $evenements->groupBy(function ($e) {
             return Carbon::parse($e['start'])->format('Y-m-d');
-        })->map(fn($items) => $items->values()->all())->all();
-        
+        })->map(fn ($items) => $items->values()->all())->all();
+
         // Statistiques du mois
         $stats = [
             'total' => $evenements->count(),
@@ -51,29 +49,29 @@ class CalendrierController extends Controller
             'commissions' => $evenements->where('type', 'commission')->count(),
             'reunions' => $evenements->where('type', 'reunion')->count(),
         ];
-        
+
         // Types disponibles
         $typesDisponibles = EvenementLegislatif::select('type')
             ->distinct()
             ->pluck('type')
-            ->map(fn($t) => [
+            ->map(fn ($t) => [
                 'value' => $t,
-                'label' => EvenementLegislatif::ICONES[$t] ?? '📅' . ' ' . ucfirst($t),
+                'label' => EvenementLegislatif::ICONES[$t] ?? '📅'.' '.ucfirst($t),
             ]);
-        
+
         // Sources
         $sourcesDisponibles = [
             ['value' => 'an', 'label' => '🔵 Assemblée nationale', 'couleur' => '#0055A4'],
             ['value' => 'senat', 'label' => '🔴 Sénat', 'couleur' => '#DC143C'],
             ['value' => 'elysee', 'label' => '🟡 Élysée', 'couleur' => '#FFD700'],
         ];
-        
+
         return Inertia::render('Parlement/Calendrier/Index', [
             'evenements' => $evenements,
             'evenementsParJour' => $evenementsParJour,
             'stats' => $stats,
-            'mois' => (int)$mois,
-            'annee' => (int)$annee,
+            'mois' => (int) $mois,
+            'annee' => (int) $annee,
             'dateRef' => $dateRef->format('Y-m-d'),
             'filtres' => [
                 'source' => $source,
@@ -91,19 +89,19 @@ class CalendrierController extends Controller
     {
         $date = $request->input('date', now()->format('Y-m-d'));
         $source = $request->input('source');
-        
+
         $dateRef = Carbon::parse($date);
         $debutSemaine = $dateRef->copy()->startOfWeek();
         $finSemaine = $dateRef->copy()->endOfWeek();
-        
+
         $evenements = EvenementLegislatif::query()
             ->periode($debutSemaine, $finSemaine)
             ->confirmes()
-            ->when($source, fn($q) => $q->source($source))
+            ->when($source, fn ($q) => $q->source($source))
             ->orderBy('date_debut')
             ->get()
-            ->map(fn($e) => $e->toCalendarEvent());
-        
+            ->map(fn ($e) => $e->toCalendarEvent());
+
         // Grouper par jour
         $joursArray = [];
         for ($i = 0; $i < 7; $i++) {
@@ -113,17 +111,16 @@ class CalendrierController extends Controller
                 'date' => $jourKey,
                 'label' => $jour->translatedFormat('l j'),
                 'estAujourdhui' => $jour->isToday(),
-                'evenements' => $evenements->filter(fn($e) => 
-                    Carbon::parse($e['start'])->format('Y-m-d') === $jourKey
+                'evenements' => $evenements->filter(fn ($e) => Carbon::parse($e['start'])->format('Y-m-d') === $jourKey
                 )->values(),
             ];
         }
-        
+
         return Inertia::render('Parlement/Calendrier/Semaine', [
             'jours' => $joursArray,
             'debutSemaine' => $debutSemaine->format('Y-m-d'),
             'finSemaine' => $finSemaine->format('Y-m-d'),
-            'semaineLabel' => $debutSemaine->translatedFormat('j M') . ' - ' . $finSemaine->translatedFormat('j M Y'),
+            'semaineLabel' => $debutSemaine->translatedFormat('j M').' - '.$finSemaine->translatedFormat('j M Y'),
             'filtres' => ['source' => $source],
         ]);
     }
@@ -135,7 +132,7 @@ class CalendrierController extends Controller
     {
         // Chercher d'abord dans la table unifiée
         $evenement = EvenementLegislatif::where('uid', $uid)->first();
-        
+
         if ($evenement) {
             // Événements similaires
             $similaires = EvenementLegislatif::where('source', $evenement->source)
@@ -145,8 +142,8 @@ class CalendrierController extends Controller
                 ->orderBy('date_debut')
                 ->limit(5)
                 ->get()
-                ->map(fn($e) => $e->toCalendarEvent());
-            
+                ->map(fn ($e) => $e->toCalendarEvent());
+
             return Inertia::render('Parlement/Calendrier/Show', [
                 'evenement' => array_merge($evenement->toCalendarEvent(), [
                     'description' => $evenement->description,
@@ -155,20 +152,20 @@ class CalendrierController extends Controller
                 'similaires' => $similaires,
             ]);
         }
-        
+
         // Fallback: chercher dans reunions_an (ancienne table)
         $reunion = ReunionAN::with('organe')
             ->where('uid', $uid)
             ->firstOrFail();
-        
+
         $reunionsSimilaires = ReunionAN::where('organe_ref', $reunion->organe_ref)
             ->where('uid', '!=', $uid)
             ->whereMonth('date_debut', $reunion->date_debut?->month ?? now()->month)
             ->orderBy('date_debut')
             ->limit(5)
             ->get()
-            ->map(fn($r) => $this->formatReunionLegacy($r));
-        
+            ->map(fn ($r) => $this->formatReunionLegacy($r));
+
         return Inertia::render('Parlement/Calendrier/Show', [
             'evenement' => $this->formatReunionDetailedLegacy($reunion),
             'similaires' => $reunionsSimilaires,
@@ -186,8 +183,8 @@ class CalendrierController extends Controller
             ->orderBy('date_debut')
             ->limit(10)
             ->get()
-            ->map(fn($e) => $e->toCalendarEvent());
-        
+            ->map(fn ($e) => $e->toCalendarEvent());
+
         return response()->json([
             'date' => now()->format('Y-m-d'),
             'evenements' => $evenements,
@@ -202,16 +199,16 @@ class CalendrierController extends Controller
     {
         $limit = $request->input('limit', 5);
         $source = $request->input('source');
-        
+
         $evenements = EvenementLegislatif::query()
             ->aVenir()
             ->confirmes()
-            ->when($source, fn($q) => $q->source($source))
+            ->when($source, fn ($q) => $q->source($source))
             ->orderBy('date_debut')
             ->limit($limit)
             ->get()
-            ->map(fn($e) => $e->toCalendarEvent());
-        
+            ->map(fn ($e) => $e->toCalendarEvent());
+
         return response()->json([
             'evenements' => $evenements,
         ]);
@@ -246,7 +243,7 @@ class CalendrierController extends Controller
     private function formatReunionDetailedLegacy(ReunionAN $reunion): array
     {
         $base = $this->formatReunionLegacy($reunion);
-        
+
         return array_merge($base, [
             'description' => $reunion->odj_resume ?? $reunion->odj_convocation,
             'urlDossier' => null,

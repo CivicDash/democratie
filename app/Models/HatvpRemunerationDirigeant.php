@@ -32,4 +32,3 @@ class HatvpRemunerationDirigeant extends Model
         return $this->belongsTo(HatvpParticipationDirigeante::class, 'participation_id');
     }
 }
-

@@ -71,19 +71,20 @@ class InseeSalaire extends Model
 
     public function getSalaireMedianFormateAttribute(): string
     {
-        return number_format($this->salaire_median ?? 0, 0, ',', ' ') . ' €';
+        return number_format($this->salaire_median ?? 0, 0, ',', ' ').' €';
     }
 
     public function getSalaireMoyenFormateAttribute(): string
     {
-        return number_format($this->salaire_moyen ?? 0, 0, ',', ' ') . ' €';
+        return number_format($this->salaire_moyen ?? 0, 0, ',', ' ').' €';
     }
 
     public function getEcartMoyenMedianAttribute(): ?float
     {
-        if (!$this->salaire_median || !$this->salaire_moyen) {
+        if (! $this->salaire_median || ! $this->salaire_moyen) {
             return null;
         }
+
         return round((($this->salaire_moyen - $this->salaire_median) / $this->salaire_median) * 100, 1);
     }
 

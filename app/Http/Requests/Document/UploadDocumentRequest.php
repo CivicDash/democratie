@@ -25,7 +25,7 @@ class UploadDocumentRequest extends FormRequest
                 'required',
                 'file',
                 'max:10240', // 10MB max
-                'mimes:pdf,doc,docx,jpg,jpeg,png,txt,zip'
+                'mimes:pdf,doc,docx,jpg,jpeg,png,txt,zip',
             ],
             'documentable_type' => ['required', 'string', 'in:App\Models\Topic,App\Models\Post'],
             'documentable_id' => ['required', 'integer'],
@@ -59,14 +59,13 @@ class UploadDocumentRequest extends FormRequest
             // Vérifier que le contenu existe
             $type = $this->documentable_type;
             $id = $this->documentable_id;
-            
+
             if (class_exists($type)) {
                 $exists = $type::find($id);
-                if (!$exists) {
+                if (! $exists) {
                     $validator->errors()->add('documentable_id', 'Le contenu associé n\'existe pas.');
                 }
             }
         });
     }
 }
-

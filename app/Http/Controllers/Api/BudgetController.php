@@ -171,4 +171,3 @@ class BudgetController extends Controller
         return response()->json($export);
     }
 }
-

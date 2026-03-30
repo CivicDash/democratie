@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\BudgetTerritorialService;
-use App\Services\DataGouvService;
 use App\Models\CommuneBudget;
 use App\Models\FrenchPostalCode;
+use App\Services\BudgetTerritorialService;
+use App\Services\DataGouvService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -24,17 +24,16 @@ class DataGouvController extends Controller
 
     /**
      * Récupère le budget d'une commune
-     * 
+     *
      * GET /api/datagouv/commune/{codeInsee}/budget/{annee?}
-     * 
-     * @param string $codeInsee Code INSEE de la commune (5 caractères)
-     * @param int|null $annee Année du budget (optionnel, défaut: année en cours)
-     * @return JsonResponse
+     *
+     * @param  string  $codeInsee  Code INSEE de la commune (5 caractères)
+     * @param  int|null  $annee  Année du budget (optionnel, défaut: année en cours)
      */
     public function getCommuneBudget(string $codeInsee, ?int $annee = null): JsonResponse
     {
         // Validation du code INSEE
-        if (!preg_match('/^\d{5}$/', $codeInsee)) {
+        if (! preg_match('/^\d{5}$/', $codeInsee)) {
             return response()->json([
                 'error' => 'Code INSEE invalide',
                 'message' => 'Le code INSEE doit contenir exactement 5 chiffres',
@@ -47,14 +46,14 @@ class DataGouvController extends Controller
         if ($annee < 2000 || $annee > date('Y')) {
             return response()->json([
                 'error' => 'Année invalide',
-                'message' => 'L\'année doit être entre 2000 et ' . date('Y'),
+                'message' => 'L\'année doit être entre 2000 et '.date('Y'),
             ], 400);
         }
 
         try {
             $budget = $this->budgetService->getCommuneBudget($codeInsee, $annee);
-            
-            if (!$budget) {
+
+            if (! $budget) {
                 return response()->json([
                     'error' => 'Budget non trouvé',
                     'message' => "Aucun budget trouvé pour la commune {$codeInsee} en {$annee}",
@@ -83,18 +82,15 @@ class DataGouvController extends Controller
 
     /**
      * Compare les budgets de plusieurs communes
-     * 
+     *
      * GET /api/datagouv/communes/compare?codes[]=75056&codes[]=69123&annee=2024
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function compareBudgets(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'codes' => 'required|array|min:2|max:10',
             'codes.*' => 'required|string|size:5|regex:/^\d{5}$/',
-            'annee' => 'nullable|integer|min:2000|max:' . date('Y'),
+            'annee' => 'nullable|integer|min:2000|max:'.date('Y'),
         ]);
 
         if ($validator->fails()) {
@@ -136,11 +132,8 @@ class DataGouvController extends Controller
 
     /**
      * Génère le contexte budgétaire pour un projet citoyen
-     * 
+     *
      * GET /api/datagouv/project/context?code_insee=75056&montant=150000&categorie=culture
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function getProjectContext(Request $request): JsonResponse
     {
@@ -191,7 +184,7 @@ class DataGouvController extends Controller
 
     /**
      * Recherche de communes par nom
-     * 
+     *
      * GET /api/communes/search?q=paris
      * Returns a flat array for frontend autocomplete compatibility.
      */
@@ -206,13 +199,13 @@ class DataGouvController extends Controller
         try {
             $communes = FrenchPostalCode::where('city_name', 'ILIKE', "%{$query}%")
                 ->select('insee_code', 'city_name', 'postal_code', 'department_name')
-                ->orderByRaw("CASE WHEN city_name ILIKE ? THEN 0 ELSE 1 END", [$query . '%'])
+                ->orderByRaw('CASE WHEN city_name ILIKE ? THEN 0 ELSE 1 END', [$query.'%'])
                 ->orderBy('city_name')
                 ->limit(15)
                 ->get()
                 ->unique('insee_code')
                 ->values()
-                ->map(fn($pc) => [
+                ->map(fn ($pc) => [
                     'code_insee' => $pc->insee_code,
                     'nom' => $pc->city_name,
                     'departement_code' => mb_substr($pc->insee_code, 0, 2),
@@ -233,16 +226,14 @@ class DataGouvController extends Controller
 
     /**
      * Récupère les statistiques du service data.gouv.fr
-     * 
+     *
      * GET /api/datagouv/stats
-     * 
-     * @return JsonResponse
      */
     public function getStats(): JsonResponse
     {
         try {
             $serviceStats = $this->dataGouvService->getStats();
-            
+
             $dbStats = [
                 'cached_datasets' => \DB::table('datagouv_cache')->count(),
                 'cached_budgets' => CommuneBudget::count(),
@@ -276,15 +267,12 @@ class DataGouvController extends Controller
 
     /**
      * Invalide le cache pour une commune spécifique
-     * 
+     *
      * DELETE /api/datagouv/cache/commune/{codeInsee}
-     * 
-     * @param string $codeInsee
-     * @return JsonResponse
      */
     public function invalidateCommuneCache(string $codeInsee): JsonResponse
     {
-        if (!preg_match('/^\d{5}$/', $codeInsee)) {
+        if (! preg_match('/^\d{5}$/', $codeInsee)) {
             return response()->json([
                 'error' => 'Code INSEE invalide',
             ], 400);
@@ -293,7 +281,7 @@ class DataGouvController extends Controller
         try {
             // Supprimer de Redis
             \Cache::forget("budget:commune:{$codeInsee}:*");
-            
+
             // Supprimer de la BDD
             $deleted = CommuneBudget::forCommune($codeInsee)->delete();
 
@@ -314,4 +302,3 @@ class DataGouvController extends Controller
         }
     }
 }
-

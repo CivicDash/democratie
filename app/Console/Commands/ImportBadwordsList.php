@@ -26,9 +26,10 @@ class ImportBadwordsList extends Command
 
         // Récupérer la liste
         $words = $this->fetchWords();
-        
+
         if (empty($words)) {
             $this->error('❌ Aucun mot trouvé dans la source');
+
             return Command::FAILURE;
         }
 
@@ -36,13 +37,14 @@ class ImportBadwordsList extends Command
 
         if ($this->option('dry-run')) {
             $this->warn('🔍 Mode simulation - aucune donnée ne sera importée');
-            $this->table(['Mot', 'Catégorie', 'Sévérité'], $words->take(20)->map(fn($w) => [
+            $this->table(['Mot', 'Catégorie', 'Sévérité'], $words->take(20)->map(fn ($w) => [
                 $w['word'],
                 $w['category'],
-                $w['severity']
+                $w['severity'],
             ]));
             $remaining = $words->count() - 20;
             $this->info("... et {$remaining} autres mots");
+
             return Command::SUCCESS;
         }
 
@@ -97,34 +99,36 @@ class ImportBadwordsList extends Command
         $content = '';
 
         if ($source === 'github') {
-            $this->info("📥 Téléchargement depuis GitHub...");
+            $this->info('📥 Téléchargement depuis GitHub...');
             $response = Http::timeout(30)->get(self::GITHUB_URL);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 $this->error("Erreur HTTP: {$response->status()}");
+
                 return collect();
             }
-            
+
             $content = $response->body();
         } elseif ($source === 'file' && $this->option('file')) {
             $filePath = $this->option('file');
-            if (!file_exists($filePath)) {
+            if (! file_exists($filePath)) {
                 $this->error("Fichier non trouvé: {$filePath}");
+
                 return collect();
             }
             $content = file_get_contents($filePath);
         }
 
         // Parser la liste
-        $lines = array_filter(explode("\n", $content), fn($l) => trim($l) !== '');
-        
+        $lines = array_filter(explode("\n", $content), fn ($l) => trim($l) !== '');
+
         return collect($lines)->map(function ($word) {
             $word = trim(strtolower($word));
-            
+
             // Déterminer la catégorie et sévérité selon le mot
             $category = $this->categorizeWord($word);
             $severity = $this->determineSeverity($word);
-            
+
             return [
                 'word' => $word,
                 'category' => $category,
@@ -160,7 +164,7 @@ class ImportBadwordsList extends Command
         // Les variations leetspeak sont généralement utilisées pour contourner les filtres
         // donc on les considère comme plus sévères
         $hasLeetspeak = preg_match('/[0-9@!]/', $word);
-        
+
         // Mots très offensants
         $highSeverity = ['negre', 'nègre', 'bougnoule', 'youpin', 'nazi', 'hitler'];
         foreach ($highSeverity as $hw) {
@@ -195,7 +199,7 @@ class ImportBadwordsList extends Command
             ['word' => 'virtuose', 'category' => 'compliment'],
             ['word' => 'maestro', 'category' => 'compliment'],
             ['word' => 'philosophe', 'category' => 'compliment'],
-            
+
             // Animaux mignons
             ['word' => 'petit chaton', 'category' => 'animal'],
             ['word' => 'doux panda', 'category' => 'animal'],
@@ -207,7 +211,7 @@ class ImportBadwordsList extends Command
             ['word' => 'doux lapin', 'category' => 'animal'],
             ['word' => 'sage hibou', 'category' => 'animal'],
             ['word' => 'noble licorne', 'category' => 'animal'],
-            
+
             // Nature
             ['word' => 'rayon de soleil', 'category' => 'nature'],
             ['word' => 'arc-en-ciel', 'category' => 'nature'],
@@ -217,7 +221,7 @@ class ImportBadwordsList extends Command
             ['word' => 'aurore boréale', 'category' => 'nature'],
             ['word' => 'cascade cristalline', 'category' => 'nature'],
             ['word' => 'clair de lune', 'category' => 'nature'],
-            
+
             // Nourriture
             ['word' => 'petit chou', 'category' => 'nourriture'],
             ['word' => 'crème brûlée', 'category' => 'nourriture'],
@@ -227,7 +231,7 @@ class ImportBadwordsList extends Command
             ['word' => 'madeleine', 'category' => 'nourriture'],
             ['word' => 'éclair', 'category' => 'nourriture'],
             ['word' => 'financier', 'category' => 'nourriture'],
-            
+
             // Emojis texte
             ['word' => '✨ étoile ✨', 'category' => 'emoji'],
             ['word' => '🌈 merveille 🌈', 'category' => 'emoji'],
@@ -237,7 +241,7 @@ class ImportBadwordsList extends Command
             ['word' => '🍀 chance 🍀', 'category' => 'emoji'],
             ['word' => '🌟 prodige 🌟', 'category' => 'emoji'],
             ['word' => '🎨 artiste 🎨', 'category' => 'emoji'],
-            
+
             // Expressions positives
             ['word' => 'ami des bisounours', 'category' => 'expression'],
             ['word' => 'distributeur de câlins', 'category' => 'expression'],

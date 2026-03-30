@@ -32,4 +32,3 @@ class HatvpRemunerationConsultant extends Model
         return $this->belongsTo(HatvpActiviteConsultant::class, 'activite_id');
     }
 }
-

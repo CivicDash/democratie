@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Organe parlementaire (groupe politique, commission, délégation, mission, office)
- * 
+ *
  * @property int $id
  * @property string $source
  * @property string $type
@@ -80,8 +80,8 @@ class OrganeParlementaire extends Model
             'organe_id',
             'depute_senateur_id'
         )
-        ->withPivot(['fonction', 'ordre', 'date_debut', 'date_fin', 'actif'])
-        ->withTimestamps();
+            ->withPivot(['fonction', 'ordre', 'date_debut', 'date_fin', 'actif'])
+            ->withTimestamps();
     }
 
     // ========================================================================
@@ -145,7 +145,7 @@ class OrganeParlementaire extends Model
      */
     public function getTypeLabelAttribute(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'groupe' => 'Groupe politique',
             'commission' => 'Commission',
             'delegation' => 'Délégation',
@@ -163,8 +163,8 @@ class OrganeParlementaire extends Model
         if ($this->type === 'groupe') {
             return $this->nom;
         }
-        
-        return $this->type_label . ' : ' . $this->nom;
+
+        return $this->type_label.' : '.$this->nom;
     }
 
     /**
@@ -177,7 +177,7 @@ class OrganeParlementaire extends Model
         }
 
         // Couleurs par défaut selon le type
-        return match($this->type) {
+        return match ($this->type) {
             'groupe' => '#6B7280',
             'commission' => '#3B82F6',
             'delegation' => '#10B981',
@@ -187,4 +187,3 @@ class OrganeParlementaire extends Model
         };
     }
 }
-

@@ -109,6 +109,7 @@ class DeputeCirconscription extends Model
     public function getLibelleCirconscriptionAttribute(): string
     {
         $ordinal = $this->getOrdinal($this->num_circo);
+
         return "{$ordinal} circonscription {$this->getDepartementPreposition()}{$this->departement}";
     }
 
@@ -126,39 +127,39 @@ class DeputeCirconscription extends Model
     private function getDepartementPreposition(): string
     {
         $dep = strtolower($this->departement);
-        
+
         // Commence par une voyelle
         if (preg_match('/^[aeiouéèêëàâäîïôöûü]/i', $this->departement)) {
             return "de l'";
         }
-        
+
         // Départements avec "du"
         $duDepartements = [
             'calvados', 'cantal', 'cher', 'doubs', 'finistère', 'gard',
             'gers', 'jura', 'loiret', 'lot', 'morbihan', 'nord', 'pas-de-calais',
-            'puy-de-dôme', 'rhône', 'tarn', 'var', 'vaucluse'
+            'puy-de-dôme', 'rhône', 'tarn', 'var', 'vaucluse',
         ];
-        
+
         foreach ($duDepartements as $d) {
             if (str_contains($dep, $d)) {
                 return 'du ';
             }
         }
-        
+
         // Départements avec "de la"
         $delaDepartements = [
             'charente', 'corrèze', 'côte', 'creuse', 'dordogne', 'drôme',
             'gironde', 'haute', 'loire', 'lozère', 'manche', 'marne',
             'mayenne', 'meuse', 'moselle', 'nièvre', 'sarthe', 'savoie',
-            'seine', 'somme', 'vendée', 'vienne'
+            'seine', 'somme', 'vendée', 'vienne',
         ];
-        
+
         foreach ($delaDepartements as $d) {
             if (str_contains($dep, $d)) {
                 return 'de la ';
             }
         }
-        
+
         // Par défaut
         return 'de ';
     }
@@ -168,7 +169,10 @@ class DeputeCirconscription extends Model
      */
     private function getOrdinal(int $n): string
     {
-        if ($n === 1) return '1ère';
+        if ($n === 1) {
+            return '1ère';
+        }
+
         return "{$n}ème";
     }
 }

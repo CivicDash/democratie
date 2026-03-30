@@ -14,8 +14,11 @@ class WelcomeMail extends Mailable
     use Queueable, SerializesModels;
 
     public User $user;
+
     public string $dashboardUrl;
+
     public string $profileUrl;
+
     public string $discoverUrl;
 
     public function __construct(User $user)

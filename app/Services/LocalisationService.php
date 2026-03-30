@@ -20,7 +20,7 @@ class LocalisationService
     public function search(string $query, int $limit = 20): Collection
     {
         $query = trim($query);
-        
+
         if (empty($query)) {
             return collect();
         }
@@ -29,7 +29,7 @@ class LocalisationService
         if (preg_match('/^\d{5}$/', $query)) {
             return $this->searchByPostalCode($query, $limit);
         }
-        
+
         // Sinon recherche par nom
         return $this->searchByName($query, $limit);
     }
@@ -44,7 +44,7 @@ class LocalisationService
             ->orderByDesc('population')
             ->limit($limit)
             ->get()
-            ->map(fn($row) => $this->formatResult($row));
+            ->map(fn ($row) => $this->formatResult($row));
     }
 
     /**
@@ -57,7 +57,7 @@ class LocalisationService
             ->orderByDesc('population')
             ->limit($limit)
             ->get()
-            ->map(fn($row) => $this->formatResult($row));
+            ->map(fn ($row) => $this->formatResult($row));
     }
 
     /**
@@ -66,20 +66,20 @@ class LocalisationService
     public function getRepresentants(string $inseeCode): array
     {
         $cacheKey = "representants_{$inseeCode}";
-        
+
         return Cache::remember($cacheKey, 3600, function () use ($inseeCode) {
             // Récupérer les infos du lieu
             $lieu = DB::table('french_postal_codes')
                 ->where('insee_code', $inseeCode)
                 ->first();
-            
-            if (!$lieu) {
+
+            if (! $lieu) {
                 return [];
             }
 
             // Gérer les cas spéciaux (Paris, Lyon, Marseille avec arrondissements)
             $communeCode = $this->getCommuneCode($inseeCode);
-            
+
             return [
                 'lieu' => $this->formatResult($lieu),
                 'maire' => $this->getMaire($communeCode),
@@ -99,12 +99,12 @@ class LocalisationService
         if (preg_match('/^751\d{2}$/', $inseeCode)) {
             return '75056';
         }
-        
+
         // Lyon (69381-69389 → 69123)
         if (preg_match('/^6938[1-9]$/', $inseeCode)) {
             return '69123';
         }
-        
+
         // Marseille (13201-13216 → 13055)
         if (preg_match('/^132\d{2}$/', $inseeCode)) {
             return '13055';
@@ -119,8 +119,8 @@ class LocalisationService
     private function getMaire(string $communeCode): ?array
     {
         $maire = Maire::where('code_commune', $communeCode)->first();
-        
-        if (!$maire) {
+
+        if (! $maire) {
             return null;
         }
 
@@ -128,7 +128,7 @@ class LocalisationService
             'id' => $maire->id,
             'nom' => $maire->nom,
             'prenom' => $maire->prenom,
-            'nom_complet' => trim($maire->prenom . ' ' . $maire->nom),
+            'nom_complet' => trim($maire->prenom.' '.$maire->nom),
             'sexe' => $maire->sexe,
             'commune' => $maire->nom_commune,
             'nuance_politique' => $maire->nuance_politique,
@@ -148,22 +148,22 @@ class LocalisationService
             ->value('department_name');
 
         return Senateur::where(function ($query) use ($departmentCode, $departmentName) {
-                // Essayer par code département
-                $query->where('departement_code', $departmentCode)
-                      // Ou par nom de circonscription
-                      ->orWhere('circonscription', 'ILIKE', $departmentName ?? '');
-            })
+            // Essayer par code département
+            $query->where('departement_code', $departmentCode)
+                  // Ou par nom de circonscription
+                ->orWhere('circonscription', 'ILIKE', $departmentName ?? '');
+        })
             ->whereNull('date_deces') // Sénateurs vivants
             ->get()
-            ->map(fn($s) => [
-                'matricule' => $s->matricule,
-                'nom' => $s->nom,
-                'prenom' => $s->prenom,
-                'nom_complet' => trim($s->prenom . ' ' . $s->nom),
-                'groupe' => $s->groupe_politique ?? $s->groupe_libelle,
-                'photo_url' => $s->photo_url,
-                'url' => "/representants/senateurs/{$s->matricule}",
-            ]);
+            ->map(fn ($s) => [
+            'matricule' => $s->matricule,
+            'nom' => $s->nom,
+            'prenom' => $s->prenom,
+            'nom_complet' => trim($s->prenom.' '.$s->nom),
+            'groupe' => $s->groupe_politique ?? $s->groupe_libelle,
+            'photo_url' => $s->photo_url,
+            'url' => "/representants/senateurs/{$s->matricule}",
+        ]);
     }
 
     /**
@@ -171,12 +171,12 @@ class LocalisationService
      */
     private function getDeputes(?string $circonscription): Collection
     {
-        if (!$circonscription) {
+        if (! $circonscription) {
             return collect();
         }
 
         // Format circo: "75-01" → département 75, circo 1
-        if (!preg_match('/^(\d{1,3})-(\d{1,2})$/', $circonscription, $matches)) {
+        if (! preg_match('/^(\d{1,3})-(\d{1,2})$/', $circonscription, $matches)) {
             return collect();
         }
 
@@ -191,11 +191,11 @@ class LocalisationService
             ->whereNull('dc.date_fin')
             ->select('a.uid', 'a.nom', 'a.prenom', 'dc.departement')
             ->get()
-            ->map(fn($d) => [
+            ->map(fn ($d) => [
                 'uid' => $d->uid,
                 'nom' => $d->nom,
                 'prenom' => $d->prenom,
-                'nom_complet' => trim($d->prenom . ' ' . $d->nom),
+                'nom_complet' => trim($d->prenom.' '.$d->nom),
                 'groupe' => $this->getDeputeGroupe($d->uid),
                 'photo_url' => "https://www.assemblee-nationale.fr/dyn/deputes/{$d->uid}/photo",
                 'url' => "/representants/deputes/{$d->uid}",
@@ -215,7 +215,7 @@ class LocalisationService
                 ->where('o.code_type', 'GP')
                 ->whereNull('m.date_fin')
                 ->value('o.libelle_abrev');
-            
+
             return $groupe ?? 'NI';
         } catch (\Exception $e) {
             return 'NI';

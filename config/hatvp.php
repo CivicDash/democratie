@@ -2,7 +2,7 @@
 
 /**
  * Configuration des sources de données HATVP
- * 
+ *
  * Haute Autorité pour la Transparence de la Vie Publique
  * https://www.hatvp.fr/
  */
@@ -44,7 +44,7 @@ return [
         'DIA' => 'Déclaration d\'intérêts et d\'activités modificative',
         'DIAC' => 'Déclaration d\'intérêts et d\'activités de fin de mandat',
         'DIAI' => 'Déclaration initiale d\'intérêts et d\'activités',
-        
+
         // Déclarations de situation patrimoniale
         'DSP' => 'Déclaration de situation patrimoniale modificative',
         'DSPC' => 'Déclaration de situation patrimoniale de fin de mandat',
@@ -242,4 +242,3 @@ return [
         'channel' => 'hatvp-sync',
     ],
 ];
-

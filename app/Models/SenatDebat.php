@@ -7,14 +7,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Séance de débat au Sénat
- * 
+ *
  * Source: https://data.senat.fr/data/debats/debats.zip
  */
 class SenatDebat extends Model
 {
     protected $table = 'senat_debats';
+
     protected $primaryKey = 'date_seance';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -59,13 +62,15 @@ class SenatDebat extends Model
     {
         if ($this->url) {
             $path = ltrim($this->url, '/');
-            if (!str_starts_with($path, 'seances/')) {
-                $path = 'seances/' . $path;
+            if (! str_starts_with($path, 'seances/')) {
+                $path = 'seances/'.$path;
             }
-            return 'https://www.senat.fr/' . $path;
+
+            return 'https://www.senat.fr/'.$path;
         }
-        
+
         $date = $this->date_seance;
+
         return sprintf(
             'https://www.senat.fr/seances/s%s/s%s/s%s.html',
             $date->format('Ym'),

@@ -32,19 +32,28 @@ class InseeCommune extends Model
     // Accessors
     public function getPopulationFormateAttribute(): string
     {
-        if (!$this->population) return 'N/A';
-        return number_format($this->population, 0, ',', ' ') . ' hab.';
+        if (! $this->population) {
+            return 'N/A';
+        }
+
+        return number_format($this->population, 0, ',', ' ').' hab.';
     }
 
     public function getRevenuMedianFormateAttribute(): string
     {
-        if (!$this->revenu_median) return 'N/A';
-        return number_format($this->revenu_median, 0, ',', ' ') . ' €/an';
+        if (! $this->revenu_median) {
+            return 'N/A';
+        }
+
+        return number_format($this->revenu_median, 0, ',', ' ').' €/an';
     }
 
     public function getDensiteFormateAttribute(): string
     {
-        if (!$this->densite) return 'N/A';
-        return number_format($this->densite, 0, ',', ' ') . ' hab/km²';
+        if (! $this->densite) {
+            return 'N/A';
+        }
+
+        return number_format($this->densite, 0, ',', ' ').' hab/km²';
     }
 }

@@ -47,6 +47,7 @@ class DownloadAnDataCommand extends Command
             if ($source) {
                 // Télécharger une source spécifique
                 $result = $this->downloadSource($downloader, $source, $force);
+
                 return $result ? self::SUCCESS : self::FAILURE;
             } else {
                 // Télécharger toutes les sources
@@ -54,6 +55,7 @@ class DownloadAnDataCommand extends Command
             }
         } catch (\Exception $e) {
             $this->error("❌ Erreur : {$e->getMessage()}");
+
             return self::FAILURE;
         }
     }
@@ -64,10 +66,11 @@ class DownloadAnDataCommand extends Command
     protected function downloadSource(XmlDownloader $downloader, string $source, bool $force): bool
     {
         $sources = config('assemblee-nationale.sources');
-        
-        if (!isset($sources[$source])) {
+
+        if (! isset($sources[$source])) {
             $this->error("❌ Source inconnue : {$source}");
-            $this->info("Utilisez --list pour voir les sources disponibles");
+            $this->info('Utilisez --list pour voir les sources disponibles');
+
             return false;
         }
 
@@ -78,15 +81,16 @@ class DownloadAnDataCommand extends Command
         $result = $downloader->download($source, $force);
 
         if ($result['status'] === 'cached') {
-            $this->info("✅ Cache valide, téléchargement ignoré");
-            $this->info("   Utilisez --force pour forcer le téléchargement");
+            $this->info('✅ Cache valide, téléchargement ignoré');
+            $this->info('   Utilisez --force pour forcer le téléchargement');
         } elseif ($result['status'] === 'downloaded') {
-            $this->info("✅ Téléchargement terminé");
-            $this->info("   📁 Fichiers : " . count($result['files']));
-            $this->info("   💾 Taille : " . $this->formatBytes($result['size']));
+            $this->info('✅ Téléchargement terminé');
+            $this->info('   📁 Fichiers : '.count($result['files']));
+            $this->info('   💾 Taille : '.$this->formatBytes($result['size']));
             $this->info("   📂 Chemin : {$result['xml_path']}");
         } else {
-            $this->error("❌ Erreur : " . ($result['error'] ?? 'Erreur inconnue'));
+            $this->error('❌ Erreur : '.($result['error'] ?? 'Erreur inconnue'));
+
             return false;
         }
 
@@ -99,8 +103,8 @@ class DownloadAnDataCommand extends Command
     protected function downloadAll(XmlDownloader $downloader, bool $force): int
     {
         $sources = config('assemblee-nationale.sources');
-        
-        $this->info("📥 Téléchargement de " . count($sources) . " sources...");
+
+        $this->info('📥 Téléchargement de '.count($sources).' sources...');
         $this->newLine();
 
         $results = $downloader->downloadAll($force);
@@ -119,9 +123,13 @@ class DownloadAnDataCommand extends Command
                     default => '❓ Inconnu',
                 };
 
-                if ($result['status'] === 'downloaded') $success++;
-                elseif ($result['status'] === 'cached') $cached++;
-                else $errors++;
+                if ($result['status'] === 'downloaded') {
+                    $success++;
+                } elseif ($result['status'] === 'cached') {
+                    $cached++;
+                } else {
+                    $errors++;
+                }
 
                 return [
                     $key,
@@ -145,7 +153,7 @@ class DownloadAnDataCommand extends Command
     {
         $sources = config('assemblee-nationale.sources');
 
-        $this->info("📋 Sources de données disponibles :");
+        $this->info('📋 Sources de données disponibles :');
         $this->newLine();
 
         $this->table(
@@ -161,7 +169,7 @@ class DownloadAnDataCommand extends Command
         );
 
         $this->newLine();
-        $this->info("Usage : php artisan an:download {source} --legislature=17");
+        $this->info('Usage : php artisan an:download {source} --legislature=17');
 
         return self::SUCCESS;
     }
@@ -180,7 +188,7 @@ class DownloadAnDataCommand extends Command
             ['Source', 'En cache', 'Âge', 'Fichiers XML'],
             collect($cacheInfo)->map(function ($info, $key) {
                 $age = $info['age'] ? $this->formatDuration($info['age']) : '-';
-                
+
                 return [
                     $key,
                     $info['cached'] ? '✅ Oui' : '❌ Non',
@@ -201,16 +209,17 @@ class DownloadAnDataCommand extends Command
         if ($source) {
             $this->warn("🗑️  Suppression des fichiers pour : {$source}");
             $downloader->cleanup($source);
-            $this->info("✅ Nettoyage terminé");
+            $this->info('✅ Nettoyage terminé');
         } else {
-            if (!$this->confirm('Supprimer TOUS les fichiers téléchargés ?')) {
+            if (! $this->confirm('Supprimer TOUS les fichiers téléchargés ?')) {
                 $this->info('Opération annulée');
+
                 return self::SUCCESS;
             }
-            
-            $this->warn("🗑️  Suppression de tous les fichiers...");
+
+            $this->warn('🗑️  Suppression de tous les fichiers...');
             $downloader->cleanup();
-            $this->info("✅ Nettoyage terminé");
+            $this->info('✅ Nettoyage terminé');
         }
 
         return self::SUCCESS;
@@ -223,13 +232,13 @@ class DownloadAnDataCommand extends Command
     {
         $units = ['B', 'KB', 'MB', 'GB'];
         $i = 0;
-        
+
         while ($bytes >= 1024 && $i < count($units) - 1) {
             $bytes /= 1024;
             $i++;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
@@ -242,12 +251,13 @@ class DownloadAnDataCommand extends Command
         }
         if ($seconds < 3600) {
             $minutes = floor($seconds / 60);
+
             return "{$minutes}m";
         }
-        
+
         $hours = floor($seconds / 3600);
         $minutes = floor(($seconds % 3600) / 60);
+
         return "{$hours}h {$minutes}m";
     }
 }
-

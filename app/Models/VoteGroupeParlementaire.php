@@ -37,7 +37,6 @@ class VoteGroupeParlementaire extends Model
     /**
      * Relations
      */
-    
     public function voteLegislatif(): BelongsTo
     {
         return $this->belongsTo(VoteLegislatif::class);
@@ -51,7 +50,6 @@ class VoteGroupeParlementaire extends Model
     /**
      * Scopes
      */
-    
     public function scopePour($query)
     {
         return $query->where('position_groupe', 'pour');
@@ -75,7 +73,6 @@ class VoteGroupeParlementaire extends Model
     /**
      * Accessors
      */
-    
     public function getTotalVotantsAttribute(): int
     {
         return $this->nombre_pour + $this->nombre_contre + $this->nombre_abstention;
@@ -91,6 +88,7 @@ class VoteGroupeParlementaire extends Model
         if ($this->total_votants === 0) {
             return 0;
         }
+
         return round(($this->nombre_pour / $this->total_votants) * 100, 2);
     }
 
@@ -99,6 +97,7 @@ class VoteGroupeParlementaire extends Model
         if ($this->total_votants === 0) {
             return 0;
         }
+
         return round(($this->nombre_contre / $this->total_votants) * 100, 2);
     }
 
@@ -107,12 +106,13 @@ class VoteGroupeParlementaire extends Model
         if ($this->total_votants === 0) {
             return 0;
         }
+
         return round(($this->nombre_abstention / $this->total_votants) * 100, 2);
     }
 
     public function getPositionLabelAttribute(): string
     {
-        return match($this->position_groupe) {
+        return match ($this->position_groupe) {
             'pour' => 'Pour',
             'contre' => 'Contre',
             'abstention' => 'Abstention',
@@ -123,7 +123,7 @@ class VoteGroupeParlementaire extends Model
 
     public function getCouleurPositionAttribute(): string
     {
-        return match($this->position_groupe) {
+        return match ($this->position_groupe) {
             'pour' => '#10b981', // green
             'contre' => '#ef4444', // red
             'abstention' => '#6b7280', // gray
@@ -135,7 +135,7 @@ class VoteGroupeParlementaire extends Model
     /**
      * Méthodes métier
      */
-    
+
     /**
      * Détermine automatiquement la position du groupe
      * en fonction des nombres de votes
@@ -143,7 +143,7 @@ class VoteGroupeParlementaire extends Model
     public function determinerPosition(): string
     {
         $total = $this->nombre_pour + $this->nombre_contre + $this->nombre_abstention;
-        
+
         if ($total === 0) {
             return 'abstention';
         }
@@ -179,12 +179,12 @@ class VoteGroupeParlementaire extends Model
     public function calculerDiscipline(): float
     {
         $total = $this->total_votants;
-        
+
         if ($total === 0) {
             return 0;
         }
 
-        $votesPosition = match($this->position_groupe) {
+        $votesPosition = match ($this->position_groupe) {
             'pour' => $this->nombre_pour,
             'contre' => $this->nombre_contre,
             'abstention' => $this->nombre_abstention,
@@ -202,7 +202,7 @@ class VoteGroupeParlementaire extends Model
     public function aVoteAvecSucces(): bool
     {
         $vote = $this->voteLegislatif;
-        if (!$vote) {
+        if (! $vote) {
             return false;
         }
 
@@ -219,4 +219,3 @@ class VoteGroupeParlementaire extends Model
         return false;
     }
 }
-

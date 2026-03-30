@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Secteur budgétaire (éducation, santé, etc.)
- * 
+ *
  * @property int $id
  * @property string $code Code unique (EDU, HEALTH, etc.)
  * @property string $name Nom du secteur
@@ -101,4 +101,3 @@ class Sector extends Model
         return $query->where('code', $code);
     }
 }
-

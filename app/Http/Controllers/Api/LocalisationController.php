@@ -71,8 +71,8 @@ class LocalisationController extends Controller
         }
 
         $results = $this->localisationService->search($query, 10)
-            ->map(fn($r) => [
-                'label' => $r['city_name'] . ' (' . $r['postal_code'] . ')',
+            ->map(fn ($r) => [
+                'label' => $r['city_name'].' ('.$r['postal_code'].')',
                 'value' => $r['insee_code'],
                 'postal_code' => $r['postal_code'],
                 'city_name' => $r['city_name'],

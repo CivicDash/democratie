@@ -61,10 +61,10 @@ class QuestionGouvernement extends Model
 
     public function getDelaiReponseJoursAttribute(): ?int
     {
-        if (!$this->date_reponse) {
+        if (! $this->date_reponse) {
             return null;
         }
+
         return $this->date_depot->diffInDays($this->date_reponse);
     }
 }
-

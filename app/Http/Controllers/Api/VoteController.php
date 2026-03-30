@@ -66,15 +66,15 @@ class VoteController extends Controller
      */
     public function results(Topic $topic): JsonResponse
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             $user = null;
         } else {
             $user = auth()->user();
         }
 
         // Vérifier l'autorisation via la policy
-        if (!$user || !$user->can('viewResults', $topic)) {
-            if (!$topic->canRevealResults()) {
+        if (! $user || ! $user->can('viewResults', $topic)) {
+            if (! $topic->canRevealResults()) {
                 return response()->json([
                     'message' => 'Les résultats ne peuvent pas encore être révélés.',
                 ], 403);
@@ -143,4 +143,3 @@ class VoteController extends Controller
         return response()->json($export);
     }
 }
-

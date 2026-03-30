@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Répartition budgétaire d'un citoyen
- * 
+ *
  * @property int $id
  * @property int $user_id
  * @property int $sector_id
@@ -52,6 +52,7 @@ class UserAllocation extends Model
     public static function validateUserTotal(int $userId): bool
     {
         $total = self::where('user_id', $userId)->sum('percent');
+
         return abs($total - 100.0) < 0.01; // Tolérance float
     }
 
@@ -88,4 +89,3 @@ class UserAllocation extends Model
             ->groupBy('sector_id');
     }
 }
-

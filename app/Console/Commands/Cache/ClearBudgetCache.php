@@ -27,7 +27,7 @@ class ClearBudgetCache extends Command
     public function handle(CacheService $cacheService): int
     {
         $count = $cacheService->invalidateBudgetCache();
-        
+
         $this->info("Cache budget vidé : {$count} clé(s) supprimée(s)");
         $this->comment('- Stats budget');
         $this->comment('- Allocations moyennes');

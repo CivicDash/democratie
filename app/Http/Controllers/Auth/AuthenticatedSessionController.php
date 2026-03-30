@@ -35,12 +35,12 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
-        $dolibarr = new DolibarrService();
+        $dolibarr = new DolibarrService;
         if ($dolibarr->isConfigured()) {
             $wasMember = $user->is_association_member;
             $isMember = $dolibarr->syncMemberToUser($user);
 
-            if ($isMember && !$wasMember) {
+            if ($isMember && ! $wasMember) {
                 session()->flash('status', 'Votre adhésion à Civis-Consilium a été reconnue automatiquement.');
             }
         }

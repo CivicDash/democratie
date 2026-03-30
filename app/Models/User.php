@@ -14,7 +14,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -111,11 +111,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getProfilePhotoUrlAttribute(): ?string
     {
         if ($this->profile_photo_path) {
-            return asset('storage/' . $this->profile_photo_path);
+            return asset('storage/'.$this->profile_photo_path);
         }
 
         // Gravatar fallback
         $hash = md5(strtolower(trim($this->email)));
+
         return "https://www.gravatar.com/avatar/{$hash}?d=mp&s=200";
     }
 
@@ -134,7 +135,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isActiveMember(): bool
     {
-        if (!$this->is_association_member) {
+        if (! $this->is_association_member) {
             return false;
         }
 
@@ -231,7 +232,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getEluDataAttribute()
     {
-        if (!$this->elu_type || !$this->elu_ref) {
+        if (! $this->elu_type || ! $this->elu_ref) {
             return null;
         }
 
@@ -424,7 +425,8 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($this->isDemoAccount()) {
             return false;
         }
-        return !$this->isMuted() && !$this->isBanned();
+
+        return ! $this->isMuted() && ! $this->isBanned();
     }
 
     /**
@@ -435,7 +437,8 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($this->isDemoAccount()) {
             return false;
         }
-        return !$this->isMuted() && !$this->isBanned();
+
+        return ! $this->isMuted() && ! $this->isBanned();
     }
 
     /**
@@ -446,7 +449,8 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($this->isDemoAccount()) {
             return false;
         }
-        return !$this->isMuted() && !$this->isBanned();
+
+        return ! $this->isMuted() && ! $this->isBanned();
     }
 
     /**
@@ -472,6 +476,7 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($this->hasRole('legislator') || $this->is_verified_elu) {
             return 'elu';
         }
+
         return 'citizen';
     }
 
@@ -510,7 +515,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function canVoteOn(Topic $topic): bool
     {
-        if (!$topic->has_ballot || !$topic->isVotingOpen()) {
+        if (! $topic->has_ballot || ! $topic->isVotingOpen()) {
             return false;
         }
 
@@ -519,7 +524,7 @@ class User extends Authenticatable implements MustVerifyEmail
             ->forTopic($topic->id)
             ->first();
 
-        if (!$token) {
+        if (! $token) {
             return true; // Peut obtenir un token
         }
 
@@ -603,7 +608,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $consent = $this->consents()->ofType($type)->first();
 
-        if (!$consent) {
+        if (! $consent) {
             $consent = $this->consents()->create([
                 'consent_type' => $type,
                 'is_granted' => false,
@@ -630,7 +635,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getDisplayNameAttribute(): string
     {
-        if (!$this->profile) {
+        if (! $this->profile) {
             return $this->name;
         }
 
@@ -656,7 +661,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isAnonymous(): bool
     {
-        return !$this->isPublicFigure();
+        return ! $this->isPublicFigure();
     }
 
     /**

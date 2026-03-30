@@ -20,7 +20,7 @@ class StoreReportRequest extends FormRequest
      */
     public const VALID_REASONS = [
         'spam',
-        'harassment', 
+        'harassment',
         'hate_speech',
         'violence',
         'misinformation',
@@ -62,11 +62,11 @@ class StoreReportRequest extends FormRequest
     public function rules(): array
     {
         $validReasons = implode(',', self::VALID_REASONS);
-        
+
         return [
             'reportable_type' => ['required', 'string', 'in:App\Models\Post,App\Models\Topic,App\Models\User'],
             'reportable_id' => ['required'],
-            'reason' => ['required', 'string', 'in:' . $validReasons],
+            'reason' => ['required', 'string', 'in:'.$validReasons],
             'description' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -95,14 +95,13 @@ class StoreReportRequest extends FormRequest
             // Vérifier que le contenu existe
             $type = $this->reportable_type;
             $id = $this->reportable_id;
-            
+
             if (class_exists($type)) {
                 $exists = $type::find($id);
-                if (!$exists) {
+                if (! $exists) {
                     $validator->errors()->add('reportable_id', 'Le contenu signalé n\'existe pas.');
                 }
             }
         });
     }
 }
-

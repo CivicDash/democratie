@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Corrige la vue senateurs_commissions pour afficher
@@ -11,8 +12,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('senat_senateurs_memcom')) {
+            return;
+        }
+
         // Supprimer la vue existante
-        DB::statement("DROP VIEW IF EXISTS senateurs_commissions CASCADE");
+        DB::statement('DROP VIEW IF EXISTS senateurs_commissions CASCADE');
 
         // Recréer avec jointure sur senat_senateurs_com pour avoir le libellé
         // La colonne evelib contient le libellé de la commission
@@ -41,8 +46,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS senateurs_commissions CASCADE");
-        DB::statement("
+        DB::statement('DROP VIEW IF EXISTS senateurs_commissions CASCADE');
+        DB::statement('
             CREATE VIEW senateurs_commissions AS
             SELECT DISTINCT ON (mc.senmat, mc.orgcod, mc.memcomdatdeb)
                 mc.memcomid AS id,
@@ -61,7 +66,6 @@ return new class extends Migration
                 
             FROM senat_senateurs_memcom mc
             ORDER BY mc.senmat, mc.orgcod, mc.memcomdatdeb DESC NULLS LAST
-        ");
+        ');
     }
 };
-

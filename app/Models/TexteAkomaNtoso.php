@@ -6,14 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Texte législatif au format Akoma Ntoso (Sénat)
- * 
+ *
  * Source: https://www.senat.fr/akomantoso/
  */
 class TexteAkomaNtoso extends Model
 {
     protected $table = 'textes_akoma_ntoso';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -136,11 +139,11 @@ class TexteAkomaNtoso extends Model
      */
     public function getExtraitPreambuleAttribute(): ?string
     {
-        if (!$this->preambule) {
+        if (! $this->preambule) {
             return null;
         }
         $text = strip_tags($this->preambule);
-        return mb_substr($text, 0, 500) . (mb_strlen($text) > 500 ? '...' : '');
+
+        return mb_substr($text, 0, 500).(mb_strlen($text) > 500 ? '...' : '');
     }
 }
-

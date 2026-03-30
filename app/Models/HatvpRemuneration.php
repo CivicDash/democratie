@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Rémunération annuelle polymorphique HATVP
- * 
+ *
  * Peut être liée à :
  * - HatvpMandatElectif
  * - HatvpActiviteProfessionnelle
@@ -50,7 +50,7 @@ class HatvpRemuneration extends Model
         if ($this->montant === null) {
             return '-';
         }
-        return number_format($this->montant, 0, ',', ' ') . ' €';
+
+        return number_format($this->montant, 0, ',', ' ').' €';
     }
 }
-

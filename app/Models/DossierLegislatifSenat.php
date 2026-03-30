@@ -85,7 +85,7 @@ class DossierLegislatifSenat extends Model
      */
     public function getEstLieANAttribute(): bool
     {
-        return !is_null($this->dossier_an_uid);
+        return ! is_null($this->dossier_an_uid);
     }
 
     public function getEstProjetAttribute(): bool
@@ -100,7 +100,7 @@ class DossierLegislatifSenat extends Model
 
     public function getEstPromulgueAttribute(): bool
     {
-        return $this->statut === 'Promulgué' || !is_null($this->numero_loi);
+        return $this->statut === 'Promulgué' || ! is_null($this->numero_loi);
     }
 
     public function getEstAdopteAttribute(): bool
@@ -143,7 +143,7 @@ class DossierLegislatifSenat extends Model
                 'chambre' => 'Assemblée Nationale',
                 'etape' => 'Examen à l\'AN',
                 'icon' => '🏛️',
-                'detail' => 'Dossier lié : ' . $this->dossierAN->titre_court,
+                'detail' => 'Dossier lié : '.$this->dossierAN->titre_court,
             ];
         }
 
@@ -159,9 +159,8 @@ class DossierLegislatifSenat extends Model
         }
 
         // Trier par date
-        usort($timeline, fn($a, $b) => ($a['date'] ?? now())->compare($b['date'] ?? now()));
+        usort($timeline, fn ($a, $b) => ($a['date'] ?? now())->compare($b['date'] ?? now()));
 
         return $timeline;
     }
 }
-

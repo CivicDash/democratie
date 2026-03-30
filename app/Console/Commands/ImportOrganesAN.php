@@ -17,17 +17,20 @@ class ImportOrganesAN extends Command
     protected $description = 'Importe les organes (groupes politiques, commissions, délégations) depuis les fichiers JSON AN';
 
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
     {
         $legislature = $this->option('legislature');
         $importAll = $this->option('all');
-        
+
         $this->info('🏛️  Import des organes AN...');
-        
+
         if ($importAll) {
             $this->warn('⚠️  Mode --all : import de TOUS les organes (toutes législatures)');
         } else {
@@ -35,9 +38,10 @@ class ImportOrganesAN extends Command
         }
 
         $basePath = public_path('data/organe');
-        
-        if (!is_dir($basePath)) {
+
+        if (! is_dir($basePath)) {
             $this->error("❌ Répertoire introuvable : {$basePath}");
+
             return self::FAILURE;
         }
 
@@ -46,12 +50,12 @@ class ImportOrganesAN extends Command
             OrganeAN::truncate();
         }
 
-        $files = File::glob($basePath . '/*.json');
+        $files = File::glob($basePath.'/*.json');
         $total = count($files);
-        
+
         $limit = $this->option('limit');
         if ($limit) {
-            $files = array_slice($files, 0, (int)$limit);
+            $files = array_slice($files, 0, (int) $limit);
             $this->warn("⚠️  Mode TEST : {$limit} organes maximum");
         }
 
@@ -83,32 +87,34 @@ class ImportOrganesAN extends Command
         $content = File::get($filePath);
         $data = json_decode($content, true);
 
-        if (!isset($data['organe'])) {
+        if (! isset($data['organe'])) {
             throw new \Exception("Structure JSON invalide dans {$filePath}");
         }
 
         $organe = $data['organe'];
         $uid = $organe['uid']['#text'] ?? $organe['uid'] ?? null;
 
-        if (!$uid) {
+        if (! $uid) {
             throw new \Exception("UID manquant dans {$filePath}");
         }
 
         // Filtrage par législature
         $orgLegislature = $organe['legislature'] ?? null;
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             // Si législature spécifiée ET que l'organe a une législature différente, on skip
-            if ($orgLegislature && (int)$orgLegislature !== (int)$legislature) {
+            if ($orgLegislature && (int) $orgLegislature !== (int) $legislature) {
                 $this->skipped++;
+
                 return;
             }
-            
+
             // Si organe sans législature, on regarde s'il est actif (date_fin null)
-            if (!$orgLegislature) {
+            if (! $orgLegislature) {
                 $dateFin = $organe['viMoDe']['dateFin'] ?? null;
                 if ($dateFin) {
                     $this->skipped++;
+
                     return;
                 }
             }
@@ -116,7 +122,7 @@ class ImportOrganesAN extends Command
 
         // Extraction des données
         $viMoDe = $organe['viMoDe'] ?? [];
-        
+
         // Insert ou update
         $organeModel = OrganeAN::updateOrCreate(
             ['uid' => $uid],
@@ -158,20 +164,20 @@ class ImportOrganesAN extends Command
         $groupes = OrganeAN::groupesPolitiques()->count();
         $commissions = OrganeAN::commissionsPermanentes()->count();
         $delegations = OrganeAN::delegations()->count();
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $totalLeg = OrganeAN::legislature($legislature)->count();
             $groupesLeg = OrganeAN::groupesPolitiques()->legislature($legislature)->count();
             $commissionsLeg = OrganeAN::commissionsPermanentes()->legislature($legislature)->count();
         }
-        
+
         $this->newLine();
         $this->info("📊 Total en base de données : {$total} organes");
         $this->info("   - Groupes politiques : {$groupes}");
         $this->info("   - Commissions permanentes : {$commissions}");
         $this->info("   - Délégations : {$delegations}");
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $this->newLine();
             $this->info("📊 Législature {$legislature} : {$totalLeg} organes");
             $this->info("   - Groupes : {$groupesLeg}");
@@ -179,4 +185,3 @@ class ImportOrganesAN extends Command
         }
     }
 }
-

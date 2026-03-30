@@ -15,7 +15,9 @@ class ImportActeursAN extends Command
     protected $description = 'Importe les acteurs (députés) depuis les fichiers JSON de l\'Assemblée Nationale';
 
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -23,9 +25,10 @@ class ImportActeursAN extends Command
         $this->info('🏛️  Import des acteurs AN...');
 
         $basePath = public_path('data/acteur');
-        
-        if (!is_dir($basePath)) {
+
+        if (! is_dir($basePath)) {
             $this->error("❌ Répertoire introuvable : {$basePath}");
+
             return self::FAILURE;
         }
 
@@ -34,12 +37,12 @@ class ImportActeursAN extends Command
             ActeurAN::truncate();
         }
 
-        $files = File::glob($basePath . '/*.json');
+        $files = File::glob($basePath.'/*.json');
         $total = count($files);
-        
+
         $limit = $this->option('limit');
         if ($limit) {
-            $files = array_slice($files, 0, (int)$limit);
+            $files = array_slice($files, 0, (int) $limit);
             $this->warn("⚠️  Mode TEST : {$limit} acteurs maximum");
         }
 
@@ -72,14 +75,14 @@ class ImportActeursAN extends Command
         $content = File::get($filePath);
         $data = json_decode($content, true);
 
-        if (!isset($data['acteur'])) {
+        if (! isset($data['acteur'])) {
             throw new \Exception("Structure JSON invalide dans {$filePath}");
         }
 
         $acteur = $data['acteur'];
         $uid = $acteur['uid']['#text'] ?? null;
 
-        if (!$uid) {
+        if (! $uid) {
             throw new \Exception("UID manquant dans {$filePath}");
         }
 
@@ -145,7 +148,7 @@ class ImportActeursAN extends Command
     {
         $adresses = [];
 
-        if (!isset($adressesData['adresse'])) {
+        if (! isset($adressesData['adresse'])) {
             return $adresses;
         }
 
@@ -158,7 +161,7 @@ class ImportActeursAN extends Command
 
         foreach ($adressesList as $adresse) {
             $type = $adresse['typeLibelle'] ?? $adresse['type'] ?? 'Inconnu';
-            
+
             $adresseFormatted = [
                 'uid' => $adresse['uid'] ?? null,
                 'type' => $type,
@@ -203,10 +206,9 @@ class ImportActeursAN extends Command
         // Stats finales
         $total = ActeurAN::count();
         $deputes = ActeurAN::deputes()->count();
-        
+
         $this->newLine();
         $this->info("📊 Total en base de données : {$total} acteurs");
         $this->info("👤 Députés actifs (avec mandat ASSEMBLEE) : {$deputes}");
     }
 }
-

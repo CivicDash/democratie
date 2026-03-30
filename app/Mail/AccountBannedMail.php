@@ -14,7 +14,9 @@ class AccountBannedMail extends Mailable
     use Queueable, SerializesModels;
 
     public User $user;
+
     public string $reason;
+
     public string $appealEmail = 'bannissement@civis-consilium.eu';
 
     public function __construct(User $user, string $reason)
@@ -26,7 +28,7 @@ class AccountBannedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "🚫 Votre compte CivicDash a été banni",
+            subject: '🚫 Votre compte CivicDash a été banni',
         );
     }
 

@@ -20,7 +20,7 @@ class ImportSenateursEtudes extends Command
     public function handle(): int
     {
         $this->info('🎓 Import des formations des sénateurs...');
-        
+
         if ($this->option('fresh')) {
             $this->warn('⚠️  Mode --fresh : suppression des études existantes...');
             SenateurEtude::truncate();
@@ -28,22 +28,24 @@ class ImportSenateursEtudes extends Command
 
         try {
             $response = Http::timeout(30)->get(self::API_URL);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 $this->error("❌ Erreur HTTP {$response->status()}");
+
                 return Command::FAILURE;
             }
 
             $data = $response->json();
-            
+
             if (empty($data['Senateurs'])) {
                 $this->error("❌ Aucune donnée d'études disponible");
+
                 return Command::FAILURE;
             }
 
             $etudesData = $data['Senateurs'];
             $limit = $this->option('limit');
-            
+
             if ($limit) {
                 $etudesData = array_slice($etudesData, 0, (int) $limit);
                 $this->warn("⚠️  Mode TEST : {$limit} entrées maximum");
@@ -66,9 +68,9 @@ class ImportSenateursEtudes extends Command
                 } catch (\Exception $e) {
                     $stats['erreurs']++;
                     $this->newLine();
-                    $this->error("❌ Erreur : " . $e->getMessage());
+                    $this->error('❌ Erreur : '.$e->getMessage());
                 }
-                
+
                 $progressBar->advance();
             }
 
@@ -92,9 +94,10 @@ class ImportSenateursEtudes extends Command
             $this->info("📊 Total en base de données : {$totalDB} formations");
 
             return Command::SUCCESS;
-            
+
         } catch (\Exception $e) {
-            $this->error("❌ Erreur générale : " . $e->getMessage());
+            $this->error('❌ Erreur générale : '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -102,15 +105,17 @@ class ImportSenateursEtudes extends Command
     private function importEtude(array $data, array &$stats): void
     {
         $matricule = $data['Matricule'] ?? null;
-        
-        if (!$matricule) {
+
+        if (! $matricule) {
             $stats['skip']++;
+
             return;
         }
 
         // Vérifier que le sénateur existe
-        if (!Senateur::where('matricule', $matricule)->exists()) {
+        if (! Senateur::where('matricule', $matricule)->exists()) {
             $stats['skip']++;
+
             return;
         }
 
@@ -140,7 +145,7 @@ class ImportSenateursEtudes extends Command
     private function detectNiveau(string $diplome): ?string
     {
         $diplome = strtolower($diplome);
-        
+
         if (str_contains($diplome, 'doctorat') || str_contains($diplome, 'phd')) {
             return 'DOCTORAT';
         }
@@ -162,7 +167,7 @@ class ImportSenateursEtudes extends Command
 
     private function parseAnnee(?string $annee): ?int
     {
-        if (!$annee) {
+        if (! $annee) {
             return null;
         }
 
@@ -174,4 +179,3 @@ class ImportSenateursEtudes extends Command
         return null;
     }
 }
-

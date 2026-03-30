@@ -138,7 +138,7 @@ class CitizenIdeaComment extends Model
                 ->with('user')
                 ->limit(10)
                 ->get()
-                ->map(fn($r) => $r->toApiArray(false));
+                ->map(fn ($r) => $r->toApiArray(false));
         }
 
         return $data;

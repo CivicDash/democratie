@@ -4,9 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\AffaireJudiciaire;
 use App\Models\User;
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Notification;
 use App\Notifications\AffairesEnAttenteNotification;
+use Illuminate\Console\Command;
 
 class AffairesNotifyModerators extends Command
 {
@@ -23,6 +22,7 @@ class AffairesNotifyModerators extends Command
 
         if ($enAttente === 0 && $contestees === 0) {
             $this->info('Aucune affaire en attente.');
+
             return self::SUCCESS;
         }
 
@@ -30,6 +30,7 @@ class AffairesNotifyModerators extends Command
 
         if ($moderators->isEmpty()) {
             $this->warn('Aucun modérateur trouvé.');
+
             return self::SUCCESS;
         }
 
@@ -41,7 +42,7 @@ class AffairesNotifyModerators extends Command
             $message[] = "{$contestees} contestation(s) non traitée(s) (>72h)";
         }
 
-        $this->info('Notification envoyée à ' . $moderators->count() . ' modérateur(s) : ' . implode(', ', $message));
+        $this->info('Notification envoyée à '.$moderators->count().' modérateur(s) : '.implode(', ', $message));
 
         foreach ($moderators as $moderator) {
             try {

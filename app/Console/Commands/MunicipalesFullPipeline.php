@@ -40,6 +40,7 @@ class MunicipalesFullPipeline extends Command
 
             if ($exitCode !== self::SUCCESS) {
                 $this->error("L'étape {$num} a échoué ({$step['command']}). Arrêt du pipeline.");
+
                 return self::FAILURE;
             }
 

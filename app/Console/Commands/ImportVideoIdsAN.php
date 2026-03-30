@@ -17,8 +17,11 @@ class ImportVideoIdsAN extends Command
     protected $description = 'Discover AN video IDs from the portal and link them to reunions via data.nvs meeting_id';
 
     private int $found = 0;
+
     private int $linked = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -38,7 +41,7 @@ class ImportVideoIdsAN extends Command
         foreach ($sections as $sec) {
             $this->info("Scraping {$sec}...");
             $videos = $this->scrapeSection($sec);
-            $this->info("  Found " . count($videos) . " videos");
+            $this->info('  Found '.count($videos).' videos');
             $allVideos = array_merge($allVideos, $videos);
         }
 
@@ -81,6 +84,7 @@ class ImportVideoIdsAN extends Command
 
             if (! $response->successful()) {
                 $this->error("  Failed to fetch {$url}: HTTP {$response->status()}");
+
                 return [];
             }
 
@@ -115,6 +119,7 @@ class ImportVideoIdsAN extends Command
             return $videos;
         } catch (\Exception $e) {
             $this->error("  Error scraping {$url}: {$e->getMessage()}");
+
             return [];
         }
     }
@@ -126,6 +131,7 @@ class ImportVideoIdsAN extends Command
         $existing = ReunionAN::where('video_id', $videoId)->first();
         if ($existing) {
             $this->skipped++;
+
             return;
         }
 
@@ -137,23 +143,27 @@ class ImportVideoIdsAN extends Command
 
         if (! $meetingId) {
             $this->skipped++;
+
             return;
         }
 
         $reunion = ReunionAN::find($meetingId);
         if (! $reunion) {
             $this->skipped++;
+
             return;
         }
 
         if ($reunion->video_id) {
             $this->skipped++;
+
             return;
         }
 
         if ($dryRun) {
             $this->line("  [DRY] Would link {$videoId} -> {$meetingId}");
             $this->linked++;
+
             return;
         }
 
@@ -174,12 +184,14 @@ class ImportVideoIdsAN extends Command
 
             if (! $response->successful()) {
                 $this->errors++;
+
                 return null;
             }
 
             $xml = @simplexml_load_string($response->body());
             if (! $xml) {
                 $this->errors++;
+
                 return null;
             }
 
@@ -197,6 +209,7 @@ class ImportVideoIdsAN extends Command
         } catch (\Exception $e) {
             $this->errors++;
             Log::warning("import:video-ids-an NVS fetch error for {$videoId}: {$e->getMessage()}");
+
             return null;
         }
     }

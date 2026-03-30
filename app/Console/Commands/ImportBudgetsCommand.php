@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 /**
  * Commande pour importer les budgets des communes depuis data.gouv.fr
- * 
+ *
  * Usage:
  *   php artisan datagouv:import-budgets 75056 --year=2024
  *   php artisan datagouv:import-budgets --all --year=2024
@@ -36,7 +36,7 @@ class ImportBudgetsCommand extends Command
     {
         $year = $this->option('year') ?? date('Y');
         $force = $this->option('force');
-        
+
         $this->info("🚀 Import des budgets communaux pour l'année {$year}");
         $this->newLine();
 
@@ -45,6 +45,7 @@ class ImportBudgetsCommand extends Command
 
         if (empty($codesToImport)) {
             $this->error('❌ Aucune commune à importer');
+
             return self::FAILURE;
         }
 
@@ -60,7 +61,7 @@ class ImportBudgetsCommand extends Command
 
         foreach ($codesToImport as $code) {
             try {
-                if (!$force) {
+                if (! $force) {
                     // Vérifier si déjà en cache
                     $existing = \App\Models\CommuneBudget::where('code_insee', $code)
                         ->where('annee', $year)
@@ -69,6 +70,7 @@ class ImportBudgetsCommand extends Command
                     if ($existing) {
                         $skipped++;
                         $bar->advance();
+
                         continue;
                     }
                 }
@@ -85,7 +87,7 @@ class ImportBudgetsCommand extends Command
                 }
 
                 $bar->advance();
-                
+
                 // Pause pour ne pas surcharger l'API
                 usleep(100000); // 100ms
             } catch (\Exception $e) {
@@ -117,14 +119,14 @@ class ImportBudgetsCommand extends Command
     {
         // Mode 1: Codes fournis en argument
         $codes = $this->argument('codes');
-        if (!empty($codes)) {
+        if (! empty($codes)) {
             return $codes;
         }
 
         // Mode 2: --all (toutes les communes du dataset)
         if ($this->option('all')) {
             $this->warn('⚠️  Import complet non recommandé (36 000+ communes)');
-            if (!$this->confirm('Êtes-vous sûr de vouloir continuer ?', false)) {
+            if (! $this->confirm('Êtes-vous sûr de vouloir continuer ?', false)) {
                 return [];
             }
 
@@ -145,6 +147,7 @@ class ImportBudgetsCommand extends Command
         // Pour l'instant, retourner un tableau vide
         // À implémenter: parser le CSV complet
         $this->warn('⚠️  Fonctionnalité --all pas encore implémentée');
+
         return [];
     }
 
@@ -203,7 +206,7 @@ class ImportBudgetsCommand extends Command
         $codes = preg_split('/[\s,;]+/', $input, -1, PREG_SPLIT_NO_EMPTY);
 
         // Valider les codes (5 chiffres)
-        $validCodes = array_filter($codes, fn($code) => preg_match('/^\d{5}$/', $code));
+        $validCodes = array_filter($codes, fn ($code) => preg_match('/^\d{5}$/', $code));
 
         if (count($validCodes) !== count($codes)) {
             $this->warn('⚠️  Certains codes invalides ont été ignorés');
@@ -212,4 +215,3 @@ class ImportBudgetsCommand extends Command
         return array_values($validCodes);
     }
 }
-

@@ -31,7 +31,7 @@ class ReferencePreviewController extends Controller
             default => null,
         };
 
-        if (!$data) {
+        if (! $data) {
             return response()->json(['error' => 'Not found'], 404);
         }
 
@@ -44,13 +44,13 @@ class ReferencePreviewController extends Controller
             ->orWhere('slug', $uid)
             ->first();
 
-        if (!$depute) {
+        if (! $depute) {
             return null;
         }
 
         return [
             'type' => 'depute',
-            'nom_complet' => trim(($depute->prenom ?? '') . ' ' . ($depute->nom ?? '')),
+            'nom_complet' => trim(($depute->prenom ?? '').' '.($depute->nom ?? '')),
             'photo_url' => $depute->photo_url,
             'groupe' => $depute->groupe_politique_actuel?->libelle ?? $depute->groupe_politique ?? null,
             'circonscription' => $depute->circonscription ?? null,
@@ -62,13 +62,13 @@ class ReferencePreviewController extends Controller
     {
         $senateur = Senateur::where('matricule', $matricule)->first();
 
-        if (!$senateur) {
+        if (! $senateur) {
             return null;
         }
 
         return [
             'type' => 'senateur',
-            'nom_complet' => trim(($senateur->prenom ?? '') . ' ' . ($senateur->nom ?? '')),
+            'nom_complet' => trim(($senateur->prenom ?? '').' '.($senateur->nom ?? '')),
             'photo_url' => $senateur->photo_url,
             'groupe' => $senateur->groupe_politique ?? null,
             'circonscription' => $senateur->departement_nom ?? $senateur->departement ?? null,
@@ -80,16 +80,16 @@ class ReferencePreviewController extends Controller
     {
         $maire = Maire::find($id);
 
-        if (!$maire) {
+        if (! $maire) {
             return null;
         }
 
         return [
             'type' => 'maire',
-            'nom_complet' => trim(($maire->prenom ?? '') . ' ' . ($maire->nom ?? '')),
+            'nom_complet' => trim(($maire->prenom ?? '').' '.($maire->nom ?? '')),
             'photo_url' => $maire->photo_url ?? null,
             'groupe' => $maire->nuance_politique ?? null,
-            'circonscription' => $maire->commune . ' (' . $maire->code_departement . ')',
+            'circonscription' => $maire->commune.' ('.$maire->code_departement.')',
             'url' => route('representants.maires.show', $id),
         ];
     }
@@ -98,13 +98,13 @@ class ReferencePreviewController extends Controller
     {
         $loi = Loi::where('loicod', $loiCod)->first();
 
-        if (!$loi) {
+        if (! $loi) {
             return null;
         }
 
         return [
             'type' => 'loi',
-            'titre' => $loi->loitit ?? 'Loi ' . $loiCod,
+            'titre' => $loi->loitit ?? 'Loi '.$loiCod,
             'numero' => $loi->loinum ?? null,
             'etat' => $loi->etat_code ?? null,
             'etat_label' => $loi->etat?->libelle ?? null,
@@ -117,13 +117,13 @@ class ReferencePreviewController extends Controller
     {
         $scrutin = ScrutinAN::where('numero', $numero)->first();
 
-        if (!$scrutin) {
+        if (! $scrutin) {
             return null;
         }
 
         return [
             'type' => 'scrutin',
-            'titre' => $scrutin->titre ?? $scrutin->objet ?? 'Scrutin n°' . $numero,
+            'titre' => $scrutin->titre ?? $scrutin->objet ?? 'Scrutin n°'.$numero,
             'pour' => $scrutin->nombre_pour ?? 0,
             'contre' => $scrutin->nombre_contre ?? 0,
             'abstention' => $scrutin->nombre_abstention ?? 0,

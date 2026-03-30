@@ -15,8 +15,11 @@ class AccountSuspendedMail extends Mailable
     use Queueable, SerializesModels;
 
     public User $user;
+
     public int $days;
+
     public string $reason;
+
     public Carbon $endsAt;
 
     public function __construct(User $user, int $days, string $reason, Carbon $endsAt)
@@ -30,7 +33,7 @@ class AccountSuspendedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "⚠️ Votre compte CivicDash a été suspendu",
+            subject: '⚠️ Votre compte CivicDash a été suspendu',
         );
     }
 

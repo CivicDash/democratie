@@ -37,7 +37,7 @@ class ClearVoteCache extends Command
             }
         } else {
             // Vider tout le cache de vote
-            $count = $cacheService->forgetPattern(CacheService::PREFIX_VOTE_RESULTS . '*');
+            $count = $cacheService->forgetPattern(CacheService::PREFIX_VOTE_RESULTS.'*');
             $this->info("Cache de vote vidé : {$count} clé(s) supprimée(s)");
         }
 

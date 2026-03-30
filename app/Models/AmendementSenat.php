@@ -8,12 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modèle pour les amendements du Sénat (data.senat.fr)
- * 
+ *
  * Basé sur la vue SQL amendements_senat qui joint :
  * - senat_ameli_amd (amendements)
  * - senat_ameli_amdsen (auteurs)
  * - sen_ameli (liaison vers matricule sénateur)
- * 
+ *
  * @property int $id
  * @property string|null $senateur_matricule - Matricule du sénateur auteur
  * @property string $numero
@@ -29,8 +29,11 @@ class AmendementSenat extends Model
     use HasFactory;
 
     protected $table = 'amendements_senat';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -186,7 +189,7 @@ class AmendementSenat extends Model
      */
     public function getSortLibelleFormateAttribute(): string
     {
-        return match($this->sort_code) {
+        return match ($this->sort_code) {
             'A' => 'Adopté',
             'AM' => 'Adopté (modifié)',
             'AB' => 'Adopté',
@@ -204,11 +207,12 @@ class AmendementSenat extends Model
      */
     public function getDispositifDecodeAttribute(): ?string
     {
-        if (!$this->dispositif) {
+        if (! $this->dispositif) {
             return null;
         }
         // Décoder les entités HTML et nettoyer le HTML
         $decoded = html_entity_decode($this->dispositif, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
         // Retirer les balises HTML pour un affichage propre
         return strip_tags($decoded);
     }
@@ -218,10 +222,11 @@ class AmendementSenat extends Model
      */
     public function getExposeDecodeAttribute(): ?string
     {
-        if (!$this->expose) {
+        if (! $this->expose) {
             return null;
         }
         $decoded = html_entity_decode($this->expose, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
         return strip_tags($decoded);
     }
 
@@ -232,13 +237,13 @@ class AmendementSenat extends Model
     public function getUrlSenatAttribute(): ?string
     {
         // Si l'URL est déjà stockée, la retourner
-        if (!empty($this->attributes['url_senat'])) {
+        if (! empty($this->attributes['url_senat'])) {
             return $this->attributes['url_senat'];
         }
-        
+
         // Sinon, construire une URL de recherche générique
         $numero = urlencode($this->numero ?? '');
+
         return "https://www.senat.fr/recherche/amendements?tri=amendement&numero={$numero}";
     }
 }
-

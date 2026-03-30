@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 
 /**
  * Idée/Proposition citoyenne
- * 
+ *
  * Permet aux citoyens de soumettre des idées et propositions
  * à différents niveaux géographiques (national, régional, local)
  */
@@ -59,7 +59,7 @@ class CitizenIdea extends Model
 
         static::creating(function ($idea) {
             if (empty($idea->slug)) {
-                $idea->slug = Str::slug($idea->title) . '-' . Str::random(6);
+                $idea->slug = Str::slug($idea->title).'-'.Str::random(6);
             }
         });
     }
@@ -214,6 +214,7 @@ class CitizenIdea extends Model
     public function incrementViews(): self
     {
         $this->increment('views_count');
+
         return $this;
     }
 
@@ -247,12 +248,14 @@ class CitizenIdea extends Model
     public function getPctPourAttribute(): float
     {
         $total = $this->votes_pour + $this->votes_contre;
+
         return $total > 0 ? round(($this->votes_pour / $total) * 100, 1) : 0;
     }
 
     public function getPctContreAttribute(): float
     {
         $total = $this->votes_pour + $this->votes_contre;
+
         return $total > 0 ? round(($this->votes_contre / $total) * 100, 1) : 0;
     }
 

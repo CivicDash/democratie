@@ -11,6 +11,7 @@ use Illuminate\Console\Command;
 class SeedElectionDates extends Command
 {
     protected $signature = 'seed:election-dates {--force : Recréer les événements existants}';
+
     protected $description = 'Ajoute les dates des élections 2026-2027 dans le calendrier';
 
     public function handle(): int
@@ -153,8 +154,9 @@ class SeedElectionDates extends Command
             $existing = EvenementLegislatif::where('uid', $data['uid'])
                 ->first();
 
-            if ($existing && !$force) {
+            if ($existing && ! $force) {
                 $skipped++;
+
                 continue;
             }
 
@@ -170,7 +172,7 @@ class SeedElectionDates extends Command
         }
 
         $this->newLine();
-        $this->info("✅ Terminé !");
+        $this->info('✅ Terminé !');
         $this->table(
             ['Action', 'Nombre'],
             [

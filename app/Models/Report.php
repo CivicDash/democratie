@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Signalement de contenu
- * 
+ *
  * @property int $id
  * @property int $reporter_id
  * @property string $reportable_type
@@ -104,7 +104,7 @@ class Report extends Model
     /**
      * Résout le signalement
      */
-    public function resolve(string $notes = null): void
+    public function resolve(?string $notes = null): void
     {
         $this->update([
             'status' => 'resolved',
@@ -116,7 +116,7 @@ class Report extends Model
     /**
      * Rejette le signalement
      */
-    public function dismiss(string $notes = null): void
+    public function dismiss(?string $notes = null): void
     {
         $this->reject($notes);
     }
@@ -124,7 +124,7 @@ class Report extends Model
     /**
      * Alias explicite pour rejeter un signalement.
      */
-    public function reject(string $notes = null): void
+    public function reject(?string $notes = null): void
     {
         $this->update([
             'status' => 'dismissed',
@@ -195,10 +195,10 @@ class Report extends Model
     public function scopeCritical($query)
     {
         $criticalReasons = collect(self::REASONS)
-            ->filter(fn($r) => $r['severity'] === 'critical')
+            ->filter(fn ($r) => $r['severity'] === 'critical')
             ->keys()
             ->toArray();
-        
+
         return $query->whereIn('reason', $criticalReasons);
     }
 
@@ -228,7 +228,7 @@ class Report extends Model
     public function getIsCriticalAttribute(): bool
     {
         $info = $this->reason_info;
+
         return in_array($info['severity'] ?? 'low', ['critical', 'high']);
     }
 }
-

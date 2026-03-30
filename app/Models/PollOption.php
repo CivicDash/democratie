@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Option de réponse dans un sondage
- * 
+ *
  * @property int $id
  * @property int $topic_id
  * @property string $label
@@ -71,10 +71,10 @@ class PollOption extends Model
      */
     public function hasUserVoted(?int $userId): bool
     {
-        if (!$userId) {
+        if (! $userId) {
             return false;
         }
-        
+
         return $this->votes()->where('user_id', $userId)->exists();
     }
 
@@ -84,11 +84,11 @@ class PollOption extends Model
     public function getPercentageAttribute(): float
     {
         $totalVotes = $this->topic->totalPollVotes();
-        
+
         if ($totalVotes === 0) {
             return 0;
         }
-        
+
         return round(($this->votes_count / $totalVotes) * 100, 1);
     }
 

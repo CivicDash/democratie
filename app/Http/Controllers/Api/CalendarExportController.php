@@ -10,7 +10,7 @@ use Illuminate\Http\Response;
 
 /**
  * Export du calendrier législatif en format iCalendar (ICS)
- * 
+ *
  * Permet d'exporter les événements AN + Sénat + Élysée vers :
  * - Google Calendar
  * - Apple Calendar
@@ -22,9 +22,9 @@ class CalendarExportController extends Controller
 {
     /**
      * Export du calendrier complet ou filtré
-     * 
+     *
      * GET /api/calendar/export.ics
-     * 
+     *
      * Paramètres :
      * - source: an|senat|elysee (optionnel, tous par défaut)
      * - type: seance|commission|reunion|vote|audition (optionnel)
@@ -39,43 +39,43 @@ class CalendarExportController extends Controller
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
         ]);
-        
+
         // Période par défaut : -1 mois à +3 mois
-        $from = $request->input('from') 
+        $from = $request->input('from')
             ? Carbon::parse($request->input('from'))->startOfDay()
             : now()->subMonth()->startOfDay();
-            
+
         $to = $request->input('to')
             ? Carbon::parse($request->input('to'))->endOfDay()
             : now()->addMonths(3)->endOfDay();
-        
+
         // Construire la requête
         $query = EvenementLegislatif::query()
             ->whereBetween('date_debut', [$from, $to])
             ->confirmes()
             ->orderBy('date_debut');
-        
+
         // Filtrer par source
         if ($source = $request->input('source')) {
             $query->source($source);
         }
-        
+
         // Filtrer par type
         if ($type = $request->input('type')) {
             $query->type($type);
         }
-        
+
         $evenements = $query->get();
-        
+
         // Générer le nom du calendrier
         $calendarName = $this->buildCalendarName($request);
-        
+
         // Générer le contenu iCal
         $icalContent = $this->generateIcal($evenements, $calendarName, $from, $to);
-        
+
         // Nom du fichier
         $filename = $this->buildFilename($request);
-        
+
         return response($icalContent, 200)
             ->header('Content-Type', 'text/calendar; charset=utf-8')
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"")
@@ -86,9 +86,9 @@ class CalendarExportController extends Controller
 
     /**
      * Flux iCal dynamique (pour abonnement)
-     * 
+     *
      * GET /api/calendar/feed.ics
-     * 
+     *
      * Retourne toujours les événements des 3 prochains mois
      * pour permettre un abonnement qui se met à jour automatiquement
      */
@@ -98,30 +98,30 @@ class CalendarExportController extends Controller
             'source' => ['nullable', 'in:an,senat,elysee'],
             'type' => ['nullable', 'in:seance,commission,reunion,vote,audition,autre'],
         ]);
-        
+
         // Période fixe pour le flux : -1 semaine à +3 mois
         $from = now()->subWeek()->startOfDay();
         $to = now()->addMonths(3)->endOfDay();
-        
+
         // Construire la requête
         $query = EvenementLegislatif::query()
             ->whereBetween('date_debut', [$from, $to])
             ->confirmes()
             ->orderBy('date_debut');
-        
+
         if ($source = $request->input('source')) {
             $query->source($source);
         }
-        
+
         if ($type = $request->input('type')) {
             $query->type($type);
         }
-        
+
         $evenements = $query->get();
-        
+
         $calendarName = $this->buildCalendarName($request);
         $icalContent = $this->generateIcal($evenements, $calendarName, $from, $to);
-        
+
         // Pour le flux, on autorise le cache (1 heure)
         return response($icalContent, 200)
             ->header('Content-Type', 'text/calendar; charset=utf-8')
@@ -130,20 +130,20 @@ class CalendarExportController extends Controller
 
     /**
      * Export d'un événement unique
-     * 
+     *
      * GET /api/calendar/event/{id}.ics
      */
     public function single(EvenementLegislatif $evenement): Response
     {
         $icalContent = $this->generateIcal(
-            collect([$evenement]), 
+            collect([$evenement]),
             "CivicDash - {$evenement->titre}",
             $evenement->date_debut,
             $evenement->date_fin ?? $evenement->date_debut
         );
-        
+
         $filename = "civicdash-evenement-{$evenement->id}.ics";
-        
+
         return response($icalContent, 200)
             ->header('Content-Type', 'text/calendar; charset=utf-8')
             ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
@@ -183,16 +183,16 @@ class CalendarExportController extends Controller
             'END:STANDARD',
             'END:VTIMEZONE',
         ];
-        
+
         // Ajouter chaque événement
         foreach ($evenements as $evenement) {
             $lines[] = '';
             $lines[] = $evenement->toIcalEvent();
         }
-        
+
         $lines[] = '';
         $lines[] = 'END:VCALENDAR';
-        
+
         return implode("\r\n", $lines);
     }
 
@@ -202,7 +202,7 @@ class CalendarExportController extends Controller
     protected function buildCalendarName(Request $request): string
     {
         $parts = ['CivicDash'];
-        
+
         if ($source = $request->input('source')) {
             $sourceNames = [
                 'an' => 'Assemblée nationale',
@@ -213,7 +213,7 @@ class CalendarExportController extends Controller
         } else {
             $parts[] = 'Parlement';
         }
-        
+
         if ($type = $request->input('type')) {
             $typeNames = [
                 'seance' => 'Séances',
@@ -224,7 +224,7 @@ class CalendarExportController extends Controller
             ];
             $parts[] = $typeNames[$type] ?? ucfirst($type);
         }
-        
+
         return implode(' - ', $parts);
     }
 
@@ -234,20 +234,20 @@ class CalendarExportController extends Controller
     protected function buildFilename(Request $request): string
     {
         $parts = ['civicdash'];
-        
+
         if ($source = $request->input('source')) {
             $parts[] = $source;
         } else {
             $parts[] = 'parlement';
         }
-        
+
         if ($type = $request->input('type')) {
             $parts[] = $type;
         }
-        
+
         $parts[] = now()->format('Y-m-d');
-        
-        return implode('-', $parts) . '.ics';
+
+        return implode('-', $parts).'.ics';
     }
 
     /**
@@ -256,7 +256,7 @@ class CalendarExportController extends Controller
     public function availableFeeds(): array
     {
         $baseUrl = url('/api/calendar');
-        
+
         return [
             'feeds' => [
                 [

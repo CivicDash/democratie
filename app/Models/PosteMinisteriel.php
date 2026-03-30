@@ -61,30 +61,30 @@ class PosteMinisteriel extends Model
     public function getDureeFonctionAttribute(): string
     {
         $debut = $this->date_debut;
-        
-        if (!$debut) {
+
+        if (! $debut) {
             return 'Durée inconnue';
         }
-        
+
         $fin = $this->date_fin ?? now();
-        
+
         $diff = $debut->diff($fin);
-        
+
         if ($diff->y > 0) {
-            return $diff->y . ' an' . ($diff->y > 1 ? 's' : '') . 
-                   ($diff->m > 0 ? ' et ' . $diff->m . ' mois' : '');
+            return $diff->y.' an'.($diff->y > 1 ? 's' : '').
+                   ($diff->m > 0 ? ' et '.$diff->m.' mois' : '');
         }
-        
+
         if ($diff->m > 0) {
-            return $diff->m . ' mois' . ($diff->d > 0 ? ' et ' . $diff->d . ' jours' : '');
+            return $diff->m.' mois'.($diff->d > 0 ? ' et '.$diff->d.' jours' : '');
         }
-        
-        return $diff->d . ' jour' . ($diff->d > 1 ? 's' : '');
+
+        return $diff->d.' jour'.($diff->d > 1 ? 's' : '');
     }
 
     public function getTypeFonctionLibelleAttribute(): string
     {
-        return match($this->type_fonction) {
+        return match ($this->type_fonction) {
             'president' => 'Président de la République',
             'premier_ministre' => 'Premier ministre',
             'ministre_etat' => 'Ministre d\'État',
@@ -105,7 +105,7 @@ class PosteMinisteriel extends Model
         if ($this->date_fin === null) {
             return true;
         }
-        
+
         return $this->date_fin->isFuture();
     }
 
@@ -116,7 +116,7 @@ class PosteMinisteriel extends Model
     {
         return $query->where(function ($q) {
             $q->whereNull('date_fin')
-              ->orWhere('date_fin', '>', now());
+                ->orWhere('date_fin', '>', now());
         });
     }
 

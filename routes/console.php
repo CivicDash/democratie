@@ -236,7 +236,7 @@ Schedule::command('enrich:deputes-votes')
     ->description('Enrichissement votes députés')
     ->withoutOverlapping();
 
-// Enrichissement votes sénateurs  
+// Enrichissement votes sénateurs
 Schedule::command('enrich:senateurs-votes')
     ->dailyAt('07:30')
     ->description('Enrichissement votes sénateurs')

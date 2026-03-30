@@ -3,10 +3,9 @@
 namespace App\Services;
 
 use Illuminate\Cache\RateLimiter;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Http\Exceptions\ThrottleRequestsException;
-use App\Services\IpBanService;
 
 class RateLimitService
 {
@@ -19,26 +18,43 @@ class RateLimitService
      * Limites par défaut
      */
     const LIMIT_API_GENERAL = 60;           // 60 req/min
+
     const LIMIT_API_AUTHENTICATED = 120;    // 120 req/min (authentifié)
+
     const LIMIT_LOGIN = 5;                  // 5 tentatives/min
+
     const LIMIT_REGISTER = 3;               // 3 inscriptions/heure
+
     const LIMIT_VOTE = 10;                  // 10 votes/heure
+
     const LIMIT_POST = 1;                   // 1 message / 2-3 min
+
     const LIMIT_REPORT = 1;                 // 1 signalement / 5 min
+
     const LIMIT_DOCUMENT_UPLOAD = 5;        // 5 uploads/heure
+
     const LIMIT_BUDGET_ALLOCATE = 30;       // 30 allocations/heure
 
     const DECAY_LOGIN = 60;                 // 1 min
+
     const DECAY_REGISTER = 3600;            // 1 h
+
     const DECAY_VOTE = 3600;                // 1 h
+
     const DECAY_POST = 150;                 // 2 min 30
+
     const DECAY_REPORT = 300;               // 5 min
+
     const DECAY_DOCUMENT_UPLOAD = 3600;     // 1 h
+
     const DECAY_BUDGET_ALLOCATE = 3600;     // 1 h
 
     const ABUSE_THRESHOLD = 3;              // 3 verrouillages -> ban temporaire
+
     const ABUSE_DECAY = 3600;               // 1 h
+
     const BAN_BASE = 900;                   // 15 min
+
     const BAN_MAX = 86400;                  // 24 h
 
     /**
@@ -86,7 +102,7 @@ class RateLimitService
      */
     public function loginKey(Request $request): string
     {
-        return 'login:' . Str::lower($request->input('email')) . '|' . $request->ip();
+        return 'login:'.Str::lower($request->input('email')).'|'.$request->ip();
     }
 
     /**
@@ -94,7 +110,7 @@ class RateLimitService
      */
     public function registerKey(Request $request): string
     {
-        return 'register:' . $request->ip();
+        return 'register:'.$request->ip();
     }
 
     /**
@@ -103,7 +119,8 @@ class RateLimitService
     public function voteKey(Request $request, int $topicId): string
     {
         $user = $request->user();
-        return 'vote:' . ($user ? $user->id : $request->ip()) . ':' . $topicId;
+
+        return 'vote:'.($user ? $user->id : $request->ip()).':'.$topicId;
     }
 
     /**
@@ -112,7 +129,8 @@ class RateLimitService
     public function postKey(Request $request): string
     {
         $user = $request->user();
-        return 'post:' . ($user ? $user->id : $request->ip());
+
+        return 'post:'.($user ? $user->id : $request->ip());
     }
 
     /**
@@ -121,7 +139,8 @@ class RateLimitService
     public function reportKey(Request $request): string
     {
         $user = $request->user();
-        return 'report:' . ($user ? $user->id : $request->ip());
+
+        return 'report:'.($user ? $user->id : $request->ip());
     }
 
     /**
@@ -130,7 +149,8 @@ class RateLimitService
     public function documentUploadKey(Request $request): string
     {
         $user = $request->user();
-        return 'document:upload:' . ($user ? $user->id : $request->ip());
+
+        return 'document:upload:'.($user ? $user->id : $request->ip());
     }
 
     /**
@@ -138,7 +158,7 @@ class RateLimitService
      */
     public function budgetAllocationKey(Request $request): string
     {
-        return 'budget:allocate:' . $request->user()->id;
+        return 'budget:allocate:'.$request->user()->id;
     }
 
     /**
@@ -147,7 +167,8 @@ class RateLimitService
     public function apiKey(Request $request): string
     {
         $user = $request->user();
-        return 'api:' . ($user ? 'user:' . $user->id : 'ip:' . $request->ip());
+
+        return 'api:'.($user ? 'user:'.$user->id : 'ip:'.$request->ip());
     }
 
     /**
@@ -159,8 +180,7 @@ class RateLimitService
         int $maxAttempts,
         string $message = 'Trop de tentatives. Veuillez réessayer plus tard.',
         int $decaySeconds = 60
-    ): void
-    {
+    ): void {
         if ($this->shouldBypass($request)) {
             return;
         }
@@ -171,9 +191,9 @@ class RateLimitService
             $this->recordAbuse($request);
             $seconds = $this->availableIn($key);
             $minutes = ceil($seconds / 60);
-            
+
             throw new ThrottleRequestsException(
-                $message . " Réessayez dans {$minutes} minute(s)."
+                $message." Réessayez dans {$minutes} minute(s)."
             );
         }
 
@@ -305,6 +325,7 @@ class RateLimitService
     protected function shouldBypass(Request $request): bool
     {
         $user = $request->user();
+
         return $user && ($user->hasRole('admin') || $user->hasRole('moderator'));
     }
 
@@ -313,7 +334,7 @@ class RateLimitService
      */
     protected function abuseKey(Request $request): string
     {
-        return 'abuse:ip:' . $request->ip();
+        return 'abuse:ip:'.$request->ip();
     }
 
     /**
@@ -321,7 +342,7 @@ class RateLimitService
      */
     protected function banKey(Request $request): string
     {
-        return 'ban:ip:' . $request->ip();
+        return 'ban:ip:'.$request->ip();
     }
 
     /**
@@ -377,4 +398,3 @@ class RateLimitService
         ];
     }
 }
-

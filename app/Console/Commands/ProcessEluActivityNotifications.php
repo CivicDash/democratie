@@ -19,7 +19,7 @@ class ProcessEluActivityNotifications extends Command
         $this->info('🔍 Recherche des nouvelles activités des élus suivis...');
 
         // Déterminer la date de début
-        $since = $this->option('since') 
+        $since = $this->option('since')
             ? new \DateTime($this->option('since'))
             : now()->subDay();
 
@@ -67,6 +67,7 @@ class ProcessEluActivityNotifications extends Command
 
         if ($activities->isEmpty()) {
             $this->info('ℹ️  Aucune nouvelle activité détectée');
+
             return Command::SUCCESS;
         }
 
@@ -91,8 +92,9 @@ class ProcessEluActivityNotifications extends Command
      */
     private function processDigests(EluActivityNotificationService $service, string $frequency): int
     {
-        if (!in_array($frequency, ['daily', 'weekly'])) {
+        if (! in_array($frequency, ['daily', 'weekly'])) {
             $this->error("❌ Fréquence invalide: {$frequency}. Utilisez 'daily' ou 'weekly'");
+
             return Command::FAILURE;
         }
 
@@ -101,6 +103,7 @@ class ProcessEluActivityNotifications extends Command
 
         if ($this->option('dry-run')) {
             $this->warn('🔸 Mode simulation - aucun email envoyé');
+
             return Command::SUCCESS;
         }
 

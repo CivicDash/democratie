@@ -27,7 +27,7 @@ class MentionService
 
         foreach ($mentions as $mention) {
             $user = $this->resolveUser($mention);
-            
+
             if ($user && $user->id !== $author->id) {
                 $createdMention = $this->createMention($user, $author, $mentionable);
                 if ($createdMention) {
@@ -45,16 +45,16 @@ class MentionService
     public function extractMentions(string $content): array
     {
         preg_match_all(self::MENTION_PATTERN, $content, $matches, PREG_SET_ORDER);
-        
+
         $mentions = [];
         foreach ($matches as $match) {
-            if (!empty($match[3])) {
+            if (! empty($match[3])) {
                 // Format @[id:123]
                 $mentions[] = ['type' => 'id', 'value' => (int) $match[3]];
-            } elseif (!empty($match[1])) {
+            } elseif (! empty($match[1])) {
                 // Format @"nom avec espaces"
                 $mentions[] = ['type' => 'name', 'value' => $match[1]];
-            } elseif (!empty($match[2])) {
+            } elseif (! empty($match[2])) {
                 // Format @nom
                 $mentions[] = ['type' => 'name', 'value' => $match[2]];
             }
@@ -110,6 +110,7 @@ class MentionService
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -139,19 +140,20 @@ class MentionService
             $user = null;
             $displayName = '';
 
-            if (!empty($match[3])) {
+            if (! empty($match[3])) {
                 $user = User::find((int) $match[3]);
                 $displayName = $user?->name ?? "Utilisateur #{$match[3]}";
-            } elseif (!empty($match[1])) {
+            } elseif (! empty($match[1])) {
                 $displayName = $match[1];
                 $user = User::where('name', 'ILIKE', $match[1])->first();
-            } elseif (!empty($match[2])) {
+            } elseif (! empty($match[2])) {
                 $displayName = $match[2];
                 $user = User::where('name', 'ILIKE', $match[2])->first();
             }
 
             if ($user) {
                 $profileUrl = route('profile.show', $user->id);
+
                 return sprintf(
                     '<a href="%s" class="mention-link text-indigo-600 dark:text-indigo-400 font-medium hover:underline" data-user-id="%d">@%s</a>',
                     $profileUrl,
@@ -178,7 +180,7 @@ class MentionService
             ->orWhereNotNull('email_verified_at')
             ->limit($limit)
             ->get(['id', 'name'])
-            ->map(fn($user) => [
+            ->map(fn ($user) => [
                 'id' => $user->id,
                 'name' => $user->display_name,
                 'mention' => "@{$user->display_name}",

@@ -2,14 +2,14 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Topic;
-use App\Models\Post;
 use App\Models\Document;
+use App\Models\Post;
+use App\Models\Topic;
 use Illuminate\Console\Command;
 
 /**
  * Affiche les statistiques de recherche Meilisearch
- * 
+ *
  * Usage:
  *   php artisan search:stats
  */
@@ -27,10 +27,10 @@ class SearchStatsCommand extends Command
         try {
             $topicsCount = Topic::count();
             $topicsSearchable = Topic::where('status', 'published')->count();
-            
+
             $postsCount = Post::count();
             $postsSearchable = Post::where('is_hidden', false)->whereNull('deleted_at')->count();
-            
+
             $documentsCount = Document::count();
             $documentsSearchable = Document::where('is_public', true)
                 ->where('status', 'verified')
@@ -44,19 +44,19 @@ class SearchStatsCommand extends Command
                         'Topics',
                         $topicsCount,
                         $topicsSearchable,
-                        $topicsCount > 0 ? round(($topicsSearchable / $topicsCount) * 100, 1) . '%' : 'N/A',
+                        $topicsCount > 0 ? round(($topicsSearchable / $topicsCount) * 100, 1).'%' : 'N/A',
                     ],
                     [
                         'Posts',
                         $postsCount,
                         $postsSearchable,
-                        $postsCount > 0 ? round(($postsSearchable / $postsCount) * 100, 1) . '%' : 'N/A',
+                        $postsCount > 0 ? round(($postsSearchable / $postsCount) * 100, 1).'%' : 'N/A',
                     ],
                     [
                         'Documents',
                         $documentsCount,
                         $documentsSearchable,
-                        $documentsCount > 0 ? round(($documentsSearchable / $documentsCount) * 100, 1) . '%' : 'N/A',
+                        $documentsCount > 0 ? round(($documentsSearchable / $documentsCount) * 100, 1).'%' : 'N/A',
                     ],
                     [
                         'TOTAL',
@@ -76,8 +76,8 @@ class SearchStatsCommand extends Command
             return self::SUCCESS;
         } catch (\Exception $e) {
             $this->error("❌ Erreur: {$e->getMessage()}");
+
             return self::FAILURE;
         }
     }
 }
-

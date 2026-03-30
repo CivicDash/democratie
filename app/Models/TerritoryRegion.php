@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Région française (INSEE)
- * 
+ *
  * @property int $id
  * @property string $code Code INSEE (ex: 11, 93)
  * @property string $name Nom de la région
@@ -74,4 +74,3 @@ class TerritoryRegion extends Model
         return $query->where('code', $code);
     }
 }
-

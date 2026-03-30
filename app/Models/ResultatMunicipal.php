@@ -98,12 +98,12 @@ class ResultatMunicipal extends Model
 
     public function getTauxParticipationFormateAttribute(): string
     {
-        return number_format($this->taux_participation, 1, ',', ' ') . ' %';
+        return number_format($this->taux_participation, 1, ',', ' ').' %';
     }
 
     public function getTauxAbstentionFormateAttribute(): string
     {
-        return number_format($this->taux_abstention, 1, ',', ' ') . ' %';
+        return number_format($this->taux_abstention, 1, ',', ' ').' %';
     }
 
     public function getListeGagnante(): ?ResultatListeMunicipale

@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\SenateurQuestion;
 use App\Models\Senateur;
+use App\Models\SenateurQuestion;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -20,11 +20,15 @@ class ImportQuestionsSenat extends Command
     protected $description = 'Importe les questions au Gouvernement des sénateurs depuis data.senat.fr';
 
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     private string $zipUrl = 'https://data.senat.fr/data/questions/questions.zip';
+
     private string $schemaName = 'questions';
 
     public function handle(): int
@@ -34,32 +38,33 @@ class ImportQuestionsSenat extends Command
         $syncOnly = $this->option('sync-only');
         $year = $this->option('year') ? (int) $this->option('year') : null;
 
-        $this->info("🏛️  Import des Questions au Gouvernement - Sénat");
+        $this->info('🏛️  Import des Questions au Gouvernement - Sénat');
         $this->newLine();
 
         if ($fresh) {
-            $this->warn("⚠️  Mode --fresh : suppression des questions existantes...");
+            $this->warn('⚠️  Mode --fresh : suppression des questions existantes...');
             SenateurQuestion::truncate();
         }
 
         // Vérifier si les tables SQL existent
         $tablesExist = $this->checkTablesExist();
 
-        if (!$tablesExist && !$syncOnly) {
+        if (! $tablesExist && ! $syncOnly) {
             // Télécharger et importer les tables SQL
-            $this->info("📥 Téléchargement et import des données brutes...");
-            if (!$this->downloadAndImportSQL()) {
+            $this->info('📥 Téléchargement et import des données brutes...');
+            if (! $this->downloadAndImportSQL()) {
                 return Command::FAILURE;
             }
         }
 
-        if ($syncOnly && !$tablesExist) {
+        if ($syncOnly && ! $tablesExist) {
             $this->error("❌ Les tables SQL n'existent pas. Relancez sans --sync-only.");
+
             return Command::FAILURE;
         }
 
         // Synchroniser vers notre table senateurs_questions
-        $this->info("🔄 Synchronisation des questions vers senateurs_questions...");
+        $this->info('🔄 Synchronisation des questions vers senateurs_questions...');
         $this->syncQuestions($limit, $year);
 
         // Stats finales
@@ -86,10 +91,11 @@ class ImportQuestionsSenat extends Command
     {
         try {
             // Vérifier si le schema existe
-            $schemas = DB::select("SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?", [$this->schemaName]);
-            
+            $schemas = DB::select('SELECT schema_name FROM information_schema.schemata WHERE schema_name = ?', [$this->schemaName]);
+
             if (empty($schemas)) {
                 $this->line("   ℹ️  Schema '{$this->schemaName}' n'existe pas encore");
+
                 return false;
             }
 
@@ -102,15 +108,17 @@ class ImportQuestionsSenat extends Command
 
             if (empty($tables)) {
                 $this->line("   ℹ️  Table 'tam_questions' n'existe pas encore");
+
                 return false;
             }
 
             $count = DB::table("{$this->schemaName}.tam_questions")->count();
             $this->line("   ✅ Tables SQL présentes ({$count} questions brutes)");
-            
+
             return true;
         } catch (\Exception $e) {
-            $this->line("   ⚠️  Erreur vérification tables: " . $e->getMessage());
+            $this->line('   ⚠️  Erreur vérification tables: '.$e->getMessage());
+
             return false;
         }
     }
@@ -120,25 +128,26 @@ class ImportQuestionsSenat extends Command
      */
     private function downloadAndImportSQL(): bool
     {
-        $this->info("   📥 Téléchargement du fichier ZIP...");
-        
+        $this->info('   📥 Téléchargement du fichier ZIP...');
+
         $zipPath = storage_path('app/temp/questions.zip');
         $extractPath = storage_path('app/temp/questions');
-        
+
         // Créer les dossiers
-        if (!file_exists(dirname($zipPath))) {
+        if (! file_exists(dirname($zipPath))) {
             mkdir(dirname($zipPath), 0755, true);
         }
-        if (!file_exists($extractPath)) {
+        if (! file_exists($extractPath)) {
             mkdir($extractPath, 0755, true);
         }
 
         // Télécharger le ZIP
         try {
             $response = Http::timeout(600)->get($this->zipUrl);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 $this->error("   ❌ Erreur HTTP {$response->status()}");
+
                 return false;
             }
 
@@ -146,15 +155,17 @@ class ImportQuestionsSenat extends Command
             $sizeMB = round(filesize($zipPath) / 1024 / 1024, 2);
             $this->line("   ✅ Téléchargé ({$sizeMB} MB)");
         } catch (\Exception $e) {
-            $this->error("   ❌ Erreur téléchargement: " . $e->getMessage());
+            $this->error('   ❌ Erreur téléchargement: '.$e->getMessage());
+
             return false;
         }
 
         // Extraire le ZIP
-        $this->info("   📦 Extraction...");
-        $zip = new ZipArchive();
+        $this->info('   📦 Extraction...');
+        $zip = new ZipArchive;
         if ($zip->open($zipPath) !== true) {
             $this->error("   ❌ Impossible d'ouvrir le ZIP");
+
             return false;
         }
         $zip->extractTo($extractPath);
@@ -162,21 +173,22 @@ class ImportQuestionsSenat extends Command
 
         // Trouver le fichier SQL
         $sqlFile = null;
-        $files = glob($extractPath . '/*.sql');
-        if (!empty($files)) {
+        $files = glob($extractPath.'/*.sql');
+        if (! empty($files)) {
             $sqlFile = $files[0];
         }
 
-        if (!$sqlFile) {
-            $this->error("   ❌ Aucun fichier SQL trouvé");
+        if (! $sqlFile) {
+            $this->error('   ❌ Aucun fichier SQL trouvé');
+
             return false;
         }
 
-        $this->line("   ✅ Fichier SQL: " . basename($sqlFile));
+        $this->line('   ✅ Fichier SQL: '.basename($sqlFile));
 
         // Importer via psql
-        $this->info("   🔧 Import via psql (cela peut prendre plusieurs minutes)...");
-        
+        $this->info('   🔧 Import via psql (cela peut prendre plusieurs minutes)...');
+
         $dbConfig = config('database.connections.pgsql');
         $command = sprintf(
             'PGPASSWORD=%s psql -h %s -p %s -U %s -d %s -f %s 2>&1',
@@ -195,14 +207,15 @@ class ImportQuestionsSenat extends Command
         if ($returnVar !== 0) {
             $this->error("   ❌ Erreur psql (code {$returnVar})");
             // Afficher les dernières erreurs
-            $errorLines = array_filter($output, fn($l) => stripos($l, 'error') !== false);
+            $errorLines = array_filter($output, fn ($l) => stripos($l, 'error') !== false);
             foreach (array_slice($errorLines, -5) as $line) {
-                $this->line("      " . $line);
+                $this->line('      '.$line);
             }
+
             return false;
         }
 
-        $this->line("   ✅ Import SQL terminé");
+        $this->line('   ✅ Import SQL terminé');
 
         // Nettoyage
         @unlink($zipPath);
@@ -216,7 +229,7 @@ class ImportQuestionsSenat extends Command
      */
     private function syncQuestions(?int $limit, ?int $year): void
     {
-        $this->info("   📋 Récupération des questions depuis les tables SQL...");
+        $this->info('   📋 Récupération des questions depuis les tables SQL...');
 
         try {
             // Construire la requête
@@ -247,7 +260,7 @@ class ImportQuestionsSenat extends Command
                 // Par défaut: 5 dernières années
                 $minYear = now()->year - 5;
                 $query->whereYear('q.datejodepot', '>=', $minYear);
-                $this->line("   📅 Période: {$minYear} - " . now()->year);
+                $this->line("   📅 Période: {$minYear} - ".now()->year);
             }
 
             if ($limit) {
@@ -261,7 +274,7 @@ class ImportQuestionsSenat extends Command
 
             // Récupérer les sénateurs existants
             $senateurs = Senateur::pluck('id', 'matricule')->toArray();
-            $this->line("   👥 " . count($senateurs) . " sénateurs en base");
+            $this->line('   👥 '.count($senateurs).' sénateurs en base');
 
             $bar = $this->output->createProgressBar($total);
             $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %message%');
@@ -269,12 +282,13 @@ class ImportQuestionsSenat extends Command
 
             foreach ($questions as $q) {
                 $bar->setMessage("Q{$q->numero}");
-                
+
                 try {
                     // Vérifier si le sénateur existe
-                    if (!isset($senateurs[trim($q->matricule)])) {
+                    if (! isset($senateurs[trim($q->matricule)])) {
                         $this->skipped++;
                         $bar->advance();
+
                         continue;
                     }
 
@@ -291,7 +305,7 @@ class ImportQuestionsSenat extends Command
                         'date_question' => $q->date_question ? \Carbon\Carbon::parse($q->date_question)->format('Y-m-d') : null,
                         'texte_reponse' => $this->cleanText($q->texte_reponse),
                         'date_reponse' => $q->date_reponse ? \Carbon\Carbon::parse($q->date_reponse)->format('Y-m-d') : null,
-                        'a_reponse' => !empty($q->texte_reponse),
+                        'a_reponse' => ! empty($q->texte_reponse),
                         'theme' => $q->theme ?? $q->rubrique,
                         'sous_theme' => $q->sous_theme,
                     ];
@@ -317,7 +331,7 @@ class ImportQuestionsSenat extends Command
             $this->newLine();
 
         } catch (\Exception $e) {
-            $this->error("   ❌ Erreur synchronisation: " . $e->getMessage());
+            $this->error('   ❌ Erreur synchronisation: '.$e->getMessage());
         }
     }
 
@@ -327,6 +341,7 @@ class ImportQuestionsSenat extends Command
     private function parseQuestionType(?string $code): string
     {
         $types = config('senat.types_questions', []);
+
         return $types[$code] ?? $code ?? 'ecrite';
     }
 
@@ -344,6 +359,7 @@ class ImportQuestionsSenat extends Command
         $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
         // Nettoyer les espaces multiples
         $text = preg_replace('/\s+/', ' ', $text);
+
         return trim($text);
     }
 }

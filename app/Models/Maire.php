@@ -11,7 +11,7 @@ use Laravel\Scout\Searchable;
 
 /**
  * Modèle pour les maires
- * 
+ *
  * @property int $id
  * @property string $uid
  * @property string $nom
@@ -222,19 +222,19 @@ class Maire extends Model
         return HatvpDeclaration::where(function ($q) {
             $q->where(function ($q2) {
                 $q2->where('nom', 'ILIKE', $this->nom)
-                   ->where('prenom', 'ILIKE', $this->prenom);
+                    ->where('prenom', 'ILIKE', $this->prenom);
             });
 
             if ($this->personnePolitique?->uid_an) {
                 $q->orWhere(function ($q2) {
                     $q2->where('parlementaire_type', 'depute')
-                       ->where('parlementaire_id', $this->personnePolitique->uid_an);
+                        ->where('parlementaire_id', $this->personnePolitique->uid_an);
                 });
             }
             if ($this->personnePolitique?->uid_senat) {
                 $q->orWhere(function ($q2) {
                     $q2->where('parlementaire_type', 'senateur')
-                       ->where('parlementaire_id', $this->personnePolitique->uid_senat);
+                        ->where('parlementaire_id', $this->personnePolitique->uid_senat);
                 });
             }
         })->orderByDesc('date_depot');
@@ -270,7 +270,7 @@ class Maire extends Model
         $communes = FrenchPostalCode::where('postal_code', $postalCode)
             ->pluck('insee_code')
             ->unique();
-        
+
         return $query->whereIn('code_commune', $communes);
     }
 
@@ -278,8 +278,8 @@ class Maire extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('nom', 'like', "%{$search}%")
-              ->orWhere('prenom', 'like', "%{$search}%")
-              ->orWhere('nom_commune', 'like', "%{$search}%");
+                ->orWhere('prenom', 'like', "%{$search}%")
+                ->orWhere('nom_commune', 'like', "%{$search}%");
         });
     }
 
@@ -307,14 +307,15 @@ class Maire extends Model
         if ($this->attributes['nom_complet'] ?? null) {
             return $this->attributes['nom_complet'];
         }
-        
-        $civilite = $this->civilite ? $this->civilite . ' ' : '';
-        return $civilite . $this->prenom . ' ' . $this->nom;
+
+        $civilite = $this->civilite ? $this->civilite.' ' : '';
+
+        return $civilite.$this->prenom.' '.$this->nom;
     }
 
     public function getAgeAttribute(): ?int
     {
-        if (!$this->date_naissance) {
+        if (! $this->date_naissance) {
             return null;
         }
 
@@ -323,21 +324,22 @@ class Maire extends Model
 
     public function getDureeMandatAttribute(): ?int
     {
-        if (!$this->debut_mandat) {
+        if (! $this->debut_mandat) {
             return null;
         }
 
         $fin = $this->fin_mandat ?? now();
+
         return $this->debut_mandat->diffInYears($fin);
     }
 
     public function getNuanceLibelleAttribute(): ?string
     {
-        if (!$this->nuance_politique) {
+        if (! $this->nuance_politique) {
             return null;
         }
 
-        return match($this->nuance_politique) {
+        return match ($this->nuance_politique) {
             'LDVG' => 'Divers gauche',
             'LDVD' => 'Divers droite',
             'LDVC' => 'Divers centre',
@@ -368,7 +370,7 @@ class Maire extends Model
 
     public function getNuanceCouleurAttribute(): string
     {
-        return match($this->nuance_politique) {
+        return match ($this->nuance_politique) {
             'LDVG', 'LSOC', 'LCOM', 'LFI', 'LEXG' => '#E11D48', // Rouge/Rose
             'LDVD', 'LLR', 'LUDI' => '#3B82F6', // Bleu
             'LDVC', 'LMDM', 'LREM' => '#F59E0B', // Orange/Jaune
@@ -462,4 +464,3 @@ class Maire extends Model
         return 'maires';
     }
 }
-

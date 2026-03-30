@@ -19,6 +19,7 @@ class DashboardStat extends Model
     public static function get(string $key, $default = null)
     {
         $stat = static::where('key', $key)->first();
+
         return $stat ? $stat->value : $default;
     }
 
@@ -42,8 +43,10 @@ class DashboardStat extends Model
     public static function isFresh(string $key, int $hours = 24): bool
     {
         $stat = static::where('key', $key)->first();
-        if (!$stat) return false;
+        if (! $stat) {
+            return false;
+        }
+
         return $stat->calculated_at->diffInHours(now()) < $hours;
     }
 }
-

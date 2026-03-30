@@ -12,19 +12,19 @@ class TextualReferenceParser
     public function parse(string $text): Collection
     {
         $references = collect();
-        
+
         // Pattern 1: "article L. 123-4 du code civil"
         $references = $references->merge($this->extractFullReferences($text));
-        
+
         // Pattern 2: "L.123-4 CSP" (avec acronyme)
         $references = $references->merge($this->extractAcronymReferences($text));
-        
+
         // Pattern 3: "articles L. 123-4 à L. 123-8"
         $references = $references->merge($this->extractRangeReferences($text));
-        
+
         // Dédupliquer
         return $references->unique(function ($ref) {
-            return $ref['reference'] . '_' . $ref['code_name'];
+            return $ref['reference'].'_'.$ref['code_name'];
         })->values();
     }
 
@@ -35,12 +35,12 @@ class TextualReferenceParser
     private function extractFullReferences(string $text): Collection
     {
         $references = collect();
-        
+
         // Pattern regex pour capturer les références
         $pattern = '/(?:l\'article|l\'art\.|article|art\.)\s+([LRDA]\.?\s*[\d-]+(?:-\d+)*)\s+(?:du|de\s+la)\s+(code[^,.\n]+)/iu';
-        
+
         preg_match_all($pattern, $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
-        
+
         foreach ($matches as $match) {
             $references->push([
                 'reference' => $this->normalizeReference($match[1][0]),
@@ -51,7 +51,7 @@ class TextualReferenceParser
                 'type' => $this->getArticleType($match[1][0]),
             ]);
         }
-        
+
         return $references;
     }
 
@@ -62,17 +62,17 @@ class TextualReferenceParser
     private function extractAcronymReferences(string $text): Collection
     {
         $references = collect();
-        
+
         $pattern = '/\b([LRDA]\.?\s*[\d-]+(?:-\d+)*)\s+(?:du\s+)?([A-Z]{2,4})\b/';
-        
+
         preg_match_all($pattern, $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
-        
+
         $legifranceService = app(LegifranceService::class);
-        
+
         foreach ($matches as $match) {
             $acronym = $match[2][0];
             $codeName = $legifranceService->expandCodeAcronym($acronym);
-            
+
             if ($codeName) {
                 $references->push([
                     'reference' => $this->normalizeReference($match[1][0]),
@@ -84,7 +84,7 @@ class TextualReferenceParser
                 ]);
             }
         }
-        
+
         return $references;
     }
 
@@ -95,16 +95,16 @@ class TextualReferenceParser
     private function extractRangeReferences(string $text): Collection
     {
         $references = collect();
-        
+
         $pattern = '/(?:articles|art\.)\s+([LRDA]\.?\s*[\d-]+(?:-\d+)*)\s+(?:à|au)\s+([LRDA]\.?\s*[\d-]+(?:-\d+)*)\s+(?:du|de\s+la)\s+(code[^,.\n]+)/iu';
-        
+
         preg_match_all($pattern, $text, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
-        
+
         foreach ($matches as $match) {
             $startRef = $this->normalizeReference($match[1][0]);
             $endRef = $this->normalizeReference($match[2][0]);
             $codeName = $this->normalizeCodeName($match[3][0]);
-            
+
             // Ajouter la référence de début et de fin (on pourrait aussi générer toute la plage)
             $references->push([
                 'reference' => $startRef,
@@ -116,7 +116,7 @@ class TextualReferenceParser
                 'is_range_start' => true,
                 'range_end' => $endRef,
             ]);
-            
+
             $references->push([
                 'reference' => $endRef,
                 'code_name' => $codeName,
@@ -128,7 +128,7 @@ class TextualReferenceParser
                 'range_start' => $startRef,
             ]);
         }
-        
+
         return $references;
     }
 
@@ -140,13 +140,13 @@ class TextualReferenceParser
     {
         // Supprimer espaces superflus
         $reference = trim($reference);
-        
+
         // Ajouter un espace après la lettre si absent
         $reference = preg_replace('/^([LRDA])\.?(\d)/', '$1. $2', $reference);
-        
+
         // Normaliser les tirets
         $reference = str_replace('_', '-', $reference);
-        
+
         return $reference;
     }
 
@@ -158,16 +158,16 @@ class TextualReferenceParser
     {
         // Supprimer espaces multiples
         $codeName = preg_replace('/\s+/', ' ', $codeName);
-        
+
         // Trim
         $codeName = trim($codeName);
-        
+
         // Lowercase
         $codeName = strtolower($codeName);
-        
+
         // Supprimer ponctuation finale
         $codeName = rtrim($codeName, '.,;:');
-        
+
         return $codeName;
     }
 
@@ -177,8 +177,8 @@ class TextualReferenceParser
     private function getArticleType(string $reference): string
     {
         $firstLetter = strtoupper(substr(trim($reference), 0, 1));
-        
-        return match($firstLetter) {
+
+        return match ($firstLetter) {
             'L' => 'legislative',
             'R' => 'regulatory',
             'D' => 'decree',
@@ -192,7 +192,7 @@ class TextualReferenceParser
      */
     public static function getTypeLabel(string $type): string
     {
-        return match($type) {
+        return match ($type) {
             'legislative' => 'Législatif (Loi)',
             'regulatory' => 'Réglementaire (Règlement)',
             'decree' => 'Décret',
@@ -207,6 +207,7 @@ class TextualReferenceParser
     public function isValidReference(string $reference): bool
     {
         $pattern = '/^[LRDA]\.\s*\d+(-\d+)*$/';
+
         return (bool) preg_match($pattern, $reference);
     }
 
@@ -216,7 +217,7 @@ class TextualReferenceParser
     public function parseMultiple(array $texts): Collection
     {
         $allReferences = collect();
-        
+
         foreach ($texts as $index => $text) {
             $references = $this->parse($text);
             $references->each(function ($ref) use ($index, &$allReferences) {
@@ -224,8 +225,7 @@ class TextualReferenceParser
                 $allReferences->push($ref);
             });
         }
-        
+
         return $allReferences;
     }
 }
-

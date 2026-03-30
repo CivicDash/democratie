@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modèle pour les votes citoyens sur les propositions de loi
- * 
+ *
  * @property int $id
  * @property int $user_id
  * @property int $proposition_loi_id
@@ -40,6 +40,7 @@ class VotePropositionLoi extends Model
     ];
 
     const TYPE_UPVOTE = 'upvote';
+
     const TYPE_DOWNVOTE = 'downvote';
 
     // ========================================================================
@@ -113,7 +114,7 @@ class VotePropositionLoi extends Model
      */
     public static function castVote(int $userId, int $propositionId, string $typeVote, ?string $commentaire = null): self
     {
-        if (!in_array($typeVote, [self::TYPE_UPVOTE, self::TYPE_DOWNVOTE])) {
+        if (! in_array($typeVote, [self::TYPE_UPVOTE, self::TYPE_DOWNVOTE])) {
             throw new \InvalidArgumentException("Type de vote invalide: {$typeVote}");
         }
 
@@ -124,7 +125,7 @@ class VotePropositionLoi extends Model
         if ($existingVote) {
             // Décrémenter l'ancien compteur
             static::decrementPropositionCounter($propositionId, $existingVote->type_vote);
-            
+
             // Mettre à jour le vote
             $existingVote->update([
                 'type_vote' => $typeVote,
@@ -132,7 +133,7 @@ class VotePropositionLoi extends Model
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
-            
+
             $vote = $existingVote;
         } else {
             // Créer un nouveau vote
@@ -161,7 +162,7 @@ class VotePropositionLoi extends Model
             ->where('proposition_loi_id', $propositionId)
             ->first();
 
-        if (!$vote) {
+        if (! $vote) {
             return false;
         }
 
@@ -220,15 +221,14 @@ class VotePropositionLoi extends Model
     private static function incrementPropositionCounter(int $propositionId, string $typeVote): void
     {
         $column = $typeVote === self::TYPE_UPVOTE ? 'votes_pour' : 'votes_contre';
-        
+
         PropositionLoi::where('id', $propositionId)->increment($column);
     }
 
     private static function decrementPropositionCounter(int $propositionId, string $typeVote): void
     {
         $column = $typeVote === self::TYPE_UPVOTE ? 'votes_pour' : 'votes_contre';
-        
+
         PropositionLoi::where('id', $propositionId)->decrement($column);
     }
 }
-

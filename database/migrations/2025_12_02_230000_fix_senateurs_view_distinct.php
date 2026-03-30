@@ -12,13 +12,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('senat_senateurs_sen')) {
+            return;
+        }
+
         // Supprimer les vues dépendantes
-        DB::statement("DROP VIEW IF EXISTS votes_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS scrutins_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs_votes CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs_scrutins CASCADE");
-        DB::statement("DROP VIEW IF EXISTS amendements_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs CASCADE");
+        DB::statement('DROP VIEW IF EXISTS votes_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS scrutins_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs_votes CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs_scrutins CASCADE');
+        DB::statement('DROP VIEW IF EXISTS amendements_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs CASCADE');
 
         // Recréer la vue senateurs avec DISTINCT ON pour éliminer les doublons
         DB::statement("
@@ -131,13 +135,13 @@ return new class extends Migration
         ");
 
         // Recréer les alias
-        DB::statement("CREATE OR REPLACE VIEW votes_senat AS SELECT * FROM senateurs_votes");
-        DB::statement("CREATE OR REPLACE VIEW scrutins_senat AS SELECT * FROM senateurs_scrutins");
+        DB::statement('CREATE OR REPLACE VIEW votes_senat AS SELECT * FROM senateurs_votes');
+        DB::statement('CREATE OR REPLACE VIEW scrutins_senat AS SELECT * FROM senateurs_scrutins');
 
         // Recréer amendements_senat
         $senAmeliExists = Schema::hasTable('sen_ameli');
         if ($senAmeliExists) {
-            DB::statement("
+            DB::statement('
                 CREATE OR REPLACE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
@@ -160,7 +164,7 @@ return new class extends Migration
                 LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
                 WHERE amdsen.senid IS NOT NULL AND TRIM(sen_ameli.mat) IS NOT NULL
                 ORDER BY amd.datdep DESC NULLS LAST
-            ");
+            ');
         }
     }
 
@@ -169,4 +173,3 @@ return new class extends Migration
         // On ne peut pas vraiment revenir en arrière, on garde la version corrigée
     }
 };
-

@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Models\Gouvernement;
 use App\Models\Ministre;
-use App\Models\Ministere;
 use App\Models\PersonnePolitique;
 use App\Models\PosteMinisteriel;
 use Illuminate\Console\Command;
@@ -21,7 +20,7 @@ class MigrateMinistresData extends Command
     public function handle(): int
     {
         $dryRun = $this->option('dry-run');
-        
+
         $this->info('🔄 Migration des données gouvernementales');
         $this->newLine();
 
@@ -45,10 +44,11 @@ class MigrateMinistresData extends Command
     private function importHistoriqueGouvernements(bool $dryRun): void
     {
         $this->info('📜 Import de l\'historique des gouvernements...');
-        
+
         $file = database_path('data/gouvernements_historique.json');
-        if (!file_exists($file)) {
-            $this->warn('   Fichier historique non trouvé : ' . $file);
+        if (! file_exists($file)) {
+            $this->warn('   Fichier historique non trouvé : '.$file);
+
             return;
         }
 
@@ -57,13 +57,13 @@ class MigrateMinistresData extends Command
 
         foreach ($gouvernements as $gouv) {
             $this->line("   → {$gouv['numero']}ème : {$gouv['nom']} {$gouv['suffixe']}");
-            
-            if (!$dryRun) {
+
+            if (! $dryRun) {
                 Gouvernement::updateOrCreate(
                     ['numero' => $gouv['numero']],
                     [
                         'nom' => $gouv['nom'],
-                        'slug' => Str::slug($gouv['nom'] . '-' . ($gouv['suffixe'] ?: '')),
+                        'slug' => Str::slug($gouv['nom'].'-'.($gouv['suffixe'] ?: '')),
                         'suffixe' => $gouv['suffixe'] ?: null,
                         'premier_ministre' => $gouv['premier_ministre'],
                         'president' => $gouv['president'],
@@ -77,43 +77,44 @@ class MigrateMinistresData extends Command
             }
         }
 
-        $this->info('   ✓ ' . count($gouvernements) . ' gouvernements importés');
+        $this->info('   ✓ '.count($gouvernements).' gouvernements importés');
     }
 
     private function updateCurrentGouvernement(bool $dryRun): void
     {
         $this->info('📊 Mise à jour du gouvernement actuel...');
-        
+
         $current = Gouvernement::where('actif', true)->first();
-        
-        if ($current && !$current->numero) {
+
+        if ($current && ! $current->numero) {
             $this->line("   → Gouvernement actuel : {$current->nom}");
-            $this->line("   → Attribution du numéro 48 (Lecornu II)");
-            
-            if (!$dryRun) {
+            $this->line('   → Attribution du numéro 48 (Lecornu II)');
+
+            if (! $dryRun) {
                 $current->update([
                     'numero' => 48,
                     'suffixe' => 'II',
                 ]);
             }
         } else {
-            $this->line("   → Gouvernement actuel déjà numéroté : " . ($current?->numero ?? 'aucun'));
+            $this->line('   → Gouvernement actuel déjà numéroté : '.($current?->numero ?? 'aucun'));
         }
     }
 
     private function migrateMinistres(bool $dryRun): void
     {
         $this->info('👥 Migration des ministres vers personnes_politiques + postes_ministeriels...');
-        
+
         $ministres = Ministre::with(['gouvernement', 'ministere'])->get();
-        
+
         if ($ministres->isEmpty()) {
             $this->warn('   Aucun ministre à migrer');
+
             return;
         }
 
-        $this->info('   → ' . $ministres->count() . ' ministres à migrer');
-        
+        $this->info('   → '.$ministres->count().' ministres à migrer');
+
         $stats = ['personnes' => 0, 'postes' => 0, 'existants' => 0];
 
         $bar = $this->output->createProgressBar($ministres->count());
@@ -121,9 +122,9 @@ class MigrateMinistresData extends Command
 
         foreach ($ministres as $ministre) {
             // 1. Créer ou trouver la personne politique
-            $slug = Str::slug($ministre->prenom . '-' . $ministre->nom);
-            
-            if (!$dryRun) {
+            $slug = Str::slug($ministre->prenom.'-'.$ministre->nom);
+
+            if (! $dryRun) {
                 $personne = PersonnePolitique::firstOrCreate(
                     ['slug' => $slug],
                     [

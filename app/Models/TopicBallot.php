@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Crypt;
 
 /**
  * Bulletin de vote anonyme (SANS user_id pour garantir l'anonymat)
- * 
+ *
  * ⚠️ CRITIQUE: Ce modèle ne contient AUCUNE référence à l'identité du votant
- * 
+ *
  * @property int $id
  * @property int $topic_id
  * @property string $encrypted_vote Vote chiffré
@@ -23,6 +23,7 @@ class TopicBallot extends Model
     use HasFactory;
 
     const CREATED_AT = null; // Pas de created_at pour les bulletins
+
     const UPDATED_AT = null; // Pas de updated_at pour les bulletins
 
     protected $fillable = [
@@ -65,18 +66,18 @@ class TopicBallot extends Model
      */
     public static function hashVote(int $topicId, mixed $vote, string $nonce): string
     {
-        return hash('sha256', $topicId . json_encode($vote) . $nonce . microtime(true));
+        return hash('sha256', $topicId.json_encode($vote).$nonce.microtime(true));
     }
 
     /**
      * Crée un bulletin de vote anonyme
-     * 
+     *
      * ⚠️ IMPORTANT: Cette méthode ne doit jamais stocker de user_id
      */
     public static function cast(int $topicId, mixed $vote): self
     {
         $nonce = bin2hex(random_bytes(16));
-        
+
         return self::create([
             'topic_id' => $topicId,
             'encrypted_vote' => self::encryptVote($vote),
@@ -115,4 +116,3 @@ class TopicBallot extends Model
      * C'est intentionnel pour garantir l'anonymat
      */
 }
-

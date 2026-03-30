@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Post;
-use App\Models\Topic;
-use App\Services\TopicService;
 use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
 use App\Http\Requests\Post\VotePostRequest;
+use App\Models\Post;
+use App\Models\Topic;
+use App\Services\TopicService;
 
 class PostController extends Controller
 {
@@ -66,4 +66,3 @@ class PostController extends Controller
         return back();
     }
 }
-

@@ -16,11 +16,17 @@ class EluResponseMail extends Mailable
     use Queueable, SerializesModels;
 
     public Topic $topic;
+
     public TopicElu $topicElu;
+
     public User $citizen;
+
     public string $eluName;
+
     public string $eluFunction;
+
     public string $responseExcerpt;
+
     public string $topicUrl;
 
     /**

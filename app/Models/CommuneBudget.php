@@ -94,9 +94,10 @@ class CommuneBudget extends Model
      */
     public function getTauxEndettementAttribute(): ?float
     {
-        if (!$this->encours_dette || !$this->recettes_fonctionnement) {
+        if (! $this->encours_dette || ! $this->recettes_fonctionnement) {
             return null;
         }
+
         return round(($this->encours_dette / $this->recettes_fonctionnement) * 100, 1);
     }
 
@@ -145,17 +146,20 @@ class CommuneBudget extends Model
      */
     public static function formatMontant(?float $montant): string
     {
-        if ($montant === null) return 'N/A';
-        
+        if ($montant === null) {
+            return 'N/A';
+        }
+
         if (abs($montant) >= 1_000_000_000) {
-            return number_format($montant / 1_000_000_000, 2, ',', ' ') . ' Md€';
+            return number_format($montant / 1_000_000_000, 2, ',', ' ').' Md€';
         }
         if (abs($montant) >= 1_000_000) {
-            return number_format($montant / 1_000_000, 2, ',', ' ') . ' M€';
+            return number_format($montant / 1_000_000, 2, ',', ' ').' M€';
         }
         if (abs($montant) >= 1_000) {
-            return number_format($montant / 1_000, 1, ',', ' ') . ' k€';
+            return number_format($montant / 1_000, 1, ',', ' ').' k€';
         }
-        return number_format($montant, 0, ',', ' ') . ' €';
+
+        return number_format($montant, 0, ',', ' ').' €';
     }
 }

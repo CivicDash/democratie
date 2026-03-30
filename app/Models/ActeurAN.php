@@ -12,8 +12,11 @@ class ActeurAN extends Model
     use HasFactory, Searchable;
 
     protected $table = 'acteurs_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -94,7 +97,7 @@ class ActeurAN extends Model
         // Députés actifs (avec mandat ASSEMBLEE en cours)
         return $query->whereHas('mandats', function ($q) {
             $q->where('type_organe', 'ASSEMBLEE')
-              ->whereNull('date_fin');
+                ->whereNull('date_fin');
         });
     }
 
@@ -112,20 +115,20 @@ class ActeurAN extends Model
      */
     public function getPhotoOfficielleAttribute(): ?string
     {
-        if (!$this->uid) {
+        if (! $this->uid) {
             return null;
         }
-        
+
         // Extraire l'ID numérique du UID (format: PAxxxxxx)
         $uidNumerique = preg_replace('/[^0-9]/', '', $this->uid);
-        
+
         if (empty($uidNumerique)) {
             return null;
         }
-        
+
         // Legislature 17 par défaut (à adapter si besoin)
         $legislature = 17;
-        
+
         return "https://www.assemblee-nationale.fr/dyn/static/tribun/{$legislature}/photos/{$uidNumerique}.jpg";
     }
 
@@ -139,7 +142,7 @@ class ActeurAN extends Model
         if ($photoOfficielle) {
             return $photoOfficielle;
         }
-        
+
         // Fallback sur Wikipedia
         return $this->photo_wikipedia_url;
     }
@@ -200,8 +203,8 @@ class ActeurAN extends Model
     public function getCirconscriptionInfoAttribute(): ?array
     {
         $circo = $this->circonscription_actuelle;
-        
-        if (!$circo) {
+
+        if (! $circo) {
             return null;
         }
 
@@ -251,4 +254,3 @@ class ActeurAN extends Model
         return 'acteurs_an';
     }
 }
-

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Profil citoyen avec pseudonyme aléatoire et scope territorial
- * 
+ *
  * @property int $id
  * @property int $user_id
  * @property string $display_name Pseudonyme aléatoire (ex: Citoyen123)
@@ -79,7 +79,7 @@ class Profile extends Model
      */
     public static function generateDisplayName(): string
     {
-        return 'Citoyen' . rand(1000, 9999);
+        return 'Citoyen'.rand(1000, 9999);
     }
 
     /**
@@ -88,11 +88,11 @@ class Profile extends Model
     public static function hashCitizenRef(string $citizenRef): string
     {
         $pepper = config('app.pepper');
-        if (!$pepper) {
+        if (! $pepper) {
             throw new \RuntimeException('PEPPER not configured in .env');
         }
-        
-        return hash('sha256', $citizenRef . $pepper);
+
+        return hash('sha256', $citizenRef.$pepper);
     }
 
     /**
@@ -125,11 +125,11 @@ class Profile extends Model
     public function scopeRegional($query, ?int $regionId = null)
     {
         $query = $query->where('scope', 'region');
-        
+
         if ($regionId) {
             $query->where('region_id', $regionId);
         }
-        
+
         return $query;
     }
 
@@ -139,12 +139,11 @@ class Profile extends Model
     public function scopeDepartmental($query, ?int $departmentId = null)
     {
         $query = $query->where('scope', 'dept');
-        
+
         if ($departmentId) {
             $query->where('department_id', $departmentId);
         }
-        
+
         return $query;
     }
 }
-

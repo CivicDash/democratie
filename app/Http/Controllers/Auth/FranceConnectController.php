@@ -35,7 +35,7 @@ class FranceConnectController extends Controller
                 ->with('success', 'Connexion réussie via FranceConnect+');
         } catch (\Exception $e) {
             return redirect()->route('login')
-                ->with('error', 'Erreur lors de l\'authentification FranceConnect+: ' . $e->getMessage());
+                ->with('error', 'Erreur lors de l\'authentification FranceConnect+: '.$e->getMessage());
         }
     }
 
@@ -54,6 +54,7 @@ class FranceConnectController extends Controller
         // Si l'utilisateur était connecté via FranceConnect, rediriger vers logout FC
         if ($user && $this->franceConnectService->isConnectedWithFranceConnect($user)) {
             $logoutUrl = $this->franceConnectService->logout();
+
             return redirect()->away($logoutUrl);
         }
 

@@ -29,7 +29,7 @@ class PollController extends Controller
         }
 
         // Vérifier que le sondage est actif
-        if (!$topic->isPollActive()) {
+        if (! $topic->isPollActive()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Ce sondage est terminé.',
@@ -46,7 +46,7 @@ class PollController extends Controller
 
         // Vérifier que les options appartiennent bien à ce topic
         $validOptions = $topic->pollOptions()->whereIn('id', $optionIds)->pluck('id')->toArray();
-        
+
         if (count($validOptions) !== count($optionIds)) {
             return response()->json([
                 'success' => false,
@@ -69,8 +69,9 @@ class PollController extends Controller
         try {
             // Si l'utilisateur a déjà voté et qu'on permet le changement
             if ($existingVotes->isNotEmpty()) {
-                if (!$topic->poll_allow_change_vote) {
+                if (! $topic->poll_allow_change_vote) {
                     DB::rollBack();
+
                     return response()->json([
                         'success' => false,
                         'message' => 'Vous avez déjà voté et ne pouvez pas modifier votre vote.',
@@ -101,7 +102,7 @@ class PollController extends Controller
                 'data' => [
                     'voted_options' => $optionIds,
                     'total_votes' => $topic->totalPollVotes(),
-                    'options' => $topic->pollOptions->map(fn($o) => [
+                    'options' => $topic->pollOptions->map(fn ($o) => [
                         'id' => $o->id,
                         'label' => $o->label,
                         'votes_count' => $o->votes_count,
@@ -112,7 +113,7 @@ class PollController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de l\'enregistrement du vote.',
@@ -151,7 +152,7 @@ class PollController extends Controller
                 'is_active' => $topic->isPollActive(),
                 'total_votes' => $topic->totalPollVotes(),
                 'user_votes' => $userVotes,
-                'options' => $topic->pollOptions->map(fn($o) => [
+                'options' => $topic->pollOptions->map(fn ($o) => [
                     'id' => $o->id,
                     'label' => $o->label,
                     'icon' => $o->icon,

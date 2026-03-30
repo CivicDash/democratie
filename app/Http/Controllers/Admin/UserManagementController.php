@@ -27,13 +27,13 @@ class UserManagementController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'ILIKE', "%{$search}%")
-                  ->orWhere('email', 'ILIKE', "%{$search}%");
+                    ->orWhere('email', 'ILIKE', "%{$search}%");
             });
         }
 
         // Filtre par rôle
         if ($request->filled('role')) {
-            $query->whereHas('roles', fn($q) => $q->where('name', $request->role));
+            $query->whereHas('roles', fn ($q) => $q->where('name', $request->role));
         }
 
         // Filtre par statut élu
@@ -42,7 +42,7 @@ class UserManagementController extends Controller
                 $query->where('is_verified_elu', true);
             } elseif ($request->elu_status === 'pending') {
                 $query->where('is_verified_elu', false)
-                      ->whereNotNull('elu_type');
+                    ->whereNotNull('elu_type');
             }
         }
 
@@ -54,7 +54,7 @@ class UserManagementController extends Controller
         $users = $query->paginate(30)->withQueryString();
 
         // Transformer les données
-        $usersData = $users->through(fn($user) => [
+        $usersData = $users->through(fn ($user) => [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
@@ -86,7 +86,7 @@ class UserManagementController extends Controller
         ];
 
         // Rôles disponibles
-        $roles = Role::all()->map(fn($r) => [
+        $roles = Role::all()->map(fn ($r) => [
             'name' => $r->name,
             'label' => $this->getRoleLabel($r->name),
         ]);
@@ -104,7 +104,7 @@ class UserManagementController extends Controller
      */
     public function create(): Response
     {
-        $roles = Role::all()->map(fn($r) => [
+        $roles = Role::all()->map(fn ($r) => [
             'name' => $r->name,
             'label' => $this->getRoleLabel($r->name),
         ]);
@@ -197,7 +197,7 @@ class UserManagementController extends Controller
                 'verified_at' => $user->verified_at?->format('d/m/Y H:i'),
                 'topics_count' => $user->topics->count(),
                 'posts_count' => $user->posts->count(),
-                'sanctions' => $user->sanctions->map(fn($s) => [
+                'sanctions' => $user->sanctions->map(fn ($s) => [
                     'id' => $s->id,
                     'type' => $s->type,
                     'reason' => $s->reason,
@@ -205,7 +205,7 @@ class UserManagementController extends Controller
                     'is_active' => $s->isActive(),
                 ]),
             ],
-            'roles' => Role::all()->map(fn($r) => [
+            'roles' => Role::all()->map(fn ($r) => [
                 'name' => $r->name,
                 'label' => $this->getRoleLabel($r->name),
             ]),
@@ -228,7 +228,7 @@ class UserManagementController extends Controller
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'email' => 'sometimes|email|unique:users,email,'.$user->id,
             'password' => ['nullable', Password::defaults()],
             'role' => 'sometimes|string|exists:roles,name',
             'elu_type' => 'nullable|string|in:depute,senateur,maire',
@@ -249,7 +249,7 @@ class UserManagementController extends Controller
         if (isset($validated['email'])) {
             $user->email = $validated['email'];
         }
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
 
@@ -281,7 +281,7 @@ class UserManagementController extends Controller
         // Mise à jour des rôles
         if (isset($validated['role'])) {
             $user->syncRoles([$validated['role']]);
-            
+
             // Si c'est un élu vérifié, ajouter le rôle legislator
             if ($user->is_verified_elu && $user->elu_type) {
                 $user->assignRole('legislator');
@@ -345,7 +345,7 @@ class UserManagementController extends Controller
      */
     public function verifyElu(User $user)
     {
-        if (!$user->elu_type) {
+        if (! $user->elu_type) {
             return back()->with('error', 'Cet utilisateur n\'est pas associé à un élu.');
         }
 

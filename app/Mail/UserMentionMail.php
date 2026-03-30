@@ -14,10 +14,15 @@ class UserMentionMail extends Mailable
     use Queueable, SerializesModels;
 
     public User $mentionedUser;
+
     public User $author;
+
     public string $contentType; // topic, comment, post
+
     public string $contentTitle;
+
     public string $contentExcerpt;
+
     public string $contentUrl;
 
     public function __construct(
@@ -61,7 +66,7 @@ class UserMentionMail extends Mailable
 
     private function getContentTypeLabel(): string
     {
-        return match($this->contentType) {
+        return match ($this->contentType) {
             'topic' => 'une discussion',
             'comment' => 'un commentaire',
             'post' => 'une publication',

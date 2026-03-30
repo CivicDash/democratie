@@ -18,11 +18,9 @@ class BudgetService
 {
     /**
      * Alloue le budget d'un utilisateur à un secteur.
-     * 
-     * @param User $user
-     * @param Sector $sector
-     * @param float $percent Pourcentage à allouer (entre 0 et 100)
-     * 
+     *
+     * @param  float  $percent  Pourcentage à allouer (entre 0 et 100)
+     *
      * @throws RuntimeException Si l'allocation est invalide
      */
     public function allocate(User $user, Sector $sector, float $percent): UserAllocation
@@ -66,10 +64,9 @@ class BudgetService
 
     /**
      * Répartit le budget complet d'un utilisateur en une seule transaction.
-     * 
-     * @param User $user
-     * @param array $allocations Format : ['sector_id' => percent, ...]
-     * 
+     *
+     * @param  array  $allocations  Format : ['sector_id' => percent, ...]
+     *
      * @throws RuntimeException Si les allocations sont invalides
      */
     public function bulkAllocate(User $user, array $allocations): Collection
@@ -145,6 +142,7 @@ class BudgetService
     public function hasCompletedAllocation(User $user): bool
     {
         $total = $this->getUserTotalAllocation($user);
+
         return abs($total - 100.0) < 0.01; // Tolérance de 0.01%
     }
 
@@ -187,9 +185,9 @@ class BudgetService
 
     /**
      * Calcule le budget simulé en fonction des allocations citoyennes.
-     * 
-     * @param int $year Année budgétaire
-     * @param float $totalBudget Budget total disponible
+     *
+     * @param  int  $year  Année budgétaire
+     * @param  float  $totalBudget  Budget total disponible
      */
     public function calculateSimulatedBudget(int $year, float $totalBudget): array
     {
@@ -221,7 +219,7 @@ class BudgetService
     {
         $citizenAllocations = $this->getAverageAllocations();
         $realSpending = $this->getRealSpendingByYear($year);
-        
+
         $totalRevenue = PublicRevenue::where('year', $year)->sum('amount');
         $totalSpend = PublicSpend::where('year', $year)->sum('amount');
 
@@ -230,7 +228,7 @@ class BudgetService
         foreach ($citizenAllocations as $allocation) {
             $sectorName = $allocation['sector_name'];
             $citizenPercent = $allocation['average_percent'];
-            
+
             $realAmount = $realSpending->firstWhere('sector_name', $sectorName)['total_amount'] ?? 0;
             $realPercent = $totalSpend > 0 ? round(($realAmount / $totalSpend) * 100, 2) : 0;
 
@@ -278,7 +276,7 @@ class BudgetService
         $participatingUsers = UserAllocation::distinct('user_id')->count();
         $completedUsers = User::role('citizen')
             ->get()
-            ->filter(fn($user) => $this->hasCompletedAllocation($user))
+            ->filter(fn ($user) => $this->hasCompletedAllocation($user))
             ->count();
 
         return [
@@ -314,4 +312,3 @@ class BudgetService
         ];
     }
 }
-

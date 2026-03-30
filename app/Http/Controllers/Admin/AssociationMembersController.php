@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class AssociationMembersController extends Controller
@@ -27,16 +26,16 @@ class AssociationMembersController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('email', 'ilike', "%{$search}%")
-                  ->orWhere('username', 'ilike', "%{$search}%")
-                  ->orWhere('association_member_id', 'ilike', "%{$search}%");
+                    ->orWhere('email', 'ilike', "%{$search}%")
+                    ->orWhere('username', 'ilike', "%{$search}%")
+                    ->orWhere('association_member_id', 'ilike', "%{$search}%");
             });
         }
 
         $members = $query->orderBy('association_member_since', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(25)
-            ->through(fn($user) => [
+            ->through(fn ($user) => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'username' => $user->username,
@@ -90,7 +89,7 @@ class AssociationMembersController extends Controller
         ]);
 
         // Assigner le rôle association_member si Spatie est configuré
-        if (!$user->hasRole('association_member')) {
+        if (! $user->hasRole('association_member')) {
             try {
                 $user->assignRole('association_member');
             } catch (\Exception $e) {
@@ -128,7 +127,7 @@ class AssociationMembersController extends Controller
             'association_member_id' => $request->member_id,
         ]);
 
-        return back()->with('success', "ID membre mis à jour.");
+        return back()->with('success', 'ID membre mis à jour.');
     }
 
     /**
@@ -145,13 +144,13 @@ class AssociationMembersController extends Controller
         $users = User::where('is_association_member', false)
             ->where(function ($q) use ($search) {
                 $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('email', 'ilike', "%{$search}%")
-                  ->orWhere('username', 'ilike', "%{$search}%");
+                    ->orWhere('email', 'ilike', "%{$search}%")
+                    ->orWhere('username', 'ilike', "%{$search}%");
             })
             ->limit(10)
             ->get(['id', 'name', 'email', 'username', 'profile_photo_path']);
 
-        return response()->json($users->map(fn($u) => [
+        return response()->json($users->map(fn ($u) => [
             'id' => $u->id,
             'name' => $u->name,
             'email' => $u->email,
@@ -171,7 +170,7 @@ class AssociationMembersController extends Controller
             ->get(['id', 'name', 'email', 'username', 'association_member_id', 'association_member_since', 'created_at']);
 
         $csv = "ID,Nom,Email,Pseudo,ID_Membre,Membre_Depuis,Inscrit_Le\n";
-        
+
         foreach ($members as $m) {
             $csv .= sprintf(
                 "%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
@@ -187,6 +186,6 @@ class AssociationMembersController extends Controller
 
         return response($csv)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="membres-civis-consilium-' . date('Y-m-d') . '.csv"');
+            ->header('Content-Disposition', 'attachment; filename="membres-civis-consilium-'.date('Y-m-d').'.csv"');
     }
 }

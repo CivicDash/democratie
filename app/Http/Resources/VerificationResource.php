@@ -18,13 +18,13 @@ class VerificationResource extends JsonResource
             'id' => $this->id,
             'is_valid' => (bool) $this->is_valid,
             'comment' => $this->comment,
-            
+
             // Verifier
             'verifier' => new UserResource($this->whenLoaded('verifier')),
-            
+
             // Document
             'document' => new DocumentResource($this->whenLoaded('document')),
-            
+
             // Timestamp
             'created_at' => $this->created_at->toISOString(),
         ];

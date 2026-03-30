@@ -20,13 +20,13 @@ class UserAllocationResource extends JsonResource
             'sector' => new SectorResource($this->whenLoaded('sector')),
             'sector_id' => $this->sector_id,
             'percentage' => round($this->percentage, 2),
-            
+
             // Comparison with average (si fourni)
             'difference_from_average' => $this->when(
                 isset($this->difference_from_average),
-                fn() => round($this->difference_from_average, 2)
+                fn () => round($this->difference_from_average, 2)
             ),
-            
+
             // Timestamps
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),

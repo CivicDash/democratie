@@ -4,15 +4,14 @@ namespace App\Console\Commands;
 
 use App\Models\Maire;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Client\PendingRequest;
-use Carbon\Carbon;
 
 class EnrichMairesWikipedia extends Command
 {
     private const USER_AGENT = 'CivicDashBot/1.0 (https://civicdash.fr; contact@civicdash.fr) PHP/Laravel';
-    
+
     protected $signature = 'enrich:maires-wikipedia 
                             {--limit=100 : Nombre de maires à traiter}
                             {--min-population=10000 : Population minimum de la commune}
@@ -22,8 +21,11 @@ class EnrichMairesWikipedia extends Command
     protected $description = 'Enrichit les fiches maires avec les données Wikipedia/Wikidata';
 
     private int $enriched = 0;
+
     private int $notFound = 0;
+
     private int $errors = 0;
+
     private int $skipped = 0;
 
     public function handle(): int
@@ -40,7 +42,7 @@ class EnrichMairesWikipedia extends Command
         $query = Maire::where('en_exercice', true)
             ->where(function ($q) {
                 $q->whereNotNull('population_commune')
-                  ->orWhereRaw('1=1'); // Fallback si population non renseignée
+                    ->orWhereRaw('1=1'); // Fallback si population non renseignée
             })
             ->orderByDesc('population_commune');
 
@@ -48,10 +50,10 @@ class EnrichMairesWikipedia extends Command
             $query->where('population_commune', '>=', $minPop);
         }
 
-        if (!$force) {
+        if (! $force) {
             $query->where(function ($q) {
                 $q->whereNull('wikipedia_last_sync')
-                  ->orWhere('wikipedia_last_sync', '<', now()->subDays(30));
+                    ->orWhere('wikipedia_last_sync', '<', now()->subDays(30));
             });
         }
 
@@ -60,6 +62,7 @@ class EnrichMairesWikipedia extends Command
 
         if ($total === 0) {
             $this->warn('Aucun maire à enrichir avec ces critères.');
+
             return Command::SUCCESS;
         }
 
@@ -72,7 +75,7 @@ class EnrichMairesWikipedia extends Command
         foreach ($maires as $maire) {
             $this->processMaire($maire);
             $bar->advance();
-            
+
             // Rate limiting
             usleep($delay * 1000);
         }
@@ -90,11 +93,11 @@ class EnrichMairesWikipedia extends Command
         try {
             // 1. Chercher sur Wikidata
             $wikidataResult = $this->searchWikidata($maire);
-            
-            if (!$wikidataResult) {
+
+            if (! $wikidataResult) {
                 // 2. Fallback: chercher sur Wikipedia FR directement
                 $wikipediaResult = $this->searchWikipedia($maire);
-                
+
                 if ($wikipediaResult) {
                     $maire->update([
                         'wikipedia_url' => $wikipediaResult['url'],
@@ -107,6 +110,7 @@ class EnrichMairesWikipedia extends Command
                     $maire->update(['wikipedia_last_sync' => now()]);
                     $this->notFound++;
                 }
+
                 return;
             }
 
@@ -116,9 +120,9 @@ class EnrichMairesWikipedia extends Command
                 'wikipedia_last_sync' => now(),
             ];
 
-            if (!empty($wikidataResult['wikipedia_url'])) {
+            if (! empty($wikidataResult['wikipedia_url'])) {
                 $updateData['wikipedia_url'] = $wikidataResult['wikipedia_url'];
-                
+
                 // Récupérer l'extrait Wikipedia
                 $extract = $this->getWikipediaExtract($wikidataResult['wikipedia_url']);
                 if ($extract) {
@@ -126,19 +130,19 @@ class EnrichMairesWikipedia extends Command
                 }
             }
 
-            if (!empty($wikidataResult['photo']) && !$maire->photo_url) {
+            if (! empty($wikidataResult['photo']) && ! $maire->photo_url) {
                 $updateData['photo_wikipedia_url'] = $wikidataResult['photo'];
             }
 
-            if (!empty($wikidataResult['lieu_naissance'])) {
+            if (! empty($wikidataResult['lieu_naissance'])) {
                 $updateData['lieu_naissance'] = $wikidataResult['lieu_naissance'];
             }
 
-            if (!empty($wikidataResult['formation'])) {
+            if (! empty($wikidataResult['formation'])) {
                 $updateData['formation'] = implode(', ', array_slice($wikidataResult['formation'], 0, 3));
             }
 
-            if (!empty($wikidataResult['mandats'])) {
+            if (! empty($wikidataResult['mandats'])) {
                 $updateData['mandats_precedents'] = $wikidataResult['mandats'];
             }
 
@@ -146,7 +150,7 @@ class EnrichMairesWikipedia extends Command
             $this->enriched++;
 
         } catch (\Exception $e) {
-            Log::warning("Erreur enrichissement maire {$maire->id}: " . $e->getMessage());
+            Log::warning("Erreur enrichissement maire {$maire->id}: ".$e->getMessage());
             $this->errors++;
         }
     }
@@ -156,11 +160,11 @@ class EnrichMairesWikipedia extends Command
      */
     private function searchWikidata(Maire $maire): ?array
     {
-        $nom = $maire->prenom . ' ' . $maire->nom;
+        $nom = $maire->prenom.' '.$maire->nom;
         $commune = $maire->nom_commune;
 
         // Recherche simple via l'API de recherche Wikidata
-        $searchUrl = 'https://www.wikidata.org/w/api.php?' . http_build_query([
+        $searchUrl = 'https://www.wikidata.org/w/api.php?'.http_build_query([
             'action' => 'wbsearchentities',
             'search' => $nom,
             'language' => 'fr',
@@ -170,8 +174,8 @@ class EnrichMairesWikipedia extends Command
         ]);
 
         $response = $this->httpClient()->get($searchUrl);
-        
-        if (!$response->successful()) {
+
+        if (! $response->successful()) {
             return null;
         }
 
@@ -180,10 +184,10 @@ class EnrichMairesWikipedia extends Command
 
         foreach ($results as $result) {
             $entityId = $result['id'];
-            
+
             // Vérifier si c'est bien un politique français
             $entityData = $this->getWikidataEntity($entityId);
-            
+
             if ($entityData && $this->isMatchingMaire($entityData, $maire)) {
                 return $this->extractWikidataInfo($entityData);
             }
@@ -197,7 +201,7 @@ class EnrichMairesWikipedia extends Command
      */
     private function getWikidataEntity(string $entityId): ?array
     {
-        $url = 'https://www.wikidata.org/w/api.php?' . http_build_query([
+        $url = 'https://www.wikidata.org/w/api.php?'.http_build_query([
             'action' => 'wbgetentities',
             'ids' => $entityId,
             'languages' => 'fr',
@@ -206,12 +210,13 @@ class EnrichMairesWikipedia extends Command
         ]);
 
         $response = $this->httpClient()->get($url);
-        
-        if (!$response->successful()) {
+
+        if (! $response->successful()) {
             return null;
         }
 
         $data = $response->json();
+
         return $data['entities'][$entityId] ?? null;
     }
 
@@ -237,7 +242,7 @@ class EnrichMairesWikipedia extends Command
         // P39 = fonction (chercher si maire ou fonction politique)
         $positions = $claims['P39'] ?? [];
         $isMaireOrPolitician = false;
-        
+
         foreach ($positions as $position) {
             $posId = $position['mainsnak']['datavalue']['value']['id'] ?? null;
             // Q30185 = maire
@@ -281,7 +286,7 @@ class EnrichMairesWikipedia extends Command
         // Lien Wikipedia FR
         $frwiki = $entity['sitelinks']['frwiki']['title'] ?? null;
         if ($frwiki) {
-            $result['wikipedia_url'] = 'https://fr.wikipedia.org/wiki/' . urlencode(str_replace(' ', '_', $frwiki));
+            $result['wikipedia_url'] = 'https://fr.wikipedia.org/wiki/'.urlencode(str_replace(' ', '_', $frwiki));
         }
 
         // Photo (P18)
@@ -319,7 +324,7 @@ class EnrichMairesWikipedia extends Command
                 if ($label) {
                     $qualifiers = $pos['qualifiers'] ?? [];
                     $mandat = ['fonction' => $label];
-                    
+
                     // Date de début
                     if (isset($qualifiers['P580'][0])) {
                         $startTime = $qualifiers['P580'][0]['datavalue']['value']['time'] ?? null;
@@ -327,7 +332,7 @@ class EnrichMairesWikipedia extends Command
                             $mandat['debut'] = substr($startTime, 1, 10);
                         }
                     }
-                    
+
                     // Date de fin
                     if (isset($qualifiers['P582'][0])) {
                         $endTime = $qualifiers['P582'][0]['datavalue']['value']['time'] ?? null;
@@ -335,7 +340,7 @@ class EnrichMairesWikipedia extends Command
                             $mandat['fin'] = substr($endTime, 1, 10);
                         }
                     }
-                    
+
                     $result['mandats'][] = $mandat;
                 }
             }
@@ -350,12 +355,12 @@ class EnrichMairesWikipedia extends Command
     private function getWikidataLabel(string $entityId): ?string
     {
         static $cache = [];
-        
+
         if (isset($cache[$entityId])) {
             return $cache[$entityId];
         }
 
-        $url = 'https://www.wikidata.org/w/api.php?' . http_build_query([
+        $url = 'https://www.wikidata.org/w/api.php?'.http_build_query([
             'action' => 'wbgetentities',
             'ids' => $entityId,
             'languages' => 'fr',
@@ -364,15 +369,16 @@ class EnrichMairesWikipedia extends Command
         ]);
 
         $response = $this->httpClient(5)->get($url);
-        
-        if (!$response->successful()) {
+
+        if (! $response->successful()) {
             return null;
         }
 
         $data = $response->json();
         $label = $data['entities'][$entityId]['labels']['fr']['value'] ?? null;
-        
+
         $cache[$entityId] = $label;
+
         return $label;
     }
 
@@ -383,7 +389,7 @@ class EnrichMairesWikipedia extends Command
     {
         $filename = str_replace(' ', '_', $filename);
         $hash = md5($filename);
-        
+
         return sprintf(
             'https://upload.wikimedia.org/wikipedia/commons/thumb/%s/%s/%s/200px-%s',
             $hash[0],
@@ -399,23 +405,23 @@ class EnrichMairesWikipedia extends Command
     private function searchWikipedia(Maire $maire): ?array
     {
         $searchTerms = [
-            $maire->prenom . ' ' . $maire->nom,
-            $maire->prenom . ' ' . $maire->nom . ' (homme politique)',
-            $maire->prenom . ' ' . $maire->nom . ' (femme politique)',
+            $maire->prenom.' '.$maire->nom,
+            $maire->prenom.' '.$maire->nom.' (homme politique)',
+            $maire->prenom.' '.$maire->nom.' (femme politique)',
         ];
 
         foreach ($searchTerms as $term) {
-            $url = 'https://fr.wikipedia.org/w/api.php?' . http_build_query([
+            $url = 'https://fr.wikipedia.org/w/api.php?'.http_build_query([
                 'action' => 'query',
                 'list' => 'search',
-                'srsearch' => $term . ' maire ' . $maire->nom_commune,
+                'srsearch' => $term.' maire '.$maire->nom_commune,
                 'format' => 'json',
                 'srlimit' => 3,
             ]);
 
             $response = $this->httpClient()->get($url);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 continue;
             }
 
@@ -428,7 +434,7 @@ class EnrichMairesWikipedia extends Command
 
                 // Vérification basique : le snippet mentionne "maire"
                 if (stripos($snippet, 'maire') !== false || stripos($snippet, $maire->nom_commune) !== false) {
-                    $pageUrl = 'https://fr.wikipedia.org/wiki/' . urlencode(str_replace(' ', '_', $title));
+                    $pageUrl = 'https://fr.wikipedia.org/wiki/'.urlencode(str_replace(' ', '_', $title));
                     $extract = $this->getWikipediaExtract($pageUrl);
                     $photo = $this->getWikipediaPageImage($title);
 
@@ -451,7 +457,7 @@ class EnrichMairesWikipedia extends Command
     {
         $title = basename(urldecode(parse_url($url, PHP_URL_PATH)));
 
-        $apiUrl = 'https://fr.wikipedia.org/w/api.php?' . http_build_query([
+        $apiUrl = 'https://fr.wikipedia.org/w/api.php?'.http_build_query([
             'action' => 'query',
             'titles' => $title,
             'prop' => 'extracts',
@@ -461,14 +467,14 @@ class EnrichMairesWikipedia extends Command
         ]);
 
         $response = Http::timeout(10)->get($apiUrl);
-        
-        if (!$response->successful()) {
+
+        if (! $response->successful()) {
             return null;
         }
 
         $data = $response->json();
         $pages = $data['query']['pages'] ?? [];
-        
+
         foreach ($pages as $page) {
             $extract = $page['extract'] ?? null;
             if ($extract) {
@@ -485,7 +491,7 @@ class EnrichMairesWikipedia extends Command
      */
     private function getWikipediaPageImage(string $title): ?string
     {
-        $apiUrl = 'https://fr.wikipedia.org/w/api.php?' . http_build_query([
+        $apiUrl = 'https://fr.wikipedia.org/w/api.php?'.http_build_query([
             'action' => 'query',
             'titles' => $title,
             'prop' => 'pageimages',
@@ -494,14 +500,14 @@ class EnrichMairesWikipedia extends Command
         ]);
 
         $response = Http::timeout(10)->get($apiUrl);
-        
-        if (!$response->successful()) {
+
+        if (! $response->successful()) {
             return null;
         }
 
         $data = $response->json();
         $pages = $data['query']['pages'] ?? [];
-        
+
         foreach ($pages as $page) {
             return $page['thumbnail']['source'] ?? null;
         }
@@ -513,7 +519,7 @@ class EnrichMairesWikipedia extends Command
     {
         $this->info('✅ Enrichissement terminé !');
         $this->newLine();
-        
+
         $this->table(
             ['Métrique', 'Valeur'],
             [

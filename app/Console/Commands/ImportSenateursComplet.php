@@ -3,10 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\Senateur;
-use App\Models\SenateurHistoriqueGroupe;
 use App\Models\SenateurCommission;
-use App\Models\SenateurMandat;
 use App\Models\SenateurEtude;
+use App\Models\SenateurHistoriqueGroupe;
+use App\Models\SenateurMandat;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
@@ -58,7 +58,7 @@ class ImportSenateursComplet extends Command
         $this->importMandats();
 
         // 5. Import études (optionnel)
-        if (!$this->option('skip-etudes')) {
+        if (! $this->option('skip-etudes')) {
             $this->newLine();
             $this->info('📦 5/5 - Import études...');
             $this->importEtudes();
@@ -82,13 +82,14 @@ class ImportSenateursComplet extends Command
 
     private function importSenateurs(): void
     {
-        $url = self::BASE_URL . '/ODSEN_GENERAL.json';
-        
+        $url = self::BASE_URL.'/ODSEN_GENERAL.json';
+
         try {
             $response = Http::timeout(60)->get($url);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 $this->error("❌ Erreur API : {$response->status()}");
+
                 return;
             }
 
@@ -140,8 +141,8 @@ class ImportSenateursComplet extends Command
 
     private function importHistoriqueGroupes(): void
     {
-        $url = self::BASE_URL . '/ODSEN_HISTOGROUPES.json';
-        
+        $url = self::BASE_URL.'/ODSEN_HISTOGROUPES.json';
+
         try {
             $response = Http::timeout(60)->get($url);
             $data = $response->json();
@@ -178,8 +179,8 @@ class ImportSenateursComplet extends Command
 
     private function importCommissions(): void
     {
-        $url = self::BASE_URL . '/ODSEN_COMS.json';
-        
+        $url = self::BASE_URL.'/ODSEN_COMS.json';
+
         try {
             $response = Http::timeout(60)->get($url);
             $data = $response->json();
@@ -225,14 +226,14 @@ class ImportSenateursComplet extends Command
         ];
 
         foreach ($endpoints as $type => $endpoint) {
-            $url = self::BASE_URL . '/' . $endpoint;
-            
+            $url = self::BASE_URL.'/'.$endpoint;
+
             try {
                 $response = Http::timeout(60)->get($url);
                 $data = $response->json();
                 $mandats = $data['results'] ?? [];
 
-                $this->line("  → {$type} : " . count($mandats) . " mandats");
+                $this->line("  → {$type} : ".count($mandats).' mandats');
 
                 foreach ($mandats as $mandatData) {
                     try {
@@ -262,8 +263,8 @@ class ImportSenateursComplet extends Command
 
     private function importEtudes(): void
     {
-        $url = self::BASE_URL . '/ODSEN_ETUDES.json';
-        
+        $url = self::BASE_URL.'/ODSEN_ETUDES.json';
+
         try {
             $response = Http::timeout(60)->get($url);
             $data = $response->json();
@@ -299,10 +300,10 @@ class ImportSenateursComplet extends Command
 
     private function parseDate(?string $date): ?string
     {
-        if (!$date || $date === 'null') {
+        if (! $date || $date === 'null') {
             return null;
         }
-        
+
         // Format : "2023/10/01 00:00:00" → "2023-10-01"
         return substr(str_replace('/', '-', $date), 0, 10);
     }
@@ -311,7 +312,7 @@ class ImportSenateursComplet extends Command
     {
         $this->info('✅ Import terminé !');
         $this->newLine();
-        
+
         $this->table(
             ['Entité', 'Importés', 'Mis à jour', 'Erreurs'],
             [
@@ -325,9 +326,8 @@ class ImportSenateursComplet extends Command
 
         $this->newLine();
         $this->info('📊 Statistiques finales :');
-        $this->line('   - Sénateurs actifs : ' . Senateur::actifs()->count());
-        $this->line('   - Sénateurs anciens : ' . Senateur::anciens()->count());
-        $this->line('   - Mandats sénateur actifs : ' . SenateurMandat::where('type_mandat', 'SENATEUR')->whereNull('date_fin')->count());
+        $this->line('   - Sénateurs actifs : '.Senateur::actifs()->count());
+        $this->line('   - Sénateurs anciens : '.Senateur::anciens()->count());
+        $this->line('   - Mandats sénateur actifs : '.SenateurMandat::where('type_mandat', 'SENATEUR')->whereNull('date_fin')->count());
     }
 }
-

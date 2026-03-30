@@ -60,28 +60,45 @@ class BudgetAnnuel extends Model
 
     protected function formatMdEuros(?float $montant): string
     {
-        if ($montant === null) return 'N/A';
-        return number_format($montant / 1_000_000_000, 1, ',', ' ') . ' Md€';
+        if ($montant === null) {
+            return 'N/A';
+        }
+
+        return number_format($montant / 1_000_000_000, 1, ',', ' ').' Md€';
     }
 
     // Indicateurs
     public function getSanteIndicateurAttribute(): string
     {
         $deficit_pct = abs($this->deficit_pib_pct ?? 0);
-        
-        if ($deficit_pct <= 3) return '🟢 Conforme Maastricht';
-        if ($deficit_pct <= 5) return '🟡 Déficit modéré';
-        if ($deficit_pct <= 7) return '🟠 Déficit élevé';
+
+        if ($deficit_pct <= 3) {
+            return '🟢 Conforme Maastricht';
+        }
+        if ($deficit_pct <= 5) {
+            return '🟡 Déficit modéré';
+        }
+        if ($deficit_pct <= 7) {
+            return '🟠 Déficit élevé';
+        }
+
         return '🔴 Déficit critique';
     }
 
     public function getDetteIndicateurAttribute(): string
     {
         $dette_pct = $this->dette_pib_pct ?? 0;
-        
-        if ($dette_pct <= 60) return '🟢 Conforme Maastricht';
-        if ($dette_pct <= 90) return '🟡 Dette modérée';
-        if ($dette_pct <= 110) return '🟠 Dette élevée';
+
+        if ($dette_pct <= 60) {
+            return '🟢 Conforme Maastricht';
+        }
+        if ($dette_pct <= 90) {
+            return '🟡 Dette modérée';
+        }
+        if ($dette_pct <= 110) {
+            return '🟠 Dette élevée';
+        }
+
         return '🔴 Dette très élevée';
     }
 }

@@ -15,7 +15,7 @@ class AjouterSourceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type_source' => 'required|in:' . implode(',', AffaireSource::TYPES_SOURCE()),
+            'type_source' => 'required|in:'.implode(',', AffaireSource::TYPES_SOURCE()),
             'url' => 'required|url|max:1000',
             'titre' => 'nullable|string|max:500',
             'media' => 'nullable|string|max:200',

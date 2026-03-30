@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TypeLecture extends Model
 {
     protected $table = 'senat_dosleg_typlec';
+
     protected $primaryKey = 'typleccod';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -58,4 +62,3 @@ class TypeLecture extends Model
         };
     }
 }
-

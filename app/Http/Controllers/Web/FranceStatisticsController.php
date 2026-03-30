@@ -3,24 +3,24 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\FranceBudgetRevenue;
+use App\Models\FranceBudgetSpending;
+use App\Models\FranceDemographics;
+use App\Models\FranceDepartmentalData;
+use App\Models\FranceEconomy;
+use App\Models\FranceEducation;
+use App\Models\FranceEmploymentDetailed;
+use App\Models\FranceEnvironment;
+use App\Models\FranceHealth;
+use App\Models\FranceHousing;
+use App\Models\FranceLostRevenue;
+use App\Models\FranceMigration;
+use App\Models\FranceQualityOfLife;
+use App\Models\FranceRegionalData;
+use App\Models\FranceSecurity;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\FranceDemographics;
-use App\Models\FranceEconomy;
-use App\Models\FranceMigration;
-use App\Models\FranceBudgetRevenue;
-use App\Models\FranceBudgetSpending;
-use App\Models\FranceLostRevenue;
-use App\Models\FranceRegionalData;
-use App\Models\FranceDepartmentalData;
-use App\Models\FranceQualityOfLife;
-use App\Models\FranceEducation;
-use App\Models\FranceHealth;
-use App\Models\FranceHousing;
-use App\Models\FranceEnvironment;
-use App\Models\FranceSecurity;
-use App\Models\FranceEmploymentDetailed;
 
 class FranceStatisticsController extends Controller
 {
@@ -40,7 +40,7 @@ class FranceStatisticsController extends Controller
         $spending = FranceBudgetSpending::forYear($selectedYear)->first();
         $lostRevenue = FranceLostRevenue::forYear($selectedYear)->first();
         $regionalData = FranceRegionalData::forYear($selectedYear)->get();
-        
+
         // Nouveaux indicateurs sociaux
         $qualityOfLife = FranceQualityOfLife::forYear($selectedYear)->first();
         $education = FranceEducation::forYear($selectedYear)->first();
@@ -89,7 +89,7 @@ class FranceStatisticsController extends Controller
         return Inertia::render('Statistics/France/Index', [
             'selectedYear' => $selectedYear,
             'availableYears' => $availableYears,
-            
+
             // Données de l'année sélectionnée
             'demographics' => $demographics,
             'economyAnnual' => $economyAnnual,
@@ -99,7 +99,7 @@ class FranceStatisticsController extends Controller
             'spending' => $spending,
             'lostRevenue' => $lostRevenue,
             'regionalData' => $regionalData,
-            
+
             // Nouveaux indicateurs sociaux
             'qualityOfLife' => $qualityOfLife,
             'education' => $education,
@@ -108,7 +108,7 @@ class FranceStatisticsController extends Controller
             'environment' => $environment,
             'security' => $security,
             'employmentDetailed' => $employmentDetailed,
-            
+
             // Historiques pour graphiques
             'demographicsHistory' => $demographicsHistory,
             'economyHistory' => $economyHistory,
@@ -131,12 +131,12 @@ class FranceStatisticsController extends Controller
     public function getRegionData(Request $request, string $regionCode): array
     {
         $year = $request->input('year', 2024);
-        
+
         $data = FranceRegionalData::forYear($year)
             ->forRegion($regionCode)
             ->first();
 
-        if (!$data) {
+        if (! $data) {
             return ['error' => 'Région non trouvée'];
         }
 
@@ -149,12 +149,12 @@ class FranceStatisticsController extends Controller
     public function getDepartmentData(Request $request, string $departmentCode): array
     {
         $year = $request->input('year', 2024);
-        
+
         $data = FranceDepartmentalData::forYear($year)
             ->forDepartment($departmentCode)
             ->first();
 
-        if (!$data) {
+        if (! $data) {
             return ['error' => 'Département non trouvé'];
         }
 

@@ -56,7 +56,7 @@ class Ministere extends Model
 
     public function getTypeLibelleAttribute(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'ministere' => 'Ministère',
             'ministere_delegue' => 'Ministère délégué',
             'secretariat_etat' => 'Secrétariat d\'État',
@@ -89,6 +89,7 @@ class Ministere extends Model
                 return $color;
             }
         }
+
         return '#6b7280';
     }
 }

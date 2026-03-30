@@ -13,9 +13,13 @@ class InvitationEluMail extends Mailable
     use Queueable, SerializesModels;
 
     public string $eluName;
+
     public string $eluType; // depute, senateur, maire
+
     public string $inviterName;
+
     public string $registerUrl;
+
     public ?string $personalMessage;
 
     public function __construct(
@@ -34,7 +38,7 @@ class InvitationEluMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $typeLabel = match($this->eluType) {
+        $typeLabel = match ($this->eluType) {
             'depute' => 'Député(e)',
             'senateur' => 'Sénateur/Sénatrice',
             'maire' => 'Maire',
@@ -42,7 +46,7 @@ class InvitationEluMail extends Mailable
         };
 
         return new Envelope(
-            subject: "🏛️ Invitation à rejoindre CivicDash - Plateforme de dialogue citoyen",
+            subject: '🏛️ Invitation à rejoindre CivicDash - Plateforme de dialogue citoyen',
         );
     }
 
@@ -63,7 +67,7 @@ class InvitationEluMail extends Mailable
 
     private function getEluTypeLabel(): string
     {
-        return match($this->eluType) {
+        return match ($this->eluType) {
             'depute' => 'Député(e)',
             'senateur' => 'Sénateur/Sénatrice',
             'maire' => 'Maire',

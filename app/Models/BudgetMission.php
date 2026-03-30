@@ -71,15 +71,18 @@ class BudgetMission extends Model
 
     protected function formatMontant(?float $montant): string
     {
-        if ($montant === null) return 'N/A';
-        
+        if ($montant === null) {
+            return 'N/A';
+        }
+
         if ($montant >= 1_000_000_000) {
-            return number_format($montant / 1_000_000_000, 2, ',', ' ') . ' Md€';
+            return number_format($montant / 1_000_000_000, 2, ',', ' ').' Md€';
         }
         if ($montant >= 1_000_000) {
-            return number_format($montant / 1_000_000, 1, ',', ' ') . ' M€';
+            return number_format($montant / 1_000_000, 1, ',', ' ').' M€';
         }
-        return number_format($montant, 0, ',', ' ') . ' €';
+
+        return number_format($montant, 0, ',', ' ').' €';
     }
 
     // Couleurs par mission (pour graphiques)
@@ -103,6 +106,7 @@ class BudgetMission extends Model
         ];
 
         $codeNorm = strtolower(str_replace([' ', '-', "'"], '_', $code));
+
         return $couleurs[$codeNorm] ?? '#6b7280';
     }
 }

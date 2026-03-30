@@ -44,15 +44,17 @@ class ImportPlfMinisteres extends Command
         $totalImported = 0;
 
         foreach ($annees as $annee) {
-            if (!isset($this->fichiers[$annee])) {
+            if (! isset($this->fichiers[$annee])) {
                 $this->warn("⚠️  Fichier non disponible pour l'année {$annee}");
+
                 continue;
             }
 
             $fichier = database_path("data/plf/{$this->fichiers[$annee]}");
-            
-            if (!file_exists($fichier)) {
+
+            if (! file_exists($fichier)) {
                 $this->error("❌ Fichier introuvable : {$fichier}");
+
                 continue;
             }
 
@@ -71,19 +73,20 @@ class ImportPlfMinisteres extends Command
     private function importerFichier(string $fichier, int $annee, bool $force): int
     {
         $handle = fopen($fichier, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return 0;
         }
 
         // Lire l'en-tête
         $header = fgetcsv($handle, 0, ';');
-        if (!$header) {
+        if (! $header) {
             fclose($handle);
+
             return 0;
         }
 
         $count = 0;
-        
+
         while (($row = fgetcsv($handle, 0, ';')) !== false) {
             // Ignorer les lignes vides
             if (empty($row[0]) || trim($row[0]) === '') {
@@ -97,7 +100,7 @@ class ImportPlfMinisteres extends Command
             $comptesConcours = $this->parseNumber($row[4] ?? '');
 
             // Calculer le total
-            $total = ($budgetGeneral ?? 0) + ($budgetsAnnexes ?? 0) + 
+            $total = ($budgetGeneral ?? 0) + ($budgetsAnnexes ?? 0) +
                      ($comptesAffectation ?? 0) + ($comptesConcours ?? 0);
 
             // Générer le code à partir du nom
@@ -118,7 +121,7 @@ class ImportPlfMinisteres extends Command
                 'budget_total' => $total > 0 ? $total : null,
                 'budget_cp' => $budgetGeneral, // Pour compatibilité
                 'couleur' => BudgetMinistere::getCouleur($nom),
-                'source' => 'PLF ' . $annee,
+                'source' => 'PLF '.$annee,
             ];
 
             if ($force) {
@@ -137,6 +140,7 @@ class ImportPlfMinisteres extends Command
         }
 
         fclose($handle);
+
         return $count;
     }
 
@@ -148,8 +152,8 @@ class ImportPlfMinisteres extends Command
 
         // Remplacer la virgule par un point et supprimer les espaces
         $value = str_replace([',', ' '], ['.', ''], trim($value));
-        
-        if (!is_numeric($value)) {
+
+        if (! is_numeric($value)) {
             return null;
         }
 

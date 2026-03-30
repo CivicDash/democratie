@@ -44,11 +44,11 @@ class TopicHashtagObserver
     protected function syncHashtags(Topic $topic): void
     {
         // Extraire depuis title + description
-        $content = ($topic->title ?? '') . ' ' . ($topic->description ?? '');
-        
+        $content = ($topic->title ?? '').' '.($topic->description ?? '');
+
         $hashtags = HashtagParser::extract($content);
         $hashtags = HashtagParser::filter($hashtags); // Filtre blacklist
-        
+
         $topic->attachHashtags($hashtags);
     }
 }

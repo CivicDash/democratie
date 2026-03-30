@@ -23,8 +23,11 @@ class ImportHistoriqueMandatsMaires extends Command
     protected $description = 'Importe l\'historique des mandats de maires depuis un snapshot CSV du RNE';
 
     private int $created = 0;
+
     private int $linked = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -35,7 +38,7 @@ class ImportHistoriqueMandatsMaires extends Command
         $dryRun = $this->option('dry-run');
         $dateFin = $this->option('date-fin');
 
-        if (!$url && !$file) {
+        if (! $url && ! $file) {
             $this->error('Vous devez fournir --url ou --file');
             $this->line('');
             $this->line('Exemples d\'utilisation :');
@@ -44,11 +47,13 @@ class ImportHistoriqueMandatsMaires extends Command
             $this->line('');
             $this->line('  # Importer un ancien snapshot RNE (mandature 2014-2020)');
             $this->line('  php artisan maires:import-historique --file=public/data/rne-maires-2020.csv --mandature=2014-2020 --date-fin=2020-05-18');
+
             return self::FAILURE;
         }
 
-        if (!$mandature) {
+        if (! $mandature) {
             $this->error('Vous devez préciser la --mandature (ex: 2014-2020)');
+
             return self::FAILURE;
         }
 
@@ -63,7 +68,7 @@ class ImportHistoriqueMandatsMaires extends Command
         }
 
         $header = str_getcsv(array_shift($lines), ';');
-        $lines = array_filter($lines, fn($l) => trim($l) !== '');
+        $lines = array_filter($lines, fn ($l) => trim($l) !== '');
 
         $limit = $this->option('limit');
         if ($limit) {
@@ -71,7 +76,7 @@ class ImportHistoriqueMandatsMaires extends Command
             $this->warn("Limité à {$limit} lignes");
         }
 
-        $this->info(count($lines) . ' lignes à traiter');
+        $this->info(count($lines).' lignes à traiter');
 
         $bar = $this->output->createProgressBar(count($lines));
         $bar->setFormat('verbose');
@@ -85,9 +90,10 @@ class ImportHistoriqueMandatsMaires extends Command
                 if (count($data) < 13) {
                     $this->skipped++;
                     $bar->advance();
+
                     continue;
                 }
-                if (!$dryRun) {
+                if (! $dryRun) {
                     $this->processLine($data, $mandature, $dateFinParsed);
                 } else {
                     $this->simulateLine($data, $mandature);
@@ -117,15 +123,16 @@ class ImportHistoriqueMandatsMaires extends Command
         $sexe = trim($data[8] ?? '');
         $dateDebutMandat = $this->parseDate(trim($data[12] ?? ''));
 
-        if (!$codeCommune || !$nom || !$prenom) {
+        if (! $codeCommune || ! $nom || ! $prenom) {
             $this->skipped++;
+
             return;
         }
 
         $nomNorm = mb_convert_case($nom, MB_CASE_TITLE, 'UTF-8');
         $prenomNorm = mb_convert_case($prenom, MB_CASE_TITLE, 'UTF-8');
 
-        $existing = MaireMandat::whereHas('ville', fn($q) => $q->where('code_insee', $codeCommune))
+        $existing = MaireMandat::whereHas('ville', fn ($q) => $q->where('code_insee', $codeCommune))
             ->where('mandature', $mandature)
             ->where(DB::raw('LOWER(nom)'), mb_strtolower($nom))
             ->where(DB::raw('LOWER(prenom)'), mb_strtolower($prenom))
@@ -133,6 +140,7 @@ class ImportHistoriqueMandatsMaires extends Command
 
         if ($existing) {
             $this->skipped++;
+
             return;
         }
 
@@ -141,7 +149,7 @@ class ImportHistoriqueMandatsMaires extends Command
         $maire = Maire::where('code_commune', $codeCommune)
             ->where(function ($q) use ($nom, $prenom) {
                 $q->where('nom', 'ILIKE', $nom)
-                  ->where('prenom', 'ILIKE', $prenom);
+                    ->where('prenom', 'ILIKE', $prenom);
             })
             ->first();
 
@@ -177,8 +185,9 @@ class ImportHistoriqueMandatsMaires extends Command
         $codeCommune = trim($data[4] ?? '');
         $nom = trim($data[6] ?? '');
 
-        if (!$codeCommune || !$nom) {
+        if (! $codeCommune || ! $nom) {
             $this->skipped++;
+
             return;
         }
 
@@ -189,33 +198,41 @@ class ImportHistoriqueMandatsMaires extends Command
     {
         if ($file) {
             $path = base_path($file);
-            if (!file_exists($path)) {
+            if (! file_exists($path)) {
                 $this->error("Fichier introuvable : {$path}");
+
                 return null;
             }
             $this->info("Lecture de {$path}");
+
             return explode("\n", file_get_contents($path));
         }
 
         $this->info("Téléchargement de {$url}");
         try {
             $response = Http::timeout(300)->get($url);
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->error("Erreur HTTP : {$response->status()}");
+
                 return null;
             }
+
             return explode("\n", $response->body());
         } catch (\Exception $e) {
             $this->error("Erreur : {$e->getMessage()}");
+
             return null;
         }
     }
 
     private function parseDate(?string $str): ?string
     {
-        if (!$str) return null;
+        if (! $str) {
+            return null;
+        }
         if (preg_match('/^(\d{2})\/(\d{2})\/(\d{2})$/', $str, $m)) {
-            $year = (int) $m[3] < 50 ? '20' . $m[3] : '19' . $m[3];
+            $year = (int) $m[3] < 50 ? '20'.$m[3] : '19'.$m[3];
+
             return "{$year}-{$m[2]}-{$m[1]}";
         }
         if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $str, $m)) {

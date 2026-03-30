@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\PropositionLoi;
-use App\Models\ScrutinAN;
 use App\Models\AmendementAN;
 use App\Models\DossierLegislatifAN;
+use App\Models\Loi;
+use App\Models\PropositionLoi;
+use App\Models\ScrutinAN;
+use App\Models\Tag;
 use App\Models\TexteLegislatifAN;
 use App\Models\VoteIndividuelAN;
-use App\Models\Loi;
-use App\Models\Tag;
 use App\Services\GroupeParlementaireService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -24,7 +24,7 @@ class LegislationController extends Controller
 {
     /**
      * Hub Législation - Point d'entrée unifié
-     * 
+     *
      * GET /legislation
      */
     public function hub(): Response
@@ -77,7 +77,7 @@ class LegislationController extends Controller
 
     /**
      * Display list of legislative propositions
-     * 
+     *
      * GET /legislation/propositions
      */
     public function index(Request $request): Response
@@ -101,14 +101,14 @@ class LegislationController extends Controller
         }
 
         if ($request->filled('theme')) {
-            $query->where('theme', 'LIKE', '%' . $request->input('theme') . '%');
+            $query->where('theme', 'LIKE', '%'.$request->input('theme').'%');
         }
 
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
-                $q->where('titre', 'LIKE', '%' . $search . '%')
-                  ->orWhere('resume', 'LIKE', '%' . $search . '%');
+                $q->where('titre', 'LIKE', '%'.$search.'%')
+                    ->orWhere('resume', 'LIKE', '%'.$search.'%');
             });
         }
 
@@ -121,7 +121,7 @@ class LegislationController extends Controller
                 'id' => $proposition->id,
                 'numero' => $proposition->numero,
                 'titre' => $proposition->titre,
-                'resume' => $proposition->resume ? substr($proposition->resume, 0, 250) . '...' : null,
+                'resume' => $proposition->resume ? substr($proposition->resume, 0, 250).'...' : null,
                 'source' => $proposition->source,
                 'statut' => $proposition->statut,
                 'theme' => $proposition->theme,
@@ -171,7 +171,7 @@ class LegislationController extends Controller
 
     /**
      * Display a single legislative proposition
-     * 
+     *
      * GET /legislation/{proposition}
      */
     public function show(PropositionLoi $proposition): Response
@@ -229,13 +229,13 @@ class LegislationController extends Controller
 
     /**
      * Liste des scrutins
-     * 
+     *
      * GET /legislation/scrutins
      */
     public function scrutinsIndex(Request $request): Response
     {
         $legislature = $request->input('legislature', 17);
-        
+
         $query = ScrutinAN::query()
             ->where('legislature', $legislature)
             ->orderBy('date_scrutin', 'desc')
@@ -253,12 +253,12 @@ class LegislationController extends Controller
         $stats = Cache::remember("scrutins_an_stats_l{$legislature}", 1800, function () use ($legislature) {
             // Compter le total
             $total = ScrutinAN::where('legislature', $legislature)->count();
-            
+
             // Pour compter adoptés/rejetés, on doit utiliser les accesseurs pour_calcule/contre_calcule
             // Comme ces valeurs viennent de ventilation_votes (JSON), on charge les scrutins par lots
             $adoptes = 0;
             $rejetes = 0;
-            
+
             // Traiter par lots de 500 pour éviter les problèmes de mémoire
             ScrutinAN::where('legislature', $legislature)
                 ->select('uid', 'resultat_code', 'pour', 'contre', 'ventilation_votes')
@@ -281,7 +281,7 @@ class LegislationController extends Controller
                         }
                     }
                 });
-            
+
             return [
                 'total' => $total,
                 'adoptes' => $adoptes,
@@ -291,15 +291,15 @@ class LegislationController extends Controller
         });
 
         // Transformer les données - utiliser les accesseurs calculés
-        $scrutinsData = $scrutins->through(function($s) {
+        $scrutinsData = $scrutins->through(function ($s) {
             // Utiliser les valeurs calculées depuis ventilation_votes si colonnes vides
             $pour = $s->pour_calcule;
             $contre = $s->contre_calcule;
             $abstentions = $s->abstentions_calcule;
-            
+
             // Déterminer le résultat si non défini
             $resultat = $s->resultat_libelle;
-            if (!$resultat) {
+            if (! $resultat) {
                 if ($pour > $contre) {
                     $resultat = 'Adopté';
                 } elseif ($contre > $pour) {
@@ -308,7 +308,7 @@ class LegislationController extends Controller
                     $resultat = 'Égalité';
                 }
             }
-            
+
             return [
                 'uid' => $s->uid,
                 'numero' => $s->numero,
@@ -331,7 +331,7 @@ class LegislationController extends Controller
 
     /**
      * Comparaison vote AN vs vote citoyen
-     * 
+     *
      * GET /legislation/scrutins/{uid}/comparaison
      */
     public function comparaisonVote(string $uid): Response
@@ -341,7 +341,7 @@ class LegislationController extends Controller
         // Chercher un ballot citoyen lié à ce scrutin
         $ballot = null;
         $ballotData = null;
-        
+
         // Chercher via un topic lié au scrutin
         $topic = \App\Models\Topic::where('scrutin_an_uid', $uid)
             ->where('ballot_type', '!=', null)
@@ -351,7 +351,7 @@ class LegislationController extends Controller
             // Récupérer les résultats du vote citoyen
             $ballotService = app(\App\Services\BallotService::class);
             $results = $ballotService->getResults($topic);
-            
+
             $ballotData = [
                 'topic_id' => $topic->id,
                 'votes_count' => $results['total_votes'] ?? 0,
@@ -371,23 +371,23 @@ class LegislationController extends Controller
             // Calculer le score de concordance
             $anPourPercent = ($scrutin->pour / max($scrutin->nombre_votants, 1)) * 100;
             $citoyenPourPercent = ($ballotData['pour_count'] / max($ballotData['votes_count'], 1)) * 100;
-            
+
             $anContrePercent = ($scrutin->contre / max($scrutin->nombre_votants, 1)) * 100;
             $citoyenContrePercent = ($ballotData['contre_count'] / max($ballotData['votes_count'], 1)) * 100;
-            
+
             // Score = 100 - moyenne des écarts absolus
             $ecartPour = abs($anPourPercent - $citoyenPourPercent);
             $ecartContre = abs($anContrePercent - $citoyenContrePercent);
             $ecartMoyen = ($ecartPour + $ecartContre) / 2;
-            
+
             $score = max(0, 100 - $ecartMoyen);
-            
+
             $concordance = [
                 'score' => round($score, 1),
-                'message' => $score >= 80 
-                    ? 'Forte concordance entre l\'AN et les citoyens' 
-                    : ($score >= 60 
-                        ? 'Concordance modérée' 
+                'message' => $score >= 80
+                    ? 'Forte concordance entre l\'AN et les citoyens'
+                    : ($score >= 60
+                        ? 'Concordance modérée'
                         : 'Divergence significative'),
             ];
         }
@@ -415,7 +415,7 @@ class LegislationController extends Controller
 
     /**
      * Afficher un scrutin détaillé
-     * 
+     *
      * GET /legislation/scrutins/{uid}
      */
     public function showScrutin(string $uid): Response
@@ -440,7 +440,7 @@ class LegislationController extends Controller
             ->map(function ($votes, $groupeRef) use ($groupeService) {
                 $groupe = $votes->first()->groupe;
                 $sigle = $groupe?->libelleAbrev ?? 'NI';
-                
+
                 return [
                     'sigle' => $sigle,
                     'nom' => $groupe?->libelle ?? 'Non-inscrits',
@@ -454,9 +454,9 @@ class LegislationController extends Controller
             ->values();
 
         // TOUS les députés ayant voté (pas de limite)
-        $deputesAyantVote = $allVotes->map(fn($vote) => [
+        $deputesAyantVote = $allVotes->map(fn ($vote) => [
             'uid' => $vote->acteur->uid,
-            'nom_complet' => $vote->acteur->prenom . ' ' . $vote->acteur->nom,
+            'nom_complet' => $vote->acteur->prenom.' '.$vote->acteur->nom,
             'photo_url' => $vote->acteur->photo_url,
             'position' => $vote->position,
         ]);
@@ -477,16 +477,16 @@ class LegislationController extends Controller
                 'legislature' => $scrutin->legislature,
                 'resultat_libelle' => $scrutin->resultat_libelle,
                 // Pourcentages
-                'pour_percent' => $totalVotants > 0 
-                    ? round(($totalPour / $totalVotants) * 100, 1) 
+                'pour_percent' => $totalVotants > 0
+                    ? round(($totalPour / $totalVotants) * 100, 1)
                     : 0,
-                'contre_percent' => $totalVotants > 0 
-                    ? round(($totalContre / $totalVotants) * 100, 1) 
+                'contre_percent' => $totalVotants > 0
+                    ? round(($totalContre / $totalVotants) * 100, 1)
                     : 0,
-                'abstention_percent' => $totalVotants > 0 
-                    ? round(($totalAbstention / $totalVotants) * 100, 1) 
+                'abstention_percent' => $totalVotants > 0
+                    ? round(($totalAbstention / $totalVotants) * 100, 1)
                     : 0,
-                'participation_percent' => $totalVotants > 0 
+                'participation_percent' => $totalVotants > 0
                     ? round(($totalVotants / 577) * 100, 1) // 577 députés
                     : 0,
                 'video_url' => $scrutin->seance?->video_url,
@@ -499,7 +499,7 @@ class LegislationController extends Controller
 
     /**
      * Afficher un amendement détaillé
-     * 
+     *
      * GET /legislation/amendements/{uid}
      */
     public function showAmendement(string $uid): Response
@@ -515,7 +515,7 @@ class LegislationController extends Controller
         if ($amendement->cosignataires_acteur_refs && is_array($amendement->cosignataires_acteur_refs)) {
             $coSignataires = ActeurAN::whereIn('uid', $amendement->cosignataires_acteur_refs)
                 ->get()
-                ->map(fn($acteur) => [
+                ->map(fn ($acteur) => [
                     'uid' => $acteur->uid,
                     'nom_complet' => $acteur->nom_complet,
                     'photo_url' => $acteur->photo_wikipedia_url,
@@ -561,13 +561,13 @@ class LegislationController extends Controller
 
     /**
      * Afficher un dossier législatif
-     * 
+     *
      * GET /legislation/dossiers/{uid}
      */
     public function showDossier(string $uid): Response
     {
         $dossier = DossierLegislatifAN::with([
-            'textes' => fn($q) => $q->orderBy('date_depot', 'desc'),
+            'textes' => fn ($q) => $q->orderBy('date_depot', 'desc'),
         ])->findOrFail($uid);
 
         // Chercher le dossier Sénat correspondant (s'il existe)
@@ -648,7 +648,7 @@ class LegislationController extends Controller
         }
 
         // Trier la timeline par date
-        usort($timeline, fn($a, $b) => strcmp($a['date'], $b['date']));
+        usort($timeline, fn ($a, $b) => strcmp($a['date'], $b['date']));
 
         return Inertia::render('Legislation/DossierShow', [
             'dossier' => [
@@ -660,7 +660,7 @@ class LegislationController extends Controller
                 'etat' => $dossier->etat,
                 'etat_libelle' => $dossier->etat_libelle,
                 'resume' => $dossier->resume,
-                'has_dossier_senat' => !is_null($dossierSenat),
+                'has_dossier_senat' => ! is_null($dossierSenat),
             ],
             'dossierSenat' => $dossierSenat ? [
                 'numero' => $dossierSenat->numero_senat,
@@ -668,7 +668,7 @@ class LegislationController extends Controller
                 'url' => $dossierSenat->url_senat,
             ] : null,
             'timeline' => $timeline,
-            'textes' => $dossier->textes->map(fn($texte) => [
+            'textes' => $dossier->textes->map(fn ($texte) => [
                 'uid' => $texte->uid,
                 'titre' => $texte->titre,
                 'titre_court' => $texte->titre_court,
@@ -676,7 +676,7 @@ class LegislationController extends Controller
                 'date_depot' => $texte->date_depot?->format('d/m/Y'),
                 'amendements_count' => AmendementAN::where('texte_legislatif_ref', $texte->uid)->count(),
             ]),
-            'scrutins' => $scrutins->map(fn($scrutin) => [
+            'scrutins' => $scrutins->map(fn ($scrutin) => [
                 'uid' => $scrutin->uid,
                 'numero' => $scrutin->numero,
                 'titre' => $scrutin->titre,
@@ -686,7 +686,7 @@ class LegislationController extends Controller
                 'abstentions' => $scrutin->abstentions,
                 'resultat_libelle' => $scrutin->resultat_libelle,
             ]),
-            'amendements' => $amendements->map(fn($amendement) => [
+            'amendements' => $amendements->map(fn ($amendement) => [
                 'uid' => $amendement->uid,
                 'numero_long' => $amendement->numero_long,
                 'dispositif' => $amendement->dispositif,
@@ -704,20 +704,20 @@ class LegislationController extends Controller
 
     /**
      * Afficher un texte législatif
-     * 
+     *
      * GET /legislation/textes/{uid}
      */
     public function showTexte(string $uid): Response
     {
         $texte = TexteLegislatifAN::with([
             'dossier',
-            'amendements' => fn($q) => $q->orderBy('date_depot', 'desc')->with('acteur'),
+            'amendements' => fn ($q) => $q->orderBy('date_depot', 'desc')->with('acteur'),
         ])->findOrFail($uid);
 
         $stats = [
             'amendements_count' => $texte->amendements->count(),
             'amendements_adoptes_count' => $texte->amendements()->adoptes()->count(),
-            'taux_adoption' => $texte->amendements->count() > 0 
+            'taux_adoption' => $texte->amendements->count() > 0
                 ? round(($texte->amendements()->adoptes()->count() / $texte->amendements->count()) * 100, 1)
                 : 0,
         ];
@@ -736,7 +736,7 @@ class LegislationController extends Controller
                     'titre_court' => $texte->dossier->titre_court,
                 ] : null,
             ],
-            'amendements' => $texte->amendements->map(fn($amendement) => [
+            'amendements' => $texte->amendements->map(fn ($amendement) => [
                 'uid' => $amendement->uid,
                 'numero' => $amendement->numero,
                 'sort' => $amendement->sort,
@@ -752,4 +752,3 @@ class LegislationController extends Controller
         ]);
     }
 }
-

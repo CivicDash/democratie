@@ -2,18 +2,22 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class LegifranceService
 {
     private const OAUTH_URL = 'https://oauth.piste.gouv.fr/api/oauth/token';
+
     private const API_BASE_URL = 'https://api.piste.gouv.fr/dila/legifrance/lf-engine-app';
+
     private const TOKEN_CACHE_KEY = 'legifrance_oauth_token';
+
     private const TOKEN_CACHE_DURATION = 55; // minutes (token valid 1h, on refresh à 55min)
 
     private $clientId;
+
     private $clientSecret;
 
     public function __construct()
@@ -44,10 +48,10 @@ class LegifranceService
 
             if ($response->successful()) {
                 $token = $response->json('access_token');
-                
+
                 // Mettre en cache pour 55 minutes
                 Cache::put(self::TOKEN_CACHE_KEY, $token, now()->addMinutes(self::TOKEN_CACHE_DURATION));
-                
+
                 return $token;
             }
 
@@ -61,6 +65,7 @@ class LegifranceService
             Log::error('Legifrance OAuth exception', [
                 'message' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -71,15 +76,15 @@ class LegifranceService
     private function makeRequest(string $endpoint, array $body = []): ?array
     {
         $token = $this->getAccessToken();
-        
-        if (!$token) {
+
+        if (! $token) {
             return null;
         }
 
         try {
             $response = Http::withToken($token)
                 ->timeout(10)
-                ->post(self::API_BASE_URL . $endpoint, $body);
+                ->post(self::API_BASE_URL.$endpoint, $body);
 
             if ($response->successful()) {
                 return $response->json();
@@ -97,26 +102,26 @@ class LegifranceService
                 'endpoint' => $endpoint,
                 'message' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
 
     /**
      * Chercher un article par référence
-     * 
-     * @param string $reference Ex: "L. 123-4"
-     * @param string $codeName Ex: "Code civil"
-     * @return array|null
+     *
+     * @param  string  $reference  Ex: "L. 123-4"
+     * @param  string  $codeName  Ex: "Code civil"
      */
     public function searchArticle(string $reference, string $codeName): ?array
     {
         $cacheKey = "legifrance_article_{$codeName}_{$reference}";
-        
+
         // Cache 7 jours
         return Cache::remember($cacheKey, now()->addDays(7), function () use ($reference, $codeName) {
             $codeId = $this->getCodeId($codeName);
-            
-            if (!$codeId) {
+
+            if (! $codeId) {
                 return null;
             }
 
@@ -129,8 +134,8 @@ class LegifranceService
                                 [
                                     'typeRecherche' => 'EXACTE',
                                     'valeur' => $reference,
-                                ]
-                            ]
+                                ],
+                            ],
                         ],
                         [
                             'typeChamp' => 'CODE',
@@ -138,9 +143,9 @@ class LegifranceService
                                 [
                                     'typeRecherche' => 'EXACTE',
                                     'valeur' => $codeId,
-                                ]
-                            ]
-                        ]
+                                ],
+                            ],
+                        ],
                     ],
                     'operateur' => 'ET',
                 ],
@@ -158,7 +163,7 @@ class LegifranceService
     public function getArticleDetails(string $articleId): ?array
     {
         $cacheKey = "legifrance_article_details_{$articleId}";
-        
+
         return Cache::remember($cacheKey, now()->addDays(7), function () use ($articleId) {
             return $this->makeRequest('/consult/article', [
                 'id' => $articleId,
@@ -172,7 +177,7 @@ class LegifranceService
     public function findJurisprudence(string $reference, string $codeName, int $limit = 5): array
     {
         $cacheKey = "legifrance_juri_{$codeName}_{$reference}";
-        
+
         return Cache::remember($cacheKey, now()->addDays(7), function () use ($reference, $codeName, $limit) {
             $response = $this->makeRequest('/search', [
                 'recherche' => [
@@ -183,9 +188,9 @@ class LegifranceService
                                 [
                                     'typeRecherche' => 'CONTAINS',
                                     'valeur' => "{$reference} {$codeName}",
-                                ]
-                            ]
-                        ]
+                                ],
+                            ],
+                        ],
                     ],
                     'operateur' => 'ET',
                 ],
@@ -204,7 +209,7 @@ class LegifranceService
     public function getRelatedArticles(string $codeId, string $sectionId, int $limit = 5): array
     {
         $cacheKey = "legifrance_related_{$codeId}_{$sectionId}";
-        
+
         return Cache::remember($cacheKey, now()->addDays(7), function () use ($codeId, $sectionId, $limit) {
             $response = $this->makeRequest('/list', [
                 'textId' => $codeId,
@@ -241,7 +246,7 @@ class LegifranceService
         ];
 
         $normalizedName = strtolower(trim($codeName));
-        
+
         return $codeMap[$normalizedName] ?? null;
     }
 
@@ -262,7 +267,7 @@ class LegifranceService
         ];
 
         $normalizedAcronym = strtolower(trim($acronym));
-        
+
         return $acronymMap[$normalizedAcronym] ?? null;
     }
 
@@ -272,7 +277,7 @@ class LegifranceService
     public function healthCheck(): bool
     {
         $token = $this->getAccessToken();
+
         return $token !== null;
     }
 }
-

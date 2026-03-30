@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Corrige la vue senateurs_historique_groupes pour afficher
@@ -11,8 +12,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('senat_senateurs_memgrpsen')) {
+            return;
+        }
+
         // Supprimer la vue existante
-        DB::statement("DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE");
+        DB::statement('DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE');
 
         // Jointure avec senat_senateurs_grppol pour avoir le libellé
         // La colonne grppollibcou contient le libellé du groupe
@@ -41,7 +46,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE");
+        DB::statement('DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE');
         DB::statement("
             CREATE VIEW senateurs_historique_groupes AS
             SELECT DISTINCT ON (mg.senmat, mg.orgcod, mg.memgrpsendatent)
@@ -64,4 +69,3 @@ return new class extends Migration
         ");
     }
 };
-

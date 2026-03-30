@@ -19,7 +19,7 @@ class ReportController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->can('create', Report::class)) {
+        if (! $user->can('create', Report::class)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vous n\'avez pas la permission de signaler du contenu.',
@@ -37,14 +37,14 @@ class ReportController extends Controller
         $validated = $request->validate([
             'type' => 'required|string|in:topic,post,comment',
             'id' => 'required|integer',
-            'reason' => 'required|string|in:' . implode(',', array_keys(Report::REASONS)),
+            'reason' => 'required|string|in:'.implode(',', array_keys(Report::REASONS)),
             'description' => 'nullable|string|max:1000',
         ]);
 
         // Résoudre le contenu signalé
         $reportable = $this->resolveReportable($validated['type'], $validated['id']);
 
-        if (!$reportable) {
+        if (! $reportable) {
             return response()->json([
                 'success' => false,
                 'message' => 'Contenu introuvable.',
@@ -95,7 +95,7 @@ class ReportController extends Controller
      */
     public function reasons(): JsonResponse
     {
-        $reasons = collect(Report::REASONS)->map(fn($info, $key) => [
+        $reasons = collect(Report::REASONS)->map(fn ($info, $key) => [
             'key' => $key,
             'label' => $info['label'],
             'icon' => $info['icon'],
@@ -120,7 +120,7 @@ class ReportController extends Controller
             ->orderByDesc('created_at')
             ->limit(50)
             ->get()
-            ->map(fn($report) => [
+            ->map(fn ($report) => [
                 'id' => $report->id,
                 'reason' => $report->reason,
                 'reason_info' => $report->reason_info,

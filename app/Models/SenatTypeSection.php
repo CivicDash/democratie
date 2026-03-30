@@ -6,15 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Type de section de discussion au Sénat
- * 
+ *
  * Exemples: article, amendement, motion, question, etc.
  */
 class SenatTypeSection extends Model
 {
     protected $table = 'senat_types_section';
+
     protected $primaryKey = 'code';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -27,7 +31,7 @@ class SenatTypeSection extends Model
      */
     public function getLibelleFormatAttribute(): string
     {
-        return $this->libelle ?: match($this->code) {
+        return $this->libelle ?: match ($this->code) {
             'ART' => 'Article',
             'AMD' => 'Amendement',
             'MOT' => 'Motion',

@@ -13,6 +13,7 @@ class StorePostRequest extends FormRequest
     public function authorize(): bool
     {
         $topic = $this->route('topic');
+
         return $this->user()->can('create', [Post::class, $topic]);
     }
 
@@ -50,7 +51,7 @@ class StorePostRequest extends FormRequest
             if ($this->parent_id) {
                 $parentPost = Post::find($this->parent_id);
                 $topic = $this->route('topic');
-                
+
                 if ($parentPost && $parentPost->topic_id !== $topic->id) {
                     $validator->errors()->add('parent_id', 'Le post parent n\'appartient pas à ce topic.');
                 }
@@ -58,4 +59,3 @@ class StorePostRequest extends FormRequest
         });
     }
 }
-

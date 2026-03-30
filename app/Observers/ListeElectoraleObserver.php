@@ -40,11 +40,11 @@ class ListeElectoraleObserver
     private function handleStatusChange(ListeElectorale $liste): void
     {
         $createur = $liste->createur;
-        if (!$createur) {
+        if (! $createur) {
             return;
         }
 
-        $notification = match($liste->statut) {
+        $notification = match ($liste->statut) {
             'en_attente' => new CandidatureNotification($liste, 'liste_soumise'),
             'valide' => new CandidatureNotification($liste, 'liste_validee'),
             'rejete' => new CandidatureNotification($liste, 'liste_rejetee', $liste->motif_rejet),

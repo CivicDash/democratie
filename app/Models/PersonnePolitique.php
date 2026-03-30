@@ -4,8 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class PersonnePolitique extends Model
@@ -63,7 +63,7 @@ class PersonnePolitique extends Model
 
         static::creating(function ($personne) {
             if (empty($personne->slug)) {
-                $personne->slug = Str::slug($personne->prenom . '-' . $personne->nom);
+                $personne->slug = Str::slug($personne->prenom.'-'.$personne->nom);
             }
         });
     }
@@ -71,7 +71,7 @@ class PersonnePolitique extends Model
     /**
      * Relations
      */
-    
+
     // Tous les postes occupés par cette personne
     public function postes(): HasMany
     {
@@ -151,20 +151,20 @@ class PersonnePolitique extends Model
         return HatvpDeclaration::where(function ($q) {
             $q->where(function ($q2) {
                 $q2->where('nom', 'ILIKE', $this->nom)
-                   ->where('prenom', 'ILIKE', $this->prenom);
+                    ->where('prenom', 'ILIKE', $this->prenom);
             });
 
             if ($this->uid_an) {
                 $q->orWhere(function ($q2) {
                     $q2->where('parlementaire_type', 'depute')
-                       ->where('parlementaire_id', $this->uid_an);
+                        ->where('parlementaire_id', $this->uid_an);
                 });
             }
 
             if ($this->uid_senat) {
                 $q->orWhere(function ($q2) {
                     $q2->where('parlementaire_type', 'senateur')
-                       ->where('parlementaire_id', $this->uid_senat);
+                        ->where('parlementaire_id', $this->uid_senat);
                 });
             }
         })->orderByDesc('date_depot');
@@ -173,7 +173,6 @@ class PersonnePolitique extends Model
     /**
      * Accessors
      */
-
     public function getNbAffairesAttribute(): int
     {
         return $this->toutesAffairesPubliques()->count();
@@ -185,26 +184,29 @@ class PersonnePolitique extends Model
             ->where('statut_judiciaire', 'condamne_definitif')
             ->exists();
     }
+
     public function getNomCompletAttribute(): string
     {
-        $civilite = $this->civilite ? $this->civilite . ' ' : '';
-        return trim($civilite . $this->prenom . ' ' . $this->nom);
+        $civilite = $this->civilite ? $this->civilite.' ' : '';
+
+        return trim($civilite.$this->prenom.' '.$this->nom);
     }
 
     public function getAgeAttribute(): ?int
     {
-        if (!$this->date_naissance) {
+        if (! $this->date_naissance) {
             return null;
         }
         $endDate = $this->date_deces ?? now();
+
         return (int) $this->date_naissance->diffInYears($endDate);
     }
 
     public function getPhotoAttribute(): ?string
     {
         // Priorité : photo officielle > photo URL > photo Wikipedia du député/sénateur
-        return $this->photo_officielle_url 
-            ?? $this->photo_url 
+        return $this->photo_officielle_url
+            ?? $this->photo_url
             ?? $this->depute?->photo_officielle
             ?? $this->senateur?->photo_wikipedia_url;
     }
@@ -219,20 +221,20 @@ class PersonnePolitique extends Model
 
     public function scopeAvecPoste($query, string $type)
     {
-        return $query->whereHas('postes', fn($q) => $q->where('type_fonction', $type));
+        return $query->whereHas('postes', fn ($q) => $q->where('type_fonction', $type));
     }
 
     /**
      * Méthodes
      */
-    
+
     // Récupérer l'historique des postes formaté
     public function getHistoriquePostes(): array
     {
         return $this->postes->map(function ($poste) {
             $periode = $poste->date_debut->format('d/m/Y');
-            $periode .= $poste->date_fin ? ' - ' . $poste->date_fin->format('d/m/Y') : ' - en cours';
-            
+            $periode .= $poste->date_fin ? ' - '.$poste->date_fin->format('d/m/Y') : ' - en cours';
+
             return [
                 'gouvernement' => $poste->gouvernement->nom_complet,
                 'fonction' => $poste->fonction,
@@ -246,8 +248,8 @@ class PersonnePolitique extends Model
     // Créer ou trouver une personne à partir d'un nom
     public static function findOrCreateByName(string $prenom, string $nom, array $attributes = []): self
     {
-        $slug = Str::slug($prenom . '-' . $nom);
-        
+        $slug = Str::slug($prenom.'-'.$nom);
+
         return static::firstOrCreate(
             ['slug' => $slug],
             array_merge([

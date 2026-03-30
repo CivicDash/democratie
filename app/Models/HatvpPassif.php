@@ -43,12 +43,12 @@ class HatvpPassif extends Model
 
     public function getPourcentageRembourseAttribute(): float
     {
-        if (!$this->montant || $this->montant == 0) {
+        if (! $this->montant || $this->montant == 0) {
             return 0;
         }
-        
+
         $rembourse = $this->montant - ($this->restant_du ?? 0);
+
         return round(($rembourse / $this->montant) * 100, 1);
     }
 }
-

@@ -15,7 +15,7 @@ class SchedulerTaskLogger
     public function starting(ScheduledTaskStarting $event): void
     {
         $command = $this->extractCommandName($event->task->command ?? null);
-        if (!ImportLog::shouldLogCommand($command)) {
+        if (! ImportLog::shouldLogCommand($command)) {
             return;
         }
 
@@ -32,12 +32,12 @@ class SchedulerTaskLogger
     public function finished(ScheduledTaskFinished $event): void
     {
         $command = $this->extractCommandName($event->task->command ?? null);
-        if (!ImportLog::shouldLogCommand($command)) {
+        if (! ImportLog::shouldLogCommand($command)) {
             return;
         }
 
         $log = $this->findLog($event->task);
-        if (!$log) {
+        if (! $log) {
             return;
         }
 
@@ -57,25 +57,25 @@ class SchedulerTaskLogger
     public function failed(ScheduledTaskFailed $event): void
     {
         $command = $this->extractCommandName($event->task->command ?? null);
-        if (!ImportLog::shouldLogCommand($command)) {
+        if (! ImportLog::shouldLogCommand($command)) {
             return;
         }
 
         $log = $this->findLog($event->task);
-        if (!$log) {
+        if (! $log) {
             return;
         }
 
         $exitCode = $event->task->exitCode ?? 1;
         $log->fail($event->exception->getMessage(), [
             'exception' => get_class($event->exception),
-            'file' => $event->exception->getFile() . ':' . $event->exception->getLine(),
+            'file' => $event->exception->getFile().':'.$event->exception->getLine(),
         ], $exitCode);
     }
 
     private function extractCommandName(?string $command): ?string
     {
-        if (!$command) {
+        if (! $command) {
             return null;
         }
 
@@ -84,18 +84,19 @@ class SchedulerTaskLogger
         }
 
         $parts = preg_split('/\s+/', trim($command));
+
         return $parts[0] ?? null;
     }
 
     private function cacheKey($task): string
     {
-        return self::CACHE_PREFIX . sha1($task->mutexName());
+        return self::CACHE_PREFIX.sha1($task->mutexName());
     }
 
     private function findLog($task): ?ImportLog
     {
         $logId = Cache::get($this->cacheKey($task));
-        if (!$logId) {
+        if (! $logId) {
             return null;
         }
 

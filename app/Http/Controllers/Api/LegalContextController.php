@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\PropositionLoi;
 use App\Models\LegalReference;
+use App\Models\PropositionLoi;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class LegalContextController extends Controller
 {
@@ -18,8 +17,8 @@ class LegalContextController extends Controller
         $proposition = PropositionLoi::findOrFail($propositionId);
 
         $references = LegalReference::with(['jurisprudences' => function ($query) {
-                $query->orderByRelevance()->limit(5);
-            }])
+            $query->orderByRelevance()->limit(5);
+        }])
             ->forProposition($propositionId)
             ->synced()
             ->get();
@@ -72,8 +71,8 @@ class LegalContextController extends Controller
     public function showReference(int $referenceId): JsonResponse
     {
         $reference = LegalReference::with(['jurisprudences' => function ($query) {
-                $query->orderByRelevance();
-            }, 'propositionLoi'])
+            $query->orderByRelevance();
+        }, 'propositionLoi'])
             ->findOrFail($referenceId);
 
         return response()->json([
@@ -155,7 +154,7 @@ class LegalContextController extends Controller
 
         try {
             \Artisan::call('legifrance:sync', ['proposition_id' => $propositionId]);
-            
+
             $references = LegalReference::forProposition($propositionId)->synced()->count();
 
             return response()->json([

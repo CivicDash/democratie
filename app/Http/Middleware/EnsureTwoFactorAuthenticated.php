@@ -25,12 +25,12 @@ class EnsureTwoFactorAuthenticated
         $user = $request->user();
 
         // Pas d'utilisateur connecté
-        if (!$user) {
+        if (! $user) {
             return $next($request);
         }
 
         // 2FA non activée pour cet utilisateur
-        if (!$user->two_factor_enabled) {
+        if (! $user->two_factor_enabled) {
             return $next($request);
         }
 

@@ -2,13 +2,12 @@
 
 namespace App\Console\Commands;
 
-use App\Models\PropositionLoi;
-use App\Models\LegalReference;
 use App\Models\JurisprudenceLink;
+use App\Models\LegalReference;
+use App\Models\PropositionLoi;
 use App\Services\LegifranceService;
 use App\Services\TextualReferenceParser;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SyncLegalReferences extends Command
@@ -28,6 +27,7 @@ class SyncLegalReferences extends Command
     protected $description = 'Synchroniser les références juridiques des propositions de loi avec Légifrance';
 
     private LegifranceService $legifranceService;
+
     private TextualReferenceParser $parser;
 
     public function __construct(LegifranceService $legifranceService, TextualReferenceParser $parser)
@@ -46,8 +46,9 @@ class SyncLegalReferences extends Command
         $this->newLine();
 
         // Vérifier la disponibilité de l'API
-        if (!$this->legifranceService->healthCheck()) {
+        if (! $this->legifranceService->healthCheck()) {
             $this->error('❌ L\'API Légifrance n\'est pas disponible. Vérifiez vos credentials.');
+
             return self::FAILURE;
         }
 
@@ -59,6 +60,7 @@ class SyncLegalReferences extends Command
 
         if ($propositions->isEmpty()) {
             $this->warn('Aucune proposition à synchroniser.');
+
             return self::SUCCESS;
         }
 
@@ -79,7 +81,7 @@ class SyncLegalReferences extends Command
 
         foreach ($propositions as $proposition) {
             $bar->setMessage("Traitement: {$proposition->titre}");
-            
+
             try {
                 $result = $this->syncProposition($proposition);
                 $stats['processed']++;
@@ -124,14 +126,14 @@ class SyncLegalReferences extends Command
             ->whereNotNull('texte_integral')
             ->where('texte_integral', '!=', '');
 
-        if (!$force) {
+        if (! $force) {
             // Uniquement les propositions pas encore synchronisées
             $query->whereDoesntHave('legalReferences', function ($q) {
                 $q->where('sync_success', true);
             });
         }
 
-        if (!$all) {
+        if (! $all) {
             $query->limit($limit);
         }
 
@@ -164,10 +166,10 @@ class SyncLegalReferences extends Command
             if ($legalRef) {
                 // Enrichir avec Légifrance
                 $enriched = $this->enrichReference($legalRef, $refData);
-                
+
                 if ($enriched) {
                     $stats['synced']++;
-                    
+
                     // Chercher la jurisprudence
                     $juriCount = $this->syncJurisprudence($legalRef, $refData);
                     $stats['jurisprudence'] += $juriCount;
@@ -213,8 +215,9 @@ class SyncLegalReferences extends Command
                 $refData['code_name']
             );
 
-            if (!$article) {
+            if (! $article) {
                 $legalRef->markSynced(false, 'Article non trouvé sur Légifrance');
+
                 return false;
             }
 
@@ -228,10 +231,11 @@ class SyncLegalReferences extends Command
             ]);
 
             $legalRef->markSynced(true);
-            
+
             return true;
         } catch (\Exception $e) {
             $legalRef->markSynced(false, $e->getMessage());
+
             return false;
         }
     }
@@ -284,6 +288,7 @@ class SyncLegalReferences extends Command
                 'legal_reference_id' => $legalRef->id,
                 'error' => $e->getMessage(),
             ]);
+
             return 0;
         }
     }

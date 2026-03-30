@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ReunionAN extends Model
 {
     protected $table = 'reunions_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -93,7 +96,7 @@ class ReunionAN extends Model
     public function scopeAVenir($query)
     {
         return $query->where('date_debut', '>', now())
-                     ->where('etat', '!=', 'Annulé');
+            ->where('etat', '!=', 'Annulé');
     }
 
     /**
@@ -134,7 +137,7 @@ class ReunionAN extends Model
     public function scopeMois($query, $annee, $mois)
     {
         return $query->whereYear('date_debut', $annee)
-                     ->whereMonth('date_debut', $mois);
+            ->whereMonth('date_debut', $mois);
     }
 
     /**
@@ -145,7 +148,7 @@ class ReunionAN extends Model
         $date = $date ? \Carbon\Carbon::parse($date) : now();
         $debut = $date->copy()->startOfWeek();
         $fin = $date->copy()->endOfWeek();
-        
+
         return $query->whereBetween('date_debut', [$debut, $fin]);
     }
 
@@ -181,6 +184,7 @@ class ReunionAN extends Model
     public function getTitreOdjAttribute(): ?string
     {
         $items = $this->odj_resume ?? $this->odj_convocation ?? [];
+
         return $items[0] ?? null;
     }
 
@@ -190,6 +194,7 @@ class ReunionAN extends Model
     public function getNbPointsOdjAttribute(): int
     {
         $items = $this->odj_resume ?? $this->odj_convocation ?? [];
+
         return count($items);
     }
 
@@ -198,7 +203,7 @@ class ReunionAN extends Model
      */
     public function getCouleurEtatAttribute(): string
     {
-        return match($this->etat) {
+        return match ($this->etat) {
             'Confirmé' => '#10B981', // Vert
             'Annulé' => '#EF4444',   // Rouge
             'Terminé' => '#6B7280', // Gris
@@ -211,7 +216,7 @@ class ReunionAN extends Model
      */
     public function getEmojiTypeAttribute(): string
     {
-        return match(true) {
+        return match (true) {
             str_contains($this->type_reunion ?? '', 'Commission') => '🏛️',
             str_contains($this->type_reunion ?? '', 'Séance') => '🗳️',
             str_contains($this->type_reunion ?? '', 'Délégation') => '🌍',
@@ -225,9 +230,12 @@ class ReunionAN extends Model
      */
     public function getEstEnCoursAttribute(): bool
     {
-        if (!$this->date_debut) return false;
-        
+        if (! $this->date_debut) {
+            return false;
+        }
+
         $fin = $this->date_fin ?? $this->date_debut->copy()->addHours(3);
+
         return now()->between($this->date_debut, $fin);
     }
 
@@ -244,8 +252,10 @@ class ReunionAN extends Model
      */
     public function getDateFormateeAttribute(): string
     {
-        if (!$this->date_debut) return 'Date non définie';
-        
+        if (! $this->date_debut) {
+            return 'Date non définie';
+        }
+
         return $this->date_debut->translatedFormat('l j F Y à H\hi');
     }
 
@@ -254,8 +264,10 @@ class ReunionAN extends Model
      */
     public function getDateCourteAttribute(): string
     {
-        if (!$this->date_debut) return '-';
-        
+        if (! $this->date_debut) {
+            return '-';
+        }
+
         return $this->date_debut->format('d/m/Y H:i');
     }
 }

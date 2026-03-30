@@ -7,13 +7,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Intervention non-législative d'un sénateur en séance
- * 
+ *
  * Questions au gouvernement, déclarations, hommages, etc.
  */
 class SenatInterventionDiverse extends Model
 {
     protected $table = 'senat_interventions_diverses';
+
     protected $primaryKey = 'id';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -50,22 +52,23 @@ class SenatInterventionDiverse extends Model
      */
     public function getUrlCompletAttribute(): ?string
     {
-        if (!$this->url) {
+        if (! $this->url) {
             return null;
         }
-        return 'https://www.senat.fr/seances/' . ltrim($this->url, '/');
+
+        return 'https://www.senat.fr/seances/'.ltrim($this->url, '/');
     }
 
     public function getResumeAttribute(): string
     {
-        if (!$this->analyse) {
+        if (! $this->analyse) {
             return 'Intervention';
         }
-        
+
         if (strlen($this->analyse) > 200) {
-            return mb_substr($this->analyse, 0, 200) . '...';
+            return mb_substr($this->analyse, 0, 200).'...';
         }
-        
+
         return $this->analyse;
     }
 }

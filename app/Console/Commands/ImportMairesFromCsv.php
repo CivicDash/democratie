@@ -3,13 +3,14 @@
 namespace App\Console\Commands;
 
 use App\Models\Maire;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class ImportMairesFromCsv extends Command
 {
     protected $signature = 'import:maires {--fresh : Vider la table des maires avant l\'import} {--limit= : Limiter le nombre d\'imports (pour test)}';
+
     protected $description = 'Importe les maires depuis le fichier CSV local (public/data/elus-maires-mai.csv)';
 
     public function handle()
@@ -24,9 +25,10 @@ class ImportMairesFromCsv extends Command
 
         // Chemin du fichier CSV local
         $csvPath = public_path('data/elus-maires-mai.csv');
-        
-        if (!file_exists($csvPath)) {
-            $this->error('❌ Fichier CSV introuvable: ' . $csvPath);
+
+        if (! file_exists($csvPath)) {
+            $this->error('❌ Fichier CSV introuvable: '.$csvPath);
+
             return Command::FAILURE;
         }
 
@@ -35,28 +37,29 @@ class ImportMairesFromCsv extends Command
             $this->warn("⚠️  Mode TEST : Import limité à {$limit} lignes");
         }
 
-        $this->info('📂 Lecture du fichier: ' . basename($csvPath));
+        $this->info('📂 Lecture du fichier: '.basename($csvPath));
         $this->newLine();
 
         try {
             $handle = fopen($csvPath, 'r');
-            
-            if (!$handle) {
+
+            if (! $handle) {
                 $this->error('❌ Impossible d\'ouvrir le fichier CSV');
+
                 return Command::FAILURE;
             }
 
             // Lire l'en-tête
             $header = fgetcsv($handle, 2000, ';');
-            
+
             // Compter les lignes pour la barre de progression
             $totalLines = count(file($csvPath)) - 1;
             $lineCount = $limit ? min($limit, $totalLines) : $totalLines;
-            
+
             $this->info("📊 {$lineCount} lignes à traiter (sur {$totalLines} au total)");
             $bar = $this->output->createProgressBar($lineCount);
             $bar->setFormat('verbose');
-            
+
             $imported = 0;
             $updated = 0;
             $errors = 0;
@@ -76,10 +79,11 @@ class ImportMairesFromCsv extends Command
                 // Nom de l'élu;Prénom de l'élu;Code sexe;Date de naissance;
                 // Code de la catégorie socio-professionnelle;Libellé de la catégorie socio-professionnelle;
                 // Date de début du mandat;Date de début de la fonction
-                
+
                 if (count($data) < 14) {
                     $errors++;
                     $bar->advance();
+
                     continue;
                 }
 
@@ -95,21 +99,22 @@ class ImportMairesFromCsv extends Command
                 $profession = trim($data[11] ?? '');
                 $dateDebutMandat = trim($data[12] ?? '');
                 $dateDebutFonction = trim($data[13] ?? '');
-                
+
                 if (empty($nom) || empty($prenom) || empty($codeCommune)) {
                     $errors++;
                     $bar->advance();
+
                     continue;
                 }
 
                 // Générer un UID unique basé sur code commune + nom + prénom
-                $uid = 'MAIRE-' . strtoupper($codeCommune) . '-' . $this->slugify($nom . '-' . $prenom);
-                
+                $uid = 'MAIRE-'.strtoupper($codeCommune).'-'.$this->slugify($nom.'-'.$prenom);
+
                 // Convertir les dates
                 $dateNaissanceParsed = $this->parseDate($dateNaissance);
                 $dateDebutMandatParsed = $this->parseDate($dateDebutMandat);
                 $dateDebutFonctionParsed = $this->parseDate($dateDebutFonction);
-                
+
                 // Déterminer la civilité
                 $civilite = $sexeCode === 'F' ? 'Mme' : 'M.';
 
@@ -117,7 +122,7 @@ class ImportMairesFromCsv extends Command
                     'uid' => $uid,
                     'nom' => strtoupper($nom),
                     'prenom' => ucwords(strtolower($prenom)),
-                    'nom_complet' => $civilite . ' ' . ucwords(strtolower($prenom)) . ' ' . strtoupper($nom),
+                    'nom_complet' => $civilite.' '.ucwords(strtolower($prenom)).' '.strtoupper($nom),
                     'civilite' => $civilite,
                     'date_naissance' => $dateNaissanceParsed,
                     'code_commune' => $codeCommune,
@@ -153,7 +158,7 @@ class ImportMairesFromCsv extends Command
             }
 
             // Insérer le dernier batch
-            if (!empty($batch)) {
+            if (! empty($batch)) {
                 $result = $this->insertBatch($batch);
                 $imported += $result['imported'];
                 $updated += $result['updated'];
@@ -165,37 +170,38 @@ class ImportMairesFromCsv extends Command
             $bar->finish();
             $this->newLine(2);
 
-            $this->info("✅ Import terminé !");
+            $this->info('✅ Import terminé !');
             $this->info("   ✓ {$imported} maires importés");
             $this->info("   ↻ {$updated} maires mis à jour");
             if ($errors > 0) {
                 $this->warn("   ⚠️  {$errors} lignes ignorées");
             }
-            
+
             // Vérification finale
             $total = Maire::count();
             $totalEnExercice = Maire::where('en_exercice', true)->count();
             $this->newLine();
             $this->info("📊 Total en base: {$total} maires ({$totalEnExercice} en exercice)");
-            
+
             // Stats par département (top 5)
             $this->newLine();
-            $this->info("📊 Top 5 départements:");
+            $this->info('📊 Top 5 départements:');
             $topDepts = Maire::select('code_departement', 'nom_departement', DB::raw('COUNT(*) as total'))
                 ->groupBy('code_departement', 'nom_departement')
                 ->orderByDesc('total')
                 ->limit(5)
                 ->get();
-            
+
             foreach ($topDepts as $dept) {
                 $this->line("   {$dept->code_departement} - {$dept->nom_departement}: {$dept->total} maires");
             }
-            
+
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error('❌ Erreur lors de l\'import: ' . $e->getMessage());
+            $this->error('❌ Erreur lors de l\'import: '.$e->getMessage());
             $this->error($e->getTraceAsString());
+
             return Command::FAILURE;
         }
     }
@@ -228,7 +234,7 @@ class ImportMairesFromCsv extends Command
                 $errors++;
                 // Log seulement les premières erreurs
                 if ($errors < 3) {
-                    $this->warn("⚠️  Erreur: " . $e->getMessage());
+                    $this->warn('⚠️  Erreur: '.$e->getMessage());
                 }
             }
         }
@@ -254,6 +260,7 @@ class ImportMairesFromCsv extends Command
             if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $date, $matches)) {
                 return Carbon::createFromFormat('d/m/Y', $date);
             }
+
             return null;
         } catch (\Exception $e) {
             return null;
@@ -271,8 +278,7 @@ class ImportMairesFromCsv extends Command
         $text = trim($text, '-');
         $text = preg_replace('~-+~', '-', $text);
         $text = strtolower($text);
-        
+
         return $text;
     }
 }
-

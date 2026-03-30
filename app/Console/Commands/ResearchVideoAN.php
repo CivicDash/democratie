@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 
 class ResearchVideoAN extends Command
 {
@@ -18,6 +18,7 @@ class ResearchVideoAN extends Command
     protected $description = 'Prototype de recherche : analyse le portail video AN pour extraire les endpoints, chapitres et timecodes';
 
     private string $portalBase = 'https://videos.assemblee-nationale.fr';
+
     private array $findings = [];
 
     public function handle(): int
@@ -36,6 +37,7 @@ class ResearchVideoAN extends Command
 
         if (empty($urls)) {
             $this->error('Aucune URL video a analyser.');
+
             return 1;
         }
 
@@ -54,7 +56,7 @@ class ResearchVideoAN extends Command
         $this->printSummary();
 
         $outputFile = $this->option('output')
-            ?? storage_path('app/an-data/video-research-' . now()->format('Y-m-d_His') . '.json');
+            ?? storage_path('app/an-data/video-research-'.now()->format('Y-m-d_His').'.json');
 
         File::ensureDirectoryExists(dirname($outputFile));
         File::put($outputFile, json_encode($this->findings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
@@ -84,14 +86,16 @@ class ResearchVideoAN extends Command
                     ->withHeaders(['User-Agent' => 'CivicDash/1.3 Research Bot'])
                     ->get($nvsUrl);
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     $this->error("  HTTP {$response->status()}");
+
                     continue;
                 }
 
                 $xml = simplexml_load_string($response->body());
-                if (!$xml) {
-                    $this->error("  Invalid XML");
+                if (! $xml) {
+                    $this->error('  Invalid XML');
+
                     continue;
                 }
 
@@ -99,26 +103,26 @@ class ResearchVideoAN extends Command
                     'video_id' => $videoId,
                     'portal_url' => $url,
                     'nvs_url' => $nvsUrl,
-                    'status' => (string)$xml['status'],
-                    'title' => html_entity_decode((string)$xml['mediatitle'], ENT_XML1, 'UTF-8'),
-                    'interface_uid' => (string)$xml['interfaceuid'],
+                    'status' => (string) $xml['status'],
+                    'title' => html_entity_decode((string) $xml['mediatitle'], ENT_XML1, 'UTF-8'),
+                    'interface_uid' => (string) $xml['interfaceuid'],
                 ];
 
                 // Parse metadata
                 $metadata = [];
                 foreach ($xml->metadatas->metadata ?? [] as $meta) {
-                    $key = (string)$meta['name'];
+                    $key = (string) $meta['name'];
                     $metadata[$key] = [
-                        'value' => (string)$meta['value'],
-                        'label' => (string)($meta['label'] ?? ''),
+                        'value' => (string) $meta['value'],
+                        'label' => (string) ($meta['label'] ?? ''),
                     ];
                 }
                 $videoData['metadata'] = $metadata;
 
                 $this->info("  Title: {$videoData['title']}");
                 $this->info("  Status: {$videoData['status']}");
-                $this->info("  Type: " . ($metadata['video_type']['label'] ?? 'unknown'));
-                $this->info("  Legislature: " . ($metadata['legislature']['label'] ?? 'unknown'));
+                $this->info('  Type: '.($metadata['video_type']['label'] ?? 'unknown'));
+                $this->info('  Legislature: '.($metadata['legislature']['label'] ?? 'unknown'));
 
                 // Parse chapters recursively
                 $chapters = [];
@@ -133,15 +137,15 @@ class ResearchVideoAN extends Command
                 $speakers = [];
                 foreach ($xml->speakers->speaker ?? [] as $speaker) {
                     $speakerData = [
-                        'id' => (string)$speaker['id'],
-                        'name' => html_entity_decode((string)$speaker->name, ENT_XML1, 'UTF-8'),
-                        'role' => (string)$speaker->role,
-                        'an_uid' => (string)$speaker->url, // AN actor UID (e.g., "794838" -> "PA794838")
+                        'id' => (string) $speaker['id'],
+                        'name' => html_entity_decode((string) $speaker->name, ENT_XML1, 'UTF-8'),
+                        'role' => (string) $speaker->role,
+                        'an_uid' => (string) $speaker->url, // AN actor UID (e.g., "794838" -> "PA794838")
                     ];
                     $speakers[] = $speakerData;
                 }
                 $videoData['speakers'] = $speakers;
-                $this->info("  Speakers: " . count($speakers));
+                $this->info('  Speakers: '.count($speakers));
 
                 // Display speakers
                 foreach ($speakers as $s) {
@@ -153,9 +157,9 @@ class ResearchVideoAN extends Command
                 $files = [];
                 foreach ($xml->files->file ?? [] as $file) {
                     $files[] = [
-                        'id' => (string)$file['id'],
-                        'title' => (string)$file['title'],
-                        'url' => (string)$file['url'],
+                        'id' => (string) $file['id'],
+                        'title' => (string) $file['title'],
+                        'url' => (string) $file['url'],
                     ];
                 }
                 $videoData['files'] = $files;
@@ -164,12 +168,12 @@ class ResearchVideoAN extends Command
                 $thumbnails = [];
                 foreach ($xml->thumbnails->thumbnail ?? [] as $thumb) {
                     $thumbnails[] = [
-                        'id' => (string)$thumb['id'],
-                        'url' => (string)$thumb['url'],
+                        'id' => (string) $thumb['id'],
+                        'url' => (string) $thumb['url'],
                     ];
                 }
                 $videoData['thumbnails'] = $thumbnails;
-                $this->info("  Thumbnails: " . count($thumbnails));
+                $this->info('  Thumbnails: '.count($thumbnails));
 
                 // Print chapter tree
                 $this->newLine();
@@ -186,7 +190,7 @@ class ResearchVideoAN extends Command
         }
 
         $outputFile = $this->option('output')
-            ?? storage_path('app/an-data/nvs-parsed-' . now()->format('Y-m-d_His') . '.json');
+            ?? storage_path('app/an-data/nvs-parsed-'.now()->format('Y-m-d_His').'.json');
         File::ensureDirectoryExists(dirname($outputFile));
         File::put($outputFile, json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         $this->info("Results saved to: {$outputFile}");
@@ -197,28 +201,28 @@ class ResearchVideoAN extends Command
     private function parseChapter(\SimpleXMLElement $chapter, int $depth): array
     {
         $data = [
-            'id' => (string)$chapter['id'],
-            'label' => html_entity_decode((string)$chapter['label'], ENT_XML1, 'UTF-8'),
+            'id' => (string) $chapter['id'],
+            'label' => html_entity_decode((string) $chapter['label'], ENT_XML1, 'UTF-8'),
             'depth' => $depth,
         ];
 
         if ($chapter->type) {
-            $data['type_key'] = (string)$chapter->type['key'];
-            $data['type'] = html_entity_decode((string)$chapter->type['value'], ENT_XML1, 'UTF-8');
+            $data['type_key'] = (string) $chapter->type['key'];
+            $data['type'] = html_entity_decode((string) $chapter->type['value'], ENT_XML1, 'UTF-8');
         }
         if ($chapter->theme) {
-            $data['theme_key'] = (string)$chapter->theme['key'];
-            $data['theme'] = html_entity_decode((string)$chapter->theme['value'], ENT_XML1, 'UTF-8');
+            $data['theme_key'] = (string) $chapter->theme['key'];
+            $data['theme'] = html_entity_decode((string) $chapter->theme['value'], ENT_XML1, 'UTF-8');
         }
         if ($chapter->speaker) {
-            $data['speaker_id'] = (string)$chapter->speaker['id'];
+            $data['speaker_id'] = (string) $chapter->speaker['id'];
         }
 
         $children = [];
         foreach ($chapter->chapter ?? [] as $child) {
             $children[] = $this->parseChapter($child, $depth + 1);
         }
-        if (!empty($children)) {
+        if (! empty($children)) {
             $data['children'] = $children;
         }
 
@@ -233,6 +237,7 @@ class ResearchVideoAN extends Command
                 $count += $this->countChapters($ch['children']);
             }
         }
+
         return $count;
     }
 
@@ -242,8 +247,12 @@ class ResearchVideoAN extends Command
             $prefix = str_repeat('  ', $ch['depth']);
             $label = $ch['label'];
             $extra = '';
-            if (isset($ch['type'])) $extra .= " [{$ch['type']}]";
-            if (isset($ch['theme'])) $extra .= " ({$ch['theme']})";
+            if (isset($ch['type'])) {
+                $extra .= " [{$ch['type']}]";
+            }
+            if (isset($ch['theme'])) {
+                $extra .= " ({$ch['theme']})";
+            }
             $this->comment("{$indent}{$prefix}- {$label}{$extra}");
 
             if (isset($ch['children'])) {
@@ -283,11 +292,11 @@ class ResearchVideoAN extends Command
                     $matches
                 );
 
-                if (!empty($matches[1])) {
+                if (! empty($matches[1])) {
                     foreach (array_slice(array_unique($matches[1]), 0, 3) as $path) {
-                        $urls[] = $this->portalBase . $path;
+                        $urls[] = $this->portalBase.$path;
                     }
-                    $this->info('  -> ' . count($matches[1]) . ' liens video trouves, ' . count($urls) . ' retenus');
+                    $this->info('  -> '.count($matches[1]).' liens video trouves, '.count($urls).' retenus');
                 } else {
                     $this->warn('  -> Aucun lien video trouve dans le HTML (contenu charge en JS?)');
                 }
@@ -341,10 +350,11 @@ class ResearchVideoAN extends Command
                 ->withHeaders(['User-Agent' => 'CivicDash/1.3 Research Bot'])
                 ->get($url);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->error("  -> HTTP {$response->status()}");
                 $pageData['error'] = "HTTP {$response->status()}";
                 $this->findings['pages'][] = $pageData;
+
                 return;
             }
 
@@ -354,7 +364,7 @@ class ResearchVideoAN extends Command
             // Extract JS file sources
             preg_match_all('#<script[^>]+src=["\']([^"\']+)["\']#i', $html, $jsMatches);
             $pageData['js_sources'] = $jsMatches[1] ?? [];
-            $this->info('  JS sources: ' . count($pageData['js_sources']));
+            $this->info('  JS sources: '.count($pageData['js_sources']));
 
             // Look for inline JSON data (common pattern: var config = {...})
             preg_match_all(
@@ -365,14 +375,14 @@ class ResearchVideoAN extends Command
             foreach (($inlineMatches[1] ?? []) as $i => $varName) {
                 $snippet = mb_substr($inlineMatches[2][$i], 0, 500);
                 $pageData['inline_data'][$varName] = $snippet;
-                $this->comment("  Inline var: {$varName} (" . strlen($inlineMatches[2][$i]) . " chars)");
+                $this->comment("  Inline var: {$varName} (".strlen($inlineMatches[2][$i]).' chars)');
             }
 
             // Look for data attributes on video elements
             preg_match_all('#data-(\w+)=["\']([^"\']+)["\']#i', $html, $dataAttrs);
-            if (!empty($dataAttrs[1])) {
+            if (! empty($dataAttrs[1])) {
                 $pageData['data_attributes'] = array_combine($dataAttrs[1], $dataAttrs[2]);
-                $this->info('  Data attributes: ' . implode(', ', $dataAttrs[1]));
+                $this->info('  Data attributes: '.implode(', ', $dataAttrs[1]));
             }
 
             // Look for API/AJAX endpoint patterns in inline scripts
@@ -382,22 +392,22 @@ class ResearchVideoAN extends Command
                 $apiMatches
             );
             $pageData['api_endpoints_found'] = array_unique($apiMatches[1] ?? []);
-            if (!empty($pageData['api_endpoints_found'])) {
-                $this->info('  API endpoints in HTML: ' . implode(', ', $pageData['api_endpoints_found']));
+            if (! empty($pageData['api_endpoints_found'])) {
+                $this->info('  API endpoints in HTML: '.implode(', ', $pageData['api_endpoints_found']));
             }
 
             // Look for SRT/VTT references
             preg_match_all('#["\']([^"\']*\.(?:srt|vtt))["\']#i', $html, $srtMatches);
             $pageData['srt_references'] = array_unique($srtMatches[1] ?? []);
-            if (!empty($pageData['srt_references'])) {
-                $this->info('  SRT/VTT files: ' . implode(', ', $pageData['srt_references']));
+            if (! empty($pageData['srt_references'])) {
+                $this->info('  SRT/VTT files: '.implode(', ', $pageData['srt_references']));
             }
 
             // Look for video source URLs (mp4, m3u8, etc.)
             preg_match_all('#["\']([^"\']*\.(?:mp4|m3u8|webm|mpd))["\']#i', $html, $videoSrcMatches);
             $pageData['video_sources'] = array_unique($videoSrcMatches[1] ?? []);
-            if (!empty($pageData['video_sources'])) {
-                $this->info('  Video sources: ' . implode(', ', $pageData['video_sources']));
+            if (! empty($pageData['video_sources'])) {
+                $this->info('  Video sources: '.implode(', ', $pageData['video_sources']));
             }
 
             // Look for iframes
@@ -410,7 +420,7 @@ class ResearchVideoAN extends Command
                 $decoded = json_decode(trim($ldJson), true);
                 if ($decoded) {
                     $pageData['json_ld'][] = $decoded;
-                    $this->info('  JSON-LD: ' . ($decoded['@type'] ?? 'unknown type'));
+                    $this->info('  JSON-LD: '.($decoded['@type'] ?? 'unknown type'));
                 }
             }
 
@@ -420,7 +430,7 @@ class ResearchVideoAN extends Command
                 $numericId = $idParts[0] ?? $videoId;
                 preg_match_all("#[\"'](https?://[^\"']*{$numericId}[^\"']*)[\"']#i", $html, $idUrlMatches);
                 $pageData['urls_with_video_id'] = array_values(array_unique($idUrlMatches[1] ?? []));
-                if (!empty($pageData['urls_with_video_id'])) {
+                if (! empty($pageData['urls_with_video_id'])) {
                     $this->info('  URLs with video ID:');
                     foreach ($pageData['urls_with_video_id'] as $u) {
                         $this->comment("    -> {$u}");
@@ -452,7 +462,9 @@ class ResearchVideoAN extends Command
                 ->withHeaders(['User-Agent' => 'CivicDash/1.3 Research Bot'])
                 ->get($jsUrl);
 
-            if (!$response->successful()) return;
+            if (! $response->successful()) {
+                return;
+            }
 
             $js = $response->body();
             $jsAnalysis = ['url' => $jsUrl, 'size' => strlen($js)];
@@ -463,8 +475,8 @@ class ResearchVideoAN extends Command
                 $js,
                 $endpointMatches
             );
-            $endpoints = array_map(fn($e) => trim($e, "\"'"), array_unique($endpointMatches[0] ?? []));
-            if (!empty($endpoints)) {
+            $endpoints = array_map(fn ($e) => trim($e, "\"'"), array_unique($endpointMatches[0] ?? []));
+            if (! empty($endpoints)) {
                 $jsAnalysis['api_endpoints'] = $endpoints;
                 $this->comment("  JS {$jsUrl}:");
                 foreach ($endpoints as $ep) {
@@ -474,13 +486,13 @@ class ResearchVideoAN extends Command
 
             // SRT/chapter patterns
             preg_match_all('#["\']([^"\']*(?:srt|chapter|chapitre|timecode|subtitle|caption)[^"\']*)["\']#i', $js, $subMatches);
-            if (!empty($subMatches[1])) {
+            if (! empty($subMatches[1])) {
                 $jsAnalysis['subtitle_patterns'] = array_unique($subMatches[1]);
             }
 
             // Datas path patterns (the AN portal stores files under /Datas/)
             preg_match_all('#["\']([^"\']*Datas[^"\']*)["\']#i', $js, $datasMatches);
-            if (!empty($datasMatches[1])) {
+            if (! empty($datasMatches[1])) {
                 $jsAnalysis['datas_paths'] = array_unique($datasMatches[1]);
                 foreach ($jsAnalysis['datas_paths'] as $dp) {
                     $this->comment("    Datas path: {$dp}");
@@ -522,19 +534,19 @@ class ResearchVideoAN extends Command
             '/Datas/an/{id}/files/info.json',
         ];
 
-        $numericIds = array_map(fn($id) => explode('_', $id)[0], $sampleIds);
+        $numericIds = array_map(fn ($id) => explode('_', $id)[0], $sampleIds);
         $allEndpoints = [];
 
         foreach ($endpointPatterns as $pattern) {
             foreach ($sampleIds as $i => $id) {
                 $allEndpoints[] = [
                     'pattern' => $pattern,
-                    'url' => $this->portalBase . str_replace('{id}', $id, $pattern),
+                    'url' => $this->portalBase.str_replace('{id}', $id, $pattern),
                 ];
             }
             $allEndpoints[] = [
-                'pattern' => $pattern . ' (numeric)',
-                'url' => $this->portalBase . str_replace('{id}', $numericIds[0], $pattern),
+                'pattern' => $pattern.' (numeric)',
+                'url' => $this->portalBase.str_replace('{id}', $numericIds[0], $pattern),
             ];
         }
 
@@ -565,6 +577,7 @@ class ResearchVideoAN extends Command
 
                     $this->findings['endpoint_probes'][] = $result;
                     $bar->advance();
+
                     continue;
                 }
 
@@ -581,14 +594,14 @@ class ResearchVideoAN extends Command
         $bar->finish();
         $this->newLine();
 
-        $successes = array_filter($this->findings['endpoint_probes'], fn($p) => ($p['status'] ?? 0) >= 200 && ($p['status'] ?? 0) < 300);
-        $this->info(count($successes) . ' endpoint(s) accessible(s) sur ' . count($allEndpoints) . ' testes');
+        $successes = array_filter($this->findings['endpoint_probes'], fn ($p) => ($p['status'] ?? 0) >= 200 && ($p['status'] ?? 0) < 300);
+        $this->info(count($successes).' endpoint(s) accessible(s) sur '.count($allEndpoints).' testes');
 
         foreach ($successes as $s) {
             $this->info("  [200] {$s['url']}");
             $this->comment("    Content-Type: {$s['content_type']}, Size: {$s['size']}");
-            if (!empty($s['preview'])) {
-                $this->comment('    Preview: ' . mb_substr($s['preview'], 0, 200));
+            if (! empty($s['preview'])) {
+                $this->comment('    Preview: '.mb_substr($s['preview'], 0, 200));
             }
         }
     }
@@ -620,7 +633,7 @@ class ResearchVideoAN extends Command
             $dateGuess = '20260218'; // Known date for our sample videos
 
             foreach ($srtPatterns as $pattern) {
-                $url = $this->portalBase . str_replace(
+                $url = $this->portalBase.str_replace(
                     ['{id}', '{full_id}', '{date}'],
                     [$numericId, $fullId, $dateGuess],
                     $pattern
@@ -644,7 +657,7 @@ class ResearchVideoAN extends Command
                         $result['line_count'] = substr_count($response->body(), "\n");
 
                         $this->info("  [FOUND] {$url}");
-                        $this->comment("    SRT format: " . ($result['is_srt'] ? 'YES' : 'NO'));
+                        $this->comment('    SRT format: '.($result['is_srt'] ? 'YES' : 'NO'));
                         $this->comment("    Size: {$result['size']} bytes, {$result['line_count']} lines");
 
                         if ($result['is_srt']) {
@@ -665,8 +678,8 @@ class ResearchVideoAN extends Command
             }
         }
 
-        $found = array_filter($this->findings['srt_probes'], fn($p) => ($p['status'] ?? 0) === 200 && ($p['size'] ?? 0) > 50);
-        $this->info(count($found) . ' fichier(s) SRT trouve(s)');
+        $found = array_filter($this->findings['srt_probes'], fn ($p) => ($p['status'] ?? 0) === 200 && ($p['size'] ?? 0) > 50);
+        $this->info(count($found).' fichier(s) SRT trouve(s)');
     }
 
     /**
@@ -683,17 +696,17 @@ class ResearchVideoAN extends Command
 
             if (preg_match('/^(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})/', $line, $m)) {
                 $currentCue = ['start' => $m[1], 'end' => $m[2], 'text' => ''];
-            } elseif ($currentCue !== null && $line !== '' && !is_numeric($line)) {
-                $currentCue['text'] .= ($currentCue['text'] ? ' ' : '') . strip_tags($line);
+            } elseif ($currentCue !== null && $line !== '' && ! is_numeric($line)) {
+                $currentCue['text'] .= ($currentCue['text'] ? ' ' : '').strip_tags($line);
             } elseif ($currentCue !== null && $line === '') {
-                if (!empty($currentCue['text'])) {
+                if (! empty($currentCue['text'])) {
                     $cues[] = $currentCue;
                 }
                 $currentCue = null;
             }
         }
 
-        if ($currentCue && !empty($currentCue['text'])) {
+        if ($currentCue && ! empty($currentCue['text'])) {
             $cues[] = $currentCue;
         }
 
@@ -718,8 +731,8 @@ class ResearchVideoAN extends Command
         $result['srt_analysis']['amendment_mentions'] = $amendmentMentions;
         $result['srt_analysis']['amendment_count'] = count($amendmentMentions);
 
-        if (!empty($amendmentMentions)) {
-            $this->info('    Amendements trouves dans le SRT: ' . count($amendmentMentions));
+        if (! empty($amendmentMentions)) {
+            $this->info('    Amendements trouves dans le SRT: '.count($amendmentMentions));
             foreach (array_slice($amendmentMentions, 0, 5) as $am) {
                 $this->comment("      #{$am['amendment_number']} @ {$am['timecode']}");
             }
@@ -762,7 +775,9 @@ class ResearchVideoAN extends Command
                     ->withHeaders(['User-Agent' => 'CivicDash/1.3 Research Bot'])
                     ->get($url);
 
-                if (!$response->successful()) continue;
+                if (! $response->successful()) {
+                    continue;
+                }
 
                 $html = $response->body();
 
@@ -782,7 +797,7 @@ class ResearchVideoAN extends Command
                         'hash' => $m[3],
                         'slug' => $m[4],
                         'link_text' => trim(strip_tags($m[5])),
-                        'full_url' => $this->portalBase . $m[1],
+                        'full_url' => $this->portalBase.$m[1],
                     ];
                 }
 
@@ -805,10 +820,10 @@ class ResearchVideoAN extends Command
                     'total_video_refs' => count($simpleMatches),
                 ];
 
-                $this->info("  {$key}: " . count($simpleMatches) . ' references video trouvees');
+                $this->info("  {$key}: ".count($simpleMatches).' references video trouvees');
 
                 // Extract the URL pattern
-                if (!empty($simpleVideos)) {
+                if (! empty($simpleVideos)) {
                     $sample = $simpleVideos[0];
                     $this->comment("  Pattern: /video.{$sample['numeric_id']}_{$sample['hash']}.{$sample['slug']}");
                 }
@@ -829,24 +844,24 @@ class ResearchVideoAN extends Command
 
         // Pages analyzed
         $pages = $this->findings['pages'] ?? [];
-        $this->info('Pages video analysees: ' . count($pages));
+        $this->info('Pages video analysees: '.count($pages));
         foreach ($pages as $p) {
             $this->comment("  {$p['url']}");
-            $this->comment("    JS sources: " . count($p['js_sources'] ?? []));
-            $this->comment("    API endpoints in HTML: " . count($p['api_endpoints_found'] ?? []));
-            $this->comment("    SRT refs: " . count($p['srt_references'] ?? []));
-            $this->comment("    Video sources: " . count($p['video_sources'] ?? []));
-            $this->comment("    JSON-LD: " . count($p['json_ld'] ?? []));
-            if (!empty($p['js_analysis'])) {
+            $this->comment('    JS sources: '.count($p['js_sources'] ?? []));
+            $this->comment('    API endpoints in HTML: '.count($p['api_endpoints_found'] ?? []));
+            $this->comment('    SRT refs: '.count($p['srt_references'] ?? []));
+            $this->comment('    Video sources: '.count($p['video_sources'] ?? []));
+            $this->comment('    JSON-LD: '.count($p['json_ld'] ?? []));
+            if (! empty($p['js_analysis'])) {
                 foreach ($p['js_analysis'] as $jsa) {
-                    if (!empty($jsa['api_endpoints'])) {
+                    if (! empty($jsa['api_endpoints'])) {
                         $this->info("    JS API endpoints from {$jsa['url']}:");
                         foreach ($jsa['api_endpoints'] as $ep) {
                             $this->comment("      -> {$ep}");
                         }
                     }
-                    if (!empty($jsa['datas_paths'])) {
-                        $this->info("    JS Datas paths:");
+                    if (! empty($jsa['datas_paths'])) {
+                        $this->info('    JS Datas paths:');
                         foreach ($jsa['datas_paths'] as $dp) {
                             $this->comment("      -> {$dp}");
                         }
@@ -857,22 +872,22 @@ class ResearchVideoAN extends Command
 
         // Endpoints
         $endpoints = $this->findings['endpoint_probes'] ?? [];
-        $successEndpoints = array_filter($endpoints, fn($e) => ($e['status'] ?? 0) >= 200 && ($e['status'] ?? 0) < 300);
+        $successEndpoints = array_filter($endpoints, fn ($e) => ($e['status'] ?? 0) >= 200 && ($e['status'] ?? 0) < 300);
         $this->newLine();
-        $this->info('Endpoints probes: ' . count($successEndpoints) . '/' . count($endpoints) . ' reussis');
+        $this->info('Endpoints probes: '.count($successEndpoints).'/'.count($endpoints).' reussis');
         foreach ($successEndpoints as $ep) {
             $this->info("  [OK] {$ep['url']}");
-            $this->comment("    Type: {$ep['content_type']}, JSON: " . ($ep['is_json'] ?? false ? 'Y' : 'N') . ", XML: " . ($ep['is_xml'] ?? false ? 'Y' : 'N'));
+            $this->comment("    Type: {$ep['content_type']}, JSON: ".($ep['is_json'] ?? false ? 'Y' : 'N').', XML: '.($ep['is_xml'] ?? false ? 'Y' : 'N'));
         }
 
         // SRT
         $srtProbes = $this->findings['srt_probes'] ?? [];
-        $srtFound = array_filter($srtProbes, fn($s) => ($s['status'] ?? 0) === 200 && ($s['size'] ?? 0) > 50);
+        $srtFound = array_filter($srtProbes, fn ($s) => ($s['status'] ?? 0) === 200 && ($s['size'] ?? 0) > 50);
         $this->newLine();
-        $this->info('Fichiers SRT: ' . count($srtFound) . ' trouves');
+        $this->info('Fichiers SRT: '.count($srtFound).' trouves');
         foreach ($srtFound as $srt) {
             $this->info("  {$srt['url']}");
-            if (!empty($srt['srt_analysis'])) {
+            if (! empty($srt['srt_analysis'])) {
                 $a = $srt['srt_analysis'];
                 $this->comment("    Cues: {$a['total_cues']}, Amendements: {$a['amendment_count']}, Speakers: {$a['speaker_mentions']}");
             }
@@ -881,17 +896,19 @@ class ResearchVideoAN extends Command
         // Listings
         $listings = $this->findings['listing_analysis'] ?? [];
         $this->newLine();
-        $this->info('Pages listing: ' . count($listings));
+        $this->info('Pages listing: '.count($listings));
         foreach ($listings as $key => $l) {
             $this->comment("  {$key}: {$l['total_video_refs']} refs video");
         }
 
         $this->newLine();
-        $hasEndpoints = !empty($successEndpoints);
-        $hasSrt = !empty($srtFound);
+        $hasEndpoints = ! empty($successEndpoints);
+        $hasSrt = ! empty($srtFound);
         $hasJsEndpoints = false;
         foreach ($pages as $p) {
-            if (!empty($p['js_analysis'])) $hasJsEndpoints = true;
+            if (! empty($p['js_analysis'])) {
+                $hasJsEndpoints = true;
+            }
         }
 
         $this->info('CONCLUSION:');
@@ -904,7 +921,7 @@ class ResearchVideoAN extends Command
         if ($hasJsEndpoints) {
             $this->info('  -> Des endpoints ont ete trouves dans le JS. Investigation approfondie recommandee.');
         }
-        if (!$hasEndpoints && !$hasSrt && !$hasJsEndpoints) {
+        if (! $hasEndpoints && ! $hasSrt && ! $hasJsEndpoints) {
             $this->warn('  -> Aucune source de timecodes facilement exploitable trouvee.');
             $this->warn('  -> Un scraping via headless browser (Puppeteer/Playwright) serait necessaire.');
         }
@@ -915,17 +932,25 @@ class ResearchVideoAN extends Command
         if (preg_match('#/video\.(\d+_[a-f0-9]+)#', $url, $m)) {
             return $m[1];
         }
+
         return basename($url);
     }
 
     private function resolveUrl(string $src, string $base): string
     {
-        if (str_starts_with($src, 'http')) return $src;
-        if (str_starts_with($src, '//')) return 'https:' . $src;
-        if (str_starts_with($src, '/')) return $this->portalBase . $src;
+        if (str_starts_with($src, 'http')) {
+            return $src;
+        }
+        if (str_starts_with($src, '//')) {
+            return 'https:'.$src;
+        }
+        if (str_starts_with($src, '/')) {
+            return $this->portalBase.$src;
+        }
 
         $baseParts = parse_url($base);
         $baseDir = dirname($baseParts['path'] ?? '/');
-        return ($baseParts['scheme'] ?? 'https') . '://' . ($baseParts['host'] ?? '') . $baseDir . '/' . $src;
+
+        return ($baseParts['scheme'] ?? 'https').'://'.($baseParts['host'] ?? '').$baseDir.'/'.$src;
     }
 }

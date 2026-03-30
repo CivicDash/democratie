@@ -15,6 +15,7 @@ class RunImportCommand implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 3600; // 1 heure max
+
     public int $tries = 1; // Pas de retry automatique
 
     public function __construct(
@@ -28,11 +29,11 @@ class RunImportCommand implements ShouldQueue
     public function handle(): void
     {
         // Récupérer ou créer le log
-        $log = $this->importLogId 
+        $log = $this->importLogId
             ? ImportLog::find($this->importLogId)
             : ImportLog::start($this->command, $this->source, $this->options, $this->userId);
 
-        if (!$log) {
+        if (! $log) {
             return;
         }
 
@@ -57,7 +58,7 @@ class RunImportCommand implements ShouldQueue
         } catch (\Exception $e) {
             $log->fail($e->getMessage(), [
                 'exception' => get_class($e),
-                'file' => $e->getFile() . ':' . $e->getLine(),
+                'file' => $e->getFile().':'.$e->getLine(),
             ], 1);
         }
     }
@@ -67,13 +68,14 @@ class RunImportCommand implements ShouldQueue
      */
     private function parseOutputStat(string $output, string $pattern): int
     {
-        if (preg_match('/(\d+)\s*(' . $pattern . ')/ui', $output, $matches)) {
+        if (preg_match('/(\d+)\s*('.$pattern.')/ui', $output, $matches)) {
             return (int) $matches[1];
         }
         // Chercher aussi le pattern inverse "Créés: 123"
-        if (preg_match('/(' . $pattern . ')[\s:]+(\d+)/ui', $output, $matches)) {
+        if (preg_match('/('.$pattern.')[\s:]+(\d+)/ui', $output, $matches)) {
             return (int) $matches[2];
         }
+
         return 0;
     }
 
@@ -99,4 +101,3 @@ class RunImportCommand implements ShouldQueue
         }
     }
 }
-

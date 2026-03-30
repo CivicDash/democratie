@@ -3,13 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\PolicyVersion;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
  * Contrôleur pour les pages légales (RGPD Art. 13)
- * 
+ *
  * Pages :
  * - Privacy Policy (Politique de confidentialité)
  * - Terms of Service (Conditions d'utilisation)

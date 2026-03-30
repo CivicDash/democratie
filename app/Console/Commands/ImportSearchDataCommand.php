@@ -3,13 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Models\Topic;
-use App\Models\Post;
-use App\Models\Document;
 use Illuminate\Console\Command;
 
 /**
  * Commande pour importer les données dans Meilisearch
- * 
+ *
  * Usage:
  *   php artisan search:import
  *   php artisan search:import --model=Topic
@@ -31,7 +29,7 @@ class ImportSearchDataCommand extends Command
         $this->info('🔍 Import des données dans Meilisearch');
         $this->newLine();
 
-        $models = match(strtolower($model)) {
+        $models = match (strtolower($model)) {
             'topic' => ['Topic'],
             'post' => ['Post'],
             'document' => ['Document'],
@@ -56,9 +54,10 @@ class ImportSearchDataCommand extends Command
     private function importModel(string $modelName, bool $fresh): void
     {
         $modelClass = "App\\Models\\{$modelName}";
-        
-        if (!class_exists($modelClass)) {
+
+        if (! class_exists($modelClass)) {
             $this->error("❌ Model {$modelName} n'existe pas");
+
             return;
         }
 
@@ -67,15 +66,16 @@ class ImportSearchDataCommand extends Command
         try {
             // Flush si demandé
             if ($fresh) {
-                $this->warn("  🗑️  Suppression des données existantes...");
+                $this->warn('  🗑️  Suppression des données existantes...');
                 $this->call('scout:flush', ['model' => $modelClass]);
             }
 
             // Count total
             $total = $modelClass::count();
-            
+
             if ($total === 0) {
-                $this->warn("  ⚠️  Aucune donnée à importer");
+                $this->warn('  ⚠️  Aucune donnée à importer');
+
                 return;
             }
 
@@ -89,7 +89,7 @@ class ImportSearchDataCommand extends Command
             // Import par chunks
             $modelClass::chunk(100, function ($items) use ($bar) {
                 foreach ($items as $item) {
-                    if (method_exists($item, 'shouldBeSearchable') && !$item->shouldBeSearchable()) {
+                    if (method_exists($item, 'shouldBeSearchable') && ! $item->shouldBeSearchable()) {
                         continue;
                     }
                     $item->searchable();
@@ -106,4 +106,3 @@ class ImportSearchDataCommand extends Command
         }
     }
 }
-

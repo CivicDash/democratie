@@ -4,7 +4,7 @@ namespace App\Services;
 
 /**
  * Service d'extraction et parsing de hashtags
- * 
+ *
  * Extrait les #hashtags depuis du texte (Markdown, plain text)
  * Style Twitter : #Climat, #Réforme2025, #SantéPublique
  */
@@ -12,7 +12,7 @@ class HashtagParser
 {
     /**
      * Regex pour matcher les hashtags
-     * 
+     *
      * Règles :
      * - Commence par #
      * - Lettres, chiffres, tirets, underscores, accents
@@ -29,8 +29,8 @@ class HashtagParser
 
     /**
      * Extrait les hashtags depuis un texte
-     * 
-     * @param string $content Contenu avec potentiels #hashtags
+     *
+     * @param  string  $content  Contenu avec potentiels #hashtags
      * @return array Tableau de hashtags uniques (sans #)
      */
     public static function extract(string $content): array
@@ -55,8 +55,8 @@ class HashtagParser
 
         foreach ($hashtags as $hashtag) {
             $lower = mb_strtolower($hashtag);
-            
-            if (!in_array($lower, $seen)) {
+
+            if (! in_array($lower, $seen)) {
                 $unique[] = $hashtag; // Conserver case original
                 $seen[] = $lower;
             }
@@ -68,9 +68,9 @@ class HashtagParser
 
     /**
      * Remplace les hashtags par des liens cliquables (HTML)
-     * 
-     * @param string $content Contenu avec #hashtags
-     * @param string $routeName Route Laravel pour les liens (ex: 'hashtag.show')
+     *
+     * @param  string  $content  Contenu avec #hashtags
+     * @param  string  $routeName  Route Laravel pour les liens (ex: 'hashtag.show')
      * @return string HTML avec liens
      */
     public static function linkify(string $content, string $routeName = 'hashtag.show'): string
@@ -81,8 +81,8 @@ class HashtagParser
                 $hashtag = $matches[1];
                 $slug = \App\Models\Hashtag::normalize($hashtag);
                 $url = route($routeName, ['slug' => $slug]);
-                
-                return '<a href="' . $url . '" class="hashtag-link">#' . htmlspecialchars($hashtag) . '</a>';
+
+                return '<a href="'.$url.'" class="hashtag-link">#'.htmlspecialchars($hashtag).'</a>';
             },
             $content
         );
@@ -106,9 +106,8 @@ class HashtagParser
 
     /**
      * Valide un hashtag individuel
-     * 
-     * @param string $hashtag Hashtag avec ou sans #
-     * @return bool
+     *
+     * @param  string  $hashtag  Hashtag avec ou sans #
      */
     public static function isValid(string $hashtag): bool
     {
@@ -126,8 +125,7 @@ class HashtagParser
 
     /**
      * Filtre les hashtags interdits ou modérés
-     * 
-     * @param array $hashtags
+     *
      * @return array Hashtags filtrés
      */
     public static function filter(array $hashtags): array
@@ -142,17 +140,17 @@ class HashtagParser
 
         return array_filter($hashtags, function ($hashtag) use ($blacklist) {
             $slug = \App\Models\Hashtag::normalize($hashtag);
-            return !in_array($slug, $blacklist);
+
+            return ! in_array($slug, $blacklist);
         });
     }
 
     /**
      * Suggère des hashtags depuis un texte (NLP simple)
-     * 
+     *
      * Extrait les mots importants qui pourraient être des hashtags
      * (sans # dans le texte original)
-     * 
-     * @param string $content
+     *
      * @return array Suggestions de hashtags
      */
     public static function suggest(string $content): array
@@ -161,7 +159,7 @@ class HashtagParser
         preg_match_all('/\b([A-ZÀ-Ÿ][a-zà-ÿ]{3,})\b/u', $content, $matches);
 
         $suggestions = [];
-        
+
         foreach ($matches[1] ?? [] as $word) {
             if (self::isValid($word)) {
                 $suggestions[] = $word;
@@ -171,4 +169,3 @@ class HashtagParser
         return array_slice(array_unique($suggestions), 0, 5);
     }
 }
-

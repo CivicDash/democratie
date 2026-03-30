@@ -41,7 +41,7 @@ class ProfilePhotoModeration extends Model
      */
     public function getActionLabelAttribute(): string
     {
-        return match($this->action) {
+        return match ($this->action) {
             'submitted' => 'Photo soumise',
             'approved' => 'Photo approuvée',
             'rejected' => 'Photo refusée',
@@ -54,7 +54,7 @@ class ProfilePhotoModeration extends Model
      */
     public function getActionColorAttribute(): string
     {
-        return match($this->action) {
+        return match ($this->action) {
             'submitted' => 'yellow',
             'approved' => 'green',
             'rejected' => 'red',

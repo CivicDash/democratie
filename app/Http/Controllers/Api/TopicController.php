@@ -6,13 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Topic\CreateBallotRequest;
 use App\Http\Requests\Topic\StoreTopicRequest;
 use App\Http\Requests\Topic\UpdateTopicRequest;
-use App\Http\Resources\TopicResource;
 use App\Http\Resources\TopicCollection;
+use App\Http\Resources\TopicResource;
 use App\Models\Topic;
 use App\Services\TopicService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 
 class TopicController extends Controller
 {
@@ -219,4 +218,3 @@ class TopicController extends Controller
         return response()->json($stats);
     }
 }
-

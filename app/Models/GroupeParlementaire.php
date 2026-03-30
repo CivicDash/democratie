@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GroupeParlementaire extends Model
@@ -45,7 +44,6 @@ class GroupeParlementaire extends Model
     /**
      * Relations
      */
-    
     public function deputes()
     {
         // Les députés sont liés via leurs mandats, pas directement
@@ -62,7 +60,6 @@ class GroupeParlementaire extends Model
     /**
      * Scopes
      */
-    
     public function scopeActif($query)
     {
         return $query->where('actif', true);
@@ -91,15 +88,14 @@ class GroupeParlementaire extends Model
     /**
      * Accessors & Mutators
      */
-    
     public function getNomCompletAttribute(): string
     {
-        return $this->nom . ' (' . $this->sigle . ')';
+        return $this->nom.' ('.$this->sigle.')';
     }
 
     public function getPositionLabelAttribute(): string
     {
-        return match($this->position_politique) {
+        return match ($this->position_politique) {
             'extreme_gauche' => 'Extrême gauche',
             'gauche' => 'Gauche',
             'centre_gauche' => 'Centre gauche',
@@ -120,7 +116,7 @@ class GroupeParlementaire extends Model
     /**
      * Méthodes métier
      */
-    
+
     /**
      * Calcule les statistiques de vote du groupe
      */
@@ -145,7 +141,7 @@ class GroupeParlementaire extends Model
             'votes_abstention' => $votes->where('position_groupe', 'abstention')->count(),
             'votes_mixte' => $votes->where('position_groupe', 'mixte')->count(),
             'discipline_moyenne' => round($votes->avg('pourcentage_discipline'), 2),
-            'pourcentage_pour' => $votes->count() > 0 
+            'pourcentage_pour' => $votes->count() > 0
                 ? round(($votes->where('position_groupe', 'pour')->count() / $votes->count()) * 100, 2)
                 : 0,
         ];
@@ -165,11 +161,13 @@ class GroupeParlementaire extends Model
 
         foreach ($votes as $vote) {
             $proposition = $vote->voteLegislatif?->propositionLoi;
-            if (!$proposition) continue;
+            if (! $proposition) {
+                continue;
+            }
 
             foreach ($proposition->thematiques as $thematique) {
                 $code = $thematique->code;
-                if (!isset($thematiquesCounts[$code])) {
+                if (! isset($thematiquesCounts[$code])) {
                     $thematiquesCounts[$code] = [
                         'thematique' => $thematique,
                         'count' => 0,
@@ -180,7 +178,7 @@ class GroupeParlementaire extends Model
         }
 
         // Trier par count décroissant
-        usort($thematiquesCounts, fn($a, $b) => $b['count'] <=> $a['count']);
+        usort($thematiquesCounts, fn ($a, $b) => $b['count'] <=> $a['count']);
 
         return array_slice($thematiquesCounts, 0, $limit);
     }
@@ -209,4 +207,3 @@ class GroupeParlementaire extends Model
         return $this->position_politique === 'centre';
     }
 }
-

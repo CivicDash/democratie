@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\ActeurAN;
 use App\Models\DeputeCirconscription;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\File;
 
 class ImportCirconscriptionsAN extends Command
 {
@@ -17,16 +16,19 @@ class ImportCirconscriptionsAN extends Command
     protected $description = 'Importe les liaisons député-circonscription depuis les fichiers acteurs JSON';
 
     private int $created = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
     {
         $legislature = (int) $this->option('legislature');
-        
+
         $this->info("🗺️  Import des circonscriptions députés (L{$legislature})...");
-        
+
         if ($this->option('fresh')) {
             $this->warn('⚠️  Mode --fresh : suppression des données existantes...');
             DeputeCirconscription::where('legislature', $legislature)->delete();
@@ -34,7 +36,7 @@ class ImportCirconscriptionsAN extends Command
 
         // Récupérer les acteurs depuis la BDD
         $acteurs = ActeurAN::all();
-        
+
         if ($limit = $this->option('limit')) {
             $acteurs = $acteurs->take((int) $limit);
             $this->warn("⚠️  Mode TEST : {$limit} acteurs maximum");
@@ -42,6 +44,7 @@ class ImportCirconscriptionsAN extends Command
 
         if ($acteurs->isEmpty()) {
             $this->error('❌ Aucun acteur en BDD. Lancer d\'abord : import:acteurs-an');
+
             return self::FAILURE;
         }
 
@@ -72,22 +75,24 @@ class ImportCirconscriptionsAN extends Command
     private function processActeur(string $uid, int $legislature): void
     {
         $filePath = public_path("data/acteur/{$uid}.json");
-        
-        if (!file_exists($filePath)) {
+
+        if (! file_exists($filePath)) {
             $this->skipped++;
+
             return;
         }
 
         $content = file_get_contents($filePath);
         $data = json_decode($content, true);
 
-        if (!isset($data['acteur']['mandats']['mandat'])) {
+        if (! isset($data['acteur']['mandats']['mandat'])) {
             $this->skipped++;
+
             return;
         }
 
         $mandats = $data['acteur']['mandats']['mandat'];
-        
+
         // Normaliser en tableau si un seul mandat
         if (isset($mandats['uid'])) {
             $mandats = [$mandats];
@@ -98,7 +103,7 @@ class ImportCirconscriptionsAN extends Command
             if (($mandat['typeOrgane'] ?? '') !== 'ASSEMBLEE') {
                 continue;
             }
-            
+
             $mandatLegislature = (int) ($mandat['legislature'] ?? 0);
             if ($mandatLegislature !== $legislature) {
                 continue;
@@ -113,21 +118,23 @@ class ImportCirconscriptionsAN extends Command
         $mandatUid = $mandat['uid'] ?? null;
         $election = $mandat['election'] ?? null;
         $mandature = $mandat['mandature'] ?? [];
-        
-        if (!$mandatUid || !$election) {
+
+        if (! $mandatUid || ! $election) {
             $this->skipped++;
+
             return;
         }
 
         $lieu = $election['lieu'] ?? [];
-        
+
         // Extraire les données
         $departement = $lieu['departement'] ?? null;
         $numDepartement = $lieu['numDepartement'] ?? null;
         $numCirco = isset($lieu['numCirco']) ? (int) $lieu['numCirco'] : null;
-        
-        if (!$departement || !$numDepartement || !$numCirco) {
+
+        if (! $departement || ! $numDepartement || ! $numCirco) {
             $this->skipped++;
+
             return;
         }
 
@@ -157,8 +164,8 @@ class ImportCirconscriptionsAN extends Command
                 'date_prise_fonction' => $mandature['datePriseFonction'] ?? null,
                 'cause_fin' => $mandature['causeFin'] ?? null,
                 'premiere_election' => (bool) ($mandature['premiereElection'] ?? false),
-                'place_hemicycle' => isset($mandature['placeHemicycle']) 
-                    ? (int) $mandature['placeHemicycle'] 
+                'place_hemicycle' => isset($mandature['placeHemicycle'])
+                    ? (int) $mandature['placeHemicycle']
                     : null,
                 'suppleant_ref' => $suppleantRef,
             ]
@@ -188,7 +195,7 @@ class ImportCirconscriptionsAN extends Command
         // Statistiques
         $total = DeputeCirconscription::legislature($legislature)->count();
         $actifs = DeputeCirconscription::legislature($legislature)->actif()->count();
-        
+
         $this->newLine();
         $this->info("📊 Total législature {$legislature} : {$total} liaisons");
         $this->info("📊 Mandats actifs : {$actifs}");

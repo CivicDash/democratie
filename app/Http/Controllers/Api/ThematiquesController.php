@@ -20,7 +20,7 @@ class ThematiquesController extends Controller
 
     /**
      * Liste des thématiques
-     * 
+     *
      * GET /api/thematiques
      */
     public function index(Request $request): JsonResponse
@@ -44,7 +44,7 @@ class ThematiquesController extends Controller
 
         $thematiques = $query->orderBy('ordre')->get();
 
-        $thematiques = $thematiques->map(fn($thematique) => [
+        $thematiques = $thematiques->map(fn ($thematique) => [
             'id' => $thematique->id,
             'code' => $thematique->code,
             'nom' => $thematique->nom,
@@ -54,7 +54,7 @@ class ThematiquesController extends Controller
             'parent_id' => $thematique->parent_id,
             'ordre' => $thematique->ordre,
             'nb_propositions' => $thematique->nb_propositions,
-            'enfants' => $thematique->enfants->map(fn($enfant) => [
+            'enfants' => $thematique->enfants->map(fn ($enfant) => [
                 'id' => $enfant->id,
                 'code' => $enfant->code,
                 'nom' => $enfant->nom,
@@ -71,14 +71,14 @@ class ThematiquesController extends Controller
 
     /**
      * Détails d'une thématique
-     * 
+     *
      * GET /api/thematiques/{code}
      */
     public function show(string $code): JsonResponse
     {
         $thematique = ThematiqueLegislation::where('code', $code)->first();
 
-        if (!$thematique) {
+        if (! $thematique) {
             return response()->json([
                 'success' => false,
                 'message' => 'Thématique non trouvée',
@@ -115,14 +115,14 @@ class ThematiquesController extends Controller
 
     /**
      * Propositions d'une thématique
-     * 
+     *
      * GET /api/thematiques/{code}/propositions
      */
     public function propositions(Request $request, string $code): JsonResponse
     {
         $thematique = ThematiqueLegislation::where('code', $code)->first();
 
-        if (!$thematique) {
+        if (! $thematique) {
             return response()->json([
                 'success' => false,
                 'message' => 'Thématique non trouvée',
@@ -132,7 +132,7 @@ class ThematiquesController extends Controller
         $limit = $request->query('limit', 20);
         $principale = $request->query('principale', false);
 
-        $query = $principale 
+        $query = $principale
             ? $thematique->propositionsPrincipales()
             : $thematique->propositions();
 
@@ -140,7 +140,7 @@ class ThematiquesController extends Controller
             ->orderBy('propositions_loi.date_depot', 'desc')
             ->limit($limit)
             ->get()
-            ->map(fn($proposition) => [
+            ->map(fn ($proposition) => [
                 'id' => $proposition->id,
                 'source' => $proposition->source,
                 'numero' => $proposition->numero,
@@ -165,7 +165,7 @@ class ThematiquesController extends Controller
 
     /**
      * Détection automatique des thématiques pour une proposition
-     * 
+     *
      * POST /api/thematiques/detecter
      */
     public function detecter(Request $request): JsonResponse
@@ -184,7 +184,7 @@ class ThematiquesController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $attach ? 'Thématiques détectées et attachées' : 'Thématiques détectées',
-                'data' => $thematiques->map(fn($item) => [
+                'data' => $thematiques->map(fn ($item) => [
                     'thematique' => [
                         'id' => $item['thematique']->id,
                         'code' => $item['thematique']->code,
@@ -208,7 +208,7 @@ class ThematiquesController extends Controller
 
     /**
      * Détection en batch pour plusieurs propositions
-     * 
+     *
      * POST /api/thematiques/detecter-batch
      */
     public function detecterBatch(Request $request): JsonResponse
@@ -250,7 +250,7 @@ class ThematiquesController extends Controller
 
     /**
      * Attacher manuellement une thématique à une proposition
-     * 
+     *
      * POST /api/thematiques/attacher
      */
     public function attacher(Request $request): JsonResponse
@@ -290,7 +290,7 @@ class ThematiquesController extends Controller
 
     /**
      * Détacher une thématique d'une proposition
-     * 
+     *
      * DELETE /api/thematiques/detacher
      */
     public function detacher(Request $request): JsonResponse
@@ -323,7 +323,7 @@ class ThematiquesController extends Controller
 
     /**
      * Recalculer les thématiques d'une proposition
-     * 
+     *
      * POST /api/thematiques/recalculer
      */
     public function recalculer(Request $request): JsonResponse
@@ -340,7 +340,7 @@ class ThematiquesController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Thématiques recalculées',
-                'data' => $thematiques->map(fn($item) => [
+                'data' => $thematiques->map(fn ($item) => [
                     'thematique' => [
                         'id' => $item['thematique']->id,
                         'code' => $item['thematique']->code,
@@ -362,7 +362,7 @@ class ThematiquesController extends Controller
 
     /**
      * Statistiques globales de détection
-     * 
+     *
      * GET /api/thematiques/statistiques
      */
     public function statistiques(): JsonResponse
@@ -386,7 +386,7 @@ class ThematiquesController extends Controller
 
     /**
      * Thématiques les plus populaires
-     * 
+     *
      * GET /api/thematiques/populaires
      */
     public function populaires(Request $request): JsonResponse
@@ -397,7 +397,7 @@ class ThematiquesController extends Controller
             ->orderBy('nb_propositions', 'desc')
             ->limit($limit)
             ->get()
-            ->map(fn($thematique) => [
+            ->map(fn ($thematique) => [
                 'id' => $thematique->id,
                 'code' => $thematique->code,
                 'nom' => $thematique->nom,
@@ -412,4 +412,3 @@ class ThematiquesController extends Controller
         ]);
     }
 }
-

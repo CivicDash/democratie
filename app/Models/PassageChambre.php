@@ -4,14 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PassageChambre extends Model
 {
     protected $table = 'senat_dosleg_lecass';
+
     protected $primaryKey = 'lecassidt';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -86,10 +89,11 @@ class PassageChambre extends Model
 
     public function getSessionLibelleAttribute(): string
     {
-        if (!$this->sesann) {
+        if (! $this->sesann) {
             return '';
         }
-        return "Session {$this->sesann}-" . ($this->sesann + 1);
+
+        return "Session {$this->sesann}-".($this->sesann + 1);
     }
 
     public function getNbAmendementsAttribute(): int
@@ -104,10 +108,10 @@ class PassageChambre extends Model
 
     public function getTauxAdoptionAttribute(): ?float
     {
-        if (!$this->lecassame || $this->lecassame == 0) {
+        if (! $this->lecassame || $this->lecassame == 0) {
             return null;
         }
+
         return round(($this->lecassameado / $this->lecassame) * 100, 1);
     }
 }
-

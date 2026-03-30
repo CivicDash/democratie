@@ -21,7 +21,7 @@ class UserMentionedNotification extends Notification implements ShouldQueue
     public function via($notifiable): array
     {
         $channels = ['database'];
-        
+
         // Email si l'utilisateur a activé les notifications email
         if ($this->shouldSendEmail($notifiable)) {
             $channels[] = 'mail';
@@ -34,9 +34,10 @@ class UserMentionedNotification extends Notification implements ShouldQueue
     {
         // Vérifier les préférences utilisateur
         $prefs = $notifiable->notificationPreferences ?? null;
-        if ($prefs && !$prefs->mention_email) {
+        if ($prefs && ! $prefs->mention_email) {
             return false;
         }
+
         return true;
     }
 
@@ -89,7 +90,8 @@ class UserMentionedNotification extends Notification implements ShouldQueue
 
         if ($mentionable instanceof Post) {
             $topic = $mentionable->topic;
-            return route('participation.ideas.show', $topic->slug ?? $topic->id) . "#post-{$mentionable->id}";
+
+            return route('participation.ideas.show', $topic->slug ?? $topic->id)."#post-{$mentionable->id}";
         }
 
         return route('dashboard');

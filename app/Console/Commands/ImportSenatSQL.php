@@ -5,15 +5,14 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
 /**
  * Commande d'import des bases SQL PostgreSQL du Sénat
- * 
+ *
  * Cette commande télécharge et importe les dumps SQL PostgreSQL
  * fournis par le Sénat sur data.senat.fr
- * 
+ *
  * @see config/senat.php pour la configuration des sources
  * @see docs/SOURCES_DONNEES_SENAT.md pour la documentation
  */
@@ -41,10 +40,11 @@ class ImportSenatSQL extends Command
         // Récupérer la configuration depuis config/senat.php
         $databases = config('senat.databases', []);
 
-        if (!isset($databases[$type])) {
+        if (! isset($databases[$type])) {
             $this->error("❌ Type invalide : {$type}");
-            $this->info("   Types disponibles : " . implode(', ', array_keys($databases)));
-            $this->info("   Utilisez --list pour voir les détails");
+            $this->info('   Types disponibles : '.implode(', ', array_keys($databases)));
+            $this->info('   Utilisez --list pour voir les détails');
+
             return Command::FAILURE;
         }
 
@@ -54,7 +54,7 @@ class ImportSenatSQL extends Command
 
         // 1. Télécharger le ZIP
         $zipPath = $this->downloadZip($config['url'], $type);
-        if (!$zipPath) {
+        if (! $zipPath) {
             return Command::FAILURE;
         }
 
@@ -74,50 +74,54 @@ class ImportSenatSQL extends Command
 
     private function downloadZip(string $url, string $type): ?string
     {
-        $this->info("📥 Téléchargement du fichier ZIP...");
-        
+        $this->info('📥 Téléchargement du fichier ZIP...');
+
         $zipPath = storage_path("app/temp/{$type}.zip");
-        
+
         // Créer le dossier temp si nécessaire
-        if (!file_exists(dirname($zipPath))) {
+        if (! file_exists(dirname($zipPath))) {
             mkdir(dirname($zipPath), 0755, true);
         }
 
         try {
             $response = Http::timeout(300)->get($url);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->error("❌ Erreur HTTP {$response->status()}");
+
                 return null;
             }
 
             file_put_contents($zipPath, $response->body());
             $size = filesize($zipPath);
             $sizeMB = round($size / 1024 / 1024, 2);
-            
+
             $this->info("✅ Fichier téléchargé ({$sizeMB} MB)");
+
             return $zipPath;
 
         } catch (\Exception $e) {
-            $this->error("❌ Erreur de téléchargement : " . $e->getMessage());
+            $this->error('❌ Erreur de téléchargement : '.$e->getMessage());
+
             return null;
         }
     }
 
     private function extractZip(string $zipPath, string $type): array
     {
-        $this->info("📦 Extraction du fichier ZIP...");
-        
+        $this->info('📦 Extraction du fichier ZIP...');
+
         $extractPath = storage_path("app/temp/{$type}");
-        
-        if (!file_exists($extractPath)) {
+
+        if (! file_exists($extractPath)) {
             mkdir($extractPath, 0755, true);
         }
 
-        $zip = new ZipArchive();
-        
+        $zip = new ZipArchive;
+
         if ($zip->open($zipPath) !== true) {
             $this->error("❌ Impossible d'ouvrir le fichier ZIP");
+
             return [];
         }
 
@@ -136,10 +140,10 @@ class ImportSenatSQL extends Command
             }
         }
 
-        $this->info("✅ " . count($sqlFiles) . " fichier(s) SQL trouvé(s)");
-        
+        $this->info('✅ '.count($sqlFiles).' fichier(s) SQL trouvé(s)');
+
         foreach ($sqlFiles as $file) {
-            $this->line("   - " . basename($file));
+            $this->line('   - '.basename($file));
         }
 
         return $sqlFiles;
@@ -147,23 +151,23 @@ class ImportSenatSQL extends Command
 
     private function analyzeSQL(array $sqlFiles, array $config): int
     {
-        $this->info("🔍 ANALYSE DE LA STRUCTURE SQL");
+        $this->info('🔍 ANALYSE DE LA STRUCTURE SQL');
         $this->newLine();
 
         foreach ($sqlFiles as $sqlFile) {
-            $this->info("📄 Fichier : " . basename($sqlFile));
-            
+            $this->info('📄 Fichier : '.basename($sqlFile));
+
             $content = file_get_contents($sqlFile);
             $lines = explode("\n", $content);
-            
+
             // Extraire les CREATE TABLE
             $tables = [];
             $currentTable = null;
             $currentColumns = [];
-            
+
             foreach ($lines as $line) {
                 $line = trim($line);
-                
+
                 if (preg_match('/CREATE TABLE\s+(\w+)/i', $line, $matches)) {
                     if ($currentTable) {
                         $tables[$currentTable] = $currentColumns;
@@ -171,27 +175,27 @@ class ImportSenatSQL extends Command
                     $currentTable = $matches[1];
                     $currentColumns = [];
                 }
-                
+
                 if ($currentTable && preg_match('/^\s*(\w+)\s+(VARCHAR|INTEGER|TEXT|DATE|TIMESTAMP|BOOLEAN)/i', $line, $matches)) {
                     $currentColumns[] = [
                         'name' => $matches[1],
                         'type' => $matches[2],
                     ];
                 }
-                
+
                 if ($currentTable && preg_match('/\);$/', $line)) {
                     $tables[$currentTable] = $currentColumns;
                     $currentTable = null;
                     $currentColumns = [];
                 }
             }
-            
+
             // Afficher les tables
             foreach ($tables as $tableName => $columns) {
                 $this->newLine();
                 $this->line("📊 Table : <fg=cyan>{$tableName}</>");
-                $this->line("   Colonnes : " . count($columns));
-                
+                $this->line('   Colonnes : '.count($columns));
+
                 foreach ($columns as $col) {
                     $this->line("   - {$col['name']} ({$col['type']})");
                 }
@@ -199,46 +203,48 @@ class ImportSenatSQL extends Command
         }
 
         $this->newLine();
-        $this->info("✅ Analyse terminée");
+        $this->info('✅ Analyse terminée');
         $this->newLine();
-        $this->warn("💡 Pour importer les données, relancez sans --analyze");
-        
+        $this->warn('💡 Pour importer les données, relancez sans --analyze');
+
         return Command::SUCCESS;
     }
 
     private function importSQL(array $sqlFiles, array $config, bool $fresh): int
     {
-        $this->warn("⚠️  IMPORT SQL DIRECT");
-        $this->warn("   Cette opération va créer/modifier des tables PostgreSQL directement.");
-        
-        if (!$this->confirm("Voulez-vous continuer ?", false)) {
-            $this->info("❌ Annulé");
+        $this->warn('⚠️  IMPORT SQL DIRECT');
+        $this->warn('   Cette opération va créer/modifier des tables PostgreSQL directement.');
+
+        if (! $this->confirm('Voulez-vous continuer ?', false)) {
+            $this->info('❌ Annulé');
+
             return Command::FAILURE;
         }
 
         $prefix = $config['table_prefix'] ?? '';
 
         foreach ($sqlFiles as $sqlFile) {
-            $this->info("📥 Import de " . basename($sqlFile) . "...");
-            
+            $this->info('📥 Import de '.basename($sqlFile).'...');
+
             // Transformer le SQL pour ajouter les préfixes
             $this->line("🔄 Transformation du SQL (ajout préfixe : {$prefix})...");
             $transformedSqlFile = $this->transformSQLWithPrefix($sqlFile, $prefix);
-            
-            if (!$transformedSqlFile) {
-                $this->error("❌ Erreur lors de la transformation du SQL");
+
+            if (! $transformedSqlFile) {
+                $this->error('❌ Erreur lors de la transformation du SQL');
+
                 continue;
             }
-            
+
             // Utiliser psql directement pour éviter les problèmes de mémoire PHP
             $dbConfig = config('database.connections.pgsql');
-            
+
             $host = $dbConfig['host'];
             $port = $dbConfig['port'];
             $database = $dbConfig['database'];
             $username = $dbConfig['username'];
             $password = $dbConfig['password'];
-            
+
             // Construire la commande psql
             $command = sprintf(
                 'PGPASSWORD=%s psql -h %s -p %s -U %s -d %s -f %s 2>&1',
@@ -249,27 +255,27 @@ class ImportSenatSQL extends Command
                 escapeshellarg($database),
                 escapeshellarg($transformedSqlFile)
             );
-            
-            $this->line("🔧 Exécution via psql (cela peut prendre plusieurs minutes)...");
-            
+
+            $this->line('🔧 Exécution via psql (cela peut prendre plusieurs minutes)...');
+
             // Exécuter la commande
             $output = [];
             $returnVar = 0;
             exec($command, $output, $returnVar);
-            
+
             // Nettoyer le fichier temporaire
             @unlink($transformedSqlFile);
-            
+
             if ($returnVar === 0) {
-                $this->info("✅ Import réussi : " . basename($sqlFile));
+                $this->info('✅ Import réussi : '.basename($sqlFile));
             } else {
-                $this->error("❌ Erreur lors de l'import de " . basename($sqlFile));
+                $this->error("❌ Erreur lors de l'import de ".basename($sqlFile));
                 $this->error("Code retour : {$returnVar}");
-                
+
                 // Afficher les dernières lignes d'erreur
                 $errorLines = array_slice($output, -10);
                 foreach ($errorLines as $line) {
-                    $this->line("  " . $line);
+                    $this->line('  '.$line);
                 }
             }
             $this->newLine();
@@ -277,26 +283,26 @@ class ImportSenatSQL extends Command
 
         // Afficher les statistiques
         $this->newLine();
-        $this->info("📊 Vérification des tables importées...");
-        
+        $this->info('📊 Vérification des tables importées...');
+
         try {
             $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename LIMIT 20");
-            
-            $this->line("   Échantillon des tables créées :");
+
+            $this->line('   Échantillon des tables créées :');
             foreach (array_slice($tables, 0, 10) as $table) {
                 $this->line("   ✓ {$table->tablename}");
             }
-            
+
             if (count($tables) > 10) {
-                $this->line("   ... et " . (count($tables) - 10) . " autres tables");
+                $this->line('   ... et '.(count($tables) - 10).' autres tables');
             }
         } catch (\Exception $e) {
-            $this->warn("   Impossible d'afficher les tables : " . $e->getMessage());
+            $this->warn("   Impossible d'afficher les tables : ".$e->getMessage());
         }
 
         return Command::SUCCESS;
     }
-    
+
     /**
      * Transforme un fichier SQL pour ajouter un préfixe aux noms de tables
      * Traite le fichier en streaming pour éviter les problèmes de mémoire
@@ -311,26 +317,26 @@ class ImportSenatSQL extends Command
         if (empty($prefix)) {
             return $sqlFile;
         }
-        
-        $tempFile = storage_path('app/temp_' . basename($sqlFile));
-        
+
+        $tempFile = storage_path('app/temp_'.basename($sqlFile));
+
         try {
             $input = fopen($sqlFile, 'r');
             $output = fopen($tempFile, 'w');
-            
-            if (!$input || !$output) {
+
+            if (! $input || ! $output) {
                 throw new \Exception("Impossible d'ouvrir les fichiers");
             }
-            
+
             $lineCount = 0;
             $transformedCount = 0;
             $inCopy = false;
             $currentStagingTable = null;
             $currentRealTable = null;
-            
+
             while (($line = fgets($input)) !== false) {
                 $lineCount++;
-                
+
                 // CREATE TABLE -> CREATE TABLE IF NOT EXISTS (table conservée entre imports)
                 if (preg_match('/^CREATE TABLE\s+(\w+)/i', $line, $matches)) {
                     $tableName = $matches[1];
@@ -342,7 +348,7 @@ class ImportSenatSQL extends Command
                     );
                     $transformedCount++;
                 }
-                
+
                 // ALTER TABLE avec préfixe
                 if (preg_match('/^ALTER TABLE\s+(\w+)/i', $line, $matches)) {
                     $tableName = $matches[1];
@@ -353,16 +359,16 @@ class ImportSenatSQL extends Command
                     );
                     $transformedCount++;
                 }
-                
+
                 // COPY -> redirigé vers une table staging temporaire
                 if (preg_match('/^COPY\s+(\w+)/i', $line, $matches)) {
                     $tableName = $matches[1];
                     $currentRealTable = "{$prefix}{$tableName}";
                     $currentStagingTable = "_stg_{$prefix}{$tableName}";
-                    
+
                     fwrite($output, "DROP TABLE IF EXISTS {$currentStagingTable};\n");
                     fwrite($output, "CREATE TEMP TABLE {$currentStagingTable} (LIKE {$currentRealTable} INCLUDING DEFAULTS);\n");
-                    
+
                     $line = str_replace(
                         "COPY {$tableName}",
                         "COPY {$currentStagingTable}",
@@ -371,7 +377,7 @@ class ImportSenatSQL extends Command
                     $inCopy = true;
                     $transformedCount++;
                 }
-                
+
                 // Fin du bloc COPY (marqueur \.) -> upsert staging vers table réelle
                 if ($inCopy && trim($line) === '\\.') {
                     fwrite($output, $line);
@@ -388,13 +394,14 @@ class ImportSenatSQL extends Command
                     $currentStagingTable = null;
                     $currentRealTable = null;
                     $transformedCount++;
-                    
+
                     if ($lineCount % 10000 === 0) {
                         $this->line("   ... {$lineCount} lignes traitées, {$transformedCount} transformations");
                     }
+
                     continue;
                 }
-                
+
                 // CREATE INDEX ... ON table
                 if (preg_match('/ON\s+(\w+)\s+USING/i', $line, $matches)) {
                     $tableName = $matches[1];
@@ -404,7 +411,7 @@ class ImportSenatSQL extends Command
                         $line
                     );
                 }
-                
+
                 // FOREIGN KEY REFERENCES
                 if (preg_match('/REFERENCES\s+(\w+)\s*\(/i', $line, $matches)) {
                     $tableName = $matches[1];
@@ -414,30 +421,30 @@ class ImportSenatSQL extends Command
                         $line
                     );
                 }
-                
+
                 fwrite($output, $line);
-                
+
                 if ($lineCount % 10000 === 0) {
                     $this->line("   ... {$lineCount} lignes traitées, {$transformedCount} transformations");
                 }
             }
-            
+
             fclose($input);
             fclose($output);
-            
+
             $this->line("   ✓ {$lineCount} lignes traitées, {$transformedCount} transformations (mode incrémental)");
-            
+
             return $tempFile;
-            
+
         } catch (\Exception $e) {
-            $this->error("   Erreur transformation : " . $e->getMessage());
+            $this->error('   Erreur transformation : '.$e->getMessage());
             if (file_exists($tempFile)) {
                 @unlink($tempFile);
             }
+
             return null;
         }
     }
-
 
     /**
      * Liste les bases de données disponibles
@@ -455,11 +462,12 @@ class ImportSenatSQL extends Command
             ['Type', 'Description', 'Préfixe', 'Tables principales'],
             collect($databases)->map(function ($config, $type) {
                 $tables = array_keys($config['tables'] ?? []);
+
                 return [
                     $type,
                     $config['description'],
                     $config['table_prefix'],
-                    implode(', ', array_slice($tables, 0, 4)) . (count($tables) > 4 ? '...' : ''),
+                    implode(', ', array_slice($tables, 0, 4)).(count($tables) > 4 ? '...' : ''),
                 ];
             })->toArray()
         );
@@ -475,4 +483,3 @@ class ImportSenatSQL extends Command
         return Command::SUCCESS;
     }
 }
-

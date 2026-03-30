@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE IF EXISTS senateurs_historique_groupes RENAME TO senateurs_historique_groupes_backup_old");
-        
+        if (! Schema::hasTable('senat_senateurs_memgrpsen')) {
+            return;
+        }
+
+        DB::statement('ALTER TABLE IF EXISTS senateurs_historique_groupes RENAME TO senateurs_historique_groupes_backup_old');
+
         DB::statement("
             CREATE OR REPLACE VIEW senateurs_historique_groupes AS
             SELECT 
@@ -36,8 +41,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS senateurs_historique_groupes");
-        DB::statement("ALTER TABLE IF EXISTS senateurs_historique_groupes_backup_old RENAME TO senateurs_historique_groupes");
+        DB::statement('DROP VIEW IF EXISTS senateurs_historique_groupes');
+        DB::statement('ALTER TABLE IF EXISTS senateurs_historique_groupes_backup_old RENAME TO senateurs_historique_groupes');
     }
 };
-

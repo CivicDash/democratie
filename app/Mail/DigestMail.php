@@ -3,26 +3,35 @@
 namespace App\Mail;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Carbon\Carbon;
 
 class DigestMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public User $user;
+
     public string $period; // 'daily', 'weekly'
+
     public Carbon $startDate;
+
     public Carbon $endDate;
+
     public array $newVotes;
+
     public array $newInterpellations;
+
     public array $eluResponses;
+
     public array $popularTopics;
+
     public int $totalNotifications;
+
     public string $dashboardUrl;
 
     /**
@@ -57,7 +66,7 @@ class DigestMail extends Mailable
     public function envelope(): Envelope
     {
         $periodLabel = $this->period === 'daily' ? 'quotidien' : 'hebdomadaire';
-        
+
         return new Envelope(
             subject: "📰 Votre récap {$periodLabel} CivicDash",
         );

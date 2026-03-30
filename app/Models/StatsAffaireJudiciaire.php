@@ -45,6 +45,7 @@ class StatsAffaireJudiciaire extends Model
         } else {
             $q->whereNull('scope_value');
         }
+
         return $q;
     }
 }

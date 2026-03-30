@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 class SeedModerationWords extends Command
 {
     protected $signature = 'moderation:seed {--force : Forcer même si des mots existent déjà}';
+
     protected $description = 'Initialise les mots bannis et les mots gentils de remplacement';
 
     public function handle(ContentModerationService $moderationService): int

@@ -2,28 +2,28 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
-use App\Services\Hatvp\HatvpDataDownloader;
-use App\Services\Hatvp\HatvpXmlParser;
-use App\Models\HatvpDeclaration;
-use App\Models\HatvpMandatElectif;
-use App\Models\HatvpFonctionBenevole;
-use App\Models\HatvpParticipationDirigeante;
-use App\Models\HatvpParticipationFinanciere;
-use App\Models\HatvpCollaborateur;
 use App\Models\HatvpActiviteConsultant;
 use App\Models\HatvpActiviteProfessionnelle;
+use App\Models\HatvpCollaborateur;
+use App\Models\HatvpDeclaration;
+use App\Models\HatvpFonctionBenevole;
 use App\Models\HatvpImmeuble;
-use App\Models\HatvpVehicule;
-use App\Models\HatvpRevenu;
+use App\Models\HatvpMandatElectif;
+use App\Models\HatvpParticipationDirigeante;
+use App\Models\HatvpParticipationFinanciere;
 use App\Models\HatvpRemunerationActivitePro;
 use App\Models\HatvpRemunerationConsultant;
 use App\Models\HatvpRemunerationDirigeant;
+use App\Models\HatvpRevenu;
+use App\Models\HatvpVehicule;
+use App\Services\Hatvp\HatvpDataDownloader;
+use App\Services\Hatvp\HatvpXmlParser;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Commande de synchronisation des données HATVP
- * 
+ *
  * Usage :
  *   php artisan hatvp:sync                    # Synchroniser toutes les déclarations
  *   php artisan hatvp:sync --parlementaires   # Uniquement députés et sénateurs
@@ -46,10 +46,15 @@ class SyncHatvpDataCommand extends Command
     protected $description = 'Synchronise les données Open Data de la HATVP (déclarations d\'intérêts et de patrimoine)';
 
     private HatvpDataDownloader $downloader;
+
     private HatvpXmlParser $parser;
+
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $errors = 0;
+
     private int $detailsImported = 0;
 
     public function __construct()
@@ -59,8 +64,8 @@ class SyncHatvpDataCommand extends Command
 
     public function handle(): int
     {
-        $this->downloader = new HatvpDataDownloader();
-        $this->parser = new HatvpXmlParser();
+        $this->downloader = new HatvpDataDownloader;
+        $this->parser = new HatvpXmlParser;
 
         $this->info('');
         $this->info('🏛️  Synchronisation des données HATVP');
@@ -102,14 +107,14 @@ class SyncHatvpDataCommand extends Command
 
         // Statistiques du cache
         $cacheStats = $this->downloader->getCacheStats();
-        
+
         $this->table(
             ['Élément', 'Valeur'],
             [
                 ['Fichier declarations.xml', $cacheStats['declarations']['exists'] ? '✅ Présent' : '❌ Absent'],
-                ['Taille', $cacheStats['declarations']['size_mb'] . ' Mo'],
+                ['Taille', $cacheStats['declarations']['size_mb'].' Mo'],
                 ['Dernière modification', $cacheStats['declarations']['modified'] ?? '-'],
-                ['Âge', ($cacheStats['declarations']['age_hours'] ?? '-') . ' heures'],
+                ['Âge', ($cacheStats['declarations']['age_hours'] ?? '-').' heures'],
                 ['Cache valide', $cacheStats['declarations']['cache_valid'] ? '✅' : '❌'],
                 ['Dossiers individuels', $cacheStats['dossiers_count']],
             ]
@@ -118,7 +123,7 @@ class SyncHatvpDataCommand extends Command
         // Statistiques en base
         $this->newLine();
         $this->info('📋 Données en base :');
-        
+
         try {
             $stats = [
                 ['Déclarations', HatvpDeclaration::count()],
@@ -131,7 +136,7 @@ class SyncHatvpDataCommand extends Command
                 ['Immeubles', HatvpImmeuble::count()],
                 ['Véhicules', HatvpVehicule::count()],
             ];
-            
+
             $this->table(['Élément', 'Nombre'], $stats);
         } catch (\Exception $e) {
             $this->warn('   Tables non créées. Exécutez : php artisan migrate');
@@ -156,8 +161,9 @@ class SyncHatvpDataCommand extends Command
         $this->info('📥 Téléchargement du fichier global...');
         $xmlFile = $this->downloader->downloadAllDeclarations($force);
 
-        if (!$xmlFile) {
+        if (! $xmlFile) {
             $this->error('❌ Impossible de télécharger les déclarations');
+
             return Command::FAILURE;
         }
 
@@ -167,12 +173,12 @@ class SyncHatvpDataCommand extends Command
         $this->info('📊 Analyse de l\'index...');
         $declarations = $this->downloader->parseDeclarationsIndex($xmlFile);
 
-        $this->info("   Total : " . count($declarations) . " déclarations");
+        $this->info('   Total : '.count($declarations).' déclarations');
 
         // Filtrer les parlementaires si demandé
         if ($this->option('parlementaires')) {
             $declarations = $this->downloader->filterParlementaires($declarations);
-            $this->info("   Parlementaires : " . count($declarations));
+            $this->info('   Parlementaires : '.count($declarations));
         }
 
         // Filtrer par type si demandé
@@ -181,7 +187,7 @@ class SyncHatvpDataCommand extends Command
             $declarations = array_filter($declarations, function ($d) use ($type) {
                 return strtolower($d['code_type_mandat'] ?? '') === strtolower($type);
             });
-            $this->info("   Type '{$type}' : " . count($declarations));
+            $this->info("   Type '{$type}' : ".count($declarations));
         }
 
         // Limiter si demandé
@@ -236,9 +242,10 @@ class SyncHatvpDataCommand extends Command
         $this->newLine();
 
         // Vérifier que les tables existent
-        if (!$this->checkTablesExist()) {
+        if (! $this->checkTablesExist()) {
             $this->error('❌ Les tables HATVP n\'existent pas.');
             $this->warn('   Exécutez : php artisan migrate');
+
             return Command::FAILURE;
         }
 
@@ -246,8 +253,9 @@ class SyncHatvpDataCommand extends Command
         $this->info('📥 Téléchargement du fichier global...');
         $xmlFile = $this->downloader->downloadAllDeclarations($force);
 
-        if (!$xmlFile) {
+        if (! $xmlFile) {
             $this->error('❌ Impossible de télécharger les déclarations');
+
             return Command::FAILURE;
         }
 
@@ -264,7 +272,7 @@ class SyncHatvpDataCommand extends Command
         // Filtrer les parlementaires si demandé
         if ($this->option('parlementaires')) {
             $declarations = $this->downloader->filterParlementaires($declarations);
-            $this->info("   Parlementaires : " . count($declarations));
+            $this->info('   Parlementaires : '.count($declarations));
         }
 
         // Filtrer par type si demandé
@@ -273,7 +281,7 @@ class SyncHatvpDataCommand extends Command
             $declarations = array_filter($declarations, function ($d) use ($type) {
                 return strtolower($d['code_type_mandat'] ?? '') === strtolower($type);
             });
-            $this->info("   Type '{$type}' : " . count($declarations));
+            $this->info("   Type '{$type}' : ".count($declarations));
         }
 
         // Limiter si demandé
@@ -285,7 +293,7 @@ class SyncHatvpDataCommand extends Command
         // Import
         $this->newLine();
         $this->info('🔄 Import en base...');
-        
+
         $bar = $this->output->createProgressBar(count($declarations));
         $bar->start();
 
@@ -304,7 +312,7 @@ class SyncHatvpDataCommand extends Command
 
         // Résumé
         $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        $this->info("✅ Import terminé");
+        $this->info('✅ Import terminé');
         $this->line("   - Nouvelles : {$this->imported}");
         $this->line("   - Mises à jour : {$this->updated}");
         if ($this->errors > 0) {
@@ -325,6 +333,7 @@ class SyncHatvpDataCommand extends Command
         if ($existing) {
             // Mise à jour si la date de dépôt a changé
             $this->updated++;
+
             return;
         }
 
@@ -367,8 +376,9 @@ class SyncHatvpDataCommand extends Command
         $this->info('📥 Chargement du fichier global declarations.xml...');
         $xmlFile = $this->downloader->downloadAllDeclarations($force);
 
-        if (!$xmlFile || !file_exists($xmlFile)) {
+        if (! $xmlFile || ! file_exists($xmlFile)) {
             $this->error('❌ Impossible de charger le fichier declarations.xml');
+
             return Command::FAILURE;
         }
 
@@ -378,52 +388,56 @@ class SyncHatvpDataCommand extends Command
 
         // Parser le fichier XML avec XMLReader pour les gros fichiers
         $this->info('🔄 Parsing et import des détails...');
-        
-        $reader = new \XMLReader();
+
+        $reader = new \XMLReader;
         $reader->open($xmlFile);
-        
+
         $count = 0;
         $imported = 0;
         $skipped = 0;
-        
+
         $parlementairesOnly = $this->option('parlementaires');
         $typeFilter = $this->option('type');
 
         while ($reader->read()) {
             if ($reader->nodeType === \XMLReader::ELEMENT && $reader->name === 'declaration') {
                 $node = $reader->readOuterXml();
-                
+
                 // Parser la déclaration complète
                 $data = $this->parser->parseContent($node);
-                
-                if (!$data) {
+
+                if (! $data) {
                     $skipped++;
+
                     continue;
                 }
 
                 // Filtrer les parlementaires si demandé
                 $typeMandat = strtolower($data['general']['code_type_mandat_fichier'] ?? '');
-                
-                if ($parlementairesOnly && !in_array($typeMandat, ['senateur', 'depute'])) {
+
+                if ($parlementairesOnly && ! in_array($typeMandat, ['senateur', 'depute'])) {
                     $skipped++;
+
                     continue;
                 }
 
                 if ($typeFilter && $typeMandat !== strtolower($typeFilter)) {
                     $skipped++;
+
                     continue;
                 }
 
                 // Trouver ou créer la déclaration en base
                 $uuid = $data['uuid'] ?? null;
-                if (!$uuid) {
+                if (! $uuid) {
                     $skipped++;
+
                     continue;
                 }
 
                 $declaration = HatvpDeclaration::where('uuid', $uuid)->first();
-                
-                if (!$declaration) {
+
+                if (! $declaration) {
                     // Créer la déclaration si elle n'existe pas
                     $declarant = $data['general']['declarant'] ?? [];
                     $declaration = HatvpDeclaration::create([
@@ -445,19 +459,19 @@ class SyncHatvpDataCommand extends Command
                     $stats = $this->importDeclarationDetailsFromData($declaration, $data);
                     $imported++;
                     $this->detailsImported++;
-                    
+
                     if ($verboseDetails) {
                         $this->line("   ✓ {$declaration->nom} {$declaration->prenom} - {$stats['mandats']} mandats, {$stats['collaborateurs']} collab., {$stats['revenus_total']}€");
                     }
                 } catch (\Exception $e) {
                     $this->errors++;
                     if ($verboseDetails) {
-                        $this->error("   ✗ {$declaration->nom} : " . $e->getMessage());
+                        $this->error("   ✗ {$declaration->nom} : ".$e->getMessage());
                     }
                 }
 
                 $count++;
-                
+
                 if ($count % 100 === 0) {
                     $this->line("   Traité : {$count} déclarations...");
                 }
@@ -468,12 +482,12 @@ class SyncHatvpDataCommand extends Command
                 }
             }
         }
-        
+
         $reader->close();
 
         $this->newLine();
         $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        $this->info("✅ Import des détails terminé");
+        $this->info('✅ Import des détails terminé');
         $this->line("   - Traitées : {$count}");
         $this->line("   - Enrichies : {$this->detailsImported}");
         $this->line("   - Ignorées : {$skipped}");
@@ -500,14 +514,14 @@ class SyncHatvpDataCommand extends Command
         // Transaction pour l'intégrité
         DB::transaction(function () use ($declaration, $data, &$stats) {
             // 1. Importer les mandats électifs avec rémunérations
-            if (!empty($data['mandats_electifs']['items'])) {
+            if (! empty($data['mandats_electifs']['items'])) {
                 foreach ($data['mandats_electifs']['items'] as $mandat) {
                     $mandatModel = $this->importMandatElectif($declaration, $mandat);
                     if ($mandatModel) {
                         $stats['mandats']++;
-                        
+
                         // Importer les rémunérations du mandat
-                        if (!empty($mandat['remunerations']['montants'])) {
+                        if (! empty($mandat['remunerations']['montants'])) {
                             foreach ($mandat['remunerations']['montants'] as $rem) {
                                 $this->importRemunerationMandat($mandatModel, $rem, $mandat['remunerations']['brut_net'] ?? null);
                                 $stats['revenus_total'] += $rem['montant'] ?? 0;
@@ -518,7 +532,7 @@ class SyncHatvpDataCommand extends Command
             }
 
             // 2. Importer les collaborateurs
-            if (!empty($data['collaborateurs']['items'])) {
+            if (! empty($data['collaborateurs']['items'])) {
                 foreach ($data['collaborateurs']['items'] as $collab) {
                     if ($this->importCollaborateur($declaration, $collab)) {
                         $stats['collaborateurs']++;
@@ -527,14 +541,14 @@ class SyncHatvpDataCommand extends Command
             }
 
             // 3. Importer les activités professionnelles avec rémunérations
-            if (!empty($data['activites_professionnelles']['items'])) {
+            if (! empty($data['activites_professionnelles']['items'])) {
                 foreach ($data['activites_professionnelles']['items'] as $activite) {
                     $activiteModel = $this->importActiviteProfessionnelle($declaration, $activite);
                     if ($activiteModel) {
                         $stats['activites_pro']++;
-                        
+
                         // Importer les rémunérations
-                        if (!empty($activite['remunerations']['montants'])) {
+                        if (! empty($activite['remunerations']['montants'])) {
                             foreach ($activite['remunerations']['montants'] as $rem) {
                                 HatvpRemunerationActivitePro::updateOrCreate(
                                     [
@@ -554,12 +568,12 @@ class SyncHatvpDataCommand extends Command
             }
 
             // 4. Importer les activités de consultant avec rémunérations
-            if (!empty($data['activites_consultant']['items'])) {
+            if (! empty($data['activites_consultant']['items'])) {
                 foreach ($data['activites_consultant']['items'] as $consultant) {
                     $consultantModel = $this->importActiviteConsultant($declaration, $consultant);
                     if ($consultantModel) {
                         // Importer les rémunérations
-                        if (!empty($consultant['remunerations']['montants'])) {
+                        if (! empty($consultant['remunerations']['montants'])) {
                             foreach ($consultant['remunerations']['montants'] as $rem) {
                                 HatvpRemunerationConsultant::updateOrCreate(
                                     [
@@ -579,14 +593,14 @@ class SyncHatvpDataCommand extends Command
             }
 
             // 5. Importer les participations dirigeantes avec rémunérations
-            if (!empty($data['participations_dirigeantes']['items'])) {
+            if (! empty($data['participations_dirigeantes']['items'])) {
                 foreach ($data['participations_dirigeantes']['items'] as $dirigeant) {
                     $dirigeantModel = $this->importParticipationDirigeante($declaration, $dirigeant);
                     if ($dirigeantModel) {
                         $stats['dirigeant']++;
-                        
+
                         // Importer les rémunérations
-                        if (!empty($dirigeant['remunerations']['montants'])) {
+                        if (! empty($dirigeant['remunerations']['montants'])) {
                             foreach ($dirigeant['remunerations']['montants'] as $rem) {
                                 HatvpRemunerationDirigeant::updateOrCreate(
                                     [
@@ -606,35 +620,35 @@ class SyncHatvpDataCommand extends Command
             }
 
             // 6. Importer les fonctions bénévoles
-            if (!empty($data['fonctions_benevoles']['items'])) {
+            if (! empty($data['fonctions_benevoles']['items'])) {
                 foreach ($data['fonctions_benevoles']['items'] as $benevole) {
                     $this->importFonctionBenevole($declaration, $benevole);
                 }
             }
 
             // 7. Importer les participations financières
-            if (!empty($data['participations_financieres']['items'])) {
+            if (! empty($data['participations_financieres']['items'])) {
                 foreach ($data['participations_financieres']['items'] as $financiere) {
                     $this->importParticipationFinanciere($declaration, $financiere);
                 }
             }
 
             // 8. Importer les immeubles (patrimoine)
-            if (!empty($data['immeubles']['items'])) {
+            if (! empty($data['immeubles']['items'])) {
                 foreach ($data['immeubles']['items'] as $immeuble) {
                     $this->importImmeuble($declaration, $immeuble);
                 }
             }
 
             // 9. Importer les véhicules (patrimoine)
-            if (!empty($data['vehicules']['items'])) {
+            if (! empty($data['vehicules']['items'])) {
                 foreach ($data['vehicules']['items'] as $vehicule) {
                     $this->importVehicule($declaration, $vehicule);
                 }
             }
 
             // 10. Importer les revenus annuels
-            if (!empty($data['revenus']['items'])) {
+            if (! empty($data['revenus']['items'])) {
                 foreach ($data['revenus']['items'] as $revenu) {
                     $this->importRevenu($declaration, $revenu);
                 }
@@ -926,8 +940,9 @@ class SyncHatvpDataCommand extends Command
         // Télécharger le fichier global
         $xmlFile = $this->downloader->downloadAllDeclarations($force);
 
-        if (!$xmlFile) {
+        if (! $xmlFile) {
             $this->error('❌ Impossible de télécharger les déclarations');
+
             return Command::FAILURE;
         }
 
@@ -944,7 +959,7 @@ class SyncHatvpDataCommand extends Command
         // Filtrer les parlementaires si demandé
         if ($this->option('parlementaires')) {
             $declarations = $this->downloader->filterParlementaires($declarations);
-            $this->info("   Parlementaires : " . count($declarations));
+            $this->info('   Parlementaires : '.count($declarations));
         }
 
         // Filtrer par type si demandé
@@ -953,7 +968,7 @@ class SyncHatvpDataCommand extends Command
             $declarations = array_filter($declarations, function ($d) use ($type) {
                 return strtolower($d['code_type_mandat'] ?? '') === strtolower($type);
             });
-            $this->info("   Type '{$type}' : " . count($declarations));
+            $this->info("   Type '{$type}' : ".count($declarations));
         }
 
         // Afficher un résumé
@@ -962,7 +977,7 @@ class SyncHatvpDataCommand extends Command
 
         $byType = [];
         foreach ($declarations as $d) {
-            $key = ($d['code_type_mandat'] ?? 'unknown') . '_' . ($d['type_declaration'] ?? 'unknown');
+            $key = ($d['code_type_mandat'] ?? 'unknown').'_'.($d['type_declaration'] ?? 'unknown');
             $byType[$key] = ($byType[$key] ?? 0) + 1;
         }
 
@@ -970,6 +985,7 @@ class SyncHatvpDataCommand extends Command
             ['Type Mandat', 'Type Déclaration', 'Nombre'],
             collect($byType)->map(function ($count, $key) {
                 [$mandat, $decl] = explode('_', $key);
+
                 return [$mandat, $decl, $count];
             })->sortBy(0)->values()->toArray()
         );
@@ -1001,7 +1017,7 @@ class SyncHatvpDataCommand extends Command
      */
     private function parseDate(?string $value): ?string
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 

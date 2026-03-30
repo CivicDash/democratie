@@ -35,6 +35,7 @@ class DetectAffairesWikipedia extends Command
     ];
 
     private int $detected = 0;
+
     private int $duplicates = 0;
 
     public function handle(): int
@@ -171,7 +172,7 @@ class DetectAffairesWikipedia extends Command
                 'nom' => $maire->nom,
                 'prenom' => $maire->prenom,
                 'parti_politique' => $maire->nuance_libelle,
-                'fonction_au_moment' => 'Maire de ' . $maire->nom_commune,
+                'fonction_au_moment' => 'Maire de '.$maire->nom_commune,
             ], $maire->wikipedia_url, $dryRun);
             $bar->advance();
         }
@@ -206,17 +207,19 @@ class DetectAffairesWikipedia extends Command
                         $q->where('maire_id', $eluData['maire_id']);
                     }
                 })->where('source_detection', 'wikipedia_nlp')
-                  ->where('titre', $titre)
-                  ->exists();
+                    ->where('titre', $titre)
+                    ->exists();
 
                 if ($isDuplicate) {
                     $this->duplicates++;
+
                     return;
                 }
 
                 if ($dryRun) {
                     $this->line("  [DRY] {$eluData['prenom']} {$eluData['nom']} (conf={$confidence}) : {$titre}");
                     $this->detected++;
+
                     return;
                 }
 
@@ -255,6 +258,7 @@ class DetectAffairesWikipedia extends Command
                 ]);
 
                 $this->detected++;
+
                 return;
             }
         }
@@ -268,6 +272,7 @@ class DetectAffairesWikipedia extends Command
                 return Str::limit(trim($sentence), 497);
             }
         }
+
         return Str::limit("{$eluData['prenom']} {$eluData['nom']} — {$match}", 497);
     }
 
@@ -298,6 +303,7 @@ class DetectAffairesWikipedia extends Command
                 return $type;
             }
         }
+
         return 'autre';
     }
 
@@ -316,6 +322,7 @@ class DetectAffairesWikipedia extends Command
         if (preg_match('/manquement|déclaration|probité/u', $text)) {
             return 'manquement';
         }
+
         return 'autre';
     }
 
@@ -343,6 +350,7 @@ class DetectAffairesWikipedia extends Command
         if (preg_match('/non[- ]lieu/u', $text)) {
             return 'non_lieu';
         }
+
         return 'en_cours';
     }
 }

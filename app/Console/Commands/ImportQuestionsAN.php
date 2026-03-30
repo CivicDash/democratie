@@ -4,9 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\QuestionAN;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
 class ImportQuestionsAN extends Command
@@ -20,8 +18,11 @@ class ImportQuestionsAN extends Command
     protected $description = 'Importe les Questions au Gouvernement depuis data.assemblee-nationale.fr';
 
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -35,17 +36,18 @@ class ImportQuestionsAN extends Command
 
         // URL du fichier ZIP
         $url = "https://data.assemblee-nationale.fr/static/openData/repository/{$legislature}/questions/questions_gouvernement/Questions_gouvernement.xml.zip";
-        
+
         // Téléchargement
         $zipPath = $this->downloadZip($url, $force);
-        if (!$zipPath) {
-            $this->error("❌ Impossible de télécharger le fichier ZIP");
+        if (! $zipPath) {
+            $this->error('❌ Impossible de télécharger le fichier ZIP');
+
             return Command::FAILURE;
         }
 
         // Fresh mode
         if ($fresh) {
-            $this->warn("⚠️  Mode --fresh : suppression des questions existantes...");
+            $this->warn('⚠️  Mode --fresh : suppression des questions existantes...');
             QuestionAN::where('legislature', $legislature)->delete();
         }
 
@@ -53,6 +55,7 @@ class ImportQuestionsAN extends Command
         $xmlFiles = $this->extractZip($zipPath);
         if (empty($xmlFiles)) {
             $this->error("❌ Aucun fichier XML trouvé dans l'archive");
+
             return Command::FAILURE;
         }
 
@@ -71,7 +74,7 @@ class ImportQuestionsAN extends Command
                 $this->processXmlFile($xmlFile);
             } catch (\Exception $e) {
                 $this->errors++;
-                $this->warn("\n⚠️  Erreur sur {$xmlFile}: " . $e->getMessage());
+                $this->warn("\n⚠️  Erreur sur {$xmlFile}: ".$e->getMessage());
             }
             $bar->advance();
         }
@@ -91,17 +94,18 @@ class ImportQuestionsAN extends Command
     private function downloadZip(string $url, bool $force): ?string
     {
         $storagePath = storage_path('app/an-data');
-        if (!is_dir($storagePath)) {
+        if (! is_dir($storagePath)) {
             mkdir($storagePath, 0755, true);
         }
 
-        $zipPath = $storagePath . '/questions_gouvernement.zip';
+        $zipPath = $storagePath.'/questions_gouvernement.zip';
 
         // Vérifier si le fichier existe et n'est pas trop vieux (24h)
-        if (!$force && file_exists($zipPath)) {
+        if (! $force && file_exists($zipPath)) {
             $age = time() - filemtime($zipPath);
             if ($age < 86400) { // 24 heures
-                $this->info("📦 Utilisation du cache (âge: " . round($age / 3600, 1) . "h)");
+                $this->info('📦 Utilisation du cache (âge: '.round($age / 3600, 1).'h)');
+
                 return $zipPath;
             }
         }
@@ -110,17 +114,20 @@ class ImportQuestionsAN extends Command
 
         try {
             $response = Http::timeout(120)->get($url);
-            
+
             if ($response->successful()) {
                 file_put_contents($zipPath, $response->body());
-                $this->info("✅ Téléchargement terminé (" . round(filesize($zipPath) / 1024 / 1024, 2) . " Mo)");
+                $this->info('✅ Téléchargement terminé ('.round(filesize($zipPath) / 1024 / 1024, 2).' Mo)');
+
                 return $zipPath;
             }
-            
-            $this->error("❌ Erreur HTTP: " . $response->status());
+
+            $this->error('❌ Erreur HTTP: '.$response->status());
+
             return null;
         } catch (\Exception $e) {
-            $this->error("❌ Erreur de téléchargement: " . $e->getMessage());
+            $this->error('❌ Erreur de téléchargement: '.$e->getMessage());
+
             return null;
         }
     }
@@ -128,16 +135,17 @@ class ImportQuestionsAN extends Command
     private function extractZip(string $zipPath): array
     {
         $extractPath = storage_path('app/an-data/questions_xml');
-        
+
         // Nettoyer le dossier d'extraction
         if (is_dir($extractPath)) {
             $this->deleteDirectory($extractPath);
         }
         mkdir($extractPath, 0755, true);
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($zipPath) !== true) {
             $this->error("❌ Impossible d'ouvrir l'archive ZIP");
+
             return [];
         }
 
@@ -167,21 +175,21 @@ class ImportQuestionsAN extends Command
     private function processXmlFile(string $xmlPath): void
     {
         $content = file_get_contents($xmlPath);
-        if (!$content) {
-            throw new \Exception("Impossible de lire le fichier");
+        if (! $content) {
+            throw new \Exception('Impossible de lire le fichier');
         }
 
         // Parser le XML
         $xml = @simplexml_load_string($content);
-        if (!$xml) {
-            throw new \Exception("XML invalide");
+        if (! $xml) {
+            throw new \Exception('XML invalide');
         }
 
         // Extraire les données
         $data = $this->parseQuestion($xml);
-        
-        if (!$data['uid']) {
-            throw new \Exception("UID manquant");
+
+        if (! $data['uid']) {
+            throw new \Exception('UID manquant');
         }
 
         // Upsert
@@ -198,7 +206,7 @@ class ImportQuestionsAN extends Command
     private function parseQuestion(\SimpleXMLElement $xml): array
     {
         $ns = $xml->getNamespaces(true);
-        
+
         // Identifiant
         $uid = (string) $xml->uid;
         $numero = (int) ($xml->identifiant->numero ?? 0);
@@ -288,13 +296,13 @@ class ImportQuestionsAN extends Command
 
     private function deleteDirectory(string $dir): void
     {
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             return;
         }
-        
+
         $files = array_diff(scandir($dir), ['.', '..']);
         foreach ($files as $file) {
-            $path = $dir . '/' . $file;
+            $path = $dir.'/'.$file;
             is_dir($path) ? $this->deleteDirectory($path) : unlink($path);
         }
         rmdir($dir);
@@ -318,10 +326,9 @@ class ImportQuestionsAN extends Command
         $total = QuestionAN::count();
         $repondues = QuestionAN::repondues()->count();
         $this->newLine();
-        $this->info("📈 Base de données :");
+        $this->info('📈 Base de données :');
         $this->info("   Total questions : {$total}");
         $this->info("   Répondues : {$repondues}");
-        $this->info("   En attente : " . ($total - $repondues));
+        $this->info('   En attente : '.($total - $repondues));
     }
 }
-

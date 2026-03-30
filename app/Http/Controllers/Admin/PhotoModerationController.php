@@ -32,7 +32,7 @@ class PhotoModerationController extends Controller
 
         $photos = $query->orderBy('profile_photo_submitted_at', 'desc')
             ->paginate(20)
-            ->through(fn($user) => [
+            ->through(fn ($user) => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
@@ -121,7 +121,7 @@ class PhotoModerationController extends Controller
         $history = ProfilePhotoModeration::with(['user:id,name,email', 'moderator:id,name'])
             ->orderBy('created_at', 'desc')
             ->paginate(50)
-            ->through(fn($mod) => [
+            ->through(fn ($mod) => [
                 'id' => $mod->id,
                 'user' => [
                     'id' => $mod->user->id,

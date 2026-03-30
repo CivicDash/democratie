@@ -23,15 +23,21 @@ class ImportResultatsMunicipales extends Command
     protected $description = 'Importe les résultats des élections municipales depuis data.gouv.fr';
 
     private const DATAGOUV_T1 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-premier-tour/20260320-164339/municipales-2026-resultats-communes-2026-03-20.csv';
+
     private const DATAGOUV_T2 = 'https://static.data.gouv.fr/resources/elections-municipales-2026-resultats-du-scond-tour/20260323-180124/municipales-2026-resultats-communes-2026-03-23-16h14.csv';
 
     private const FIXED_COLS = 18;
+
     private const LIST_BLOCK_SIZE = 13;
 
     private int $communesProcessed = 0;
+
     private int $listesProcessed = 0;
+
     private int $elusT1 = 0;
+
     private int $secondTour = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -47,7 +53,7 @@ class ImportResultatsMunicipales extends Command
         }
 
         $lines = $this->parseCsvLines($csvContent);
-        $this->info(count($lines) . ' communes trouvées');
+        $this->info(count($lines).' communes trouvées');
 
         $limit = $this->option('limit');
         if ($limit) {
@@ -64,16 +70,18 @@ class ImportResultatsMunicipales extends Command
                 $data = str_getcsv($line, ';', '"');
                 if (count($data) < self::FIXED_COLS + self::LIST_BLOCK_SIZE) {
                     $bar->advance();
+
                     continue;
                 }
 
                 if (trim($data[0], '"') === 'Code département') {
                     $bar->advance();
+
                     continue;
                 }
 
-                if (!$dryRun) {
-                    DB::transaction(fn() => $this->processCommune($data, $tour));
+                if (! $dryRun) {
+                    DB::transaction(fn () => $this->processCommune($data, $tour));
                 }
                 $this->communesProcessed++;
             } catch (\Exception $e) {
@@ -163,7 +171,7 @@ class ImportResultatsMunicipales extends Command
             $siegesCM = $this->parseIntNullable($data[$offset + 11] ?? '');
             $siegesCC = $this->parseIntNullable($data[$offset + 12] ?? '');
 
-            $eluFlag = !empty($eluRaw);
+            $eluFlag = ! empty($eluRaw);
 
             $listeOfficielle = ListeElectorale::where('commune_code_insee', $codeCommune)
                 ->where('numero_panneau', (int) $panneau)
@@ -217,7 +225,7 @@ class ImportResultatsMunicipales extends Command
             'nb_sieges_pourvus' => $totalSieges > 0 ? $totalSieges : null,
         ]);
 
-        if (in_array($statut, ['elu_t1', 'elu_t2']) && $listeGagnante && !$listeGagnante->elu) {
+        if (in_array($statut, ['elu_t1', 'elu_t2']) && $listeGagnante && ! $listeGagnante->elu) {
             $listeGagnante->update(['elu' => true]);
         }
 
@@ -236,7 +244,7 @@ class ImportResultatsMunicipales extends Command
         int $nbListes,
         int $totalSieges,
     ): string {
-        if (!$gagnante) {
+        if (! $gagnante) {
             return 'sans_candidat';
         }
 
@@ -255,6 +263,7 @@ class ImportResultatsMunicipales extends Command
             if ($pctExprimes > 50 && $pctInscrits >= 25) {
                 return 'elu_t1';
             }
+
             return 'second_tour';
         }
 
@@ -265,13 +274,17 @@ class ImportResultatsMunicipales extends Command
     {
         $val = trim($val, " \t\n\r\0\x0B\"");
         $val = str_replace([' ', '%', "\xc2\xa0"], '', $val);
+
         return (int) $val;
     }
 
     private function parseIntNullable(string $val): ?int
     {
         $val = trim($val, " \t\n\r\0\x0B\"");
-        if ($val === '') return null;
+        if ($val === '') {
+            return null;
+        }
+
         return (int) $val;
     }
 
@@ -280,14 +293,16 @@ class ImportResultatsMunicipales extends Command
         $val = trim($val, " \t\n\r\0\x0B\"");
         $val = str_replace(['%', ' ', "\xc2\xa0"], '', $val);
         $val = str_replace(',', '.', $val);
+
         return (float) $val;
     }
 
     private function loadCsv(int $tour): ?string
     {
         if ($file = $this->option('file')) {
-            if (!file_exists($file)) {
+            if (! file_exists($file)) {
                 $this->error("Fichier introuvable : {$file}");
+
                 return null;
             }
             $content = file_get_contents($file);
@@ -295,19 +310,22 @@ class ImportResultatsMunicipales extends Command
             $url = $this->option('url') ?? ($tour === 1 ? self::DATAGOUV_T1 : self::DATAGOUV_T2);
             if (empty($url)) {
                 $this->error("Aucune URL configurée pour le tour {$tour}. Utilisez --url= ou --file= pour fournir les données.");
+
                 return null;
             }
             $this->info("Téléchargement depuis : {$url}");
 
             try {
                 $response = Http::timeout(300)->get($url);
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     $this->error("Erreur HTTP : {$response->status()}");
+
                     return null;
                 }
                 $content = $response->body();
             } catch (\Exception $e) {
                 $this->error("Erreur de téléchargement : {$e->getMessage()}");
+
                 return null;
             }
         }
@@ -324,7 +342,8 @@ class ImportResultatsMunicipales extends Command
     {
         $lines = explode("\n", $content);
         array_shift($lines);
-        return array_filter($lines, fn($l) => trim($l) !== '');
+
+        return array_filter($lines, fn ($l) => trim($l) !== '');
     }
 
     private function displaySummary(int $tour, bool $dryRun): void

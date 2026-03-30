@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TypeLoi extends Model
 {
     protected $table = 'senat_dosleg_typloi';
+
     protected $primaryKey = 'typloicod';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -36,4 +40,3 @@ class TypeLoi extends Model
         return trim($this->typloilib ?? '');
     }
 }
-

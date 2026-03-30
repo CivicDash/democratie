@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Loi;
-use App\Models\LoiStats;
-use App\Models\EtatLoi;
-use App\Models\TypeLoi;
-use App\Models\ThematiqueLoi;
-use App\Models\Tag;
-use App\Models\ScrutinAN;
 use App\Models\AmendementAN;
 use App\Models\AmendementSenat;
 use App\Models\CitizenLawStats;
-use App\Models\Topic;
 use App\Models\CitizenLawVote;
+use App\Models\EtatLoi;
+use App\Models\Loi;
+use App\Models\LoiStats;
+use App\Models\ScrutinAN;
+use App\Models\Tag;
+use App\Models\Topic;
+use App\Models\TypeLoi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -42,15 +41,15 @@ class LoiController extends Controller
 
         $annee = $request->input('annee', 'all');
         if ($annee && $annee !== 'all') {
-            $query->whereRaw("EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi)) = ?", [$annee]);
+            $query->whereRaw('EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi)) = ?', [$annee]);
         }
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('loitit', 'ILIKE', "%{$search}%")
-                  ->orWhere('loiint', 'ILIKE', "%{$search}%")
-                  ->orWhere('numero', 'ILIKE', "%{$search}%");
+                    ->orWhere('loiint', 'ILIKE', "%{$search}%")
+                    ->orWhere('numero', 'ILIKE', "%{$search}%");
             });
         }
 
@@ -113,7 +112,7 @@ class LoiController extends Controller
         $types = TypeLoi::orderBy('typloilib')->get()->map(fn ($t) => [
             'code' => trim($t->typloicod),
             'libelle' => trim($t->typloilib ?? ''),
-        ])->filter(fn ($t) => !empty($t['libelle']));
+        ])->filter(fn ($t) => ! empty($t['libelle']));
 
         $annees = DB::table('senat_dosleg_loi')
             ->selectRaw('EXTRACT(YEAR FROM COALESCE(loidatjo, date_loi)) as annee')
@@ -151,7 +150,7 @@ class LoiController extends Controller
 
     /**
      * Détail d'une loi avec son parcours législatif
-     * 
+     *
      * Optimisations appliquées:
      * - Cache 1h sur données lourdes (dossier AN, amendements, parlementaires)
      * - Lazy-loading des amendements via API séparée
@@ -161,7 +160,7 @@ class LoiController extends Controller
     {
         $loicodTrim = trim($loicod);
         $cacheKey = "loi_show_{$loicodTrim}";
-        
+
         // Cache la loi avec ses relations (2 min)
         $loi = Cache::remember("{$cacheKey}_base", 120, function () use ($loicodTrim) {
             return Loi::with([
@@ -170,7 +169,7 @@ class LoiController extends Controller
                 'thematiques',
                 'lectures.typeLecture',
                 'lectures.passages',
-            ])->whereRaw("TRIM(loicod) = ?", [$loicodTrim])->firstOrFail();
+            ])->whereRaw('TRIM(loicod) = ?', [$loicodTrim])->firstOrFail();
         });
 
         // Construire le parcours législatif (cache 5 min)
@@ -198,11 +197,11 @@ class LoiController extends Controller
         ];
 
         // Calcul durée si on a des dates
-        if (!$stats['duree_jours'] && count($parcours) > 0) {
+        if (! $stats['duree_jours'] && count($parcours) > 0) {
             // Chercher la première date réelle dans le parcours
-            $premierPassage = collect($parcours)->first(fn($p) => !empty($p['date']));
-            
-            if ($premierPassage && !empty($premierPassage['date'])) {
+            $premierPassage = collect($parcours)->first(fn ($p) => ! empty($p['date']));
+
+            if ($premierPassage && ! empty($premierPassage['date'])) {
                 try {
                     $dateDebut = \Carbon\Carbon::parse($premierPassage['date']);
                     $dateFin = $loi->loidatjo ?? now();
@@ -211,7 +210,7 @@ class LoiController extends Controller
                     $stats['duree_jours'] = max(0, abs($duree));
                 } catch (\Exception $e) {
                     // Fallback: utiliser l'année de session
-                    if (!empty($premierPassage['session']) && $loi->loidatjo) {
+                    if (! empty($premierPassage['session']) && $loi->loidatjo) {
                         $anneeDebut = (int) $premierPassage['session'];
                         $dateDebut = \Carbon\Carbon::create($anneeDebut, 1, 1);
                         $stats['duree_jours'] = max(0, abs($dateDebut->diffInDays($loi->loidatjo)));
@@ -238,18 +237,18 @@ class LoiController extends Controller
         // Scrutins AN liés (recherche par numéro ou titre)
         $scrutinsLies = collect();
         $searchTerms = [];
-        
+
         // Construire les termes de recherche
-        if (!empty($loi->numero)) {
+        if (! empty($loi->numero)) {
             $searchTerms[] = $loi->numero;
         }
-        
+
         // Extraire mots clés du titre (> 5 caractères)
         $titreMots = preg_split('/\s+/', $loi->loitit ?? '');
-        $motsSignificatifs = array_filter($titreMots, fn($m) => strlen($m) > 8);
+        $motsSignificatifs = array_filter($titreMots, fn ($m) => strlen($m) > 8);
         $motsSignificatifs = array_slice($motsSignificatifs, 0, 3);
-        
-        if (!empty($searchTerms) || !empty($motsSignificatifs)) {
+
+        if (! empty($searchTerms) || ! empty($motsSignificatifs)) {
             $scrutinsQuery = ScrutinAN::query()
                 ->where(function ($q) use ($searchTerms, $motsSignificatifs) {
                     foreach ($searchTerms as $term) {
@@ -263,20 +262,18 @@ class LoiController extends Controller
                 ->orderByRaw("CASE WHEN type_vote_code = 'SPS' THEN 0 ELSE 1 END")
                 ->orderByDesc('date_scrutin')
                 ->limit(30);
-            
+
             $scrutinsLies = $scrutinsQuery->get();
         }
-        
+
         // Catégoriser les scrutins
-        $scrutinsSolennels = $scrutinsLies->filter(fn($s) => $s->type_vote_code === 'SPS');
-        $scrutinsAmendements = $scrutinsLies->filter(fn($s) => 
-            $s->type_vote_code !== 'SPS' && 
+        $scrutinsSolennels = $scrutinsLies->filter(fn ($s) => $s->type_vote_code === 'SPS');
+        $scrutinsAmendements = $scrutinsLies->filter(fn ($s) => $s->type_vote_code !== 'SPS' &&
             (str_contains(strtolower($s->titre), 'amendement') || str_contains(strtolower($s->titre), 'sous-amendement'))
         );
-        $scrutinsAutres = $scrutinsLies->filter(fn($s) => 
-            $s->type_vote_code !== 'SPS' && 
-            !str_contains(strtolower($s->titre), 'amendement') && 
-            !str_contains(strtolower($s->titre), 'sous-amendement')
+        $scrutinsAutres = $scrutinsLies->filter(fn ($s) => $s->type_vote_code !== 'SPS' &&
+            ! str_contains(strtolower($s->titre), 'amendement') &&
+            ! str_contains(strtolower($s->titre), 'sous-amendement')
         );
 
         // Extraire les positions des groupes politiques depuis le scrutin solennel
@@ -305,7 +302,7 @@ class LoiController extends Controller
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
-            ->map(fn($t) => [
+            ->map(fn ($t) => [
                 'id' => $t->id,
                 'title' => $t->title,
                 'status' => $t->status,
@@ -427,14 +424,14 @@ class LoiController extends Controller
         $auteurs = [];
 
         // Si on a un dossier AN avec textes, chercher les auteurs d'amendements
-        if ($dossierAN && !empty($dossierAN['textes'])) {
+        if ($dossierAN && ! empty($dossierAN['textes'])) {
             $numerosTextes = collect($dossierAN['textes'])
                 ->pluck('numero')
                 ->filter()
-                ->map(fn($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
+                ->map(fn ($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
                 ->toArray();
 
-            if (!empty($numerosTextes)) {
+            if (! empty($numerosTextes)) {
                 // Auteurs d'amendements avec leur fréquence
                 $auteursQuery = AmendementAN::query()
                     ->where('legislature', 17)
@@ -452,7 +449,7 @@ class LoiController extends Controller
 
                 foreach ($auteursQuery as $a) {
                     $libelle = html_entity_decode($a->auteur_libelle ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                    
+
                     // Détecter si c'est un rapporteur
                     if (stripos($libelle, 'rapporteur') !== false) {
                         // Extraire le nom du rapporteur
@@ -516,12 +513,12 @@ class LoiController extends Controller
     {
         // Extraire l'ID du dossier depuis l'URL AN
         $urlAN = $loi->url_an;
-        if (!$urlAN) {
+        if (! $urlAN) {
             return null;
         }
 
         // Pattern: DLR5L17N50724 ou similaire
-        if (!preg_match('/(DLR\d+L\d+N\d+)/', $urlAN, $matches)) {
+        if (! preg_match('/(DLR\d+L\d+N\d+)/', $urlAN, $matches)) {
             return null;
         }
 
@@ -532,7 +529,7 @@ class LoiController extends Controller
             ->where('uid', $dossierRef)
             ->first();
 
-        if (!$dossier) {
+        if (! $dossier) {
             return ['ref' => $dossierRef, 'existe' => false, 'textes' => []];
         }
 
@@ -540,7 +537,7 @@ class LoiController extends Controller
         $textes = DB::table('textes_legislatifs_an')
             ->where('dossier_ref', $dossierRef)
             ->get()
-            ->map(fn($t) => [
+            ->map(fn ($t) => [
                 'uid' => $t->uid,
                 'type' => $t->type_texte,
                 'numero' => $t->numero,
@@ -570,14 +567,14 @@ class LoiController extends Controller
         $numerosTextes = [];
 
         // Compter les amendements AN via liaison directe
-        if ($dossierAN && !empty($dossierAN['textes'])) {
+        if ($dossierAN && ! empty($dossierAN['textes'])) {
             $numerosTextes = collect($dossierAN['textes'])
                 ->pluck('numero')
                 ->filter()
-                ->map(fn($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
+                ->map(fn ($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
                 ->toArray();
 
-            if (!empty($numerosTextes)) {
+            if (! empty($numerosTextes)) {
                 $totalAN = AmendementAN::query()
                     ->where('legislature', 17)
                     ->where(function ($q) use ($numerosTextes) {
@@ -586,14 +583,14 @@ class LoiController extends Controller
                         }
                     })
                     ->count();
-                
+
                 $liaisonDirecte = $totalAN > 0;
             }
         }
 
         // Stats par sort (limité à 1000 pour perf)
         $parSort = [];
-        if ($liaisonDirecte && !empty($numerosTextes)) {
+        if ($liaisonDirecte && ! empty($numerosTextes)) {
             $parSort = AmendementAN::query()
                 ->where('legislature', 17)
                 ->where(function ($q) use ($numerosTextes) {
@@ -628,17 +625,17 @@ class LoiController extends Controller
         $loicodTrim = trim($loicod);
         $page = $request->input('page', 1);
         $perPage = $request->input('per_page', 20);
-        
+
         $loi = Loi::with('thematiques')
-            ->whereRaw("TRIM(loicod) = ?", [$loicodTrim])
+            ->whereRaw('TRIM(loicod) = ?', [$loicodTrim])
             ->firstOrFail();
-        
+
         $dossierAN = Cache::remember("loi_show_{$loicodTrim}_dossier", 3600, function () use ($loi) {
             return $this->findDossierAN($loi);
         });
 
         $amendements = $this->findAmendementsLiesPaginated($loi, $dossierAN, $page, $perPage);
-        
+
         return response()->json($amendements);
     }
 
@@ -652,14 +649,14 @@ class LoiController extends Controller
         $liaisonDirecte = false;
 
         // MÉTHODE 1: Liaison directe via les numéros de textes du dossier AN
-        if ($dossierAN && !empty($dossierAN['textes'])) {
+        if ($dossierAN && ! empty($dossierAN['textes'])) {
             $numerosTextes = collect($dossierAN['textes'])
                 ->pluck('numero')
                 ->filter()
-                ->map(fn($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
+                ->map(fn ($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
                 ->toArray();
 
-            if (!empty($numerosTextes)) {
+            if (! empty($numerosTextes)) {
                 $query = AmendementAN::query()
                     ->where('legislature', 17)
                     ->where(function ($q) use ($numerosTextes) {
@@ -670,17 +667,17 @@ class LoiController extends Controller
                     ->orderByDesc('date_depot');
 
                 $total = $query->count();
-                
+
                 $amendementsAN = $query
                     ->offset($offset)
                     ->limit($perPage)
                     ->get()
-                    ->map(function($a) {
+                    ->map(function ($a) {
                         $texteRef = null;
                         if ($a->uid && preg_match('/B(\d+)P/', $a->uid, $matches)) {
                             $texteRef = $matches[1];
                         }
-                        
+
                         return [
                             'uid' => $a->uid,
                             'numero' => $a->numero_long,
@@ -728,14 +725,14 @@ class LoiController extends Controller
         $liaisonDirecte = false;
 
         // MÉTHODE 1: Liaison directe via les numéros de textes du dossier AN
-        if ($dossierAN && !empty($dossierAN['textes'])) {
+        if ($dossierAN && ! empty($dossierAN['textes'])) {
             $numerosTextes = collect($dossierAN['textes'])
                 ->pluck('numero')
                 ->filter()
-                ->map(fn($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
+                ->map(fn ($n) => str_pad($n, 4, '0', STR_PAD_LEFT))
                 ->toArray();
 
-            if (!empty($numerosTextes)) {
+            if (! empty($numerosTextes)) {
                 // Les UIDs d'amendements contiennent "B" + numero texte
                 $amendementsAN = AmendementAN::query()
                     ->where('legislature', 17)
@@ -747,13 +744,13 @@ class LoiController extends Controller
                     ->orderByDesc('date_depot')
                     ->limit(100)
                     ->get()
-                    ->map(function($a) {
+                    ->map(function ($a) {
                         // Extraire le numéro de texte depuis l'UID (format: AMANR5L17PO...B1009P...)
                         $texteRef = null;
                         if ($a->uid && preg_match('/B(\d+)P/', $a->uid, $matches)) {
                             $texteRef = $matches[1];
                         }
-                        
+
                         return [
                             'uid' => $a->uid,
                             'numero' => $a->numero_long,
@@ -774,55 +771,56 @@ class LoiController extends Controller
         }
 
         // MÉTHODE 2: Fallback par mots-clés si pas de liaison directe ou peu de résultats
-        if (!$liaisonDirecte || $amendementsAN->count() < 5) {
+        if (! $liaisonDirecte || $amendementsAN->count() < 5) {
             $motsExclus = [
-                'pour', 'dans', 'avec', 'cette', 'projet', 'proposition', 'relative', 
+                'pour', 'dans', 'avec', 'cette', 'projet', 'proposition', 'relative',
                 'relatif', 'portant', 'visant', 'autorisant', 'ratification', 'convention',
                 'article', 'articles', 'loi', 'lois', 'code', 'texte', 'textes',
                 'transposition', 'accords', 'nationaux', 'interprofessionnels',
-                'modifiant', 'modification', 'dispositions', 'diverses'
+                'modifiant', 'modification', 'dispositions', 'diverses',
             ];
-            
+
             $titre = strtolower($loi->loitit ?? '');
             $titreMots = preg_split('/[\s,\-\'\"]+/', $titre);
-            
-            $motsSignificatifs = array_filter($titreMots, function($m) use ($motsExclus) {
+
+            $motsSignificatifs = array_filter($titreMots, function ($m) use ($motsExclus) {
                 $m = trim($m);
-                return strlen($m) > 4 && !in_array($m, $motsExclus) && !preg_match('/^\d+$/', $m);
+
+                return strlen($m) > 4 && ! in_array($m, $motsExclus) && ! preg_match('/^\d+$/', $m);
             });
-            
+
             foreach ($loi->thematiques->pluck('libelle')->toArray() as $theme) {
                 $themeMots = preg_split('/[\s,\-]+/', strtolower($theme));
                 foreach ($themeMots as $m) {
-                    if (strlen($m) > 4 && !in_array($m, $motsExclus)) {
+                    if (strlen($m) > 4 && ! in_array($m, $motsExclus)) {
                         $motsSignificatifs[] = $m;
                     }
                 }
             }
-            
+
             $motsSignificatifs = array_unique(array_values($motsSignificatifs));
             $motsSignificatifs = array_slice($motsSignificatifs, 0, 6);
 
-            if (!empty($motsSignificatifs) && !$liaisonDirecte) {
+            if (! empty($motsSignificatifs) && ! $liaisonDirecte) {
                 $amendementsAN = AmendementAN::query()
                     ->where('legislature', 17)
                     ->where(function ($q) use ($motsSignificatifs) {
                         foreach ($motsSignificatifs as $mot) {
                             $q->orWhere('dispositif', 'ILIKE', "%{$mot}%")
-                              ->orWhere('expose', 'ILIKE', "%{$mot}%")
-                              ->orWhere('division_titre', 'ILIKE', "%{$mot}%");
+                                ->orWhere('expose', 'ILIKE', "%{$mot}%")
+                                ->orWhere('division_titre', 'ILIKE', "%{$mot}%");
                         }
                     })
                     ->orderByDesc('date_depot')
                     ->limit(50)
                     ->get()
-                    ->map(function($a) {
+                    ->map(function ($a) {
                         // Extraire le numéro de texte depuis l'UID (format: AMANR5L17PO...B1009P...)
                         $texteRef = null;
                         if ($a->uid && preg_match('/B(\d+)P/', $a->uid, $matches)) {
                             $texteRef = $matches[1];
                         }
-                        
+
                         return [
                             'uid' => $a->uid,
                             'numero' => $a->numero_long,
@@ -843,32 +841,32 @@ class LoiController extends Controller
         // Chercher dans les amendements Sénat (par mots-clés uniquement)
         $motsSignificatifs = $motsSignificatifs ?? [];
         $amendementsSenat = collect();
-        
-        if (!empty($motsSignificatifs)) {
+
+        if (! empty($motsSignificatifs)) {
             $amendementsSenat = AmendementSenat::query()
                 ->where('date_depot', '>=', now()->subMonths(12))
                 ->where(function ($q) use ($motsSignificatifs) {
                     foreach ($motsSignificatifs as $mot) {
                         $q->orWhere('dispositif', 'ILIKE', "%{$mot}%")
-                          ->orWhere('expose', 'ILIKE', "%{$mot}%");
+                            ->orWhere('expose', 'ILIKE', "%{$mot}%");
                     }
                 })
                 ->orderByDesc('date_depot')
                 ->limit(50)
                 ->get()
-                ->map(fn($a) => [
-                    'uid' => 'SEN-' . $a->id,
+                ->map(fn ($a) => [
+                    'uid' => 'SEN-'.$a->id,
                     'numero' => $a->numero,
                     'texte_ref' => $a->texte_ref,
                     'session' => $a->session ?? '2024-2025',
                     'article' => $a->subdiv_titre ?? $a->type_amendement,
-                    'auteur' => trim(($a->auteur_prenom ?? '') . ' ' . ($a->auteur_nom ?? 'Inconnu')),
+                    'auteur' => trim(($a->auteur_prenom ?? '').' '.($a->auteur_nom ?? 'Inconnu')),
                     'sort' => $a->sort_libelle_formate,
                     'sort_code' => $a->sort_code,
                     'date_depot' => $a->date_depot?->format('d/m/Y'),
                     'expose' => \Str::limit(strip_tags($a->expose ?? ''), 150),
                     'chambre' => 'Sénat',
-                    'url' => $a->url ?? ($a->texte_ref ? "https://www.senat.fr/amendements/" . ($a->session ?? '2024-2025') . "/{$a->texte_ref}/{$a->numero}.html" : null),
+                    'url' => $a->url ?? ($a->texte_ref ? 'https://www.senat.fr/amendements/'.($a->session ?? '2024-2025')."/{$a->texte_ref}/{$a->numero}.html" : null),
                 ]);
         }
 
@@ -896,7 +894,7 @@ class LoiController extends Controller
      */
     private function extractGroupesPositions(?ScrutinAN $scrutin): array
     {
-        if (!$scrutin || !$scrutin->ventilation_votes) {
+        if (! $scrutin || ! $scrutin->ventilation_votes) {
             return ['pour' => [], 'contre' => [], 'abstention' => []];
         }
 
@@ -932,9 +930,9 @@ class LoiController extends Controller
         }
 
         // Trier par nombre de votes
-        usort($pour, fn($a, $b) => $b['pour'] <=> $a['pour']);
-        usort($contre, fn($a, $b) => $b['contre'] <=> $a['contre']);
-        usort($abstention, fn($a, $b) => $b['abstentions'] <=> $a['abstentions']);
+        usort($pour, fn ($a, $b) => $b['pour'] <=> $a['pour']);
+        usort($contre, fn ($a, $b) => $b['contre'] <=> $a['contre']);
+        usort($abstention, fn ($a, $b) => $b['abstentions'] <=> $a['abstentions']);
 
         return [
             'pour' => $pour,
@@ -951,7 +949,7 @@ class LoiController extends Controller
         $loi = Loi::with([
             'lectures.typeLecture',
             'lectures.passages',
-        ])->whereRaw("TRIM(loicod) = ?", [trim($loicod)])->firstOrFail();
+        ])->whereRaw('TRIM(loicod) = ?', [trim($loicod)])->firstOrFail();
 
         return response()->json([
             'loicod' => $loicod,
@@ -1032,8 +1030,8 @@ class LoiController extends Controller
         $lois = Loi::with('etat')
             ->where(function ($q) use ($query) {
                 $q->where('loitit', 'ILIKE', "%{$query}%")
-                  ->orWhere('loiint', 'ILIKE', "%{$query}%")
-                  ->orWhere('numero', 'ILIKE', "%{$query}%");
+                    ->orWhere('loiint', 'ILIKE', "%{$query}%")
+                    ->orWhere('numero', 'ILIKE', "%{$query}%");
             })
             ->orderByDesc('loidatjo')
             ->take(10)
@@ -1050,4 +1048,3 @@ class LoiController extends Controller
         return response()->json($lois);
     }
 }
-

@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Événement législatif unifié (AN + Sénat + Élysée)
- * 
+ *
  * @property string $uid
  * @property string $source
  * @property string $type
@@ -71,18 +71,27 @@ class EvenementLegislatif extends Model
     // ========================================
 
     public const SOURCE_AN = 'an';
+
     public const SOURCE_SENAT = 'senat';
+
     public const SOURCE_ELYSEE = 'elysee';
 
     public const TYPE_SEANCE = 'seance';
+
     public const TYPE_COMMISSION = 'commission';
+
     public const TYPE_REUNION = 'reunion';
+
     public const TYPE_VOTE = 'vote';
+
     public const TYPE_AUDITION = 'audition';
+
     public const TYPE_AUTRE = 'autre';
 
     public const STATUT_CONFIRME = 'confirme';
+
     public const STATUT_ANNULE = 'annule';
+
     public const STATUT_REPORTE = 'reporte';
 
     // Couleurs par défaut par source
@@ -171,7 +180,7 @@ class EvenementLegislatif extends Model
         $date = $date ? \Carbon\Carbon::parse($date) : now();
         $debut = $date->copy()->startOfWeek();
         $fin = $date->copy()->endOfWeek();
-        
+
         return $query->whereBetween('date_debut', [$debut, $fin]);
     }
 
@@ -180,7 +189,7 @@ class EvenementLegislatif extends Model
         $date = $date ? \Carbon\Carbon::parse($date) : now();
         $debut = $date->copy()->startOfMonth();
         $fin = $date->copy()->endOfMonth();
-        
+
         return $query->whereBetween('date_debut', [$debut, $fin]);
     }
 
@@ -200,7 +209,7 @@ class EvenementLegislatif extends Model
 
     public function getSourceLabelAttribute(): string
     {
-        return match($this->source) {
+        return match ($this->source) {
             self::SOURCE_AN => 'Assemblée nationale',
             self::SOURCE_SENAT => 'Sénat',
             self::SOURCE_ELYSEE => 'Élysée',
@@ -210,7 +219,7 @@ class EvenementLegislatif extends Model
 
     public function getTypeLabelAttribute(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             self::TYPE_SEANCE => 'Séance publique',
             self::TYPE_COMMISSION => 'Commission',
             self::TYPE_REUNION => 'Réunion',
@@ -223,7 +232,7 @@ class EvenementLegislatif extends Model
 
     public function getStatutLabelAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             self::STATUT_CONFIRME => 'Confirmé',
             self::STATUT_ANNULE => 'Annulé',
             self::STATUT_REPORTE => 'Reporté',
@@ -233,22 +242,23 @@ class EvenementLegislatif extends Model
 
     public function getDureeAttribute(): ?int
     {
-        if (!$this->date_fin) {
+        if (! $this->date_fin) {
             return null;
         }
+
         return $this->date_debut->diffInMinutes($this->date_fin);
     }
 
     public function getDureeFormattedAttribute(): ?string
     {
         $duree = $this->duree;
-        if (!$duree) {
+        if (! $duree) {
             return null;
         }
-        
+
         $heures = intdiv($duree, 60);
         $minutes = $duree % 60;
-        
+
         if ($heures > 0 && $minutes > 0) {
             return "{$heures}h{$minutes}";
         } elseif ($heures > 0) {
@@ -270,6 +280,7 @@ class EvenementLegislatif extends Model
     public function estEnCours(): bool
     {
         $now = now();
+
         return $this->date_debut <= $now && ($this->date_fin === null || $this->date_fin >= $now);
     }
 
@@ -319,64 +330,64 @@ class EvenementLegislatif extends Model
         $dtstamp = now()->format('Ymd\THis\Z');
         $created = $this->created_at->format('Ymd\THis\Z');
         $lastModified = ($this->ical_last_modified ?? $this->updated_at)->format('Ymd\THis\Z');
-        
+
         // Format des dates
         if ($this->journee_entiere) {
-            $dtstart = 'VALUE=DATE:' . $this->date_debut->format('Ymd');
-            $dtend = $this->date_fin 
-                ? 'VALUE=DATE:' . $this->date_fin->addDay()->format('Ymd')  // iCal exclut la date de fin
+            $dtstart = 'VALUE=DATE:'.$this->date_debut->format('Ymd');
+            $dtend = $this->date_fin
+                ? 'VALUE=DATE:'.$this->date_fin->addDay()->format('Ymd')  // iCal exclut la date de fin
                 : '';
         } else {
             $dtstart = $this->date_debut->format('Ymd\THis');
             $dtend = $this->date_fin ? $this->date_fin->format('Ymd\THis') : '';
         }
-        
+
         // Nettoyer et échapper le texte
-        $summary = $this->escapeIcalText($this->icone . ' ' . $this->titre);
+        $summary = $this->escapeIcalText($this->icone.' '.$this->titre);
         $description = $this->escapeIcalText($this->buildIcalDescription());
         $location = $this->escapeIcalText($this->lieu ?? '');
         $url = $this->url_source ?? '';
-        
+
         // Catégories
-        $categories = strtoupper($this->source) . ',' . strtoupper($this->type);
-        
+        $categories = strtoupper($this->source).','.strtoupper($this->type);
+
         // Couleur (non standard mais supporté par certains clients)
         $color = ltrim($this->couleur, '#');
-        
+
         $lines = [
             'BEGIN:VEVENT',
             "UID:{$uid}",
             "DTSTAMP:{$dtstamp}",
             "DTSTART;{$dtstart}",
         ];
-        
+
         if ($dtend) {
             $lines[] = "DTEND;{$dtend}";
         }
-        
+
         $lines[] = "CREATED:{$created}";
         $lines[] = "LAST-MODIFIED:{$lastModified}";
         $lines[] = "SUMMARY:{$summary}";
-        
+
         if ($description) {
             $lines[] = "DESCRIPTION:{$description}";
         }
-        
+
         if ($location) {
             $lines[] = "LOCATION:{$location}";
         }
-        
+
         if ($url) {
             $lines[] = "URL:{$url}";
         }
-        
+
         $lines[] = "CATEGORIES:{$categories}";
         $lines[] = "X-APPLE-CALENDAR-COLOR:#{$color}";
-        $lines[] = "X-MICROSOFT-CDO-BUSYSTATUS:BUSY";
-        $lines[] = "TRANSP:OPAQUE";
-        $lines[] = "STATUS:" . ($this->statut === self::STATUT_ANNULE ? 'CANCELLED' : 'CONFIRMED');
+        $lines[] = 'X-MICROSOFT-CDO-BUSYSTATUS:BUSY';
+        $lines[] = 'TRANSP:OPAQUE';
+        $lines[] = 'STATUS:'.($this->statut === self::STATUT_ANNULE ? 'CANCELLED' : 'CONFIRMED');
         $lines[] = 'END:VEVENT';
-        
+
         return implode("\r\n", $lines);
     }
 
@@ -386,33 +397,33 @@ class EvenementLegislatif extends Model
     protected function buildIcalDescription(): string
     {
         $parts = [];
-        
+
         $parts[] = "📍 Source : {$this->source_label}";
         $parts[] = "📋 Type : {$this->type_label}";
-        
+
         if ($this->instance_nom) {
             $parts[] = "🏛️ Instance : {$this->instance_nom}";
         }
-        
+
         if ($this->description) {
-            $parts[] = "";
+            $parts[] = '';
             $parts[] = $this->description;
         }
-        
+
         if ($this->url_source) {
-            $parts[] = "";
+            $parts[] = '';
             $parts[] = "🔗 Plus d'infos : {$this->url_source}";
         }
-        
+
         if ($this->url_video) {
             $parts[] = "📺 Vidéo : {$this->url_video}";
         }
-        
-        $parts[] = "";
-        $parts[] = "---";
-        $parts[] = "Exporté depuis CivicDash - civicdash.fr";
-        
-        return implode("\\n", $parts);
+
+        $parts[] = '';
+        $parts[] = '---';
+        $parts[] = 'Exporté depuis CivicDash - civicdash.fr';
+
+        return implode('\\n', $parts);
     }
 
     /**
@@ -420,18 +431,17 @@ class EvenementLegislatif extends Model
      */
     protected function escapeIcalText(?string $text): string
     {
-        if (!$text) {
+        if (! $text) {
             return '';
         }
-        
+
         // Échapper les caractères spéciaux iCal
         $text = str_replace('\\', '\\\\', $text);
         $text = str_replace("\n", '\\n', $text);
         $text = str_replace("\r", '', $text);
         $text = str_replace(',', '\\,', $text);
         $text = str_replace(';', '\\;', $text);
-        
+
         return $text;
     }
 }
-

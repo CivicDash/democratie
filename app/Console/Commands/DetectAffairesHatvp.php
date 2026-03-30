@@ -26,6 +26,7 @@ class DetectAffairesHatvp extends Command
     ];
 
     private int $detected = 0;
+
     private int $duplicates = 0;
 
     public function handle(): int
@@ -41,7 +42,7 @@ class DetectAffairesHatvp extends Command
             ->where(function ($q) {
                 foreach (self::KEYWORDS as $keyword) {
                     $q->orWhere('observations_interet', 'ILIKE', "%{$keyword}%")
-                      ->orWhere('observations_patrimoine', 'ILIKE', "%{$keyword}%");
+                        ->orWhere('observations_patrimoine', 'ILIKE', "%{$keyword}%");
                 }
             })
             ->get();
@@ -65,12 +66,12 @@ class DetectAffairesHatvp extends Command
     private function processDeclaration(HatvpDeclaration $declaration, bool $dryRun): void
     {
         $eluData = $this->resolveElu($declaration);
-        if (!$eluData) {
+        if (! $eluData) {
             return;
         }
 
         $observations = trim(
-            ($declaration->observations_interet ?? '') . "\n" .
+            ($declaration->observations_interet ?? '')."\n".
             ($declaration->observations_patrimoine ?? '')
         );
         if (empty($observations)) {
@@ -88,11 +89,12 @@ class DetectAffairesHatvp extends Command
                 $q->where('personne_politique_id', $eluData['personne_politique_id']);
             }
         })->where('source_detection', 'hatvp')
-          ->where('titre', $titre)
-          ->exists();
+            ->where('titre', $titre)
+            ->exists();
 
         if ($isDuplicate) {
             $this->duplicates++;
+
             return;
         }
 
@@ -103,6 +105,7 @@ class DetectAffairesHatvp extends Command
         if ($dryRun) {
             $this->line("  [DRY] {$eluData['prenom']} {$eluData['nom']} : {$titre}");
             $this->detected++;
+
             return;
         }
 
@@ -136,7 +139,7 @@ class DetectAffairesHatvp extends Command
         $affaire->moderationLogs()->create([
             'action' => 'detection',
             'nouveau_statut' => 'detecte',
-            'commentaire' => "Détection HATVP (confiance : 0.90)",
+            'commentaire' => 'Détection HATVP (confiance : 0.90)',
             'metadata' => ['source' => 'hatvp', 'confidence' => 0.90],
         ]);
 
@@ -151,9 +154,10 @@ class DetectAffairesHatvp extends Command
 
         if ($parlementaireType === 'depute' && $parlementaireId) {
             $depute = $declaration->depute;
-            if (!$depute) {
+            if (! $depute) {
                 return null;
             }
+
             return [
                 'acteur_an_uid' => $depute->uid,
                 'nom' => $depute->nom,
@@ -165,9 +169,10 @@ class DetectAffairesHatvp extends Command
 
         if ($parlementaireType === 'senateur' && $parlementaireId) {
             $senateur = $declaration->senateur;
-            if (!$senateur) {
+            if (! $senateur) {
                 return null;
             }
+
             return [
                 'senateur_matricule' => $senateur->matricule,
                 'nom' => $senateur->nom_usuel,
@@ -183,10 +188,10 @@ class DetectAffairesHatvp extends Command
             || str_contains($typeMandat, 'secrétaire d\'état')
             || $parlementaireType === 'personne_politique';
 
-        if ($isGouvernement || !$parlementaireId) {
+        if ($isGouvernement || ! $parlementaireId) {
             $nom = $declaration->nom;
             $prenom = $declaration->prenom;
-            if (!$nom || !$prenom) {
+            if (! $nom || ! $prenom) {
                 return null;
             }
 

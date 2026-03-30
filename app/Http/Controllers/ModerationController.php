@@ -31,7 +31,7 @@ class ModerationController extends Controller
             'resolved' => 0,
             'rejected' => 0,
         ];
-        
+
         if (DB::getSchemaBuilder()->hasTable('content_reports')) {
             $reportStats = [
                 'pending' => ContentReport::where('status', 'pending')->count(),
@@ -42,7 +42,7 @@ class ModerationController extends Controller
 
         // Mots bannis
         $bannedWordsCount = BannedWord::count();
-        
+
         // Utilisateurs avec vérification email en attente
         $unverifiedUsers = User::whereNull('email_verified_at')
             ->where('created_at', '>=', now()->subDays(7))
@@ -65,14 +65,14 @@ class ModerationController extends Controller
             'reportStats' => $reportStats,
             'bannedWordsCount' => $bannedWordsCount,
             'unverifiedUsers' => $unverifiedUsers,
-            'pendingPhotos' => $pendingPhotos->map(fn($u) => [
+            'pendingPhotos' => $pendingPhotos->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => $u->name,
                 'email' => $u->email,
                 'photo_url' => $u->profile_photo_url,
                 'submitted_at' => $u->profile_photo_submitted_at?->diffForHumans(),
             ]),
-            'recentModerations' => $recentModerations->map(fn($m) => [
+            'recentModerations' => $recentModerations->map(fn ($m) => [
                 'id' => $m->id,
                 'user_name' => $m->user?->name ?? 'Inconnu',
                 'moderator_name' => $m->moderator?->name ?? 'Système',
@@ -93,7 +93,7 @@ class ModerationController extends Controller
         $reports = [];
         if (DB::getSchemaBuilder()->hasTable('content_reports')) {
             $query = ContentReport::with(['reporter:id,name', 'moderator:id,name'])
-                ->when($status !== 'all', fn($q) => $q->where('status', $status))
+                ->when($status !== 'all', fn ($q) => $q->where('status', $status))
                 ->orderBy('created_at', 'desc');
 
             $reports = $query->paginate(20);
@@ -130,7 +130,7 @@ class ModerationController extends Controller
      */
     public function showReport($id): Response
     {
-        if (!DB::getSchemaBuilder()->hasTable('content_reports')) {
+        if (! DB::getSchemaBuilder()->hasTable('content_reports')) {
             abort(404);
         }
 
@@ -147,7 +147,7 @@ class ModerationController extends Controller
      */
     public function assignReport(Request $request, $id)
     {
-        if (!DB::getSchemaBuilder()->hasTable('content_reports')) {
+        if (! DB::getSchemaBuilder()->hasTable('content_reports')) {
             return back()->with('error', 'Fonctionnalité non disponible');
         }
 
@@ -165,7 +165,7 @@ class ModerationController extends Controller
      */
     public function resolveReport(Request $request, $id)
     {
-        if (!DB::getSchemaBuilder()->hasTable('content_reports')) {
+        if (! DB::getSchemaBuilder()->hasTable('content_reports')) {
             return back()->with('error', 'Fonctionnalité non disponible');
         }
 
@@ -191,7 +191,7 @@ class ModerationController extends Controller
      */
     public function rejectReport(Request $request, $id)
     {
-        if (!DB::getSchemaBuilder()->hasTable('content_reports')) {
+        if (! DB::getSchemaBuilder()->hasTable('content_reports')) {
             return back()->with('error', 'Fonctionnalité non disponible');
         }
 

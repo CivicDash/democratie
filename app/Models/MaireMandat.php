@@ -61,32 +61,39 @@ class MaireMandat extends Model
     public function getNomCompletAttribute(): string
     {
         if ($this->maire) {
-            return $this->maire->nom_complet ?? trim($this->maire->prenom . ' ' . $this->maire->nom);
+            return $this->maire->nom_complet ?? trim($this->maire->prenom.' '.$this->maire->nom);
         }
-        return trim($this->prenom . ' ' . $this->nom);
+
+        return trim($this->prenom.' '.$this->nom);
     }
 
     public function getDureeMandatAttribute(): ?int
     {
-        if (!$this->date_debut) return null;
-        
+        if (! $this->date_debut) {
+            return null;
+        }
+
         $fin = $this->date_fin ?? now();
+
         return (int) $this->date_debut->diffInMonths($fin);
     }
 
     public function getDureeFormateAttribute(): string
     {
         $mois = $this->duree_mandat;
-        if (!$mois) return 'N/A';
+        if (! $mois) {
+            return 'N/A';
+        }
 
         $annees = floor($mois / 12);
         $moisRestants = $mois % 12;
 
         if ($annees > 0 && $moisRestants > 0) {
-            return "{$annees} an" . ($annees > 1 ? 's' : '') . " et {$moisRestants} mois";
+            return "{$annees} an".($annees > 1 ? 's' : '')." et {$moisRestants} mois";
         } elseif ($annees > 0) {
-            return "{$annees} an" . ($annees > 1 ? 's' : '');
+            return "{$annees} an".($annees > 1 ? 's' : '');
         }
+
         return "{$mois} mois";
     }
 
@@ -94,6 +101,7 @@ class MaireMandat extends Model
     {
         $debut = $this->date_debut?->format('Y') ?? '?';
         $fin = $this->date_fin?->format('Y') ?? 'présent';
+
         return "{$debut} - {$fin}";
     }
 }
