@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Log;
 class DolibarrService
 {
     protected string $apiUrl = '';
+
     protected string $apiKey = '';
+
     protected int $timeout = 5;
 
     protected const MEMBER_TYPE_MAP = [
@@ -22,6 +24,7 @@ class DolibarrService
     ];
 
     protected const STATUS_VALIDATED = 1;
+
     protected const MIN_AGE = 18;
 
     public function __construct()
@@ -33,7 +36,7 @@ class DolibarrService
 
     public function isConfigured(): bool
     {
-        return !empty($this->apiUrl) && !empty($this->apiKey);
+        return ! empty($this->apiUrl) && ! empty($this->apiKey);
     }
 
     /**
@@ -42,7 +45,7 @@ class DolibarrService
      */
     public function checkMemberByEmail(string $email): ?array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return null;
         }
 
@@ -53,17 +56,18 @@ class DolibarrService
                     'sqlfilters' => "(t.email:=:'{$email}')",
                 ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::debug('DolibarrService: member lookup failed', [
                     'email' => $email,
                     'status' => $response->status(),
                 ]);
+
                 return null;
             }
 
             $members = $response->json();
 
-            if (empty($members) || !is_array($members)) {
+            if (empty($members) || ! is_array($members)) {
                 return null;
             }
 
@@ -73,6 +77,7 @@ class DolibarrService
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -85,7 +90,7 @@ class DolibarrService
      */
     public function validateRegistration(string $email, string $dateOfBirth): array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             return [
                 'ok' => false,
                 'error' => 'email',
@@ -95,7 +100,7 @@ class DolibarrService
 
         $member = $this->checkMemberByEmail($email);
 
-        if (!$member) {
+        if (! $member) {
             return [
                 'ok' => false,
                 'error' => 'email',
@@ -111,6 +116,7 @@ class DolibarrService
                 -2 => 'exclue',
             ];
             $label = $statusLabels[$statut] ?? 'inactive';
+
             return [
                 'ok' => false,
                 'error' => 'email',
@@ -124,15 +130,15 @@ class DolibarrService
             return [
                 'ok' => false,
                 'error' => 'date_of_birth',
-                'message' => 'Vous devez avoir au moins ' . self::MIN_AGE . ' ans pour vous inscrire.',
+                'message' => 'Vous devez avoir au moins '.self::MIN_AGE.' ans pour vous inscrire.',
             ];
         }
 
         $dolibarrBirth = $member['birth'] ?? null;
-        if (!empty($dolibarrBirth)) {
+        if (! empty($dolibarrBirth)) {
             try {
                 $dolibarrDob = Carbon::parse($dolibarrBirth);
-                if (!$dob->isSameDay($dolibarrDob)) {
+                if (! $dob->isSameDay($dolibarrDob)) {
                     return [
                         'ok' => false,
                         'error' => 'date_of_birth',
@@ -155,7 +161,7 @@ class DolibarrService
     {
         $member ??= $this->checkMemberByEmail($user->email);
 
-        if (!$member) {
+        if (! $member) {
             return false;
         }
 
@@ -169,23 +175,23 @@ class DolibarrService
             'is_association_member' => $isActive,
         ];
 
-        if (!empty($member['datec'])) {
+        if (! empty($member['datec'])) {
             $updates['member_since'] = Carbon::createFromTimestamp((int) $member['datec'])->toDateString();
         }
 
-        if (!empty($member['datefin'])) {
+        if (! empty($member['datefin'])) {
             $updates['member_until'] = Carbon::createFromTimestamp((int) $member['datefin'])->toDateString();
         } else {
             $updates['member_until'] = null;
         }
 
-        if ($isActive && !$user->association_member_since) {
+        if ($isActive && ! $user->association_member_since) {
             $updates['association_member_since'] = now();
         }
 
         $user->update($updates);
 
-        if ($isActive && !$user->hasRole('association_member')) {
+        if ($isActive && ! $user->hasRole('association_member')) {
             try {
                 $user->assignRole('association_member');
             } catch (\Exception $e) {
@@ -193,7 +199,7 @@ class DolibarrService
             }
         }
 
-        if (!$isActive && $user->hasRole('association_member')) {
+        if (! $isActive && $user->hasRole('association_member')) {
             try {
                 $user->removeRole('association_member');
             } catch (\Exception $e) {

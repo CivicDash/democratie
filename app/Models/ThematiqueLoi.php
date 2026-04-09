@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class ThematiqueLoi extends Model
 {
     protected $table = 'senat_dosleg_the';
+
     protected $primaryKey = 'thecle';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -94,4 +98,3 @@ class ThematiqueLoi extends Model
         };
     }
 }
-

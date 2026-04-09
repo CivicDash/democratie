@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Corrige les doublons dans les vues sénateurs
@@ -13,8 +14,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('senat_senateurs_elusen')) {
+            return;
+        }
+
         // 1. Corriger la vue senateurs_mandats avec DISTINCT
-        DB::statement("DROP VIEW IF EXISTS senateurs_mandats CASCADE");
+        DB::statement('DROP VIEW IF EXISTS senateurs_mandats CASCADE');
         DB::statement("
             CREATE VIEW senateurs_mandats AS
             SELECT DISTINCT ON (elusen.senmat, elusen.eludatdeb, elusen.dptnum)
@@ -45,8 +50,8 @@ return new class extends Migration
         ");
 
         // 2. Corriger la vue senateurs_commissions avec DISTINCT
-        DB::statement("DROP VIEW IF EXISTS senateurs_commissions CASCADE");
-        DB::statement("
+        DB::statement('DROP VIEW IF EXISTS senateurs_commissions CASCADE');
+        DB::statement('
             CREATE VIEW senateurs_commissions AS
             SELECT DISTINCT ON (mc.senmat, mc.orgcod, mc.memcomdatdeb)
                 mc.memcomid AS id,
@@ -65,10 +70,10 @@ return new class extends Migration
                 
             FROM senat_senateurs_memcom mc
             ORDER BY mc.senmat, mc.orgcod, mc.memcomdatdeb DESC NULLS LAST
-        ");
+        ');
 
         // 3. Corriger la vue senateurs_historique_groupes avec DISTINCT
-        DB::statement("DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE");
+        DB::statement('DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE');
         DB::statement("
             CREATE VIEW senateurs_historique_groupes AS
             SELECT DISTINCT ON (mg.senmat, mg.orgcod, mg.memgrpsendatent)
@@ -94,7 +99,7 @@ return new class extends Migration
     public function down(): void
     {
         // Restaurer les vues originales
-        DB::statement("DROP VIEW IF EXISTS senateurs_mandats CASCADE");
+        DB::statement('DROP VIEW IF EXISTS senateurs_mandats CASCADE');
         DB::statement("
             CREATE VIEW senateurs_mandats AS
             SELECT 
@@ -122,8 +127,8 @@ return new class extends Migration
             ORDER BY elusen.eludatdeb DESC NULLS LAST
         ");
 
-        DB::statement("DROP VIEW IF EXISTS senateurs_commissions CASCADE");
-        DB::statement("
+        DB::statement('DROP VIEW IF EXISTS senateurs_commissions CASCADE');
+        DB::statement('
             CREATE VIEW senateurs_commissions AS
             SELECT 
                 mc.memcomid AS id,
@@ -142,9 +147,9 @@ return new class extends Migration
                 
             FROM senat_senateurs_memcom mc
             ORDER BY mc.memcomdatdeb DESC NULLS LAST
-        ");
+        ');
 
-        DB::statement("DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE");
+        DB::statement('DROP VIEW IF EXISTS senateurs_historique_groupes CASCADE');
         DB::statement("
             CREATE VIEW senateurs_historique_groupes AS
             SELECT 
@@ -167,4 +172,3 @@ return new class extends Migration
         ");
     }
 };
-

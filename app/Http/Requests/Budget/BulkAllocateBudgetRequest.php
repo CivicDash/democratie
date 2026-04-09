@@ -47,7 +47,7 @@ class BulkAllocateBudgetRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $allocations = $this->allocations ?? [];
-            
+
             // Vérifier que le total = 100%
             $total = array_sum($allocations);
             if (abs($total - 100.0) > 0.01) {
@@ -56,26 +56,27 @@ class BulkAllocateBudgetRequest extends FormRequest
                     "Le total des allocations doit être égal à 100% (actuel: {$total}%)."
                 );
             }
-            
+
             // Vérifier les contraintes de chaque secteur
             foreach ($allocations as $sectorId => $percent) {
                 $sector = Sector::find($sectorId);
-                
-                if (!$sector) {
+
+                if (! $sector) {
                     $validator->errors()->add(
                         "allocations.{$sectorId}",
                         "Le secteur {$sectorId} n'existe pas."
                     );
+
                     continue;
                 }
-                
+
                 if ($percent < $sector->min_allocation_percent) {
                     $validator->errors()->add(
                         "allocations.{$sectorId}",
                         "Le pourcentage minimum pour {$sector->name} est {$sector->min_allocation_percent}%."
                     );
                 }
-                
+
                 if ($percent > $sector->max_allocation_percent) {
                     $validator->errors()->add(
                         "allocations.{$sectorId}",
@@ -86,4 +87,3 @@ class BulkAllocateBudgetRequest extends FormRequest
         });
     }
 }
-

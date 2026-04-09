@@ -12,9 +12,12 @@ class Senateur extends Model
     use HasFactory, Searchable;
 
     protected $table = 'senateurs';
+
     // La vue SQL map senmat à la fois vers 'id' (PK Laravel) et 'matricule' (identifiant Sénat)
     protected $primaryKey = 'id';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -131,15 +134,15 @@ class Senateur extends Model
      */
     public function getPhotoOfficielleAttribute(): ?string
     {
-        if (!$this->matricule || !$this->nom_usuel || !$this->prenom_usuel) {
+        if (! $this->matricule || ! $this->nom_usuel || ! $this->prenom_usuel) {
             return null;
         }
-        
+
         // Normaliser le nom et prénom pour l'URL
         $nom = $this->normalizeForUrl($this->nom_usuel);
         $prenom = $this->normalizeForUrl($this->prenom_usuel);
         $matricule = strtolower(trim($this->matricule));
-        
+
         return "https://www.senat.fr/senimg/{$nom}_{$prenom}{$matricule}_carre.jpg";
     }
 
@@ -153,7 +156,7 @@ class Senateur extends Model
         if ($photoOfficielle) {
             return $photoOfficielle;
         }
-        
+
         // Fallback sur Wikipedia
         return $this->photo_wikipedia_url ?? $this->wikipedia_photo ?? null;
     }
@@ -171,6 +174,7 @@ class Senateur extends Model
         $text = str_replace('-', '_', $text);
         // Supprimer tout ce qui n'est pas alphanumérique ou underscore
         $text = preg_replace('/[^a-z0-9_]/', '', $text);
+
         return $text;
     }
 
@@ -209,9 +213,10 @@ class Senateur extends Model
 
     public function getAgeAttribute(): ?int
     {
-        if (!$this->date_naissance) {
+        if (! $this->date_naissance) {
             return null;
         }
+
         return $this->date_naissance->age;
     }
 
@@ -230,7 +235,8 @@ class Senateur extends Model
     public function getAdressePostaleAttribute(): string
     {
         $civilite = $this->civilite === 'Mme' ? 'Madame' : 'Monsieur';
-        return "{$civilite} {$this->prenom_usuel} {$this->nom_usuel}\nSénateur" . ($this->civilite === 'Mme' ? 'rice' : '') . "\nPalais du Luxembourg\n15, rue de Vaugirard\n75291 Paris Cedex 06";
+
+        return "{$civilite} {$this->prenom_usuel} {$this->nom_usuel}\nSénateur".($this->civilite === 'Mme' ? 'rice' : '')."\nPalais du Luxembourg\n15, rue de Vaugirard\n75291 Paris Cedex 06";
     }
 
     /**
@@ -238,9 +244,10 @@ class Senateur extends Model
      */
     public function getUrlProfilAttribute(): ?string
     {
-        if (!$this->matricule) {
+        if (! $this->matricule) {
             return null;
         }
+
         return "https://www.senat.fr/senateur/{$this->matricule}.html";
     }
 
@@ -271,4 +278,3 @@ class Senateur extends Model
         return 'senateurs';
     }
 }
-

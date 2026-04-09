@@ -34,7 +34,7 @@ class ImportGroupesCommand extends Command
         $legislature = $this->option('legislature') ?? 17;
         $force = $this->option('force');
 
-        $this->info("🏛️  Import des groupes parlementaires");
+        $this->info('🏛️  Import des groupes parlementaires');
         $this->info("Source: {$source}");
         $this->info("Législature: {$legislature}");
         $this->newLine();
@@ -44,11 +44,12 @@ class ImportGroupesCommand extends Command
             ->where('legislature', $legislature)
             ->count();
 
-        if ($existingCount > 0 && !$force) {
+        if ($existingCount > 0 && ! $force) {
             $this->warn("⚠️  {$existingCount} groupes déjà présents pour {$source} (législature {$legislature})");
-            
-            if (!$this->confirm('Voulez-vous continuer et mettre à jour ?', true)) {
+
+            if (! $this->confirm('Voulez-vous continuer et mettre à jour ?', true)) {
                 $this->info('Import annulé');
+
                 return Command::SUCCESS;
             }
         }
@@ -60,6 +61,7 @@ class ImportGroupesCommand extends Command
 
             if (empty($groupesData)) {
                 $this->error('❌ Aucun groupe trouvé');
+
                 return Command::FAILURE;
             }
 
@@ -101,7 +103,7 @@ class ImportGroupesCommand extends Command
             $bar->finish();
             $this->newLine(2);
 
-            $this->info("✅ Import terminé !");
+            $this->info('✅ Import terminé !');
             $this->table(
                 ['Métrique', 'Valeur'],
                 [
@@ -116,8 +118,8 @@ class ImportGroupesCommand extends Command
         } catch (\Exception $e) {
             $this->error("❌ Erreur lors de l'import: {$e->getMessage()}");
             $this->error($e->getTraceAsString());
+
             return Command::FAILURE;
         }
     }
 }
-

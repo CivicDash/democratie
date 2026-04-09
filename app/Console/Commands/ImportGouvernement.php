@@ -32,12 +32,12 @@ class ImportGouvernement extends Command
         ['nom' => 'Ministère de la Justice', 'sigle' => 'MJ', 'type' => 'ministere', 'ordre' => 3],
         ['nom' => 'Ministère de l\'Europe et des Affaires étrangères', 'sigle' => 'MEAE', 'type' => 'ministere', 'ordre' => 4],
         ['nom' => 'Ministère de l\'Économie, des Finances et de l\'Industrie', 'sigle' => 'MEFSIN', 'type' => 'ministere', 'ordre' => 5],
-        
+
         // Ministères sociaux
         ['nom' => 'Ministère du Travail, de la Santé, des Solidarités et des Familles', 'sigle' => 'MTSSF', 'type' => 'ministere', 'ordre' => 6],
         ['nom' => 'Ministère de l\'Éducation nationale', 'sigle' => 'MEN', 'type' => 'ministere', 'ordre' => 7],
         ['nom' => 'Ministère de l\'Enseignement supérieur et de la Recherche', 'sigle' => 'MESR', 'type' => 'ministere', 'ordre' => 8],
-        
+
         // Ministères thématiques
         ['nom' => 'Ministère de la Transition écologique, de la Biodiversité, de la Forêt, de la Mer et de la Pêche', 'sigle' => 'MTE', 'type' => 'ministere', 'ordre' => 9],
         ['nom' => 'Ministère de l\'Agriculture et de la Souveraineté alimentaire', 'sigle' => 'MAA', 'type' => 'ministere', 'ordre' => 10],
@@ -52,7 +52,7 @@ class ImportGouvernement extends Command
     private const MINISTRES = [
         // Premier ministre
         ['prenom' => 'François', 'nom' => 'Bayrou', 'fonction' => 'Premier ministre', 'type_fonction' => 'premier_ministre', 'ministere' => null, 'parti' => 'MoDem', 'photo' => 'https://www.gouvernement.fr/sites/default/files/styles/minister_portrait/public/2024-12/bayrou.jpg'],
-        
+
         // Ministres
         ['prenom' => 'Bruno', 'nom' => 'Retailleau', 'fonction' => 'Ministre de l\'Intérieur', 'type_fonction' => 'ministre', 'ministere' => 'MINT', 'parti' => 'LR'],
         ['prenom' => 'Sébastien', 'nom' => 'Lecornu', 'fonction' => 'Ministre des Armées', 'type_fonction' => 'ministre', 'ministere' => 'MINARM', 'parti' => 'Horizons'],
@@ -105,7 +105,7 @@ class ImportGouvernement extends Command
         Gouvernement::where('actif', true)->update(['actif' => false]);
 
         $data = self::GOUVERNEMENT_ACTUEL;
-        
+
         $gouvernement = Gouvernement::updateOrCreate(
             ['nom' => $data['nom']],
             [
@@ -119,6 +119,7 @@ class ImportGouvernement extends Command
         );
 
         $this->info("   → {$gouvernement->nom} créé/mis à jour");
+
         return $gouvernement;
     }
 
@@ -203,7 +204,7 @@ class ImportGouvernement extends Command
             ],
             [
                 'type' => 'formation',
-                'description' => 'Formation du ' . $gouvernement->nom,
+                'description' => 'Formation du '.$gouvernement->nom,
                 'nb_entrants' => count(self::MINISTRES),
             ]
         );

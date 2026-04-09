@@ -30,24 +30,24 @@ return [
         'data.gouv.fr',
         'france.fr',
         'hatvp.fr',
-        
+
         // Statistiques officielles
         'insee.fr',
         '*.insee.fr',
-        
+
         // Institutions européennes
         'europa.eu',
         '*.europa.eu',
         'europarl.europa.eu',
-        
+
         // Presse officielle
         'journal-officiel.gouv.fr',
-        
+
         // Open data
         'data.senat.fr',
         'data.assemblee-nationale.fr',
-        
-        //ONG
+
+        // ONG
         'www.msf.fr/',
         'www.amnesty.fr/',
         'www.croix-rouge.fr/',

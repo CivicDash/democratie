@@ -8,23 +8,27 @@ return new class extends Migration
 {
     /**
      * Corrige la vue senateurs en utilisant TRIM() pour le matricule
-     * 
+     *
      * Problème : senmat est de type character(6) avec padding d'espaces
      * Solution : Utiliser TRIM() pour enlever les espaces
-     * 
+     *
      * Note: PostgreSQL ne permet pas de changer le type d'une colonne avec CREATE OR REPLACE VIEW
      * Il faut d'abord DROP les vues puis les recréer dans l'ordre
      */
     public function up(): void
     {
+        if (! Schema::hasTable('senat_senateurs_sen')) {
+            return;
+        }
+
         // 1. Supprimer les vues dans l'ordre inverse des dépendances
-        DB::statement("DROP VIEW IF EXISTS votes_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS scrutins_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs_votes CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs_scrutins CASCADE");
-        DB::statement("DROP VIEW IF EXISTS amendements_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs CASCADE");
-        
+        DB::statement('DROP VIEW IF EXISTS votes_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS scrutins_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs_votes CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs_scrutins CASCADE');
+        DB::statement('DROP VIEW IF EXISTS amendements_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs CASCADE');
+
         // 2. Recréer la vue senateurs avec TRIM
         DB::statement("
             CREATE VIEW senateurs AS
@@ -155,22 +159,22 @@ return new class extends Migration
         ");
 
         // 5. Recréer les alias
-        DB::statement("
+        DB::statement('
             CREATE VIEW votes_senat AS
             SELECT * FROM senateurs_votes
-        ");
-        
-        DB::statement("
+        ');
+
+        DB::statement('
             CREATE VIEW scrutins_senat AS
             SELECT * FROM senateurs_scrutins
-        ");
+        ');
 
         // 6. Recréer amendements_senat
         // Vérifier si sen_ameli existe
         $senAmeliExists = Schema::hasTable('sen_ameli');
-        
+
         if ($senAmeliExists) {
-            DB::statement("
+            DB::statement('
                 CREATE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
@@ -194,10 +198,10 @@ return new class extends Migration
                 LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
                 WHERE amdsen.senid IS NOT NULL
                 ORDER BY amd.datdep DESC NULLS LAST
-            ");
+            ');
         } else {
             // Fallback : jointure par nom/prénom
-            DB::statement("
+            DB::statement('
                 CREATE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
@@ -223,20 +227,20 @@ return new class extends Migration
                 LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
                 WHERE amdsen.senid IS NOT NULL
                 ORDER BY amd.datdep DESC NULLS LAST
-            ");
+            ');
         }
     }
 
     public function down(): void
     {
         // Supprimer et recréer les vues sans TRIM (version originale)
-        DB::statement("DROP VIEW IF EXISTS votes_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS scrutins_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs_votes CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs_scrutins CASCADE");
-        DB::statement("DROP VIEW IF EXISTS amendements_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs CASCADE");
-        
+        DB::statement('DROP VIEW IF EXISTS votes_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS scrutins_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs_votes CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs_scrutins CASCADE');
+        DB::statement('DROP VIEW IF EXISTS amendements_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs CASCADE');
+
         // Recréer senateurs sans TRIM
         DB::statement("
             CREATE VIEW senateurs AS
@@ -338,7 +342,7 @@ return new class extends Migration
         ");
 
         // Recréer les alias
-        DB::statement("CREATE VIEW votes_senat AS SELECT * FROM senateurs_votes");
-        DB::statement("CREATE VIEW scrutins_senat AS SELECT * FROM senateurs_scrutins");
+        DB::statement('CREATE VIEW votes_senat AS SELECT * FROM senateurs_votes');
+        DB::statement('CREATE VIEW scrutins_senat AS SELECT * FROM senateurs_scrutins');
     }
 };

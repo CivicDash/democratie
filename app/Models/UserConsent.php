@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Consentement utilisateur RGPD
- * 
+ *
  * Conforme RGPD Art. 7 (conditions applicables au consentement)
- * 
+ *
  * @property int $id
  * @property int $user_id
  * @property string $consent_type data_processing|cookies|notifications|franceconnect_data|analytics
@@ -46,9 +46,13 @@ class UserConsent extends Model
      * Types de consentement disponibles
      */
     public const TYPE_DATA_PROCESSING = 'data_processing';
+
     public const TYPE_COOKIES = 'cookies';
+
     public const TYPE_NOTIFICATIONS = 'notifications';
+
     public const TYPE_FRANCECONNECT_DATA = 'franceconnect_data';
+
     public const TYPE_ANALYTICS = 'analytics';
 
     public const TYPES = [
@@ -97,7 +101,7 @@ class UserConsent extends Model
      */
     public function isActive(): bool
     {
-        return $this->is_granted && !$this->revoked_at;
+        return $this->is_granted && ! $this->revoked_at;
     }
 
     /**

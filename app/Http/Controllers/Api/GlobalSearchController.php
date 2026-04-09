@@ -12,7 +12,6 @@ use App\Models\Topic;
 use App\Models\Ville;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -26,8 +25,8 @@ class GlobalSearchController extends Controller
     public function suggestions(Request $request): JsonResponse
     {
         $query = $request->input('q');
-        
-        if (!$query || strlen($query) < 2) {
+
+        if (! $query || strlen($query) < 2) {
             return response()->json(['results' => []]);
         }
 
@@ -48,7 +47,7 @@ class GlobalSearchController extends Controller
         );
 
         // Trier par pertinence (score de matching)
-        usort($results, fn($a, $b) => $b['score'] <=> $a['score']);
+        usort($results, fn ($a, $b) => $b['score'] <=> $a['score']);
 
         // Limiter à 10 résultats max
         $results = array_slice($results, 0, 10);
@@ -109,7 +108,7 @@ class GlobalSearchController extends Controller
             'query' => $query,
             'category' => $category,
             'results' => $results,
-            'total' => array_sum(array_map(fn($r) => count($r), $results)),
+            'total' => array_sum(array_map(fn ($r) => count($r), $results)),
         ]);
     }
 
@@ -122,8 +121,8 @@ class GlobalSearchController extends Controller
         $deputes = ActeurAN::deputes()
             ->where(function ($q) use ($query) {
                 $q->where('nom', 'ilike', "%{$query}%")
-                  ->orWhere('prenom', 'ilike', "%{$query}%")
-                  ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
+                    ->orWhere('prenom', 'ilike', "%{$query}%")
+                    ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
             })
             ->limit($limit)
             ->get();
@@ -131,7 +130,7 @@ class GlobalSearchController extends Controller
         return $deputes->map(function ($d) use ($query, $detailed) {
             $nomComplet = trim("{$d->prenom} {$d->nom}");
             $score = $this->calculateScore($nomComplet, $query);
-            
+
             $result = [
                 'id' => $d->uid,
                 'type' => 'depute',
@@ -158,9 +157,9 @@ class GlobalSearchController extends Controller
         $senateurs = Senateur::actifs()
             ->where(function ($q) use ($query) {
                 $q->where('nom_usuel', 'ilike', "%{$query}%")
-                  ->orWhere('prenom_usuel', 'ilike', "%{$query}%")
-                  ->orWhereRaw("CONCAT(prenom_usuel, ' ', nom_usuel) ILIKE ?", ["%{$query}%"])
-                  ->orWhere('circonscription', 'ilike', "%{$query}%");
+                    ->orWhere('prenom_usuel', 'ilike', "%{$query}%")
+                    ->orWhereRaw("CONCAT(prenom_usuel, ' ', nom_usuel) ILIKE ?", ["%{$query}%"])
+                    ->orWhere('circonscription', 'ilike', "%{$query}%");
             })
             ->limit($limit)
             ->get();
@@ -168,7 +167,7 @@ class GlobalSearchController extends Controller
         return $senateurs->map(function ($s) use ($query, $detailed) {
             $nomComplet = trim("{$s->prenom_usuel} {$s->nom_usuel}");
             $score = $this->calculateScore($nomComplet, $query);
-            
+
             $result = [
                 'id' => $s->matricule,
                 'type' => 'senateur',
@@ -195,8 +194,8 @@ class GlobalSearchController extends Controller
         $lois = Loi::with('etat')
             ->where(function ($q) use ($query) {
                 $q->where('loitit', 'ilike', "%{$query}%")
-                  ->orWhere('loiint', 'ilike', "%{$query}%")
-                  ->orWhere('loinumjo', 'ilike', "%{$query}%");
+                    ->orWhere('loiint', 'ilike', "%{$query}%")
+                    ->orWhere('loinumjo', 'ilike', "%{$query}%");
             })
             ->orderByDesc('loidatjo')
             ->limit($limit)
@@ -205,7 +204,7 @@ class GlobalSearchController extends Controller
         return $lois->map(function ($l) use ($query, $detailed) {
             $titre = $l->loitit ?: $l->loiint;
             $score = $this->calculateScore($titre ?? '', $query);
-            
+
             $etat = $l->etat?->etaloilib ?? 'En cours';
             $etatIcon = match (trim($l->etaloicod ?? '')) {
                 '04' => '✅',
@@ -214,13 +213,13 @@ class GlobalSearchController extends Controller
                 '05' => '⏰',
                 default => '📜',
             };
-            
+
             $result = [
                 'id' => trim($l->loicod),
                 'type' => 'loi',
                 'category' => 'Loi',
                 'icon' => $etatIcon,
-                'title' => strlen($titre) > 80 ? substr($titre, 0, 80) . '...' : $titre,
+                'title' => strlen($titre) > 80 ? substr($titre, 0, 80).'...' : $titre,
                 'subtitle' => trim($etat),
                 'url' => route('lois.show', trim($l->loicod)),
                 'photo_url' => null,
@@ -241,7 +240,7 @@ class GlobalSearchController extends Controller
         $topics = Topic::published()
             ->where(function ($q) use ($query) {
                 $q->where('title', 'ilike', "%{$query}%")
-                  ->orWhere('description', 'ilike', "%{$query}%");
+                    ->orWhere('description', 'ilike', "%{$query}%");
             })
             ->with('author:id,name')
             ->orderByDesc('published_at')
@@ -258,13 +257,13 @@ class GlobalSearchController extends Controller
 
         return $topics->map(function ($t) use ($query, $ideaIcons, $detailed) {
             $score = $this->calculateScore($t->title, $query);
-            
+
             $result = [
                 'id' => $t->id,
                 'type' => 'idee',
                 'category' => 'Idée citoyenne',
                 'icon' => $ideaIcons[$t->idea_type] ?? '💡',
-                'title' => strlen($t->title) > 60 ? substr($t->title, 0, 60) . '...' : $t->title,
+                'title' => strlen($t->title) > 60 ? substr($t->title, 0, 60).'...' : $t->title,
                 'subtitle' => $t->author?->display_name ?? 'Citoyen',
                 'url' => route('participation.ideas.show', $t->slug ?: $t->id),
                 'photo_url' => null,
@@ -284,11 +283,11 @@ class GlobalSearchController extends Controller
     {
         // Rechercher uniquement si le terme ressemble à un nom ou une commune
         $maires = Maire::where(function ($q) use ($query) {
-                $q->where('nom', 'ilike', "%{$query}%")
-                  ->orWhere('prenom', 'ilike', "%{$query}%")
-                  ->orWhere('nom_commune', 'ilike', "%{$query}%")
-                  ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
-            })
+            $q->where('nom', 'ilike', "%{$query}%")
+                ->orWhere('prenom', 'ilike', "%{$query}%")
+                ->orWhere('nom_commune', 'ilike', "%{$query}%")
+                ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
+        })
             ->limit($limit)
             ->get();
 
@@ -299,7 +298,7 @@ class GlobalSearchController extends Controller
             if (stripos($m->nom_commune, $query) !== false) {
                 $score += 20;
             }
-            
+
             // Récupérer la ville associée pour l'URL
             $villeUrl = '#';
             if ($m->ville_id) {
@@ -313,7 +312,7 @@ class GlobalSearchController extends Controller
                     $villeUrl = $ville->url;
                 }
             }
-            
+
             $result = [
                 'id' => $m->id,
                 'type' => 'maire',
@@ -339,14 +338,14 @@ class GlobalSearchController extends Controller
     {
         // Recherche par nom de ville ou code postal
         $isPostalCode = preg_match('/^\d{2,5}$/', $query);
-        
+
         $villes = Ville::where('arrondissement_municipal', false)
             ->where(function ($q) use ($query, $isPostalCode) {
                 $q->where('nom', 'ilike', "%{$query}%");
-                
+
                 if ($isPostalCode) {
                     $q->orWhere('code_postal_principal', 'like', "{$query}%")
-                      ->orWhere('code_insee', 'like', "{$query}%");
+                        ->orWhere('code_insee', 'like', "{$query}%");
                 }
             })
             ->whereNotNull('population')
@@ -357,26 +356,26 @@ class GlobalSearchController extends Controller
 
         return $villes->map(function ($v) use ($query, $detailed, $isPostalCode) {
             $score = $this->calculateScore($v->nom, $query);
-            
+
             // Boost si code postal match
             if ($isPostalCode && str_starts_with($v->code_postal_principal ?? '', $query)) {
                 $score += 30;
             }
-            
+
             // Boost grandes villes
             if ($v->population >= 100000) {
                 $score += 15;
             } elseif ($v->population >= 50000) {
                 $score += 10;
             }
-            
+
             $result = [
                 'id' => $v->id,
                 'type' => 'ville',
                 'category' => 'Ville',
                 'icon' => '🏘️',
                 'title' => $v->nom,
-                'subtitle' => $v->code_postal_principal . ' • ' . ($v->departement_nom ?? $v->departement_code),
+                'subtitle' => $v->code_postal_principal.' • '.($v->departement_nom ?? $v->departement_code),
                 'url' => $v->url,
                 'photo_url' => null,
                 'score' => $score,
@@ -389,8 +388,8 @@ class GlobalSearchController extends Controller
                 $result['population_formate'] = $v->population_formate;
                 $result['departement'] = $v->departement_nom;
                 $result['region'] = $v->region_nom;
-                $result['maire'] = $v->maireActuel 
-                    ? trim($v->maireActuel->prenom . ' ' . $v->maireActuel->nom)
+                $result['maire'] = $v->maireActuel
+                    ? trim($v->maireActuel->prenom.' '.$v->maireActuel->nom)
                     : null;
             }
 
@@ -403,8 +402,8 @@ class GlobalSearchController extends Controller
         $ministres = PersonnePolitique::whereHas('postes')
             ->where(function ($q) use ($query) {
                 $q->where('nom', 'ilike', "%{$query}%")
-                  ->orWhere('prenom', 'ilike', "%{$query}%")
-                  ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
+                    ->orWhere('prenom', 'ilike', "%{$query}%")
+                    ->orWhereRaw("CONCAT(prenom, ' ', nom) ILIKE ?", ["%{$query}%"]);
             })
             ->with(['postes' => function ($q) {
                 $q->with('gouvernement')->orderByDesc('date_debut')->limit(1);
@@ -415,13 +414,13 @@ class GlobalSearchController extends Controller
         return $ministres->map(function ($m) use ($query, $detailed) {
             $nomComplet = trim("{$m->prenom} {$m->nom}");
             $score = $this->calculateScore($nomComplet, $query);
-            
+
             $posteActuel = $m->postes->first();
             $fonction = $posteActuel?->fonction ?? 'Ancien ministre';
-            
+
             // Générer le slug pour l'URL
             $slug = Str::slug($nomComplet);
-            
+
             $result = [
                 'id' => $m->id,
                 'type' => 'ministre',
@@ -511,14 +510,14 @@ class GlobalSearchController extends Controller
 
         foreach ($presidents as $president) {
             $nomLower = strtolower($president['nom']);
-            
+
             if (str_contains($nomLower, $queryLower)) {
                 $score = $this->calculateScore($president['nom'], $query);
                 // Boost pour le président actuel
                 if ($president['actif']) {
                     $score += 20;
                 }
-                
+
                 $result = [
                     'id' => $president['slug'],
                     'type' => 'president',
@@ -541,7 +540,8 @@ class GlobalSearchController extends Controller
         }
 
         // Trier par score et limiter
-        usort($results, fn($a, $b) => $b['score'] <=> $a['score']);
+        usort($results, fn ($a, $b) => $b['score'] <=> $a['score']);
+
         return array_slice($results, 0, $limit);
     }
 
@@ -553,17 +553,17 @@ class GlobalSearchController extends Controller
     {
         $text = strtolower(trim($text));
         $query = strtolower(trim($query));
-        
+
         // Match exact au début = score max
         if (str_starts_with($text, $query)) {
             return 100;
         }
-        
+
         // Match exact quelque part
         if (str_contains($text, $query)) {
             return 80;
         }
-        
+
         // Match partiel (mots)
         $words = explode(' ', $query);
         $matchedWords = 0;
@@ -572,11 +572,11 @@ class GlobalSearchController extends Controller
                 $matchedWords++;
             }
         }
-        
+
         if ($matchedWords > 0) {
             return 50 + ($matchedWords * 10);
         }
-        
+
         return 30;
     }
 

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Vote détaillé d'un député ou sénateur
- * 
+ *
  * @property int $id
  * @property int $depute_senateur_id
  * @property string $numero_scrutin
@@ -103,7 +103,7 @@ class VoteDepute extends Model
 
     public function getPositionLabelAttribute(): string
     {
-        return match($this->position) {
+        return match ($this->position) {
             'pour' => 'Pour',
             'contre' => 'Contre',
             'abstention' => 'Abstention',
@@ -114,11 +114,11 @@ class VoteDepute extends Model
 
     public function getResultatLabelAttribute(): ?string
     {
-        if (!$this->resultat) {
+        if (! $this->resultat) {
             return null;
         }
 
-        return match($this->resultat) {
+        return match ($this->resultat) {
             'adopte' => 'Adopté',
             'rejete' => 'Rejeté',
             default => $this->resultat,
@@ -130,4 +130,3 @@ class VoteDepute extends Model
         return ($this->pour ?? 0) + ($this->contre ?? 0) + ($this->abstentions ?? 0);
     }
 }
-

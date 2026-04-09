@@ -55,4 +55,3 @@ class HatvpParticipationDirigeante extends Model
             ->toArray();
     }
 }
-

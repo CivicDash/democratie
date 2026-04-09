@@ -184,7 +184,7 @@ class NotificationsController extends Controller
      */
     public function test(Request $request): JsonResponse
     {
-        if (!app()->environment('local')) {
+        if (! app()->environment('local')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Disponible uniquement en environnement local',
@@ -197,7 +197,7 @@ class NotificationsController extends Controller
             user: $user,
             type: Notification::TYPE_SYSTEM,
             title: 'Notification de test',
-            message: 'Ceci est une notification de test envoyée à ' . now()->format('H:i:s'),
+            message: 'Ceci est une notification de test envoyée à '.now()->format('H:i:s'),
             priority: Notification::PRIORITY_NORMAL,
             icon: '🧪'
         );

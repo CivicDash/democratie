@@ -8,25 +8,29 @@ return new class extends Migration
 {
     /**
      * Corrige les codes de position de vote dans la vue senateurs_votes
-     * 
+     *
      * Les codes réels sont numériques (0, 2, 3, 4, 5) et non alphabétiques (P, C, A, NV)
      * Source : table senat_senateurs_posvot
-     * 
+     *
      * Correspondance :
      * - 0 = pour
      * - 2 = contre
      * - 3 = abstention
      * - 4 = non-votant
      * - 5 = n'a pas souhaité prendre part au vote (traité comme non_votant)
-     * 
+     *
      * Ajout également du code dossier législatif (dossier_code) via senat_dosleg_scr
      */
     public function up(): void
     {
+        if (! Schema::hasTable('senat_senateurs_votes')) {
+            return;
+        }
+
         // 1. Supprimer les vues dépendantes
-        DB::statement("DROP VIEW IF EXISTS votes_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs_votes CASCADE");
-        
+        DB::statement('DROP VIEW IF EXISTS votes_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs_votes CASCADE');
+
         // 2. Recréer senateurs_votes avec les bons codes et le dossier_code
         DB::statement("
             CREATE VIEW senateurs_votes AS
@@ -65,18 +69,18 @@ return new class extends Migration
         ");
 
         // 3. Recréer l'alias
-        DB::statement("
+        DB::statement('
             CREATE VIEW votes_senat AS
             SELECT * FROM senateurs_votes
-        ");
+        ');
     }
 
     public function down(): void
     {
         // Revenir aux anciens codes (P, C, A, NV)
-        DB::statement("DROP VIEW IF EXISTS votes_senat CASCADE");
-        DB::statement("DROP VIEW IF EXISTS senateurs_votes CASCADE");
-        
+        DB::statement('DROP VIEW IF EXISTS votes_senat CASCADE');
+        DB::statement('DROP VIEW IF EXISTS senateurs_votes CASCADE');
+
         DB::statement("
             CREATE VIEW senateurs_votes AS
             SELECT 
@@ -107,10 +111,9 @@ return new class extends Migration
             ORDER BY scr.scrdat DESC NULLS LAST
         ");
 
-        DB::statement("
+        DB::statement('
             CREATE VIEW votes_senat AS
             SELECT * FROM senateurs_votes
-        ");
+        ');
     }
 };
-

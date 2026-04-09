@@ -50,18 +50,24 @@ class BudgetMinistere extends Model
     public function getBudgetFormateAttribute(): string
     {
         $montant = $this->budget_cp ?? $this->budget_ae;
-        if ($montant === null) return 'N/A';
-        
-        if ($montant >= 1_000_000_000) {
-            return number_format($montant / 1_000_000_000, 2, ',', ' ') . ' Md€';
+        if ($montant === null) {
+            return 'N/A';
         }
-        return number_format($montant / 1_000_000, 1, ',', ' ') . ' M€';
+
+        if ($montant >= 1_000_000_000) {
+            return number_format($montant / 1_000_000_000, 2, ',', ' ').' Md€';
+        }
+
+        return number_format($montant / 1_000_000, 1, ',', ' ').' M€';
     }
 
     public function getEffectifsFormateAttribute(): string
     {
-        if (!$this->effectifs_etpt) return 'N/A';
-        return number_format($this->effectifs_etpt, 0, ',', ' ') . ' ETPT';
+        if (! $this->effectifs_etpt) {
+            return 'N/A';
+        }
+
+        return number_format($this->effectifs_etpt, 0, ',', ' ').' ETPT';
     }
 
     // Couleurs par ministère
@@ -83,13 +89,13 @@ class BudgetMinistere extends Model
         ];
 
         $nomNorm = strtolower(str_replace([' ', '-', "'", 'é', 'è', 'ê'], ['_', '_', '', 'e', 'e', 'e'], $nom));
-        
+
         foreach ($couleurs as $key => $color) {
             if (str_contains($nomNorm, $key)) {
                 return $color;
             }
         }
-        
+
         return '#6b7280';
     }
 }

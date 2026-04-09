@@ -2,23 +2,29 @@
 
 namespace App\Services\AssembleeNationale;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use ZipArchive;
 
 class XmlDownloader
 {
     protected string $baseUrl;
+
     protected int $legislature;
+
     protected array $storage;
+
     protected array $cacheConfig;
-    
+
     // Configuration des téléchargements
     protected int $timeout = 600; // 10 minutes
+
     protected int $connectTimeout = 30;
+
     protected int $maxRetries = 3;
+
     protected int $retryDelay = 5; // secondes
 
     public function __construct(?int $legislature = null)
@@ -27,7 +33,7 @@ class XmlDownloader
         $this->legislature = $legislature ?? config('assemblee-nationale.legislature');
         $this->storage = config('assemblee-nationale.storage');
         $this->cacheConfig = config('assemblee-nationale.cache');
-        
+
         $this->ensureDirectoriesExist();
     }
 
@@ -37,8 +43,8 @@ class XmlDownloader
     public function download(string $sourceKey, bool $force = false): array
     {
         $source = config("assemblee-nationale.sources.{$sourceKey}");
-        
-        if (!$source) {
+
+        if (! $source) {
             throw new \InvalidArgumentException("Source inconnue : {$sourceKey}");
         }
 
@@ -47,8 +53,9 @@ class XmlDownloader
         $xmlPath = $this->getXmlPath($sourceKey);
 
         // Vérifier le cache
-        if (!$force && $this->isCacheValid($sourceKey, $url)) {
+        if (! $force && $this->isCacheValid($sourceKey, $url)) {
             Log::channel('an-sync')->info("Cache valide pour {$sourceKey}, téléchargement ignoré");
+
             return [
                 'status' => 'cached',
                 'source' => $sourceKey,
@@ -60,22 +67,22 @@ class XmlDownloader
 
         // Télécharger avec streaming et retries
         $etag = $this->downloadWithRetry($url, $zipPath);
-        
+
         // Vérifier que le fichier a été téléchargé
-        if (!File::exists($zipPath) || File::size($zipPath) === 0) {
+        if (! File::exists($zipPath) || File::size($zipPath) === 0) {
             throw new \RuntimeException("Le fichier téléchargé est vide ou n'existe pas");
         }
-        
+
         $fileSize = File::size($zipPath);
-        Log::channel('an-sync')->info("Fichier téléchargé : " . $this->formatBytes($fileSize));
-        
+        Log::channel('an-sync')->info('Fichier téléchargé : '.$this->formatBytes($fileSize));
+
         // Extraire le ZIP
         $extractedFiles = $this->extractZip($zipPath, $sourceKey);
 
         // Mettre à jour le cache
         $this->updateCache($sourceKey, $url, $etag);
 
-        Log::channel('an-sync')->info("Téléchargement terminé : " . count($extractedFiles) . " fichiers extraits");
+        Log::channel('an-sync')->info('Téléchargement terminé : '.count($extractedFiles).' fichiers extraits');
 
         return [
             'status' => 'downloaded',
@@ -87,7 +94,7 @@ class XmlDownloader
             'size' => $fileSize,
         ];
     }
-    
+
     /**
      * Télécharge un fichier avec streaming et retries automatiques
      */
@@ -95,20 +102,20 @@ class XmlDownloader
     {
         $lastException = null;
         $etag = null;
-        
+
         for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
             try {
                 Log::channel('an-sync')->info("Tentative {$attempt}/{$this->maxRetries}...");
-                
+
                 $etag = $this->streamDownload($url, $destinationPath);
-                
+
                 // Succès
                 return $etag;
-                
+
             } catch (\Exception $e) {
                 $lastException = $e;
                 Log::channel('an-sync')->warning("Tentative {$attempt} échouée : {$e->getMessage()}");
-                
+
                 if ($attempt < $this->maxRetries) {
                     $delay = $this->retryDelay * $attempt; // Backoff exponentiel
                     Log::channel('an-sync')->info("Nouvelle tentative dans {$delay}s...");
@@ -116,13 +123,13 @@ class XmlDownloader
                 }
             }
         }
-        
+
         throw new \RuntimeException(
-            "Échec du téléchargement après {$this->maxRetries} tentatives : " . 
+            "Échec du téléchargement après {$this->maxRetries} tentatives : ".
             ($lastException ? $lastException->getMessage() : 'Erreur inconnue')
         );
     }
-    
+
     /**
      * Télécharge un fichier en streaming (économise la mémoire pour les gros fichiers)
      */
@@ -130,16 +137,16 @@ class XmlDownloader
     {
         // Utiliser cURL directement pour un meilleur contrôle
         $ch = curl_init($url);
-        
+
         // Ouvrir le fichier de destination
         $fp = fopen($destinationPath, 'w');
         if ($fp === false) {
             throw new \RuntimeException("Impossible d'ouvrir le fichier de destination : {$destinationPath}");
         }
-        
+
         $etag = null;
         $headers = [];
-        
+
         curl_setopt_array($ch, [
             CURLOPT_FILE => $fp,
             CURLOPT_FOLLOWLOCATION => true,
@@ -152,7 +159,7 @@ class XmlDownloader
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_USERAGENT => 'CivicDash/1.0 (Demoscratos)',
             // Capturer les headers
-            CURLOPT_HEADERFUNCTION => function($ch, $header) use (&$headers, &$etag) {
+            CURLOPT_HEADERFUNCTION => function ($ch, $header) use (&$headers, &$etag) {
                 $len = strlen($header);
                 $header = explode(':', $header, 2);
                 if (count($header) >= 2) {
@@ -163,6 +170,7 @@ class XmlDownloader
                         $etag = $value;
                     }
                 }
+
                 return $len;
             },
             // Options pour les gros fichiers
@@ -176,33 +184,33 @@ class XmlDownloader
             CURLOPT_TCP_KEEPIDLE => 30,      // Délai avant d'envoyer des keepalive
             CURLOPT_TCP_KEEPINTVL => 15,     // Intervalle entre les keepalive
         ]);
-        
+
         $success = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         $errno = curl_errno($ch);
-        
+
         curl_close($ch);
         fclose($fp);
-        
-        if (!$success || $errno !== 0) {
+
+        if (! $success || $errno !== 0) {
             // Supprimer le fichier partiel
             if (File::exists($destinationPath)) {
                 File::delete($destinationPath);
             }
             throw new \RuntimeException("cURL error {$errno}: {$error}");
         }
-        
+
         if ($httpCode >= 400) {
             if (File::exists($destinationPath)) {
                 File::delete($destinationPath);
             }
             throw new \RuntimeException("HTTP error {$httpCode}");
         }
-        
+
         return $etag;
     }
-    
+
     /**
      * Formate une taille en bytes de manière lisible
      */
@@ -213,7 +221,8 @@ class XmlDownloader
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
-        return round($bytes, $precision) . ' ' . $units[$pow];
+
+        return round($bytes, $precision).' '.$units[$pow];
     }
 
     /**
@@ -225,7 +234,7 @@ class XmlDownloader
         $results = [];
 
         // Trier par priorité
-        uasort($sources, fn($a, $b) => ($a['priority'] ?? 99) <=> ($b['priority'] ?? 99));
+        uasort($sources, fn ($a, $b) => ($a['priority'] ?? 99) <=> ($b['priority'] ?? 99));
 
         foreach (array_keys($sources) as $sourceKey) {
             try {
@@ -249,6 +258,7 @@ class XmlDownloader
     protected function buildUrl(string $path): string
     {
         $path = str_replace('{legislature}', $this->legislature, $path);
+
         return "{$this->baseUrl}/{$path}";
     }
 
@@ -257,26 +267,26 @@ class XmlDownloader
      */
     protected function extractZip(string $zipPath, string $sourceKey): array
     {
-        $extractPath = $this->storage['xml_path'] . '/' . $sourceKey;
-        
+        $extractPath = $this->storage['xml_path'].'/'.$sourceKey;
+
         // Nettoyer le répertoire d'extraction
         if (File::isDirectory($extractPath)) {
             File::deleteDirectory($extractPath);
         }
         File::makeDirectory($extractPath, 0755, true);
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($zipPath) !== true) {
             throw new \RuntimeException("Impossible d'ouvrir le fichier ZIP : {$zipPath}");
         }
 
         $zip->extractTo($extractPath);
         $extractedFiles = [];
-        
+
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $extractedFiles[] = $zip->getNameIndex($i);
         }
-        
+
         $zip->close();
 
         return $extractedFiles;
@@ -287,14 +297,14 @@ class XmlDownloader
      */
     protected function isCacheValid(string $sourceKey, string $url): bool
     {
-        if (!$this->cacheConfig['enabled']) {
+        if (! $this->cacheConfig['enabled']) {
             return false;
         }
 
         $cacheKey = "an_download_{$sourceKey}";
         $cached = Cache::get($cacheKey);
 
-        if (!$cached) {
+        if (! $cached) {
             return false;
         }
 
@@ -309,7 +319,7 @@ class XmlDownloader
             try {
                 $response = Http::head($url);
                 $currentEtag = $response->header('ETag');
-                
+
                 if ($currentEtag && $currentEtag !== $cached['etag']) {
                     return false;
                 }
@@ -321,7 +331,7 @@ class XmlDownloader
 
         // Vérifier que les fichiers existent toujours
         $xmlPath = $this->getXmlPath($sourceKey);
-        if (!File::isDirectory($xmlPath)) {
+        if (! File::isDirectory($xmlPath)) {
             return false;
         }
 
@@ -334,7 +344,7 @@ class XmlDownloader
     protected function updateCache(string $sourceKey, string $url, ?string $etag): void
     {
         $cacheKey = "an_download_{$sourceKey}";
-        
+
         Cache::put($cacheKey, [
             'url' => $url,
             'timestamp' => time(),
@@ -348,7 +358,7 @@ class XmlDownloader
      */
     public function getZipPath(string $sourceKey): string
     {
-        return $this->storage['zip_path'] . "/{$sourceKey}_L{$this->legislature}.zip";
+        return $this->storage['zip_path']."/{$sourceKey}_L{$this->legislature}.zip";
     }
 
     /**
@@ -356,7 +366,7 @@ class XmlDownloader
      */
     public function getXmlPath(string $sourceKey): string
     {
-        return $this->storage['xml_path'] . '/' . $sourceKey;
+        return $this->storage['xml_path'].'/'.$sourceKey;
     }
 
     /**
@@ -365,7 +375,7 @@ class XmlDownloader
     protected function ensureDirectoriesExist(): void
     {
         foreach ($this->storage as $path) {
-            if (!File::isDirectory($path)) {
+            if (! File::isDirectory($path)) {
                 File::makeDirectory($path, 0755, true);
             }
         }
@@ -379,14 +389,14 @@ class XmlDownloader
         if ($sourceKey) {
             $zipPath = $this->getZipPath($sourceKey);
             $xmlPath = $this->getXmlPath($sourceKey);
-            
+
             if (File::exists($zipPath)) {
                 File::delete($zipPath);
             }
             if (File::isDirectory($xmlPath)) {
                 File::deleteDirectory($xmlPath);
             }
-            
+
             Cache::forget("an_download_{$sourceKey}");
         } else {
             // Nettoyer tout
@@ -402,11 +412,11 @@ class XmlDownloader
     public function getCacheInfo(): array
     {
         $info = [];
-        
+
         foreach (array_keys(config('assemblee-nationale.sources')) as $sourceKey) {
             $cacheKey = "an_download_{$sourceKey}";
             $cached = Cache::get($cacheKey);
-            
+
             $info[$sourceKey] = [
                 'cached' => $cached !== null,
                 'timestamp' => $cached['timestamp'] ?? null,
@@ -415,7 +425,7 @@ class XmlDownloader
                 'xml_exists' => File::isDirectory($this->getXmlPath($sourceKey)),
             ];
         }
-        
+
         return $info;
     }
 
@@ -425,6 +435,7 @@ class XmlDownloader
     public function setLegislature(int $legislature): self
     {
         $this->legislature = $legislature;
+
         return $this;
     }
 
@@ -436,4 +447,3 @@ class XmlDownloader
         return $this->legislature;
     }
 }
-

@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Moderation\ResolveReportRequest;
+use App\Http\Requests\Moderation\StoreReportRequest;
 use App\Models\Report;
 use App\Models\Sanction;
 use App\Models\User;
 use App\Services\ModerationService;
-use App\Http\Requests\Moderation\StoreReportRequest;
-use App\Http\Requests\Moderation\ResolveReportRequest;
-use App\Http\Requests\Moderation\StoreSanctionRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,12 +30,12 @@ class ModerationController extends Controller
             'resolved_today' => Report::where('status', 'resolved')->whereDate('updated_at', today())->count(),
             'active_moderators' => User::role('moderator')->count(),
         ];
-        
+
         $recentReports = Report::with(['reporter', 'reportable'])
             ->latest()
             ->take(10)
             ->get();
-        
+
         $topModerators = User::role('moderator')
             ->withCount(['sanctions as resolved_count'])
             ->orderByDesc('resolved_count')
@@ -225,4 +224,3 @@ class ModerationController extends Controller
         ]);
     }
 }
-

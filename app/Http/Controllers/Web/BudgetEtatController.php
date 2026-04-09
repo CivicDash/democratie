@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\BudgetAnnuel;
+use App\Models\BudgetMinistere;
 use App\Models\BudgetMission;
 use App\Models\BudgetProgramme;
-use App\Models\BudgetMinistere;
-use App\Models\BudgetAnnuel;
 use App\Models\FranceBudgetRevenue;
-use App\Models\FranceBudgetSpending;
 use App\Models\InseeSalaire;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -33,7 +32,7 @@ class BudgetEtatController extends Controller
         }
 
         // Année par défaut = la plus récente disponible en base
-        $anneeDefaut = !empty($anneesDisponibles) ? $anneesDisponibles[0] : date('Y');
+        $anneeDefaut = ! empty($anneesDisponibles) ? $anneesDisponibles[0] : date('Y');
         $annee = $request->input('annee', $anneeDefaut);
 
         // Données budget annuel
@@ -46,9 +45,9 @@ class BudgetEtatController extends Controller
             ->get();
 
         // Calcul du total pour les pourcentages
-        $totalCreditsCP = $missionsRaw->sum(fn($m) => (float) $m->credits_cp);
+        $totalCreditsCP = $missionsRaw->sum(fn ($m) => (float) $m->credits_cp);
 
-        $missions = $missionsRaw->map(fn($m) => [
+        $missions = $missionsRaw->map(fn ($m) => [
             'id' => $m->id,
             'code' => $m->code,
             'libelle' => $m->libelle,
@@ -57,8 +56,8 @@ class BudgetEtatController extends Controller
             'credits_cp_formate' => $m->credits_cp_formate,
             'nb_programmes' => $m->nb_programmes,
             'couleur' => BudgetMission::getCouleurMission($m->code),
-            'part_pct' => $totalCreditsCP > 0 
-                ? round(((float) $m->credits_cp / $totalCreditsCP) * 100, 1) 
+            'part_pct' => $totalCreditsCP > 0
+                ? round(((float) $m->credits_cp / $totalCreditsCP) * 100, 1)
                 : 0,
         ]);
 
@@ -67,9 +66,9 @@ class BudgetEtatController extends Controller
             ->orderByDesc('budget_cp')
             ->get();
 
-        $totalBudgetMinisteres = $ministeresRaw->sum(fn($m) => (float) $m->budget_cp);
+        $totalBudgetMinisteres = $ministeresRaw->sum(fn ($m) => (float) $m->budget_cp);
 
-        $ministeres = $ministeresRaw->map(fn($m) => [
+        $ministeres = $ministeresRaw->map(fn ($m) => [
             'id' => $m->id,
             'code' => $m->code,
             'nom' => $m->nom,
@@ -86,7 +85,7 @@ class BudgetEtatController extends Controller
         // Évolution historique
         $evolution = BudgetAnnuel::orderBy('annee')
             ->get()
-            ->map(fn($b) => [
+            ->map(fn ($b) => [
                 'annee' => $b->annee,
                 'recettes' => round(($b->recettes_nettes ?? 0) / 1_000_000_000, 1),
                 'depenses' => round(($b->depenses_nettes ?? 0) / 1_000_000_000, 1),
@@ -174,6 +173,7 @@ class BudgetEtatController extends Controller
         // Ajouter le pourcentage à chaque type de recette
         $recettesParType = collect($recettesParType)->map(function ($r) use ($totalRecettes) {
             $r['pct'] = $totalRecettes > 0 ? round(($r['value'] / $totalRecettes) * 100, 1) : 0;
+
             return $r;
         })->sortByDesc('value')->values()->toArray();
 
@@ -208,11 +208,11 @@ class BudgetEtatController extends Controller
                 'total' => $totalRecettes,
                 'total_formate' => $this->formatMontant($totalRecettes * 1_000_000_000),
                 'etat' => $recettesEtat,
-                'etat_formate' => number_format($recettesEtat, 1, ',', ' ') . ' Md€',
+                'etat_formate' => number_format($recettesEtat, 1, ',', ' ').' Md€',
                 'securite_sociale' => $recettesSecu,
-                'securite_sociale_formate' => number_format($recettesSecu, 1, ',', ' ') . ' Md€',
+                'securite_sociale_formate' => number_format($recettesSecu, 1, ',', ' ').' Md€',
                 'collectivites' => $recettesLocales,
-                'collectivites_formate' => number_format($recettesLocales, 1, ',', ' ') . ' Md€',
+                'collectivites_formate' => number_format($recettesLocales, 1, ',', ' ').' Md€',
             ],
             // Données URSSAF (emploi secteur privé)
             'urssafData' => $this->getUrssafData($annee),
@@ -238,8 +238,8 @@ class BudgetEtatController extends Controller
                     'nom' => 'Sécurité sociale',
                     'icon' => '🏥',
                     'description' => 'Assurance maladie, retraites, famille, chômage (PLFSS)',
-                    'recettes' => number_format($recettesSecu, 0, ',', ' ') . ' Md€',
-                    'depenses' => number_format($this->getDepensesSecu($annee), 0, ',', ' ') . ' Md€',
+                    'recettes' => number_format($recettesSecu, 0, ',', ' ').' Md€',
+                    'depenses' => number_format($this->getDepensesSecu($annee), 0, ',', ' ').' Md€',
                     'deficit_secu' => $this->getDeficitSecu($annee),
                     'color' => '#10B981',
                 ],
@@ -248,8 +248,8 @@ class BudgetEtatController extends Controller
                     'nom' => 'Collectivités locales',
                     'icon' => '🏘️',
                     'description' => 'Régions, départements, communes',
-                    'recettes' => number_format($recettesLocales, 0, ',', ' ') . ' Md€',
-                    'depenses' => '~' . number_format($recettesLocales, 0, ',', ' ') . ' Md€',
+                    'recettes' => number_format($recettesLocales, 0, ',', ' ').' Md€',
+                    'depenses' => '~'.number_format($recettesLocales, 0, ',', ' ').' Md€',
                     'color' => '#F59E0B',
                 ],
             ],
@@ -270,7 +270,7 @@ class BudgetEtatController extends Controller
         $programmes = $mission->programmes()
             ->orderByDesc('credits_cp')
             ->get()
-            ->map(fn($p) => [
+            ->map(fn ($p) => [
                 'id' => $p->id,
                 'code' => $p->code,
                 'libelle' => $p->libelle,
@@ -325,11 +325,11 @@ class BudgetEtatController extends Controller
             ->orderByDesc('credits_cp')
             ->get();
 
-        return $missions->map(fn($m) => [
+        return $missions->map(fn ($m) => [
             'name' => $m->libelle,
             'value' => round($m->credits_cp / 1_000_000_000, 2),
             'color' => BudgetMission::getCouleurMission($m->code),
-            'children' => $m->programmes->map(fn($p) => [
+            'children' => $m->programmes->map(fn ($p) => [
                 'name' => $p->libelle,
                 'value' => round($p->credits_cp / 1_000_000_000, 2),
             ])->toArray(),
@@ -338,12 +338,15 @@ class BudgetEtatController extends Controller
 
     private function formatMontant(?float $montant): string
     {
-        if ($montant === null) return 'N/A';
-        
-        if ($montant >= 1_000_000_000) {
-            return number_format($montant / 1_000_000_000, 1, ',', ' ') . ' Md€';
+        if ($montant === null) {
+            return 'N/A';
         }
-        return number_format($montant / 1_000_000, 0, ',', ' ') . ' M€';
+
+        if ($montant >= 1_000_000_000) {
+            return number_format($montant / 1_000_000_000, 1, ',', ' ').' Md€';
+        }
+
+        return number_format($montant / 1_000_000, 0, ',', ' ').' M€';
     }
 
     /**
@@ -360,7 +363,7 @@ class BudgetEtatController extends Controller
             2020 => 510.0,
             2019 => 505.0,
         ];
-        
+
         return $depenses[$annee] ?? ($depenses[2024] ?? 600.0);
     }
 
@@ -371,16 +374,16 @@ class BudgetEtatController extends Controller
     {
         $depenses = $this->getDepensesSecu($annee);
         $recettes = FranceBudgetRevenue::where('year', $annee)->value('social_contributions_billions_euros') ?? 0;
-        
+
         if ($recettes <= 0) {
             return null;
         }
-        
+
         $deficit = $recettes - $depenses;
-        
+
         return [
             'montant' => $deficit,
-            'formate' => ($deficit >= 0 ? '+' : '') . number_format($deficit, 1, ',', ' ') . ' Md€',
+            'formate' => ($deficit >= 0 ? '+' : '').number_format($deficit, 1, ',', ' ').' Md€',
             'is_positive' => $deficit >= 0,
         ];
     }
@@ -392,7 +395,7 @@ class BudgetEtatController extends Controller
     private function getUrssafData(int $annee): ?array
     {
         // Vérifier si la table existe
-        if (!\Schema::hasTable('urssaf_effectifs_national')) {
+        if (! \Schema::hasTable('urssaf_effectifs_national')) {
             return null;
         }
 
@@ -401,11 +404,11 @@ class BudgetEtatController extends Controller
             ->where('annee', '<=', $annee)
             ->max('annee');
 
-        if (!$anneeDisponible) {
+        if (! $anneeDisponible) {
             $anneeDisponible = \DB::table('urssaf_effectifs_national')->max('annee');
         }
 
-        if (!$anneeDisponible) {
+        if (! $anneeDisponible) {
             return null;
         }
 
@@ -427,7 +430,7 @@ class BudgetEtatController extends Controller
         }
 
         // Top secteurs formatés
-        $topSecteurs = $parGrandSecteur->map(fn($row) => [
+        $topSecteurs = $parGrandSecteur->map(fn ($row) => [
             'secteur' => $row->secteur_libelle,
             'code' => $row->secteur_libelle,
             'effectifs' => (int) $row->effectifs,
@@ -436,8 +439,8 @@ class BudgetEtatController extends Controller
             'masse_salariale_md' => round($row->masse_salariale / 1_000_000_000, 1),
             'nb_etablissements' => (int) $row->nb_etablissements,
             'nb_sous_secteurs' => (int) $row->nb_sous_secteurs,
-            'salaire_moyen' => $row->effectifs > 0 
-                ? round($row->masse_salariale / $row->effectifs / 12) 
+            'salaire_moyen' => $row->effectifs > 0
+                ? round($row->masse_salariale / $row->effectifs / 12)
                 : 0,
         ])->values();
 
@@ -453,7 +456,7 @@ class BudgetEtatController extends Controller
             ->groupBy('annee')
             ->orderBy('annee')
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'annee' => (int) $row->annee,
                 'effectifs' => (int) $row->total_effectifs,
                 'effectifs_millions' => round($row->total_effectifs / 1_000_000, 2),
@@ -467,9 +470,9 @@ class BudgetEtatController extends Controller
             'total_effectifs_formate' => number_format($totalEffectifs, 0, ',', ' '),
             'total_effectifs_millions' => round($totalEffectifs / 1_000_000, 1),
             'total_masse_salariale' => $totalMasseSalariale,
-            'total_masse_salariale_formate' => number_format($totalMasseSalariale / 1_000_000_000, 1, ',', ' ') . ' Md€',
-            'salaire_moyen_mensuel' => $totalEffectifs > 0 
-                ? number_format(round($totalMasseSalariale / $totalEffectifs / 12), 0, ',', ' ') . ' €'
+            'total_masse_salariale_formate' => number_format($totalMasseSalariale / 1_000_000_000, 1, ',', ' ').' Md€',
+            'salaire_moyen_mensuel' => $totalEffectifs > 0
+                ? number_format(round($totalMasseSalariale / $totalEffectifs / 12), 0, ',', ' ').' €'
                 : 'N/A',
             'top_secteurs' => $topSecteurs->toArray(),
             'evolution' => $evolution->toArray(),
@@ -482,7 +485,7 @@ class BudgetEtatController extends Controller
      */
     private function getFonctionPubliqueData(int $annee): ?array
     {
-        if (!\Schema::hasTable('fonction_publique_effectifs')) {
+        if (! \Schema::hasTable('fonction_publique_effectifs')) {
             return null;
         }
 
@@ -491,11 +494,11 @@ class BudgetEtatController extends Controller
             ->where('annee', '<=', $annee)
             ->max('annee');
 
-        if (!$anneeDisponible) {
+        if (! $anneeDisponible) {
             $anneeDisponible = \DB::table('fonction_publique_effectifs')->max('annee');
         }
 
-        if (!$anneeDisponible) {
+        if (! $anneeDisponible) {
             return null;
         }
 
@@ -508,7 +511,7 @@ class BudgetEtatController extends Controller
             return null;
         }
 
-        $versants = $data->map(fn($row) => [
+        $versants = $data->map(fn ($row) => [
             'versant' => $row->versant,
             'libelle' => $row->versant_libelle,
             'effectif' => (int) $row->effectif_total,
@@ -531,7 +534,7 @@ class BudgetEtatController extends Controller
             ->groupBy('annee')
             ->orderBy('annee')
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'annee' => (int) $row->annee,
                 'effectifs' => (int) $row->total,
                 'effectifs_millions' => round($row->total / 1_000_000, 2),
@@ -545,7 +548,7 @@ class BudgetEtatController extends Controller
             'total_effectifs_formate' => number_format($totalEffectifs, 0, ',', ' '),
             'total_effectifs_millions' => round($totalEffectifs / 1_000_000, 2),
             'total_masse_salariale_md' => $totalMasseSalariale,
-            'total_masse_salariale_formate' => number_format($totalMasseSalariale, 1, ',', ' ') . ' Md€',
+            'total_masse_salariale_formate' => number_format($totalMasseSalariale, 1, ',', ' ').' Md€',
             'versants' => $versants->toArray(),
             'evolution' => $evolution->toArray(),
         ];
@@ -559,7 +562,7 @@ class BudgetEtatController extends Controller
         $urssaf = $this->getUrssafData($annee);
         $fp = $this->getFonctionPubliqueData($annee);
 
-        if (!$urssaf && !$fp) {
+        if (! $urssaf && ! $fp) {
             return null;
         }
 
@@ -601,14 +604,14 @@ class BudgetEtatController extends Controller
             ->orderByDesc('annee')
             ->first();
 
-        if (!$global) {
+        if (! $global) {
             // Fallback sur les dernières données disponibles
             $global = InseeSalaire::where('type', 'global')
                 ->orderByDesc('annee')
                 ->first();
         }
 
-        if (!$global) {
+        if (! $global) {
             return null;
         }
 
@@ -617,8 +620,8 @@ class BudgetEtatController extends Controller
             ->where('annee', $global->annee)
             ->whereNotNull('categorie')
             ->get()
-            ->map(fn($s) => [
-                'categorie' => match($s->categorie) {
+            ->map(fn ($s) => [
+                'categorie' => match ($s->categorie) {
                     'cadres' => 'Cadres',
                     'professions_intermediaires' => 'Professions intermédiaires',
                     'employes' => 'Employés',
@@ -637,8 +640,8 @@ class BudgetEtatController extends Controller
             ->where('annee', $global->annee)
             ->whereNotNull('categorie')
             ->get()
-            ->map(fn($s) => [
-                'categorie' => match($s->categorie) {
+            ->map(fn ($s) => [
+                'categorie' => match ($s->categorie) {
                     'fonction_publique_etat' => 'État (FPE)',
                     'fonction_publique_territoriale' => 'Territoriale (FPT)',
                     'fonction_publique_hospitaliere' => 'Hospitalière (FPH)',
@@ -662,10 +665,10 @@ class BudgetEtatController extends Controller
             'ecart_moyen_median_pct' => $global->ecart_moyen_median,
             // Distribution (déciles)
             'd1' => $global->d1,
-            'd1_formate' => $global->d1 ? number_format($global->d1, 0, ',', ' ') . ' €' : null,
+            'd1_formate' => $global->d1 ? number_format($global->d1, 0, ',', ' ').' €' : null,
             'd5' => $global->d5, // = médiane
             'd9' => $global->d9,
-            'd9_formate' => $global->d9 ? number_format($global->d9, 0, ',', ' ') . ' €' : null,
+            'd9_formate' => $global->d9 ? number_format($global->d9, 0, ',', ' ').' €' : null,
             'rapport_interdecile' => $global->rapport_interdecile,
             // Détail par catégorie
             'par_categorie' => $parCategorie->toArray(),

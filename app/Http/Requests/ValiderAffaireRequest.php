@@ -17,9 +17,9 @@ class ValiderAffaireRequest extends FormRequest
     {
         return [
             'titre' => 'required|string|max:500',
-            'type_affaire' => 'required|in:' . implode(',', AffaireJudiciaire::TYPES_AFFAIRE()),
-            'categorie' => 'required|in:' . implode(',', AffaireJudiciaire::CATEGORIES()),
-            'statut_judiciaire' => 'required|in:' . implode(',', AffaireJudiciaire::STATUTS_JUDICIAIRES()),
+            'type_affaire' => 'required|in:'.implode(',', AffaireJudiciaire::TYPES_AFFAIRE()),
+            'categorie' => 'required|in:'.implode(',', AffaireJudiciaire::CATEGORIES()),
+            'statut_judiciaire' => 'required|in:'.implode(',', AffaireJudiciaire::STATUTS_JUDICIAIRES()),
             'description' => 'nullable|string|max:5000',
             'date_faits' => 'nullable|date',
             'date_mise_en_examen' => 'nullable|date|required_without_all:date_jugement_premiere_instance,date_condamnation_definitive',
@@ -39,7 +39,7 @@ class ValiderAffaireRequest extends FormRequest
             'sources' => 'required|array|min:1',
             'sources.*.url' => 'required|url',
             'sources.*.media' => 'required|string|max:200',
-            'sources.*.type_source' => 'required|in:' . implode(',', AffaireSource::TYPES_SOURCE()),
+            'sources.*.type_source' => 'required|in:'.implode(',', AffaireSource::TYPES_SOURCE()),
             'sources.*.fiabilite' => 'required|in:haute,moyenne,basse',
             'sources.*.titre' => 'nullable|string|max:500',
             'sources.*.date_publication' => 'nullable|date',
@@ -50,10 +50,9 @@ class ValiderAffaireRequest extends FormRequest
     {
         $validator->after(function ($v) {
             $sources = collect($this->input('sources', []));
-            $hasReliable = $sources->contains(fn ($s) =>
-                in_array($s['fiabilite'] ?? '', ['haute', 'moyenne'])
+            $hasReliable = $sources->contains(fn ($s) => in_array($s['fiabilite'] ?? '', ['haute', 'moyenne'])
             );
-            if (!$hasReliable) {
+            if (! $hasReliable) {
                 $v->errors()->add('sources',
                     'Au moins une source de fiabilité "haute" ou "moyenne" est requise pour valider.');
             }

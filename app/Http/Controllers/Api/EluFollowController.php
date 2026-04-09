@@ -97,7 +97,7 @@ class EluFollowController extends Controller
             $request->input('preferences')
         );
 
-        if (!$follower) {
+        if (! $follower) {
             return response()->json([
                 'success' => false,
                 'message' => 'Suivi non trouvé',
@@ -142,7 +142,7 @@ class EluFollowController extends Controller
 
         return response()->json([
             'count' => $followers->count(),
-            'data' => $followers->map(fn($f) => $this->formatFollower($f)),
+            'data' => $followers->map(fn ($f) => $this->formatFollower($f)),
         ]);
     }
 

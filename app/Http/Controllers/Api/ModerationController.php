@@ -176,8 +176,8 @@ class ModerationController extends Controller
     public function storeSanction(StoreSanctionRequest $request, User $user): JsonResponse
     {
         try {
-            $expiresAt = $request->duration_days 
-                ? now()->addDays($request->duration_days) 
+            $expiresAt = $request->duration_days
+                ? now()->addDays($request->duration_days)
                 : null;
 
             $sanction = $this->moderationService->createSanction(
@@ -243,10 +243,9 @@ class ModerationController extends Controller
 
         $days = $request->input('days', 30);
         $limit = $request->input('limit', 10);
-        
+
         $moderators = $this->moderationService->getTopModerators($days, $limit);
 
         return response()->json($moderators);
     }
 }
-

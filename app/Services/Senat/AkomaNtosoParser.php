@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Parser pour les fichiers XML Akoma Ntoso du Sénat
- * 
+ *
  * Standard Akoma Ntoso : http://docs.oasis-open.org/legaldocml/akn-core/v1.0/
  * Documentation Sénat : https://data.senat.fr/wp-content/uploads/2021/03/akomantoso.pdf
  */
@@ -19,12 +19,14 @@ class AkomaNtosoParser
      */
     public function parseFile(string $filePath): ?array
     {
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             Log::error("[AkomaNtosoParser] Fichier non trouvé : {$filePath}");
+
             return null;
         }
 
         $content = file_get_contents($filePath);
+
         return $this->parseContent($content);
     }
 
@@ -34,13 +36,14 @@ class AkomaNtosoParser
     public function parseContent(string $content): ?array
     {
         libxml_use_internal_errors(true);
-        
+
         $xml = simplexml_load_string($content);
-        
+
         if ($xml === false) {
             $errors = libxml_get_errors();
-            Log::error("[AkomaNtosoParser] Erreur XML : " . json_encode($errors));
+            Log::error('[AkomaNtosoParser] Erreur XML : '.json_encode($errors));
             libxml_clear_errors();
+
             return null;
         }
 
@@ -49,7 +52,7 @@ class AkomaNtosoParser
 
         // Déterminer le type de document
         $docType = $this->detectDocumentType($xml);
-        
+
         return match ($docType) {
             'bill' => $this->parseBill($xml),
             'act' => $this->parseAct($xml),
@@ -65,20 +68,20 @@ class AkomaNtosoParser
     private function detectDocumentType(\SimpleXMLElement $xml): string
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
-        if (!empty($xml->xpath('//akn:bill'))) {
+
+        if (! empty($xml->xpath('//akn:bill'))) {
             return 'bill';
         }
-        if (!empty($xml->xpath('//akn:act'))) {
+        if (! empty($xml->xpath('//akn:act'))) {
             return 'act';
         }
-        if (!empty($xml->xpath('//akn:amendment'))) {
+        if (! empty($xml->xpath('//akn:amendment'))) {
             return 'amendment';
         }
-        if (!empty($xml->xpath('//akn:report'))) {
+        if (! empty($xml->xpath('//akn:report'))) {
             return 'report';
         }
-        
+
         return 'generic';
     }
 
@@ -88,10 +91,10 @@ class AkomaNtosoParser
     private function parseBill(\SimpleXMLElement $xml): array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         $bill = $xml->xpath('//akn:bill')[0] ?? null;
-        
-        if (!$bill) {
+
+        if (! $bill) {
             return $this->parseGeneric($xml);
         }
 
@@ -114,9 +117,9 @@ class AkomaNtosoParser
     private function parseAct(\SimpleXMLElement $xml): array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         $act = $xml->xpath('//akn:act')[0] ?? null;
-        
+
         $data = [
             'type' => 'act',
             'name' => (string) ($act['name'] ?? ''),
@@ -134,7 +137,7 @@ class AkomaNtosoParser
     private function parseAmendment(\SimpleXMLElement $xml): array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         return [
             'type' => 'amendment',
             'meta' => $this->parseMeta($xml),
@@ -148,7 +151,7 @@ class AkomaNtosoParser
     private function parseReport(\SimpleXMLElement $xml): array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         return [
             'type' => 'report',
             'meta' => $this->parseMeta($xml),
@@ -175,7 +178,7 @@ class AkomaNtosoParser
     private function parseMeta(\SimpleXMLElement $xml): array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         $meta = [
             'identification' => [],
             'references' => [],
@@ -186,11 +189,11 @@ class AkomaNtosoParser
         $frbrWork = $xml->xpath('//akn:FRBRWork')[0] ?? null;
         if ($frbrWork) {
             $frbrWork->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-            
+
             $thisNode = $frbrWork->xpath('akn:FRBRthis')[0] ?? null;
             $dateNode = $frbrWork->xpath('akn:FRBRdate')[0] ?? null;
             $authorNode = $frbrWork->xpath('akn:FRBRauthor')[0] ?? null;
-            
+
             $meta['identification'] = [
                 'uri' => (string) ($thisNode['value'] ?? ''),
                 'date' => (string) ($dateNode['date'] ?? ''),
@@ -229,26 +232,26 @@ class AkomaNtosoParser
     private function parsePreface(\SimpleXMLElement $xml): array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         $preface = [];
 
         $docTitle = $xml->xpath('//akn:preface/akn:docTitle');
-        if (!empty($docTitle)) {
+        if (! empty($docTitle)) {
             $preface['title'] = $this->extractText($docTitle[0]);
         }
 
         $docProponent = $xml->xpath('//akn:preface/akn:docProponent');
-        if (!empty($docProponent)) {
+        if (! empty($docProponent)) {
             $preface['proponent'] = $this->extractText($docProponent[0]);
         }
 
         $docIntroducer = $xml->xpath('//akn:preface/akn:docIntroducer');
-        if (!empty($docIntroducer)) {
+        if (! empty($docIntroducer)) {
             $preface['introducer'] = $this->extractText($docIntroducer[0]);
         }
 
         $docDate = $xml->xpath('//akn:preface/akn:docDate');
-        if (!empty($docDate)) {
+        if (! empty($docDate)) {
             $preface['date'] = (string) ($docDate[0]['date'] ?? $this->extractText($docDate[0]));
         }
 
@@ -261,16 +264,16 @@ class AkomaNtosoParser
     private function parsePreamble(\SimpleXMLElement $xml): ?array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         $preamble = $xml->xpath('//akn:preamble');
-        
+
         if (empty($preamble)) {
             return null;
         }
 
         $paragraphs = [];
         $ps = $preamble[0]->xpath('.//akn:p');
-        
+
         foreach ($ps as $p) {
             $paragraphs[] = $this->extractText($p);
         }
@@ -287,7 +290,7 @@ class AkomaNtosoParser
     private function parseBody(\SimpleXMLElement $xml): array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         $body = [
             'parts' => [],
             'titles' => [],
@@ -345,14 +348,14 @@ class AkomaNtosoParser
     private function parseArticle(\SimpleXMLElement $article): array
     {
         $article->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         $numNode = $article->xpath('akn:num')[0] ?? null;
         $headingNode = $article->xpath('akn:heading')[0] ?? null;
         $contentNode = $article->xpath('akn:content')[0] ?? null;
-        
+
         $paragraphs = [];
         $alineas = $article->xpath('.//akn:alinea | .//akn:paragraph');
-        
+
         foreach ($alineas as $alinea) {
             $paragraphs[] = [
                 'id' => (string) ($alinea['eId'] ?? ''),
@@ -386,9 +389,9 @@ class AkomaNtosoParser
     private function parseConclusions(\SimpleXMLElement $xml): ?array
     {
         $xml->registerXPathNamespace('akn', self::NAMESPACE_AKN);
-        
+
         $conclusions = $xml->xpath('//akn:conclusions');
-        
+
         if (empty($conclusions)) {
             return null;
         }
@@ -409,11 +412,11 @@ class AkomaNtosoParser
 
         // Récupérer le contenu texte sans les balises
         $text = strip_tags($element->asXML());
-        
+
         // Nettoyer les espaces multiples
         $text = preg_replace('/\s+/', ' ', $text);
         $text = trim($text);
-        
+
         return $text ?: null;
     }
 
@@ -430,7 +433,7 @@ class AkomaNtosoParser
                 // Extraire le matricule depuis l'href
                 // Format: /ontology/person/fr/senateur/20032T
                 preg_match('/senateur\/(\w+)$/', $ref['href'], $matches);
-                
+
                 $authors[] = [
                     'id' => $ref['id'],
                     'matricule' => $matches[1] ?? null,
@@ -440,10 +443,10 @@ class AkomaNtosoParser
         }
 
         // Depuis le préface
-        if (!empty($parsedData['preface']['proponent'])) {
+        if (! empty($parsedData['preface']['proponent'])) {
             // Parser "Présenté par M. Jean DUPONT, Sénateur"
             preg_match('/(?:M\.|Mme)\s+(\w+)\s+(\w+)/u', $parsedData['preface']['proponent'], $matches);
-            
+
             if ($matches) {
                 $authors[] = [
                     'id' => null,
@@ -468,9 +471,8 @@ class AkomaNtosoParser
             'parts_count' => count($parsedData['body']['parts'] ?? []),
             'chapters_count' => count($parsedData['body']['chapters'] ?? []),
             'references_count' => count($parsedData['meta']['references'] ?? []),
-            'has_preamble' => !empty($parsedData['preamble']),
-            'has_conclusions' => !empty($parsedData['conclusions']),
+            'has_preamble' => ! empty($parsedData['preamble']),
+            'has_conclusions' => ! empty($parsedData['conclusions']),
         ];
     }
 }
-

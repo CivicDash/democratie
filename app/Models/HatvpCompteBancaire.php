@@ -35,4 +35,3 @@ class HatvpCompteBancaire extends Model
         return $this->belongsTo(HatvpDeclaration::class, 'declaration_id');
     }
 }
-

@@ -2,14 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Models\BudgetAnnuel;
+use App\Models\BudgetMinistere;
 use App\Models\BudgetMission;
 use App\Models\BudgetProgramme;
-use App\Models\BudgetMinistere;
-use App\Models\BudgetAnnuel;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ImportBudgetEtat extends Command
 {
@@ -133,8 +130,9 @@ class ImportBudgetEtat extends Command
 
         // Vérifier si déjà importé
         $existing = BudgetMission::where('annee', $annee)->where('type_loi', $typeLoi)->count();
-        if ($existing > 0 && !$force) {
+        if ($existing > 0 && ! $force) {
             $this->warn("   → {$existing} missions déjà importées pour {$annee}. Utilisez --force pour réimporter.");
+
             return;
         }
 
@@ -196,8 +194,8 @@ class ImportBudgetEtat extends Command
 
             BudgetProgramme::create([
                 'mission_id' => $mission->id,
-                'code' => $mission->code . '_' . str_pad($i + 1, 2, '0', STR_PAD_LEFT),
-                'libelle' => $programmeNoms[$i % count($programmeNoms)] . ' - ' . $mission->libelle,
+                'code' => $mission->code.'_'.str_pad($i + 1, 2, '0', STR_PAD_LEFT),
+                'libelle' => $programmeNoms[$i % count($programmeNoms)].' - '.$mission->libelle,
                 'ministere' => $this->getMinistereMission($mission->code),
                 'annee' => $mission->annee,
                 'type_loi' => $mission->type_loi,
@@ -248,7 +246,9 @@ class ImportBudgetEtat extends Command
             ->get();
 
         foreach ($ministeres as $min) {
-            if (!$min->ministere) continue;
+            if (! $min->ministere) {
+                continue;
+            }
 
             BudgetMinistere::create([
                 'code' => \Str::slug($min->ministere),
@@ -263,7 +263,7 @@ class ImportBudgetEtat extends Command
             ]);
         }
 
-        $this->info("   → " . $ministeres->count() . " ministères agrégés");
+        $this->info('   → '.$ministeres->count().' ministères agrégés');
     }
 
     private function getSigle(string $nom): string
@@ -311,9 +311,9 @@ class ImportBudgetEtat extends Command
                 ['Missions', $missions],
                 ['Programmes', $programmes],
                 ['Ministères', $ministeres],
-                ['Total Crédits CP', number_format($totalCP / 1_000_000_000, 1) . ' Md€'],
+                ['Total Crédits CP', number_format($totalCP / 1_000_000_000, 1).' Md€'],
                 ['Déficit prévu', $budget ? $budget->deficit_formate : 'N/A'],
-                ['Dette/PIB', $budget ? $budget->dette_pib_pct . '%' : 'N/A'],
+                ['Dette/PIB', $budget ? $budget->dette_pib_pct.'%' : 'N/A'],
             ]
         );
     }

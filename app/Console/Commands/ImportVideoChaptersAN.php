@@ -19,7 +19,9 @@ class ImportVideoChaptersAN extends Command
     protected $description = 'Fetch data.nvs for AN videos and import chapter hierarchy into video_chapters table';
 
     private int $processed = 0;
+
     private int $chaptersCreated = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -39,11 +41,13 @@ class ImportVideoChaptersAN extends Command
             $this->info("Found {$videoIds->count()} reunions with video_id");
         } else {
             $this->error('Specify a video_id argument or use --all');
+
             return self::FAILURE;
         }
 
         if ($videoIds->isEmpty()) {
             $this->warn('No videos to process. Run import:video-ids-an first.');
+
             return self::SUCCESS;
         }
 
@@ -52,6 +56,7 @@ class ImportVideoChaptersAN extends Command
         foreach ($videoIds as $videoId) {
             if (! $force && VideoChapter::where('video_id', $videoId)->exists()) {
                 $bar->advance();
+
                 continue;
             }
 
@@ -81,12 +86,14 @@ class ImportVideoChaptersAN extends Command
 
             if (! $response->successful()) {
                 $this->errors++;
+
                 return;
             }
 
             $xml = @simplexml_load_string($response->body());
             if (! $xml) {
                 $this->errors++;
+
                 return;
             }
 
@@ -99,6 +106,7 @@ class ImportVideoChaptersAN extends Command
                 $chapterCount = $this->countChapters($xml->chapters);
                 $this->line("  [DRY] {$videoId}: {$chapterCount} chapters, meeting={$reunionUid}");
                 $this->chaptersCreated += $chapterCount;
+
                 return;
             }
 
@@ -119,6 +127,7 @@ class ImportVideoChaptersAN extends Command
         foreach ($xml->metadatas->metadata ?? [] as $meta) {
             if ((string) ($meta['name'] ?? '') === 'meeting_id') {
                 $value = (string) ($meta['value'] ?? '');
+
                 return $value ?: null;
             }
         }
@@ -141,7 +150,7 @@ class ImportVideoChaptersAN extends Command
 
             $urlVal = (string) ($sp->url ?? '');
             if ($urlVal && is_numeric(trim($urlVal))) {
-                $anUid = 'PA' . trim($urlVal);
+                $anUid = 'PA'.trim($urlVal);
             }
 
             $speakers[$id] = [

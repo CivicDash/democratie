@@ -25,7 +25,7 @@ class GamificationController extends Controller
     {
         $user = Auth::user();
         $stats = UserStats::getForUser($user->id);
-        
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -46,22 +46,22 @@ class GamificationController extends Controller
         $user = Auth::user();
         $unlockedOnly = $request->boolean('unlocked_only', false);
         $category = $request->input('category');
-        
+
         $query = UserAchievement::with('achievement')
             ->where('user_id', $user->id);
-        
+
         if ($unlockedOnly) {
             $query->unlocked();
         }
-        
+
         if ($category) {
             $query->whereHas('achievement', function ($q) use ($category) {
                 $q->where('category', $category);
             });
         }
-        
+
         $achievements = $query->get();
-        
+
         return response()->json([
             'success' => true,
             'data' => $achievements,
@@ -75,7 +75,7 @@ class GamificationController extends Controller
     {
         $user = Auth::user();
         $recent = $this->gamificationService->getRecentAchievements($user, 10);
-        
+
         return response()->json([
             'success' => true,
             'data' => $recent,
@@ -89,7 +89,7 @@ class GamificationController extends Controller
     {
         $user = Auth::user();
         $almost = $this->gamificationService->getAlmostUnlockedAchievements($user, 5);
-        
+
         return response()->json([
             'success' => true,
             'data' => $almost,
@@ -102,21 +102,21 @@ class GamificationController extends Controller
     public function allAchievements(Request $request): JsonResponse
     {
         $query = Achievement::active();
-        
+
         if ($category = $request->input('category')) {
             $query->category($category);
         }
-        
+
         if ($rarity = $request->input('rarity')) {
             $query->rarity($rarity);
         }
-        
+
         if ($request->boolean('visible_only', true)) {
             $query->visible();
         }
-        
+
         $achievements = $query->orderBy('order')->get();
-        
+
         return response()->json([
             'success' => true,
             'data' => $achievements,
@@ -130,20 +130,20 @@ class GamificationController extends Controller
     {
         $limit = min($request->integer('limit', 100), 500);
         $orderBy = $request->input('order_by', 'reputation_score');
-        
+
         // Vérifier que le champ de tri est valide
         $validOrderBy = ['reputation_score', 'level', 'xp', 'total_achievements', 'current_streak'];
-        if (!in_array($orderBy, $validOrderBy)) {
+        if (! in_array($orderBy, $validOrderBy)) {
             $orderBy = 'reputation_score';
         }
-        
+
         $leaderboard = $this->gamificationService->getLeaderboard($limit, $orderBy);
-        
+
         // Ajouter le rang de l'utilisateur connecté
         $user = Auth::user();
         $myRank = $this->gamificationService->getUserRank($user, $orderBy);
         $myStats = UserStats::getForUser($user->id);
-        
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -162,7 +162,7 @@ class GamificationController extends Controller
     {
         $user = User::findOrFail($userId);
         $stats = UserStats::getForUser($userId);
-        
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -185,7 +185,7 @@ class GamificationController extends Controller
     {
         $user = User::findOrFail($userId);
         $achievements = $this->gamificationService->getUserAchievements($user, true);
-        
+
         return response()->json([
             'success' => true,
             'data' => $achievements,
@@ -197,19 +197,19 @@ class GamificationController extends Controller
      */
     public function test(Request $request): JsonResponse
     {
-        if (!app()->environment(['local', 'development'])) {
+        if (! app()->environment(['local', 'development'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cette fonctionnalité n\'est disponible qu\'en développement',
             ], 403);
         }
-        
+
         $user = Auth::user();
         $eventType = $request->input('event_type', Achievement::TRIGGER_VOTE_COUNT);
         $value = $request->integer('value', 1);
-        
+
         $unlocked = $this->gamificationService->processEvent($user, $eventType, $value);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Événement traité',
@@ -227,7 +227,7 @@ class GamificationController extends Controller
     public function initialize(): JsonResponse
     {
         $user = Auth::user();
-        
+
         // Vérifier si déjà initialisé
         $stats = UserStats::where('user_id', $user->id)->first();
         if ($stats) {
@@ -237,11 +237,11 @@ class GamificationController extends Controller
                 'data' => $stats,
             ]);
         }
-        
+
         // Initialiser
         $this->gamificationService->initializeUser($user);
         $stats = UserStats::getForUser($user->id);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Gamification initialisée avec succès',
@@ -255,20 +255,20 @@ class GamificationController extends Controller
     public function shareAchievement(int $achievementId): JsonResponse
     {
         $user = Auth::user();
-        
+
         $userAchievement = UserAchievement::where('user_id', $user->id)
             ->where('achievement_id', $achievementId)
             ->firstOrFail();
-        
-        if (!$userAchievement->is_unlocked) {
+
+        if (! $userAchievement->is_unlocked) {
             return response()->json([
                 'success' => false,
                 'message' => 'Vous devez débloquer ce badge avant de le partager',
             ], 400);
         }
-        
+
         $userAchievement->markAsShared();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Badge partagé !',
@@ -282,17 +282,17 @@ class GamificationController extends Controller
     {
         $totalUsers = User::count();
         $activeUsers = UserStats::where('last_activity_date', '>=', now()->subDays(7))->count();
-        
+
         $categoryStats = Achievement::selectRaw('category, COUNT(*) as total')
             ->active()
             ->groupBy('category')
             ->get();
-        
+
         $rarityStats = Achievement::selectRaw('rarity, COUNT(*) as total')
             ->active()
             ->groupBy('rarity')
             ->get();
-        
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -305,4 +305,3 @@ class GamificationController extends Controller
         ]);
     }
 }
-

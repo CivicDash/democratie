@@ -4,13 +4,12 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Import des débats en séance publique du Sénat
- * 
+ *
  * Source: https://data.senat.fr/data/debats/debats.zip
- * 
+ *
  * Tables:
  * - debats -> senat_debats
  * - secdis -> senat_sections_discussion
@@ -41,8 +40,11 @@ class ImportDebatsSenat extends Command
     ];
 
     private $batchSize = 1000;
+
     private $sqlFile;
+
     private $yearFilter = null;
+
     private $sinceFilter = null;
 
     public function handle(): int
@@ -67,8 +69,9 @@ class ImportDebatsSenat extends Command
 
         // Vérifier que le fichier existe
         $this->sqlFile = storage_path('app/data/senat/debats.sql');
-        if (!file_exists($this->sqlFile)) {
+        if (! file_exists($this->sqlFile)) {
             $this->error('❌ Fichier debats.sql non trouvé. Utilisez --download pour le télécharger.');
+
             return Command::FAILURE;
         }
 
@@ -90,13 +93,13 @@ class ImportDebatsSenat extends Command
     private function downloadData(): void
     {
         $this->info('📥 Téléchargement des données...');
-        
+
         $url = 'https://data.senat.fr/data/debats/debats.zip';
         $zipPath = storage_path('app/data/senat/debats.zip');
         $extractPath = storage_path('app/data/senat');
 
         // Créer le dossier si nécessaire
-        if (!is_dir($extractPath)) {
+        if (! is_dir($extractPath)) {
             mkdir($extractPath, 0755, true);
         }
 
@@ -113,7 +116,7 @@ class ImportDebatsSenat extends Command
 
         // Extraire
         $this->output->write('   Extraction... ');
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
         if ($zip->open($zipPath) === true) {
             $zip->extractTo($extractPath);
             $zip->close();
@@ -137,10 +140,11 @@ class ImportDebatsSenat extends Command
     private function importData(): void
     {
         $this->info('📖 Lecture du fichier SQL...');
-        
+
         $handle = fopen($this->sqlFile, 'r');
-        if (!$handle) {
+        if (! $handle) {
             $this->error('Impossible d\'ouvrir le fichier');
+
             return;
         }
 
@@ -151,7 +155,7 @@ class ImportDebatsSenat extends Command
 
         while (($line = fgets($handle)) !== false) {
             $lineNum++;
-            
+
             // Afficher progression tous les 100k lignes
             if ($lineNum % 100000 === 0) {
                 $this->output->write("\r   Ligne {$lineNum}...");
@@ -162,6 +166,7 @@ class ImportDebatsSenat extends Command
                 $currentTable = $matches[2];
                 $columns = array_map('trim', explode(',', $matches[3]));
                 $buffer = [];
+
                 continue;
             }
 
@@ -171,17 +176,18 @@ class ImportDebatsSenat extends Command
                 $currentTable = null;
                 $columns = [];
                 $buffer = [];
+
                 continue;
             }
 
             // Ligne de données
             if ($currentTable) {
                 $values = explode("\t", rtrim($line, "\n"));
-                
+
                 // Appliquer les filtres de date si nécessaire
                 if ($this->shouldInclude($currentTable, $columns, $values)) {
                     $buffer[] = $values;
-                    
+
                     // Flush le buffer si trop grand
                     if (count($buffer) >= $this->batchSize) {
                         $this->processBuffer($currentTable, $columns, $buffer);
@@ -199,18 +205,18 @@ class ImportDebatsSenat extends Command
     private function shouldInclude(string $table, array $columns, array $values): bool
     {
         // Pas de filtre
-        if (!$this->yearFilter && !$this->sinceFilter) {
+        if (! $this->yearFilter && ! $this->sinceFilter) {
             return true;
         }
 
         // Trouver la colonne de date selon la table
-        $dateColumn = match($table) {
+        $dateColumn = match ($table) {
             'debats', 'secdis', 'secdivers' => 'datsea',
             'lecassdeb' => 'datsea',
             default => null,
         };
 
-        if (!$dateColumn) {
+        if (! $dateColumn) {
             return true; // Tables sans date
         }
 
@@ -220,7 +226,7 @@ class ImportDebatsSenat extends Command
         }
 
         $dateValue = $values[$dateIndex] ?? null;
-        if (!$dateValue || $dateValue === '\\N') {
+        if (! $dateValue || $dateValue === '\\N') {
             return true;
         }
 
@@ -246,7 +252,7 @@ class ImportDebatsSenat extends Command
             return;
         }
 
-        match($table) {
+        match ($table) {
             'typsec' => $this->importTypesSection($columns, $buffer),
             'debats' => $this->importDebats($columns, $buffer),
             'lecassdeb' => $this->importLecturesDebats($columns, $buffer),
@@ -279,8 +285,10 @@ class ImportDebatsSenat extends Command
         foreach ($buffer as $row) {
             $record = $this->mapRow($columns, $row);
             $dateSeance = $this->cleanValue($record['datsea'] ?? null);
-            
-            if (!$dateSeance) continue;
+
+            if (! $dateSeance) {
+                continue;
+            }
 
             $data[] = [
                 'date_seance' => $dateSeance,
@@ -295,9 +303,9 @@ class ImportDebatsSenat extends Command
             ];
         }
 
-        if (!empty($data)) {
+        if (! empty($data)) {
             DB::table('senat_debats')->upsert($data, ['date_seance'], [
-                'numero', 'url', 'libelle_special', 'est_congres', 'etat_video', 'cpterr', 'updated_at'
+                'numero', 'url', 'libelle_special', 'est_congres', 'etat_video', 'cpterr', 'updated_at',
             ]);
             $this->stats['debats'] += count($data);
         }
@@ -310,8 +318,10 @@ class ImportDebatsSenat extends Command
             $record = $this->mapRow($columns, $row);
             $lectureId = trim($record['lecassidt'] ?? '');
             $dateSeance = $this->cleanValue($record['datsea'] ?? null);
-            
-            if (!$lectureId || !$dateSeance) continue;
+
+            if (! $lectureId || ! $dateSeance) {
+                continue;
+            }
 
             $data[] = [
                 'lecture_id' => $lectureId,
@@ -319,7 +329,7 @@ class ImportDebatsSenat extends Command
             ];
         }
 
-        if (!empty($data)) {
+        if (! empty($data)) {
             DB::table('senat_lectures_debats')->upsert($data, ['lecture_id', 'date_seance'], []);
             $this->stats['lectures_debats'] += count($data);
         }
@@ -331,8 +341,10 @@ class ImportDebatsSenat extends Command
         foreach ($buffer as $row) {
             $record = $this->mapRow($columns, $row);
             $id = (int) ($record['secdiscle'] ?? 0);
-            
-            if (!$id) continue;
+
+            if (! $id) {
+                continue;
+            }
 
             $data[] = [
                 'id' => $id,
@@ -349,9 +361,9 @@ class ImportDebatsSenat extends Command
             ];
         }
 
-        if (!empty($data)) {
+        if (! empty($data)) {
             DB::table('senat_sections_discussion')->upsert($data, ['id'], [
-                'lecture_id', 'type_section', 'date_seance', 'numero', 'objet', 'url', 'ordre', 'parent_id', 'updated_at'
+                'lecture_id', 'type_section', 'date_seance', 'numero', 'objet', 'url', 'ordre', 'parent_id', 'updated_at',
             ]);
             $this->stats['sections_discussion'] += count($data);
         }
@@ -363,8 +375,10 @@ class ImportDebatsSenat extends Command
         foreach ($buffer as $row) {
             $record = $this->mapRow($columns, $row);
             $id = (int) ($record['secdiverscle'] ?? 0);
-            
-            if (!$id) continue;
+
+            if (! $id) {
+                continue;
+            }
 
             $data[] = [
                 'id' => $id,
@@ -379,9 +393,9 @@ class ImportDebatsSenat extends Command
             ];
         }
 
-        if (!empty($data)) {
+        if (! empty($data)) {
             DB::table('senat_sections_diverses')->upsert($data, ['id'], [
-                'type_section', 'date_seance', 'objet', 'url', 'ordre', 'parent_id', 'updated_at'
+                'type_section', 'date_seance', 'objet', 'url', 'ordre', 'parent_id', 'updated_at',
             ]);
             $this->stats['sections_diverses'] += count($data);
         }
@@ -393,8 +407,10 @@ class ImportDebatsSenat extends Command
         foreach ($buffer as $row) {
             $record = $this->mapRow($columns, $row);
             $id = (int) ($record['intpjlcle'] ?? 0);
-            
-            if (!$id) continue;
+
+            if (! $id) {
+                continue;
+            }
 
             $data[] = [
                 'id' => $id,
@@ -409,9 +425,9 @@ class ImportDebatsSenat extends Command
             ];
         }
 
-        if (!empty($data)) {
+        if (! empty($data)) {
             DB::table('senat_interventions_legislatives')->upsert($data, ['id'], [
-                'auteur_code', 'section_id', 'analyse', 'fonction', 'url', 'ordre', 'updated_at'
+                'auteur_code', 'section_id', 'analyse', 'fonction', 'url', 'ordre', 'updated_at',
             ]);
             $this->stats['interventions_legislatives'] += count($data);
         }
@@ -423,8 +439,10 @@ class ImportDebatsSenat extends Command
         foreach ($buffer as $row) {
             $record = $this->mapRow($columns, $row);
             $id = (int) ($record['intdiverscle'] ?? 0);
-            
-            if (!$id) continue;
+
+            if (! $id) {
+                continue;
+            }
 
             $data[] = [
                 'id' => $id,
@@ -439,9 +457,9 @@ class ImportDebatsSenat extends Command
             ];
         }
 
-        if (!empty($data)) {
+        if (! empty($data)) {
             DB::table('senat_interventions_diverses')->upsert($data, ['id'], [
-                'auteur_code', 'section_id', 'analyse', 'fonction', 'url', 'ordre', 'updated_at'
+                'auteur_code', 'section_id', 'analyse', 'fonction', 'url', 'ordre', 'updated_at',
             ]);
             $this->stats['interventions_diverses'] += count($data);
         }
@@ -453,6 +471,7 @@ class ImportDebatsSenat extends Command
         foreach ($columns as $i => $column) {
             $result[$column] = $values[$i] ?? null;
         }
+
         return $result;
     }
 
@@ -461,6 +480,7 @@ class ImportDebatsSenat extends Command
         if ($value === null || $value === '\\N' || $value === '') {
             return null;
         }
+
         return trim($value);
     }
 
@@ -482,7 +502,7 @@ class ImportDebatsSenat extends Command
         );
 
         $total = array_sum($this->stats);
-        $this->info("   Total: " . number_format($total) . " enregistrements");
+        $this->info('   Total: '.number_format($total).' enregistrements');
         $this->newLine();
         $this->info('✅ Import terminé!');
     }

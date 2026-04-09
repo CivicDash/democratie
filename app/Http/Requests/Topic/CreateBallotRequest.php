@@ -13,6 +13,7 @@ class CreateBallotRequest extends FormRequest
     public function authorize(): bool
     {
         $topic = $this->route('topic');
+
         return $this->user()->can('createBallot', $topic);
     }
 
@@ -46,4 +47,3 @@ class CreateBallotRequest extends FormRequest
         ];
     }
 }
-

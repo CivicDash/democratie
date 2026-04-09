@@ -69,8 +69,8 @@ class BannedWord extends Model
     {
         $levels = ['low' => 1, 'medium' => 2, 'high' => 3];
         $minLevel = $levels[$severity] ?? 1;
-        
-        return $query->whereIn('severity', array_keys(array_filter($levels, fn($l) => $l >= $minLevel)));
+
+        return $query->whereIn('severity', array_keys(array_filter($levels, fn ($l) => $l >= $minLevel)));
     }
 
     /**
@@ -81,11 +81,11 @@ class BannedWord extends Model
         if ($this->is_regex) {
             return $this->word;
         }
-        
+
         // Escape les caractères spéciaux et crée un pattern insensible à la casse
         // qui détecte aussi les variantes avec des caractères spéciaux (m3rde, p*tain, etc.)
         $word = preg_quote($this->word, '/');
-        
+
         // Remplacer les voyelles par des patterns qui matchent les variantes
         $replacements = [
             'a' => '[a@àáâãäå4]',
@@ -94,11 +94,11 @@ class BannedWord extends Model
             'o' => '[o0ôöò]',
             'u' => '[uùûü]',
         ];
-        
+
         foreach ($replacements as $letter => $pattern) {
             $word = str_ireplace($letter, $pattern, $word);
         }
-        
-        return '/\b' . $word . '\b/iu';
+
+        return '/\b'.$word.'\b/iu';
     }
 }

@@ -17,7 +17,7 @@ class ModerationMunicipalesController extends Controller
             ->with(['candidats', 'documents', 'createur'])
             ->orderBy('created_at')
             ->paginate(20)
-            ->through(fn($liste) => [
+            ->through(fn ($liste) => [
                 'uuid' => $liste->uuid,
                 'nom_liste' => $liste->nom_liste,
                 'commune_nom' => $liste->commune_nom,
@@ -84,7 +84,7 @@ class ModerationMunicipalesController extends Controller
                 'name' => $liste->createur->name,
                 'email' => $liste->createur->email,
             ] : null,
-            'candidats' => $liste->candidats->map(fn($c) => [
+            'candidats' => $liste->candidats->map(fn ($c) => [
                 'uuid' => $c->uuid,
                 'nom_complet' => $c->nom_complet,
                 'civilite' => $c->civilite,
@@ -98,7 +98,7 @@ class ModerationMunicipalesController extends Controller
                 'initiales' => $c->initiales,
                 'est_eligible' => $c->est_eligible,
             ]),
-            'documents' => $liste->documents->map(fn($d) => [
+            'documents' => $liste->documents->map(fn ($d) => [
                 'uuid' => $d->uuid,
                 'type' => $d->type,
                 'type_formate' => $d->type_formate,
@@ -119,7 +119,7 @@ class ModerationMunicipalesController extends Controller
             'historique' => $liste->moderationLogs()
                 ->orderByDesc('created_at')
                 ->get()
-                ->map(fn($log) => [
+                ->map(fn ($log) => [
                     'action' => $log->action_formatee,
                     'icone' => $log->action_icone,
                     'couleur' => $log->action_couleur,

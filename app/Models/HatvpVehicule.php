@@ -43,4 +43,3 @@ class HatvpVehicule extends Model
         return trim("{$this->marque} ({$this->annee_achat})");
     }
 }
-

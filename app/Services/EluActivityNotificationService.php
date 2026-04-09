@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Mail\EluActivityDigestMail;
-use App\Models\ActeurAN;
 use App\Models\EluActivityNotification;
 use App\Models\EluFollower;
 use App\Models\Notification;
@@ -32,7 +31,7 @@ class EluActivityNotificationService
     /**
      * Détecter les nouvelles activités pour tous les élus suivis
      */
-    public function detectNewActivities(\DateTime $since = null): Collection
+    public function detectNewActivities(?\DateTime $since = null): Collection
     {
         $since = $since ?? now()->subDay();
         $activities = collect();
@@ -204,7 +203,7 @@ class EluActivityNotificationService
                 )
             );
         } catch (\Exception $e) {
-            Log::error("Erreur envoi email activité élu", [
+            Log::error('Erreur envoi email activité élu', [
                 'user_id' => $follower->user_id,
                 'elu_id' => $follower->elu_id,
                 'error' => $e->getMessage(),
@@ -300,7 +299,7 @@ class EluActivityNotificationService
     /**
      * Traiter toutes les nouvelles activités et notifier
      */
-    public function processNewActivities(\DateTime $since = null): array
+    public function processNewActivities(?\DateTime $since = null): array
     {
         $activities = $this->detectNewActivities($since);
         $stats = [

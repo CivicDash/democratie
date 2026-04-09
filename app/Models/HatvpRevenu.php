@@ -57,4 +57,3 @@ class HatvpRevenu extends Model
         return $labels[$this->type_revenu] ?? $this->type_revenu;
     }
 }
-

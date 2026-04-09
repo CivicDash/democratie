@@ -9,7 +9,6 @@ use App\Models\Notification;
 use App\Models\PoliticalPerson;
 use App\Models\Senateur;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +22,7 @@ class EluFollowService
         // Récupérer les infos de l'élu
         $eluInfo = $this->getEluInfo($eluType, $eluId);
 
-        if (!$eluInfo) {
+        if (! $eluInfo) {
             throw new \InvalidArgumentException("Élu non trouvé: {$eluType}/{$eluId}");
         }
 
@@ -80,11 +79,12 @@ class EluFollowService
             ->where('elu_id', $eluId)
             ->first();
 
-        if (!$follower) {
+        if (! $follower) {
             return null;
         }
 
         $follower->update($preferences);
+
         return $follower->fresh();
     }
 
@@ -200,7 +200,7 @@ class EluFollowService
      */
     public function getEluInfo(string $eluType, string $eluId): ?array
     {
-        return match($eluType) {
+        return match ($eluType) {
             'depute' => $this->getDeputeInfo($eluId),
             'senateur' => $this->getSenateurInfo($eluId),
             'maire' => $this->getMaireInfo($eluId),
@@ -212,7 +212,9 @@ class EluFollowService
     private function getDeputeInfo(string $uid): ?array
     {
         $depute = ActeurAN::find($uid);
-        if (!$depute) return null;
+        if (! $depute) {
+            return null;
+        }
 
         // Récupérer le groupe politique via mandats_an
         $groupeLibelle = null;
@@ -245,7 +247,7 @@ class EluFollowService
         }
 
         return [
-            'nom' => trim($depute->prenom . ' ' . $depute->nom),
+            'nom' => trim($depute->prenom.' '.$depute->nom),
             'photo_url' => $depute->photo_wikipedia_url ?? "https://www.assemblee-nationale.fr/dyn/deputes/{$uid}/image",
             'groupe' => $groupeLibelle,
             'circonscription' => $circonscription,
@@ -255,10 +257,12 @@ class EluFollowService
     private function getSenateurInfo(string $matricule): ?array
     {
         $senateur = Senateur::find($matricule);
-        if (!$senateur) return null;
+        if (! $senateur) {
+            return null;
+        }
 
         return [
-            'nom' => trim($senateur->prenom . ' ' . $senateur->nom),
+            'nom' => trim($senateur->prenom.' '.$senateur->nom),
             'photo_url' => $senateur->photo_wikipedia_url ?? "https://www.senat.fr/senimg/senateur_{$matricule}.jpg",
             'groupe' => $senateur->groupe_sigle,
             'circonscription' => $senateur->circonscription,
@@ -268,10 +272,12 @@ class EluFollowService
     private function getMaireInfo(int $id): ?array
     {
         $maire = Maire::with('ville')->find($id);
-        if (!$maire) return null;
+        if (! $maire) {
+            return null;
+        }
 
         return [
-            'nom' => trim($maire->prenom . ' ' . $maire->nom),
+            'nom' => trim($maire->prenom.' '.$maire->nom),
             'photo_url' => $maire->photo_url,
             'groupe' => $maire->nuance_politique,
             'circonscription' => $maire->ville?->nom,
@@ -281,7 +287,9 @@ class EluFollowService
     private function getMinistreInfo(int $id): ?array
     {
         $ministre = PoliticalPerson::find($id);
-        if (!$ministre) return null;
+        if (! $ministre) {
+            return null;
+        }
 
         return [
             'nom' => $ministre->full_name,
@@ -297,7 +305,7 @@ class EluFollowService
     public function getEluStats(string $eluType, string $eluId): array
     {
         $followersCount = EluFollower::forElu($eluType, $eluId)->count();
-        
+
         $preferences = EluFollower::forElu($eluType, $eluId)
             ->select(
                 DB::raw('SUM(CASE WHEN notify_votes THEN 1 ELSE 0 END) as votes'),

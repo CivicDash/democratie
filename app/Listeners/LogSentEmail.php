@@ -48,8 +48,8 @@ class LogSentEmail
                 'user_id' => $user?->id,
                 'sent_at' => now(),
                 'metadata' => [
-                    'cc' => collect($message->getCc())->map(fn($a) => $a->getAddress())->toArray(),
-                    'bcc' => collect($message->getBcc())->map(fn($a) => $a->getAddress())->toArray(),
+                    'cc' => collect($message->getCc())->map(fn ($a) => $a->getAddress())->toArray(),
+                    'bcc' => collect($message->getBcc())->map(fn ($a) => $a->getAddress())->toArray(),
                 ],
             ]);
         } catch (\Throwable $e) {

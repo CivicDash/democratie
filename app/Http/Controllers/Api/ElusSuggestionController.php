@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
-use App\Models\Senateur;
 use App\Models\Maire;
+use App\Models\Senateur;
 use App\Models\TerritoryDepartment;
 use App\Models\TerritoryRegion;
 use Illuminate\Http\JsonResponse;
@@ -49,7 +49,7 @@ class ElusSuggestionController extends Controller
         $region = $regionId ? TerritoryRegion::find($regionId) : null;
 
         // Si on a un département mais pas de région, récupérer la région associée
-        if ($department && !$region) {
+        if ($department && ! $region) {
             $region = $department->region;
         }
 
@@ -64,14 +64,14 @@ class ElusSuggestionController extends Controller
             if ($scope === 'departemental' && $department) {
                 $deputesQuery->whereHas('circonscriptions', function ($q) use ($department) {
                     $q->where('departement', $department->code)
-                      ->orWhere('departement', 'like', "%{$department->name}%");
+                        ->orWhere('departement', 'like', "%{$department->name}%");
                 });
             } elseif ($scope === 'regional' && $region) {
                 // Récupérer tous les départements de la région
                 $deptCodes = TerritoryDepartment::where('region_id', $region->id)
                     ->pluck('code')
                     ->toArray();
-                
+
                 $deputesQuery->whereHas('circonscriptions', function ($q) use ($deptCodes) {
                     $q->whereIn('departement', $deptCodes);
                 });
@@ -81,7 +81,7 @@ class ElusSuggestionController extends Controller
             if ($search) {
                 $deputesQuery->where(function ($q) use ($search) {
                     $q->where('nom', 'ilike', "%{$search}%")
-                      ->orWhere('prenom', 'ilike', "%{$search}%");
+                        ->orWhere('prenom', 'ilike', "%{$search}%");
                 });
             }
 
@@ -90,7 +90,7 @@ class ElusSuggestionController extends Controller
             $results['deputes'] = $deputes->map(function ($d) {
                 $circo = $d->circonscriptions->first();
                 $groupe = $d->groupe_politique_actuel;
-                
+
                 return [
                     'id' => $d->uid,
                     'type' => 'depute',
@@ -98,7 +98,7 @@ class ElusSuggestionController extends Controller
                     'photo_url' => $d->photo_url ?? null,
                     'groupe' => $groupe?->libelle_abrege ?? $groupe?->libelle ?? null,
                     'groupe_couleur' => $groupe?->couleur_hex ?? null,
-                    'circonscription' => $circo 
+                    'circonscription' => $circo
                         ? "Circonscription {$circo->numero_circonscription} - {$circo->departement}"
                         : null,
                 ];
@@ -116,14 +116,14 @@ class ElusSuggestionController extends Controller
             if ($scope === 'departemental' && $department) {
                 $senateursQuery->where(function ($q) use ($department) {
                     $q->where('circonscription', 'ilike', "%{$department->name}%")
-                      ->orWhere('circonscription', 'ilike', "%{$department->code}%");
+                        ->orWhere('circonscription', 'ilike', "%{$department->code}%");
                 });
             } elseif ($scope === 'regional' && $region) {
                 // Récupérer tous les départements de la région
                 $deptNames = TerritoryDepartment::where('region_id', $region->id)
                     ->pluck('name')
                     ->toArray();
-                
+
                 $senateursQuery->where(function ($q) use ($deptNames) {
                     foreach ($deptNames as $name) {
                         $q->orWhere('circonscription', 'ilike', "%{$name}%");
@@ -135,7 +135,7 @@ class ElusSuggestionController extends Controller
             if ($search) {
                 $senateursQuery->where(function ($q) use ($search) {
                     $q->where('nom_usuel', 'ilike', "%{$search}%")
-                      ->orWhere('prenom_usuel', 'ilike', "%{$search}%");
+                        ->orWhere('prenom_usuel', 'ilike', "%{$search}%");
                 });
             }
 
@@ -174,8 +174,8 @@ class ElusSuggestionController extends Controller
             if ($search) {
                 $mairesQuery->where(function ($q) use ($search) {
                     $q->where('nom', 'ilike', "%{$search}%")
-                      ->orWhere('prenom', 'ilike', "%{$search}%")
-                      ->orWhere('nom_commune', 'ilike', "%{$search}%");
+                        ->orWhere('prenom', 'ilike', "%{$search}%")
+                        ->orWhere('nom_commune', 'ilike', "%{$search}%");
                 });
             }
 

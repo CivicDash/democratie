@@ -74,8 +74,7 @@ class SenateurMandatLocal extends Model
     {
         $debut = $this->date_debut?->format('Y') ?? '?';
         $fin = $this->en_cours ? 'Aujourd\'hui' : ($this->date_fin?->format('Y') ?? '?');
-        
+
         return "{$debut} - {$fin}";
     }
 }
-

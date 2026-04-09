@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\FrenchPostalCode;
-use App\Models\Maire;
-use App\Models\Senateur;
 use App\Services\LocalisationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -26,9 +24,9 @@ class CommuneController extends Controller
     {
         $query = $request->input('q', '');
         $departement = $request->input('departement');
-        
+
         $communes = collect();
-        
+
         if (strlen($query) >= 2) {
             $communes = $this->localisationService->search($query, 50);
         } elseif ($departement) {
@@ -36,7 +34,7 @@ class CommuneController extends Controller
                 ->orderByDesc('population')
                 ->limit(100)
                 ->get()
-                ->map(fn($c) => $this->formatCommune($c));
+                ->map(fn ($c) => $this->formatCommune($c));
         }
 
         $departements = Cache::remember('departements_list_unified', 3600, function () {
@@ -45,9 +43,9 @@ class CommuneController extends Controller
                 ->distinct()
                 ->orderBy('department_code')
                 ->get()
-                ->map(fn($d) => [
+                ->map(fn ($d) => [
                     'code' => $d->department_code,
-                    'nom' => $d->department_name ?? 'Département ' . $d->department_code,
+                    'nom' => $d->department_name ?? 'Département '.$d->department_code,
                 ]);
         });
 
@@ -82,7 +80,7 @@ class CommuneController extends Controller
             ->orderBy('postal_code')
             ->first();
 
-        if (!$commune) {
+        if (! $commune) {
             abort(404, 'Commune non trouvée');
         }
 
@@ -100,7 +98,7 @@ class CommuneController extends Controller
         $budgets = $commune->budgets()
             ->orderByDesc('annee')
             ->get()
-            ->map(fn($b) => [
+            ->map(fn ($b) => [
                 'annee' => $b->annee,
                 'recettes_fonctionnement' => $b->recettes_fonctionnement,
                 'depenses_fonctionnement' => $b->depenses_fonctionnement,
@@ -159,7 +157,7 @@ class CommuneController extends Controller
     public function search(Request $request)
     {
         $query = $request->input('q', '');
-        
+
         if (strlen($query) < 2) {
             return response()->json([]);
         }
@@ -185,12 +183,12 @@ class CommuneController extends Controller
             ->limit(5)
             ->get()
             ->unique('insee_code')
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'insee_code' => $c->insee_code,
                 'nom' => ucwords(strtolower($c->nom_commune)),
                 'code_postal' => $c->postal_code,
                 'population' => $c->population,
-                'population_formatted' => number_format($c->population, 0, ',', ' ') . ' hab.',
+                'population_formatted' => number_format($c->population, 0, ',', ' ').' hab.',
                 'url' => route('communes.show', $c->insee_code),
             ])
             ->values()
@@ -223,8 +221,8 @@ class CommuneController extends Controller
             'department_name' => $data['department_name'] ?? null,
             'region_name' => $data['region_name'] ?? null,
             'population' => $data['population'] ?? null,
-            'population_formatted' => isset($data['population']) && $data['population'] 
-                ? number_format($data['population'], 0, ',', ' ') . ' hab.' 
+            'population_formatted' => isset($data['population']) && $data['population']
+                ? number_format($data['population'], 0, ',', ' ').' hab.'
                 : 'N/A',
             'url' => isset($data['insee_code']) ? route('communes.show', $data['insee_code']) : '#',
         ];

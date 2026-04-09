@@ -26,7 +26,7 @@ class TopicService
      */
     public function createTopic(User $author, array $data): Topic
     {
-        if (!$author->can('create', Topic::class)) {
+        if (! $author->can('create', Topic::class)) {
             throw new RuntimeException('User cannot create topics.');
         }
 
@@ -61,7 +61,7 @@ class TopicService
      */
     public function updateTopic(Topic $topic, User $user, array $data): Topic
     {
-        if (!$user->can('update', $topic)) {
+        if (! $user->can('update', $topic)) {
             throw new RuntimeException('User cannot update this topic.');
         }
 
@@ -75,7 +75,7 @@ class TopicService
      */
     public function closeTopic(Topic $topic, User $user): Topic
     {
-        if (!$user->can('close', $topic)) {
+        if (! $user->can('close', $topic)) {
             throw new RuntimeException('User cannot close this topic.');
         }
 
@@ -89,7 +89,7 @@ class TopicService
      */
     public function archiveTopic(Topic $topic, User $user): Topic
     {
-        if (!$user->can('archive', $topic)) {
+        if (! $user->can('archive', $topic)) {
             throw new RuntimeException('User cannot archive this topic.');
         }
 
@@ -103,7 +103,7 @@ class TopicService
      */
     public function createPost(Topic $topic, User $user, string $content, ?int $parentId = null): Post
     {
-        if (!$user->can('create', [Post::class, $topic])) {
+        if (! $user->can('create', [Post::class, $topic])) {
             throw new RuntimeException('User cannot post in this topic.');
         }
 
@@ -132,7 +132,7 @@ class TopicService
      */
     public function updatePost(Post $post, User $user, string $content): Post
     {
-        if (!$user->can('update', $post)) {
+        if (! $user->can('update', $post)) {
             throw new RuntimeException('User cannot update this post.');
         }
 
@@ -153,11 +153,11 @@ class TopicService
      */
     public function voteOnPost(Post $post, User $user, string $voteType): array
     {
-        if (!$user->can('vote', $post)) {
+        if (! $user->can('vote', $post)) {
             throw new RuntimeException('User cannot vote on this post.');
         }
 
-        if (!in_array($voteType, ['upvote', 'downvote'])) {
+        if (! in_array($voteType, ['upvote', 'downvote'])) {
             throw new RuntimeException('Invalid vote type.');
         }
 
@@ -169,7 +169,7 @@ class TopicService
                 // Si même type, on retire le vote
                 if ($existingVote->type === $voteType) {
                     $existingVote->delete();
-                    
+
                     if ($voteType === 'upvote') {
                         $post->decrement('upvotes');
                     } else {
@@ -184,7 +184,7 @@ class TopicService
                 } else {
                     // Sinon on change le vote
                     $existingVote->update(['type' => $voteType]);
-                    
+
                     if ($voteType === 'upvote') {
                         $post->increment('upvotes');
                         $post->decrement('downvotes');
@@ -229,8 +229,8 @@ class TopicService
         $since = $days ? now()->subDays($days) : null;
 
         return Topic::where('status', 'open')
-            ->when($since, fn($query) => $query->where('created_at', '>=', $since))
-            ->withCount(['posts' => fn($query) => $query->where('created_at', '>=', $since ?? now()->subYear())])
+            ->when($since, fn ($query) => $query->where('created_at', '>=', $since))
+            ->withCount(['posts' => fn ($query) => $query->where('created_at', '>=', $since ?? now()->subYear())])
             ->orderBy('posts_count', 'desc')
             ->take($limit)
             ->get();
@@ -264,14 +264,14 @@ class TopicService
      */
     public function deletePost(Post $post, User $user): bool
     {
-        if (!$user->can('delete', $post)) {
+        if (! $user->can('delete', $post)) {
             throw new RuntimeException('User cannot delete this post.');
         }
 
         return DB::transaction(function () use ($post) {
             // Supprimer les réponses aussi
             Post::where('parent_id', $post->id)->delete();
-            
+
             return $post->delete();
         });
     }
@@ -281,14 +281,14 @@ class TopicService
      */
     public function deleteTopic(Topic $topic, User $user): bool
     {
-        if (!$user->can('delete', $topic)) {
+        if (! $user->can('delete', $topic)) {
             throw new RuntimeException('User cannot delete this topic.');
         }
 
         return DB::transaction(function () use ($topic) {
             // Supprimer tous les posts
             Post::where('topic_id', $topic->id)->delete();
-            
+
             return $topic->delete();
         });
     }
@@ -309,4 +309,3 @@ class TopicService
         ];
     }
 }
-

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Parser pour les fichiers XML de la HATVP
- * 
+ *
  * Haute Autorité pour la Transparence de la Vie Publique
  * https://www.hatvp.fr/
  */
@@ -24,12 +24,14 @@ class HatvpXmlParser
      */
     public function parseFile(string $filePath): ?array
     {
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             Log::error("[HatvpXmlParser] Fichier non trouvé : {$filePath}");
+
             return null;
         }
 
         $content = file_get_contents($filePath);
+
         return $this->parseContent($content);
     }
 
@@ -39,13 +41,14 @@ class HatvpXmlParser
     public function parseContent(string $content): ?array
     {
         libxml_use_internal_errors(true);
-        
+
         $xml = simplexml_load_string($content);
-        
+
         if ($xml === false) {
             $errors = libxml_get_errors();
-            Log::error("[HatvpXmlParser] Erreur XML : " . json_encode($errors));
+            Log::error('[HatvpXmlParser] Erreur XML : '.json_encode($errors));
             libxml_clear_errors();
+
             return null;
         }
 
@@ -64,10 +67,10 @@ class HatvpXmlParser
             'origine' => $this->getString($xml->origine),
             'complete' => $this->getString($xml->complete) === 'true',
             'version' => $this->getString($xml->declarationVersion),
-            
+
             // Informations générales
             'general' => $this->parseGeneral($xml->general),
-            
+
             // Sections d'intérêts
             'activites_consultant' => $this->parseSection($xml->activConsultantDto, 'consultant'),
             'activites_professionnelles' => $this->parseSection($xml->activProfCinqDerniereDto, 'activite_pro'),
@@ -78,7 +81,7 @@ class HatvpXmlParser
             'participations_financieres' => $this->parseSection($xml->participationFinanciereDto, 'financiere'),
             'collaborateurs' => $this->parseSection($xml->activCollaborateursDto, 'collaborateur'),
             'observations_interet' => $this->parseSection($xml->observationInteretDto, 'observation'),
-            
+
             // Sections patrimoine
             'immeubles' => $this->parseSection($xml->immeubleDto, 'immeuble'),
             'sci' => $this->parseSection($xml->sciDto, 'sci'),
@@ -110,7 +113,7 @@ class HatvpXmlParser
      */
     private function parseGeneral(?\SimpleXMLElement $general): array
     {
-        if (!$general) {
+        if (! $general) {
             return [];
         }
 
@@ -118,7 +121,7 @@ class HatvpXmlParser
             // Type de déclaration
             'type_declaration_id' => $this->getString($general->typeDeclaration->id),
             'type_declaration_label' => $this->getString($general->typeDeclaration->label),
-            
+
             // Mandat
             'mandat_label' => $this->getString($general->mandat->label),
             'type_mandat' => $this->getString($general->qualiteMandat->typeMandat),
@@ -127,26 +130,26 @@ class HatvpXmlParser
             'code_type_mandat_fichier' => $this->getString($general->qualiteMandat->codTypeMandatFichier),
             'label_type_mandat' => $this->getString($general->qualiteMandat->labelTypeMandat),
             'label_organe' => $this->getString($general->qualiteMandat->labelOrgane),
-            
+
             // Organe
             'code_organe' => $this->getString($general->organe->codeOrgane),
             'code_liste_organe' => $this->getString($general->organe->codeListeOrgane),
             'nom_liste_organe' => $this->getString($general->organe->nomListeOrgane),
             'label_organe_detail' => $this->getString($general->organe->labelOrgane),
-            
+
             // Qualité
             'qualite_declarant' => $this->getString($general->qualiteDeclarant),
             'qualite_declarant_pdf' => $this->getString($general->qualiteDeclarantForPDF),
-            
+
             // Dates
             'date_debut_mandat' => $this->parseDate($this->getString($general->dateDebutMandat)),
             'date_fin_mandat' => $this->parseDate($this->getString($general->dateFinMandat)),
             'date_derniere_declaration' => $this->parseDate($this->getString($general->dateDernDeclar)),
-            
+
             // Régime matrimonial
             'regime_matrimonial' => $this->getString($general->regimeMatrimonial),
             'regime_matrimonial_comments' => $this->getString($general->regimeMatrimonialComments),
-            
+
             // Déclarant
             'declarant' => [
                 'civilite' => $this->getString($general->declarant->civilite),
@@ -163,7 +166,7 @@ class HatvpXmlParser
                     'pays' => $this->cleanNonPublished($this->getString($general->declarant->adresseDec->pays)),
                 ],
             ],
-            
+
             // Déclaration modificative
             'declaration_modificative' => $this->getString($general->declarationModificative) === 'true',
         ];
@@ -174,7 +177,7 @@ class HatvpXmlParser
      */
     private function parseSection(?\SimpleXMLElement $section, string $type): array
     {
-        if (!$section) {
+        if (! $section) {
             return ['neant' => true, 'items' => []];
         }
 
@@ -324,7 +327,7 @@ class HatvpXmlParser
      */
     private function parseRemunerations(?\SimpleXMLElement $remuneration): array
     {
-        if (!$remuneration) {
+        if (! $remuneration) {
             return [];
         }
 
@@ -387,6 +390,7 @@ class HatvpXmlParser
         }
 
         $value = trim((string) $element);
+
         return $value === '' ? null : $value;
     }
 
@@ -401,6 +405,7 @@ class HatvpXmlParser
         }
 
         $cleaned = preg_replace('/[^0-9]/', '', $value);
+
         return $cleaned !== '' ? (int) $cleaned : null;
     }
 
@@ -409,7 +414,7 @@ class HatvpXmlParser
      */
     private function parseDate(?string $value): ?string
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 
@@ -431,7 +436,7 @@ class HatvpXmlParser
      */
     private function parseAmount(?string $value): ?float
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 
@@ -447,7 +452,7 @@ class HatvpXmlParser
      */
     private function cleanNonPublished(?string $value): ?string
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 
@@ -506,12 +511,12 @@ class HatvpXmlParser
 
         foreach ($sections as $section) {
             $sectionData = $data[$section] ?? [];
-            $stats[$section . '_count'] = count($sectionData['items'] ?? []);
-            $stats[$section . '_neant'] = $sectionData['neant'] ?? true;
+            $stats[$section.'_count'] = count($sectionData['items'] ?? []);
+            $stats[$section.'_neant'] = $sectionData['neant'] ?? true;
         }
 
         // Calculer les totaux de revenus
-        if (!empty($data['revenus']['items'])) {
+        if (! empty($data['revenus']['items'])) {
             $totalRevenus = 0;
             foreach ($data['revenus']['items'] as $revenu) {
                 $totalRevenus += $revenu['total_elu'] ?? 0;
@@ -522,4 +527,3 @@ class HatvpXmlParser
         return $stats;
     }
 }
-

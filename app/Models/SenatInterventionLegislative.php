@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SenatInterventionLegislative extends Model
 {
     protected $table = 'senat_interventions_legislatives';
+
     protected $primaryKey = 'id';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -52,23 +54,24 @@ class SenatInterventionLegislative extends Model
      */
     public function getUrlCompletAttribute(): ?string
     {
-        if (!$this->url) {
+        if (! $this->url) {
             return null;
         }
-        return 'https://www.senat.fr/seances/' . ltrim($this->url, '/');
+
+        return 'https://www.senat.fr/seances/'.ltrim($this->url, '/');
     }
 
     public function getResumeAttribute(): string
     {
-        if (!$this->analyse) {
+        if (! $this->analyse) {
             return 'Intervention';
         }
-        
+
         // Tronquer à 200 caractères
         if (strlen($this->analyse) > 200) {
-            return mb_substr($this->analyse, 0, 200) . '...';
+            return mb_substr($this->analyse, 0, 200).'...';
         }
-        
+
         return $this->analyse;
     }
 

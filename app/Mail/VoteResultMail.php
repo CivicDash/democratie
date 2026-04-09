@@ -14,13 +14,21 @@ class VoteResultMail extends Mailable
     use Queueable, SerializesModels;
 
     public User $user;
+
     public string $voteTitle;
+
     public string $voteType; // 'scrutin_an', 'scrutin_senat', 'proposal'
+
     public string $result; // 'adopté', 'rejeté', 'en cours'
+
     public int $votesFor;
+
     public int $votesAgainst;
+
     public int $abstentions;
+
     public string $voteUrl;
+
     public ?string $eluPosition; // Position d'un élu suivi (optionnel)
 
     /**
@@ -53,12 +61,12 @@ class VoteResultMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        $resultEmoji = match($this->result) {
+        $resultEmoji = match ($this->result) {
             'adopté' => '✅',
             'rejeté' => '❌',
             default => '🗳️',
         };
-        
+
         return new Envelope(
             subject: "{$resultEmoji} Résultat du vote : {$this->voteTitle}",
         );

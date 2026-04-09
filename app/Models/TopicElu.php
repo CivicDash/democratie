@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Liaison entre un Topic et un Élu (député, sénateur, maire)
- * 
+ *
  * Permet les interpellations citoyennes vers les élus
  */
 class TopicElu extends Model
@@ -70,12 +70,14 @@ class TopicElu extends Model
     public function getEluNomAttribute(): ?string
     {
         $elu = $this->elu;
-        if (!$elu) return null;
+        if (! $elu) {
+            return null;
+        }
 
         return match ($this->elu_type) {
-            'depute' => $elu->nom_complet ?? $elu->prenom . ' ' . $elu->nom,
-            'senateur' => $elu->nom_complet ?? $elu->prenom . ' ' . $elu->nom,
-            'maire' => $elu->nom_complet ?? $elu->prenom . ' ' . $elu->nom,
+            'depute' => $elu->nom_complet ?? $elu->prenom.' '.$elu->nom,
+            'senateur' => $elu->nom_complet ?? $elu->prenom.' '.$elu->nom,
+            'maire' => $elu->nom_complet ?? $elu->prenom.' '.$elu->nom,
             default => null,
         };
     }
@@ -86,7 +88,9 @@ class TopicElu extends Model
     public function getEluPhotoAttribute(): ?string
     {
         $elu = $this->elu;
-        if (!$elu) return null;
+        if (! $elu) {
+            return null;
+        }
 
         return match ($this->elu_type) {
             'depute' => $elu->photo_url,
@@ -189,6 +193,7 @@ class TopicElu extends Model
                 'viewed_at' => now(),
             ]);
         }
+
         return $this;
     }
 
@@ -202,6 +207,7 @@ class TopicElu extends Model
             'answered_at' => now(),
             'response_content' => $content,
         ]);
+
         return $this;
     }
 
@@ -213,6 +219,7 @@ class TopicElu extends Model
         $this->update([
             'response_status' => 'declined',
         ]);
+
         return $this;
     }
 }

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Sanction (avertissement, mute, ban)
- * 
+ *
  * @property int $id
  * @property int $user_id
  * @property int $moderator_id
@@ -73,7 +73,7 @@ class Sanction extends Model
      */
     public function isExpired(): bool
     {
-        if (!$this->expires_at) {
+        if (! $this->expires_at) {
             return false; // Permanent
         }
 
@@ -93,7 +93,7 @@ class Sanction extends Model
      */
     public function isActive(): bool
     {
-        return $this->is_active && !$this->isExpired();
+        return $this->is_active && ! $this->isExpired();
     }
 
     /**
@@ -169,4 +169,3 @@ class Sanction extends Model
         return $query->where('type', 'ban');
     }
 }
-

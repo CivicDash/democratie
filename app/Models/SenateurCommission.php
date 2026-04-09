@@ -34,4 +34,3 @@ class SenateurCommission extends Model
         return str_contains(strtolower($this->fonction ?? ''), 'président');
     }
 }
-

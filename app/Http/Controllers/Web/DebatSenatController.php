@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\SenatDebat;
-use App\Models\SenatSectionDiscussion;
-use App\Models\SenatInterventionLegislative;
 use App\Models\Senateur;
+use App\Models\SenatInterventionLegislative;
+use App\Models\SenatSectionDiscussion;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class DebatSenatController extends Controller
 {
@@ -65,18 +65,18 @@ class DebatSenatController extends Controller
             ->with(['typeSection', 'enfants.typeSection'])
             ->orderBy('ordre')
             ->get()
-            ->map(fn($s) => $this->formatSection($s));
+            ->map(fn ($s) => $this->formatSection($s));
 
         $sectionsDiverses = DB::table('senat_sections_diverses')
             ->where('date_seance', $debat->date_seance)
             ->whereNull('parent_id')
             ->orderBy('ordre')
             ->get()
-            ->map(fn($s) => [
+            ->map(fn ($s) => [
                 'id' => $s->id,
                 'type' => $s->type_section,
                 'objet' => $s->objet,
-                'url' => $s->url ? 'https://www.senat.fr/seances/' . ltrim($s->url, '/') : null,
+                'url' => $s->url ? 'https://www.senat.fr/seances/'.ltrim($s->url, '/') : null,
             ]);
 
         // Top intervenants de la séance
@@ -93,7 +93,7 @@ class DebatSenatController extends Controller
                 $auteur = DB::table('senat_dosleg_auteur')
                     ->where('autcod', trim($row->auteur_code))
                     ->first();
-                
+
                 // Essayer de trouver le sénateur correspondant pour la photo
                 $senateur = null;
                 if ($auteur) {
@@ -101,7 +101,7 @@ class DebatSenatController extends Controller
                         ->where('prenom', 'ILIKE', $auteur->prenom)
                         ->first();
                 }
-                
+
                 return [
                     'code' => $row->auteur_code,
                     'nb_interventions' => $row->nb_interventions,
@@ -146,7 +146,7 @@ class DebatSenatController extends Controller
                 $auteur = DB::table('senat_dosleg_auteur')
                     ->where('autcod', trim($i->auteur_code))
                     ->first();
-                
+
                 // Essayer de trouver le sénateur pour la photo
                 $senateur = null;
                 if ($auteur) {
@@ -154,7 +154,7 @@ class DebatSenatController extends Controller
                         ->where('prenom', 'ILIKE', $auteur->prenom)
                         ->first();
                 }
-                
+
                 return [
                     'id' => $i->id,
                     'analyse' => $i->analyse,
@@ -177,7 +177,7 @@ class DebatSenatController extends Controller
             ->with('typeSection')
             ->orderBy('ordre')
             ->get()
-            ->map(fn($s) => $this->formatSection($s, false));
+            ->map(fn ($s) => $this->formatSection($s, false));
 
         return Inertia::render('Debats/Senat/Section', [
             'section' => [
@@ -213,7 +213,7 @@ class DebatSenatController extends Controller
 
         $auteurCode = $auteur?->autcod;
 
-        if (!$auteurCode) {
+        if (! $auteurCode) {
             // Pas de correspondance trouvée - retourner une page vide
             return Inertia::render('Debats/Senat/ParSenateur', [
                 'senateur' => [
@@ -299,7 +299,7 @@ class DebatSenatController extends Controller
         ];
 
         if ($withChildren && $section->enfants) {
-            $data['enfants'] = $section->enfants->map(fn($e) => $this->formatSection($e, false))->toArray();
+            $data['enfants'] = $section->enfants->map(fn ($e) => $this->formatSection($e, false))->toArray();
         }
 
         return $data;

@@ -74,7 +74,7 @@ class CandidatureModerationLog extends Model
      */
     public function getActionFormateeAttribute(): string
     {
-        return match($this->action) {
+        return match ($this->action) {
             'creation' => 'Création',
             'soumission' => 'Soumission pour validation',
             'demande_documents' => 'Demande de documents',
@@ -93,7 +93,7 @@ class CandidatureModerationLog extends Model
      */
     public function getActionIconeAttribute(): string
     {
-        return match($this->action) {
+        return match ($this->action) {
             'creation' => '➕',
             'soumission' => '📤',
             'demande_documents' => '📋',
@@ -112,7 +112,7 @@ class CandidatureModerationLog extends Model
      */
     public function getActionCouleurAttribute(): string
     {
-        return match($this->action) {
+        return match ($this->action) {
             'creation' => 'blue',
             'soumission' => 'indigo',
             'demande_documents' => 'yellow',

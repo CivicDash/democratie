@@ -3,13 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\AffaireJudiciaire;
 use App\Models\DomaineMinisteriel;
 use App\Models\Gouvernement;
-use App\Models\Ministere;
 use App\Models\PersonnePolitique;
 use App\Models\PosteMinisteriel;
-use App\Models\AffaireJudiciaire;
-use App\Models\HatvpDeclaration;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -30,7 +28,7 @@ class GouvernementController extends Controller
                 return [
                     'president' => $president,
                     'periode' => $this->getPeriodePresident($president),
-                    'gouvernements' => $gouvernements->map(fn($g) => [
+                    'gouvernements' => $gouvernements->map(fn ($g) => [
                         'id' => $g->id,
                         'numero' => $g->numero,
                         'nom' => $g->nom,
@@ -47,14 +45,14 @@ class GouvernementController extends Controller
 
         // Gouvernement sélectionné (actuel par défaut)
         $gouvernementId = $request->input('gouvernement');
-        
+
         if ($gouvernementId) {
             $gouvernement = Gouvernement::find($gouvernementId);
         } else {
             $gouvernement = Gouvernement::actuel();
         }
 
-        if (!$gouvernement) {
+        if (! $gouvernement) {
             return Inertia::render('Gouvernement/Index', [
                 'gouvernement' => null,
                 'postesParType' => [],
@@ -66,15 +64,15 @@ class GouvernementController extends Controller
         // Charger les postes avec les personnes et ministères
         $gouvernement->load(['postes' => function ($q) {
             $q->with(['personne', 'ministere'])
-              ->orderBy('ordre')
-              ->orderByRaw("CASE type_fonction 
+                ->orderBy('ordre')
+                ->orderByRaw("CASE type_fonction 
                   WHEN 'premier_ministre' THEN 1 
                   WHEN 'ministre_etat' THEN 2
                   WHEN 'ministre' THEN 3 
                   WHEN 'ministre_delegue' THEN 4 
                   WHEN 'secretaire_etat' THEN 5 
                   ELSE 6 END")
-              ->orderBy('date_debut');
+                ->orderBy('date_debut');
         }]);
 
         // Grouper par type de fonction pour la vue
@@ -94,7 +92,7 @@ class GouvernementController extends Controller
             'total' => $gouvernement->postes->count(),
             'duree' => $gouvernement->duree,
             'partis' => $gouvernement->postes
-                ->map(fn($p) => $p->personne?->parti_politique)
+                ->map(fn ($p) => $p->personne?->parti_politique)
                 ->filter()
                 ->countBy()
                 ->sortDesc()
@@ -132,7 +130,7 @@ class GouvernementController extends Controller
         $personne = PersonnePolitique::where('slug', $slug)
             ->with(['postes' => function ($q) {
                 $q->with(['gouvernement', 'ministere'])
-                  ->orderByDesc('date_debut');
+                    ->orderByDesc('date_debut');
             }])
             ->firstOrFail();
 
@@ -204,7 +202,7 @@ class GouvernementController extends Controller
                     ])
                     ->get();
 
-                $declarationsHatvp = $declarations->map(fn($d) => [
+                $declarationsHatvp = $declarations->map(fn ($d) => [
                     'uuid' => $d->uuid,
                     'type' => $d->type_declaration,
                     'type_label' => $d->type_declaration_label,
@@ -212,19 +210,19 @@ class GouvernementController extends Controller
                     'type_mandat' => $d->type_mandat,
                     'url' => $personne->url_hatvp
                         ?? 'https://www.hatvp.fr/fiche-nominative/?declarant='
-                        . urlencode(strtolower($personne->nom) . '-' . strtolower($personne->prenom)),
+                        .urlencode(strtolower($personne->nom).'-'.strtolower($personne->prenom)),
                 ])->toArray();
 
                 $latestDeclaration = $declarations->first();
                 if ($latestDeclaration) {
                     $revenusParAnnee = $latestDeclaration->revenus_par_annee ?? [];
 
-                    $mandatsElectifs = $latestDeclaration->mandatsElectifs->map(fn($m) => [
+                    $mandatsElectifs = $latestDeclaration->mandatsElectifs->map(fn ($m) => [
                         'description' => $m->description_mandat ?? $m->description ?? 'Mandat électif',
                         'date_debut' => $m->date_debut instanceof \Carbon\Carbon ? $m->date_debut->format('d/m/Y') : ($m->date_debut ? \Carbon\Carbon::parse($m->date_debut)->format('d/m/Y') : null),
                         'date_fin' => $m->date_fin instanceof \Carbon\Carbon ? $m->date_fin->format('d/m/Y') : ($m->date_fin ? \Carbon\Carbon::parse($m->date_fin)->format('d/m/Y') : null),
                         'conserve' => $m->conservee,
-                        'remunerations' => $m->remunerations->map(fn($r) => [
+                        'remunerations' => $m->remunerations->map(fn ($r) => [
                             'annee' => $r->annee,
                             'montant' => $r->montant,
                             'brut_net' => $r->brut_net,
@@ -232,13 +230,13 @@ class GouvernementController extends Controller
                         'total_remunerations' => $m->remunerations->sum('montant'),
                     ])->toArray();
 
-                    $activitesPro = $latestDeclaration->activitesProfessionnelles->map(fn($a) => [
+                    $activitesPro = $latestDeclaration->activitesProfessionnelles->map(fn ($a) => [
                         'description' => $a->description ?? 'Activité professionnelle',
                         'employeur' => $a->employeur,
                         'date_debut' => $a->date_debut instanceof \Carbon\Carbon ? $a->date_debut->format('d/m/Y') : ($a->date_debut ? \Carbon\Carbon::parse($a->date_debut)->format('d/m/Y') : null),
                         'date_fin' => $a->date_fin instanceof \Carbon\Carbon ? $a->date_fin->format('d/m/Y') : ($a->date_fin ? \Carbon\Carbon::parse($a->date_fin)->format('d/m/Y') : null),
                         'conservee' => $a->conservee,
-                        'remunerations' => $a->remunerations->map(fn($r) => [
+                        'remunerations' => $a->remunerations->map(fn ($r) => [
                             'annee' => $r->annee,
                             'montant' => $r->montant,
                             'brut_net' => $r->brut_net,
@@ -246,11 +244,11 @@ class GouvernementController extends Controller
                         'total_remunerations' => $a->remunerations->sum('montant'),
                     ])->toArray();
 
-                    $activitesConsultant = $latestDeclaration->activitesConsultant->map(fn($a) => [
+                    $activitesConsultant = $latestDeclaration->activitesConsultant->map(fn ($a) => [
                         'description' => $a->description ?? 'Activité de conseil',
                         'date_debut' => $a->date_debut instanceof \Carbon\Carbon ? $a->date_debut->format('d/m/Y') : ($a->date_debut ? \Carbon\Carbon::parse($a->date_debut)->format('d/m/Y') : null),
                         'date_fin' => $a->date_fin instanceof \Carbon\Carbon ? $a->date_fin->format('d/m/Y') : ($a->date_fin ? \Carbon\Carbon::parse($a->date_fin)->format('d/m/Y') : null),
-                        'remunerations' => $a->remunerations->map(fn($r) => [
+                        'remunerations' => $a->remunerations->map(fn ($r) => [
                             'annee' => $r->annee,
                             'montant' => $r->montant,
                             'brut_net' => $r->brut_net,
@@ -258,12 +256,12 @@ class GouvernementController extends Controller
                         'total_remunerations' => $a->remunerations->sum('montant'),
                     ])->toArray();
 
-                    $participationsDirigeantes = $latestDeclaration->participationsDirigeantes->map(fn($p) => [
+                    $participationsDirigeantes = $latestDeclaration->participationsDirigeantes->map(fn ($p) => [
                         'societe' => $p->nom_societe ?? $p->societe ?? 'Société',
                         'activite' => $p->activite,
                         'date_debut' => $p->date_debut instanceof \Carbon\Carbon ? $p->date_debut->format('d/m/Y') : ($p->date_debut ? \Carbon\Carbon::parse($p->date_debut)->format('d/m/Y') : null),
                         'date_fin' => $p->date_fin instanceof \Carbon\Carbon ? $p->date_fin->format('d/m/Y') : ($p->date_fin ? \Carbon\Carbon::parse($p->date_fin)->format('d/m/Y') : null),
-                        'remunerations' => $p->remunerations->map(fn($r) => [
+                        'remunerations' => $p->remunerations->map(fn ($r) => [
                             'annee' => $r->annee,
                             'montant' => $r->montant,
                             'brut_net' => $r->brut_net,
@@ -282,7 +280,7 @@ class GouvernementController extends Controller
                         'activites_professionnelles' => $activitesPro,
                         'activites_consultant' => $activitesConsultant,
                         'participations_dirigeantes' => $participationsDirigeantes,
-                        'fonctions_benevoles' => $latestDeclaration->fonctionsBenevoles->map(fn($f) => [
+                        'fonctions_benevoles' => $latestDeclaration->fonctionsBenevoles->map(fn ($f) => [
                             'description' => $f->description,
                             'organisme' => $f->organisme,
                         ])->toArray(),
@@ -291,6 +289,7 @@ class GouvernementController extends Controller
             } catch (\Exception $e) {
                 // Table HATVP peut ne pas exister encore
             }
+
             return ['declarations' => $declarationsHatvp, 'summary' => $hatvpSummary];
         });
 
@@ -316,8 +315,8 @@ class GouvernementController extends Controller
                 'nb_postes' => $nbPostes,
                 'nb_gouvernements' => $nbGouvernements,
                 'duree_totale' => $dureeTotale,
-                'est_actif' => $personne->postes->filter(fn($p) => $p->est_actif)->isNotEmpty(),
-                'poste_actuel' => $personne->postes->filter(fn($p) => $p->est_actif)->first()?->fonction,
+                'est_actif' => $personne->postes->filter(fn ($p) => $p->est_actif)->isNotEmpty(),
+                'poste_actuel' => $personne->postes->filter(fn ($p) => $p->est_actif)->first()?->fonction,
             ],
             'affaires_judiciaires' => $affairesJudiciaires,
             'declarations_hatvp' => $hatvpData['declarations'],
@@ -330,10 +329,8 @@ class GouvernementController extends Controller
         return AffaireJudiciaire::publiques()
             ->where(function ($q) use ($personne) {
                 $q->where('personne_politique_id', $personne->id)
-                    ->when($personne->uid_an, fn ($q2, $uid) =>
-                        $q2->orWhere('acteur_an_uid', $uid))
-                    ->when($personne->uid_senat, fn ($q2, $mat) =>
-                        $q2->orWhere('senateur_matricule', $mat));
+                    ->when($personne->uid_an, fn ($q2, $uid) => $q2->orWhere('acteur_an_uid', $uid))
+                    ->when($personne->uid_senat, fn ($q2, $mat) => $q2->orWhere('senateur_matricule', $mat));
             })
             ->with(['sources' => fn ($q) => $q->orderByRaw("CASE fiabilite WHEN 'haute' THEN 1 WHEN 'moyenne' THEN 2 ELSE 3 END")])
             ->orderByRaw("CASE statut_judiciaire
@@ -376,11 +373,11 @@ class GouvernementController extends Controller
     {
         // Liste complète des présidents
         $tousPresidents = $this->getAllPresidents();
-        
+
         // Trouver le président demandé
         if ($slug) {
             $president = collect($tousPresidents)->firstWhere('slug', $slug);
-            if (!$president) {
+            if (! $president) {
                 abort(404, 'Président non trouvé');
             }
         } else {
@@ -395,7 +392,7 @@ class GouvernementController extends Controller
             ->orderByDesc('date_debut')
             ->withCount('postes')
             ->get()
-            ->map(fn($g) => [
+            ->map(fn ($g) => [
                 'id' => $g->id,
                 'numero' => $g->numero,
                 'nom' => $g->nom,
@@ -412,10 +409,10 @@ class GouvernementController extends Controller
         $gouvernementActuel = Gouvernement::actuel();
 
         // Liste des présidents pour la sidebar
-        $presidents = collect($tousPresidents)->map(fn($p) => [
+        $presidents = collect($tousPresidents)->map(fn ($p) => [
             'nom' => $p['nom'],
             'slug' => $p['slug'],
-            'mandat' => $p['mandat'] ?? ($p['debut_mandat'] . ' - ' . ($p['fin_mandat'] ?? "aujourd'hui")),
+            'mandat' => $p['mandat'] ?? ($p['debut_mandat'].' - '.($p['fin_mandat'] ?? "aujourd'hui")),
             'photo' => $p['photo'],
             'actuel' => $p['actuel'] ?? false,
         ])->toArray();
@@ -645,7 +642,7 @@ class GouvernementController extends Controller
                 return [
                     'president' => $president,
                     'periode' => $this->getPeriodePresident($president),
-                    'gouvernements' => $gouvernements->map(fn($g) => [
+                    'gouvernements' => $gouvernements->map(fn ($g) => [
                         'id' => $g->id,
                         'numero' => $g->numero,
                         'nom' => $g->nom,
@@ -680,10 +677,11 @@ class GouvernementController extends Controller
         // ========================================
         $totalGouvernements = $gouvernements->count();
         $moyenneMembres = round($gouvernements->avg('postes_count'), 1);
-        
+
         // Durées
-        $gouvernementsAvecDuree = $gouvernements->filter(fn($g) => $g->date_debut)->map(function ($g) {
+        $gouvernementsAvecDuree = $gouvernements->filter(fn ($g) => $g->date_debut)->map(function ($g) {
             $fin = $g->date_fin ?? now();
+
             return [
                 'nom' => $g->nom_complet ?? $g->nom,
                 'premier_ministre' => $g->premier_ministre,
@@ -696,7 +694,7 @@ class GouvernementController extends Controller
         });
 
         $plusLong = $gouvernementsAvecDuree->sortByDesc('duree_jours')->first();
-        $plusCourt = $gouvernementsAvecDuree->filter(fn($g) => $g['duree_jours'] > 0)->sortBy('duree_jours')->first();
+        $plusCourt = $gouvernementsAvecDuree->filter(fn ($g) => $g['duree_jours'] > 0)->sortBy('duree_jours')->first();
         $dureeMoyenne = round($gouvernementsAvecDuree->avg('duree_jours'));
 
         // ========================================
@@ -706,11 +704,11 @@ class GouvernementController extends Controller
             $nbGouvernements = $gouvs->count();
             $totalMembres = $gouvs->sum('postes_count');
             $moyenneMembres = $nbGouvernements > 0 ? round($totalMembres / $nbGouvernements, 1) : 0;
-            
+
             // Durée totale de la présidence (approximation)
             $dateDebut = $gouvs->min('date_debut');
             $dateFin = $gouvs->max('date_fin') ?? now();
-            
+
             return [
                 'president' => $president,
                 'nb_gouvernements' => $nbGouvernements,
@@ -724,14 +722,16 @@ class GouvernementController extends Controller
         // ÉVOLUTION DE LA PARITÉ
         // ========================================
         $pariteParAnnee = [];
-        $gouvernementsParAnnee = $gouvernements->groupBy(fn($g) => $g->date_debut?->format('Y'));
-        
+        $gouvernementsParAnnee = $gouvernements->groupBy(fn ($g) => $g->date_debut?->format('Y'));
+
         foreach ($gouvernementsParAnnee as $annee => $gouvs) {
-            if (!$annee) continue;
-            
+            if (! $annee) {
+                continue;
+            }
+
             $hommes = 0;
             $femmes = 0;
-            
+
             foreach ($gouvs as $g) {
                 foreach ($g->postes as $poste) {
                     if ($poste->personne) {
@@ -743,19 +743,19 @@ class GouvernementController extends Controller
                     }
                 }
             }
-            
+
             $total = $hommes + $femmes;
             $pariteParAnnee[] = [
-                'annee' => (int)$annee,
+                'annee' => (int) $annee,
                 'hommes' => $hommes,
                 'femmes' => $femmes,
                 'total' => $total,
                 'pct_femmes' => $total > 0 ? round(($femmes / $total) * 100, 1) : 0,
             ];
         }
-        
+
         // Trier par année
-        usort($pariteParAnnee, fn($a, $b) => $a['annee'] <=> $b['annee']);
+        usort($pariteParAnnee, fn ($a, $b) => $a['annee'] <=> $b['annee']);
 
         // ========================================
         // TOP 10 DES MINISTRES LES PLUS PRÉSENTS
@@ -765,7 +765,7 @@ class GouvernementController extends Controller
             ->orderByDesc('postes_count')
             ->limit(10)
             ->get()
-            ->map(fn($p) => [
+            ->map(fn ($p) => [
                 'nom' => $p->nom_complet,
                 'slug' => $p->slug,
                 'photo' => $p->photo,
@@ -776,7 +776,7 @@ class GouvernementController extends Controller
         // ========================================
         // ÉVOLUTION DU NOMBRE DE MEMBRES
         // ========================================
-        $evolutionMembres = $gouvernementsAvecDuree->sortBy('date_debut')->map(fn($g) => [
+        $evolutionMembres = $gouvernementsAvecDuree->sortBy('date_debut')->map(fn ($g) => [
             'nom' => $g['nom'],
             'annee' => $g['date_debut'],
             'nb_membres' => $g['nb_membres'],
@@ -789,16 +789,16 @@ class GouvernementController extends Controller
             'plus_long' => $plusLong,
             'plus_court' => $plusCourt,
             'plus_nombreux' => $gouvernementsAvecDuree->sortByDesc('nb_membres')->first(),
-            'moins_nombreux' => $gouvernementsAvecDuree->filter(fn($g) => $g['nb_membres'] > 0)->sortBy('nb_membres')->first(),
+            'moins_nombreux' => $gouvernementsAvecDuree->filter(fn ($g) => $g['nb_membres'] > 0)->sortBy('nb_membres')->first(),
         ];
 
         // ========================================
         // RÉPARTITION PAR TYPE DE FONCTION
         // ========================================
-        $repartitionTypes = PosteMinisteriel::selectRaw("type_fonction, COUNT(*) as total")
+        $repartitionTypes = PosteMinisteriel::selectRaw('type_fonction, COUNT(*) as total')
             ->groupBy('type_fonction')
             ->get()
-            ->mapWithKeys(fn($r) => [$r->type_fonction => $r->total]);
+            ->mapWithKeys(fn ($r) => [$r->type_fonction => $r->total]);
 
         return Inertia::render('Gouvernement/Statistiques', [
             'stats' => [
@@ -855,7 +855,7 @@ class GouvernementController extends Controller
     private function calculerDureeTotale($postes): string
     {
         $totalJours = 0;
-        
+
         foreach ($postes as $poste) {
             $debut = $poste->date_debut;
             $fin = $poste->date_fin ?? now();
@@ -865,14 +865,15 @@ class GouvernementController extends Controller
         if ($totalJours >= 365) {
             $annees = floor($totalJours / 365);
             $mois = floor(($totalJours % 365) / 30);
-            return $annees . ' an' . ($annees > 1 ? 's' : '') . ($mois > 0 ? " et {$mois} mois" : '');
+
+            return $annees.' an'.($annees > 1 ? 's' : '').($mois > 0 ? " et {$mois} mois" : '');
         }
-        
+
         if ($totalJours >= 30) {
-            return floor($totalJours / 30) . ' mois';
+            return floor($totalJours / 30).' mois';
         }
-        
-        return $totalJours . ' jour' . ($totalJours > 1 ? 's' : '');
+
+        return $totalJours.' jour'.($totalJours > 1 ? 's' : '');
     }
 
     /**
@@ -903,11 +904,11 @@ class GouvernementController extends Controller
                 // Ministre actuel
                 $ministreActuel = PersonnePolitique::whereHas('postes', function ($q) use ($domaine) {
                     $q->where('domaine_ministeriel_id', $domaine->id)
-                      ->where('actif', true);
+                        ->where('actif', true);
                 })->with(['postes' => function ($q) use ($domaine) {
                     $q->where('domaine_ministeriel_id', $domaine->id)
-                      ->where('actif', true)
-                      ->with('gouvernement');
+                        ->where('actif', true)
+                        ->with('gouvernement');
                 }])->first();
 
                 // Nombre de ministres historiques
@@ -951,7 +952,7 @@ class GouvernementController extends Controller
             ->with(['personne', 'gouvernement'])
             ->orderByDesc('date_debut')
             ->get()
-            ->map(fn($poste) => [
+            ->map(fn ($poste) => [
                 'id' => $poste->id,
                 'fonction' => $poste->fonction,
                 'date_debut' => $poste->date_debut?->format('d/m/Y'),
@@ -976,6 +977,7 @@ class GouvernementController extends Controller
         $ministresParPersonne = $postes->groupBy('personne.id')
             ->map(function ($postesPersonne) {
                 $first = $postesPersonne->first();
+
                 return [
                     'personne' => $first['personne'],
                     'postes' => $postesPersonne->values(),

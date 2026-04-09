@@ -13,7 +13,7 @@ class CitizenVoteController extends Controller
 {
     /**
      * Vote sur une loi
-     * 
+     *
      * POST /api/lois/{loiCod}/vote
      * Body: { "vote": 1 } ou { "vote": -1 }
      */
@@ -24,8 +24,8 @@ class CitizenVoteController extends Controller
         ]);
 
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json([
                 'error' => 'Vous devez être connecté pour voter',
             ], 401);
@@ -57,14 +57,14 @@ class CitizenVoteController extends Controller
 
     /**
      * Supprime son vote sur une loi
-     * 
+     *
      * DELETE /api/lois/{loiCod}/vote
      */
     public function removeVoteLoi(Request $request, string $loiCod): JsonResponse
     {
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json([
                 'error' => 'Vous devez être connecté',
             ], 401);
@@ -99,13 +99,13 @@ class CitizenVoteController extends Controller
 
     /**
      * Récupère les stats de vote pour une loi
-     * 
+     *
      * GET /api/lois/{loiCod}/votes
      */
     public function getLoiVotes(Request $request, string $loiCod): JsonResponse
     {
         $stats = CitizenLawStats::getForLoi($loiCod);
-        
+
         $userVote = null;
         if (Auth::check()) {
             $userVote = CitizenLawVote::getUserVote(Auth::id(), $loiCod);
@@ -119,14 +119,14 @@ class CitizenVoteController extends Controller
 
     /**
      * Historique des votes de l'utilisateur connecté
-     * 
+     *
      * GET /api/mes-votes
      */
     public function mesVotes(Request $request): JsonResponse
     {
         $user = Auth::user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['error' => 'Non authentifié'], 401);
         }
 

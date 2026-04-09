@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\QuestionAN;
 use App\Models\ActeurAN;
-use App\Models\SenateurQuestion;
+use App\Models\QuestionAN;
 use App\Models\Senateur;
+use App\Models\SenateurQuestion;
 use App\Models\VideoChapter;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,8 +29,8 @@ class QuestionController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('analyse', 'ilike', "%{$search}%")
-                  ->orWhere('rubrique', 'ilike', "%{$search}%")
-                  ->orWhere('texte_question', 'ilike', "%{$search}%");
+                    ->orWhere('rubrique', 'ilike', "%{$search}%")
+                    ->orWhere('texte_question', 'ilike', "%{$search}%");
             });
         }
 
@@ -229,9 +229,10 @@ class QuestionController extends Controller
                 ->get()
                 ->map(function ($item) {
                     $depute = ActeurAN::where('uid', $item->acteur_ref)->first();
+
                     return [
                         'uid' => $item->acteur_ref,
-                        'nom' => $depute ? $depute->prenom . ' ' . $depute->nom : $item->acteur_ref,
+                        'nom' => $depute ? $depute->prenom.' '.$depute->nom : $item->acteur_ref,
                         'groupe' => $depute?->groupe_sigle,
                         'photo_url' => $depute?->photo_url,
                         'nb' => $item->nb,
@@ -240,9 +241,9 @@ class QuestionController extends Controller
 
             // Évolution mensuelle
             $evolutionMensuelle = QuestionAN::select(
-                    DB::raw("TO_CHAR(date_question, 'YYYY-MM') as mois"),
-                    DB::raw('count(*) as nb')
-                )
+                DB::raw("TO_CHAR(date_question, 'YYYY-MM') as mois"),
+                DB::raw('count(*) as nb')
+            )
                 ->whereNotNull('date_question')
                 ->groupBy('mois')
                 ->orderBy('mois')
@@ -283,8 +284,8 @@ class QuestionController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('texte_question', 'ilike', "%{$search}%")
-                  ->orWhere('theme', 'ilike', "%{$search}%")
-                  ->orWhere('ministre_destinataire', 'ilike', "%{$search}%");
+                    ->orWhere('theme', 'ilike', "%{$search}%")
+                    ->orWhere('ministre_destinataire', 'ilike', "%{$search}%");
             });
         }
 
@@ -464,9 +465,10 @@ class QuestionController extends Controller
                 ->get()
                 ->map(function ($item) {
                     $senateur = Senateur::where('matricule', $item->senateur_matricule)->first();
+
                     return [
                         'matricule' => $item->senateur_matricule,
-                        'nom' => $senateur ? $senateur->prenom . ' ' . $senateur->nom : $item->senateur_matricule,
+                        'nom' => $senateur ? $senateur->prenom.' '.$senateur->nom : $item->senateur_matricule,
                         'groupe' => $senateur?->groupe_sigle,
                         'photo_url' => $senateur?->photo_url,
                         'nb' => $item->nb,
@@ -475,9 +477,9 @@ class QuestionController extends Controller
 
             // Évolution mensuelle
             $evolutionMensuelle = SenateurQuestion::select(
-                    DB::raw("TO_CHAR(date_question, 'YYYY-MM') as mois"),
-                    DB::raw('count(*) as nb')
-                )
+                DB::raw("TO_CHAR(date_question, 'YYYY-MM') as mois"),
+                DB::raw('count(*) as nb')
+            )
                 ->whereNotNull('date_question')
                 ->groupBy('mois')
                 ->orderBy('mois')

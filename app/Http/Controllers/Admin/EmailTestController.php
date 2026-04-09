@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Mail\DigestMail;
 use App\Mail\EluActivityDigestMail;
 use App\Mail\EluResponseMail;
+use App\Mail\InterpellationNotificationMail;
 use App\Mail\InvitationAssociationMail;
 use App\Mail\InvitationEluMail;
-use App\Mail\InterpellationNotificationMail;
 use App\Mail\MentionNotificationMail;
 use App\Mail\VoteResultMail;
 use App\Mail\WelcomeMail;
@@ -97,7 +97,7 @@ class EmailTestController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'template' => 'required|string|in:' . implode(',', array_keys(self::TEMPLATES)),
+            'template' => 'required|string|in:'.implode(',', array_keys(self::TEMPLATES)),
         ]);
 
         $email = $request->input('email');
@@ -109,7 +109,7 @@ class EmailTestController extends Controller
 
             return back()->with('success', "Email de test « {$template} » envoyé à {$email}");
         } catch (\Exception $e) {
-            return back()->with('error', "Erreur lors de l'envoi : " . $e->getMessage());
+            return back()->with('error', "Erreur lors de l'envoi : ".$e->getMessage());
         }
     }
 
@@ -118,12 +118,12 @@ class EmailTestController extends Controller
      */
     public function preview(Request $request, string $template)
     {
-        if (!isset(self::TEMPLATES[$template])) {
+        if (! isset(self::TEMPLATES[$template])) {
             abort(404, 'Template non trouvé');
         }
 
         $mailable = $this->buildTestMailable($template, 'preview@example.com');
-        
+
         return $mailable->render();
     }
 
@@ -172,7 +172,7 @@ class EmailTestController extends Controller
                     'created_at' => now(),
                 ]);
                 $topicElu = new TopicElu(['id' => 1]);
-                
+
                 return new InterpellationNotificationMail(
                     $topic,
                     $topicElu,
@@ -191,7 +191,7 @@ class EmailTestController extends Controller
                     'id' => 1,
                     'response' => 'Je vous remercie pour cette question importante. La rénovation énergétique est effectivement une priorité...',
                 ]);
-                
+
                 return new EluResponseMail(
                     $topic,
                     $topicElu,

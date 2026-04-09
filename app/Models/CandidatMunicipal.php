@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * Candidat municipal individuel
- * 
+ *
  * Représente une personne candidate sur une liste électorale.
  */
 class CandidatMunicipal extends Model
@@ -159,6 +159,7 @@ class CandidatMunicipal extends Model
     public function getNomCompletAttribute(): string
     {
         $nom = $this->nom_usage ?? $this->nom;
+
         return trim("{$this->prenom} {$nom}");
     }
 
@@ -168,7 +169,8 @@ class CandidatMunicipal extends Model
     public function getNomCompletCiviliteAttribute(): string
     {
         $civilite = $this->civilite ? "{$this->civilite} " : '';
-        return $civilite . $this->nom_complet;
+
+        return $civilite.$this->nom_complet;
     }
 
     /**
@@ -176,9 +178,10 @@ class CandidatMunicipal extends Model
      */
     public function getAgeAttribute(): ?int
     {
-        if (!$this->date_naissance) {
+        if (! $this->date_naissance) {
             return null;
         }
+
         return $this->date_naissance->age;
     }
 
@@ -187,10 +190,11 @@ class CandidatMunicipal extends Model
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (!$this->photo_path) {
+        if (! $this->photo_path) {
             return null;
         }
-        return asset('storage/' . $this->photo_path);
+
+        return asset('storage/'.$this->photo_path);
     }
 
     /**
@@ -200,6 +204,7 @@ class CandidatMunicipal extends Model
     {
         $prenom = mb_substr($this->prenom, 0, 1);
         $nom = mb_substr($this->nom, 0, 1);
+
         return mb_strtoupper("{$prenom}{$nom}");
     }
 
@@ -211,11 +216,11 @@ class CandidatMunicipal extends Model
         if ($this->fonction_visee) {
             return $this->fonction_visee;
         }
-        
+
         if ($this->est_tete_de_liste) {
             return 'Candidat(e) au poste de Maire';
         }
-        
+
         return "Colistier(ère) - Position {$this->position}";
     }
 
@@ -225,12 +230,20 @@ class CandidatMunicipal extends Model
     public function getReseauxSociauxAttribute(): array
     {
         $reseaux = [];
-        
-        if ($this->facebook_url) $reseaux['facebook'] = $this->facebook_url;
-        if ($this->twitter_url) $reseaux['twitter'] = $this->twitter_url;
-        if ($this->instagram_url) $reseaux['instagram'] = $this->instagram_url;
-        if ($this->linkedin_url) $reseaux['linkedin'] = $this->linkedin_url;
-        
+
+        if ($this->facebook_url) {
+            $reseaux['facebook'] = $this->facebook_url;
+        }
+        if ($this->twitter_url) {
+            $reseaux['twitter'] = $this->twitter_url;
+        }
+        if ($this->instagram_url) {
+            $reseaux['instagram'] = $this->instagram_url;
+        }
+        if ($this->linkedin_url) {
+            $reseaux['linkedin'] = $this->linkedin_url;
+        }
+
         return $reseaux;
     }
 
@@ -239,12 +252,13 @@ class CandidatMunicipal extends Model
      */
     public function getEstEligibleAttribute(): bool
     {
-        if (!$this->date_naissance) {
+        if (! $this->date_naissance) {
             return true; // On ne peut pas vérifier
         }
-        
+
         // Doit avoir 18 ans au jour du premier tour (15 mars 2026)
         $dateElection = \Carbon\Carbon::create(2026, 3, 15);
+
         return $this->date_naissance->diffInYears($dateElection) >= 18;
     }
 }

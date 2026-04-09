@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Vote up/down sur un post
- * 
+ *
  * @property int $id
  * @property int $post_id
  * @property int $user_id
@@ -82,4 +82,3 @@ class PostVote extends Model
         return $query->where('user_id', $userId);
     }
 }
-

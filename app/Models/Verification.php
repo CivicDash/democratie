@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Vérification d'un document par journaliste/ONG
- * 
+ *
  * @property int $id
  * @property int $document_id
  * @property int $verifier_id
@@ -114,4 +114,3 @@ class Verification extends Model
         return $query->where('document_id', $documentId);
     }
 }
-

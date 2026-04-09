@@ -6,11 +6,10 @@ use App\Models\CommuneBudget;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Import des budgets communaux depuis l'API OFGL (data.ofgl.fr)
- * 
+ *
  * Source: https://data.ofgl.fr/explore/dataset/ofgl-base-communes-consolidee
  * Documentation API: https://help.opendatasoft.com/apis/ods-explore-v2/
  */
@@ -26,7 +25,7 @@ class ImportOFGLBudgets extends Command
     protected $description = 'Importe les budgets des communes depuis l\'API OFGL (Observatoire des Finances et de la Gestion Publique Locales)';
 
     private const API_BASE_URL = 'https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-consolidee/records';
-    
+
     // Mapping des agrégats OFGL vers nos colonnes
     private const AGREGAT_MAPPING = [
         'Recettes de fonctionnement' => 'recettes_fonctionnement',
@@ -43,7 +42,9 @@ class ImportOFGLBudgets extends Command
     ];
 
     private int $importedCount = 0;
+
     private int $updatedCount = 0;
+
     private int $skippedCount = 0;
 
     public function handle(): int
@@ -80,6 +81,7 @@ class ImportOFGLBudgets extends Command
         if ($annee) {
             return " AND date_format(exer, 'YYYY')='{$annee}'";
         }
+
         return '';
     }
 
@@ -90,12 +92,13 @@ class ImportOFGLBudgets extends Command
     {
         $this->info("🏘️ Import de la commune {$inseeCode}...");
 
-        $where = "com_code='{$inseeCode}'" . $this->buildYearFilter($annee);
+        $where = "com_code='{$inseeCode}'".$this->buildYearFilter($annee);
 
         $records = $this->fetchRecords($where, 100);
 
         if (empty($records)) {
             $this->warn("⚠️ Aucune donnée trouvée pour la commune {$inseeCode}");
+
             return Command::FAILURE;
         }
 
@@ -116,11 +119,12 @@ class ImportOFGLBudgets extends Command
         $anneeFilter = $annee ?? '2024';
 
         // Récupérer la liste des codes INSEE des communes du département
-        $this->info("   📋 Récupération de la liste des communes...");
+        $this->info('   📋 Récupération de la liste des communes...');
         $communesCodes = $this->getCommunesCodes($deptCode, $anneeFilter);
-        
+
         if (empty($communesCodes)) {
             $this->warn("⚠️ Aucune commune trouvée pour le département {$deptCode}");
+
             return Command::FAILURE;
         }
 
@@ -130,10 +134,10 @@ class ImportOFGLBudgets extends Command
         $bar = $this->output->createProgressBar($totalCommunes);
 
         foreach ($communesCodes as $inseeCode) {
-            $where = "com_code='{$inseeCode}'" . $this->buildYearFilter($annee);
+            $where = "com_code='{$inseeCode}'".$this->buildYearFilter($annee);
             $records = $this->fetchRecords($where, 100); // Max 100, mais une commune a ~50 agrégats
 
-            if (!empty($records)) {
+            if (! empty($records)) {
                 $this->processRecords($records, $force);
             }
 
@@ -169,7 +173,7 @@ class ImportOFGLBudgets extends Command
                     'offset' => $offset,
                 ]);
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     break;
                 }
 
@@ -190,7 +194,7 @@ class ImportOFGLBudgets extends Command
                 }
 
             } catch (\Exception $e) {
-                Log::error("OFGL getCommunesCodes Error: " . $e->getMessage());
+                Log::error('OFGL getCommunesCodes Error: '.$e->getMessage());
                 break;
             }
         }
@@ -203,11 +207,11 @@ class ImportOFGLBudgets extends Command
      */
     private function importAll(?string $annee, int $limit, bool $force): int
     {
-        $this->info("🇫🇷 Import complet de toutes les communes...");
-        $this->warn("⚠️ Cette opération peut prendre plusieurs heures.");
+        $this->info('🇫🇷 Import complet de toutes les communes...');
+        $this->warn('⚠️ Cette opération peut prendre plusieurs heures.');
 
         // Si --force est utilisé, on ne demande pas de confirmation
-        if (!$force && !$this->confirm('Continuer ?')) {
+        if (! $force && ! $this->confirm('Continuer ?')) {
             return Command::FAILURE;
         }
 
@@ -227,7 +231,7 @@ class ImportOFGLBudgets extends Command
             }
 
             $this->processRecords($records, $force);
-            
+
             $batchCount++;
             $offset += $limit;
 
@@ -262,13 +266,15 @@ class ImportOFGLBudgets extends Command
                 return $response->json()['results'] ?? [];
             }
 
-            $this->error("❌ Erreur API: " . $response->status());
-            Log::error("OFGL API Error: " . $response->body());
+            $this->error('❌ Erreur API: '.$response->status());
+            Log::error('OFGL API Error: '.$response->body());
+
             return [];
 
         } catch (\Exception $e) {
-            $this->error("❌ Erreur: " . $e->getMessage());
-            Log::error("OFGL Fetch Error: " . $e->getMessage());
+            $this->error('❌ Erreur: '.$e->getMessage());
+            Log::error('OFGL Fetch Error: '.$e->getMessage());
+
             return [];
         }
     }
@@ -280,11 +286,11 @@ class ImportOFGLBudgets extends Command
     {
         // Regrouper par commune et année
         $grouped = [];
-        
+
         foreach ($records as $record) {
-            $key = $record['com_code'] . '_' . $record['exer'];
-            
-            if (!isset($grouped[$key])) {
+            $key = $record['com_code'].'_'.$record['exer'];
+
+            if (! isset($grouped[$key])) {
                 $grouped[$key] = [
                     'insee_code' => $record['com_code'],
                     'annee' => (int) $record['exer'],
@@ -293,7 +299,7 @@ class ImportOFGLBudgets extends Command
                     'data' => [],
                 ];
             }
-            
+
             $agregat = $record['agregat'];
             if (isset(self::AGREGAT_MAPPING[$agregat])) {
                 $column = self::AGREGAT_MAPPING[$agregat];
@@ -321,8 +327,9 @@ class ImportOFGLBudgets extends Command
             ->where('annee', $annee)
             ->first();
 
-        if ($existing && !$force) {
+        if ($existing && ! $force) {
             $this->skippedCount++;
+
             return;
         }
 

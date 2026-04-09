@@ -49,4 +49,3 @@ class SenateurMandat extends Model
         return is_null($this->date_fin);
     }
 }
-

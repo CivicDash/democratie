@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tag;
+use App\Models\TerritoryDepartment;
+use App\Models\TerritoryRegion;
 use App\Models\Topic;
 use App\Models\TopicElu;
 use App\Models\TopicVote;
-use App\Models\TerritoryRegion;
-use App\Models\TerritoryDepartment;
 use App\Services\ContentModerationService;
 use App\Services\EluNotificationService;
 use Illuminate\Http\Request;
@@ -51,7 +51,7 @@ class ParticipationController extends Controller
         // Interpellations récentes avec réponses
         $interpellations = Topic::where('idea_type', 'interpellation')
             ->published()
-            ->whereHas('elus', fn($q) => $q->where('response_status', 'answered'))
+            ->whereHas('elus', fn ($q) => $q->where('response_status', 'answered'))
             ->with(['author:id,name', 'elus'])
             ->take(3)
             ->get();
@@ -78,7 +78,7 @@ class ParticipationController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'ilike', "%{$search}%")
-                  ->orWhere('description', 'ilike', "%{$search}%");
+                    ->orWhere('description', 'ilike', "%{$search}%");
             });
         }
 
@@ -95,7 +95,7 @@ class ParticipationController extends Controller
         }
 
         if ($request->filled('tag_id')) {
-            $query->whereHas('topicTags', fn($q) => $q->where('tag_id', $request->tag_id));
+            $query->whereHas('topicTags', fn ($q) => $q->where('tag_id', $request->tag_id));
         }
 
         // Tri
@@ -110,7 +110,7 @@ class ParticipationController extends Controller
             case 'controversial':
                 // High engagement but polarizing
                 $query->orderByRaw('votes_pour + votes_contre DESC')
-                      ->orderByRaw('ABS(votes_pour - votes_contre) ASC');
+                    ->orderByRaw('ABS(votes_pour - votes_contre) ASC');
                 break;
             case 'recent':
             default:
@@ -202,59 +202,59 @@ class ParticipationController extends Controller
         // =====================================================================
         // MODÉRATION DU CONTENU
         // =====================================================================
-        
+
         // 1. Modérer le titre
         $titleModeration = $moderationService->fullModerate(
             $validated['title'],
             auth()->id(),
             null,
             [
-                'moderate_words' => true, 
-                'sanitize_images' => true, 
-                'sanitize_links' => true, 
-                'parse_references' => false
+                'moderate_words' => true,
+                'sanitize_images' => true,
+                'sanitize_links' => true,
+                'parse_references' => false,
             ]
         );
-        
+
         // Si le titre contient du contenu bloqué (racisme, violence grave)
         if ($titleModeration['blocked']) {
             return back()->withErrors([
                 'title' => 'Le titre contient du contenu interdit. Merci de reformuler.',
             ])->withInput();
         }
-        
+
         // 2. Modérer la description
         $descModeration = $moderationService->fullModerate(
             $validated['description'],
             auth()->id(),
             null,
             [
-                'moderate_words' => true, 
+                'moderate_words' => true,
                 'sanitize_images' => true,  // Supprimer TOUTES les images
                 'sanitize_links' => true,   // Garder seulement liens officiels
-                'parse_references' => false
+                'parse_references' => false,
             ]
         );
-        
+
         if ($descModeration['blocked']) {
             return back()->withErrors([
                 'description' => 'Le contenu contient des propos interdits (discours de haine, violence). Merci de reformuler.',
             ])->withInput();
         }
-        
+
         // Utiliser le contenu modéré
         $title = $titleModeration['content'];
         $description = $descModeration['content'];
-        
+
         // Informer l'utilisateur si des liens ont été supprimés
         $warnings = [];
-        if (!empty($descModeration['removed_links'])) {
-            $warnings[] = count($descModeration['removed_links']) . ' lien(s) externe(s) ont été supprimés. Seuls les liens vers les sites officiels (.gouv.fr, insee.fr, etc.) sont autorisés.';
+        if (! empty($descModeration['removed_links'])) {
+            $warnings[] = count($descModeration['removed_links']).' lien(s) externe(s) ont été supprimés. Seuls les liens vers les sites officiels (.gouv.fr, insee.fr, etc.) sont autorisés.';
         }
-        if (!empty($titleModeration['word_replacements']) || !empty($descModeration['word_replacements'])) {
+        if (! empty($titleModeration['word_replacements']) || ! empty($descModeration['word_replacements'])) {
             $warnings[] = 'Certains mots inappropriés ont été automatiquement remplacés.';
         }
-        
+
         // Vérification spécifique aux discussions
         if ($validated['idea_type'] === 'discussion') {
             if (Topic::containsMedia($description)) {
@@ -262,7 +262,7 @@ class ParticipationController extends Controller
                     'description' => 'Les discussions ne peuvent pas contenir d\'images ou de médias. Utilisez uniquement du texte.',
                 ])->withInput();
             }
-            
+
             // Les discussions doivent avoir au moins une thématique
             if (empty($validated['tag_ids'])) {
                 return back()->withErrors([
@@ -292,9 +292,9 @@ class ParticipationController extends Controller
         ]);
 
         // Créer les options de sondage
-        if ($validated['idea_type'] === 'poll' && !empty($validated['poll_options'])) {
+        if ($validated['idea_type'] === 'poll' && ! empty($validated['poll_options'])) {
             foreach ($validated['poll_options'] as $index => $optionData) {
-                if (!empty(trim($optionData['label']))) {
+                if (! empty(trim($optionData['label']))) {
                     \App\Models\PollOption::create([
                         'topic_id' => $topic->id,
                         'label' => trim($optionData['label']),
@@ -306,12 +306,12 @@ class ParticipationController extends Controller
         }
 
         // Attacher les tags
-        if (!empty($validated['tag_ids'])) {
+        if (! empty($validated['tag_ids'])) {
             $topic->topicTags()->sync($validated['tag_ids']);
         }
 
         // Créer les liaisons avec les élus
-        if (!empty($validated['elus'])) {
+        if (! empty($validated['elus'])) {
             foreach ($validated['elus'] as $elu) {
                 TopicElu::create([
                     'topic_id' => $topic->id,
@@ -327,7 +327,7 @@ class ParticipationController extends Controller
                     $eluNotificationService = app(EluNotificationService::class);
                     $topic->load('elus');
                     $notifiedCount = $eluNotificationService->notifyAllElusForTopic($topic);
-                    
+
                     if ($notifiedCount > 0) {
                         $warnings[] = "{$notifiedCount} élu(s) ont été notifié(s) de votre interpellation.";
                     }
@@ -352,8 +352,8 @@ class ParticipationController extends Controller
 
         // Préparer le message de succès avec éventuels warnings
         $successMessage = 'Votre contribution a été publiée !';
-        if (!empty($warnings)) {
-            $successMessage .= ' Note : ' . implode(' ', $warnings);
+        if (! empty($warnings)) {
+            $successMessage .= ' Note : '.implode(' ', $warnings);
         }
 
         // Toujours rediriger vers la page de détail de l'idée
@@ -494,7 +494,7 @@ class ParticipationController extends Controller
                     'name' => $topic->department->name,
                     'code' => $topic->department->code,
                 ] : null,
-                'tags' => $topic->topicTags->map(fn($t) => [
+                'tags' => $topic->topicTags->map(fn ($t) => [
                     'id' => $t->id,
                     'nom' => $t->nom,
                     'icone' => $t->icone,
@@ -510,7 +510,7 @@ class ParticipationController extends Controller
                 'poll_type' => $topic->poll_type,
                 'poll_ends_at' => $topic->poll_ends_at?->toIso8601String(),
             ],
-            'comments' => $comments->through(fn($post) => [
+            'comments' => $comments->through(fn ($post) => [
                 'id' => $post->id,
                 'content' => $post->content,
                 'debate_position' => $post->debate_position,
@@ -543,10 +543,10 @@ class ParticipationController extends Controller
             auth()->id(),
             null,
             [
-                'moderate_words' => true, 
+                'moderate_words' => true,
                 'sanitize_images' => true,  // Supprimer les images
                 'sanitize_links' => true,   // Garder seulement liens officiels
-                'parse_references' => true
+                'parse_references' => true,
             ]
         );
 

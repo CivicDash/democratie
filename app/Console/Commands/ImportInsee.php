@@ -2,11 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\InseeCommune;
 use App\Models\InseeDepartement;
 use App\Models\InseeRegion;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 
 class ImportInsee extends Command
 {

@@ -66,7 +66,7 @@ class UserFollowsController extends Controller
             'App\\Models\\ThematiqueLegislation',
         ];
 
-        if (!in_array($type, $validTypes)) {
+        if (! in_array($type, $validTypes)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Type non valide',

@@ -14,8 +14,11 @@ class ScrutinAN extends Model
     use HasFactory, Searchable;
 
     protected $table = 'scrutins_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -131,6 +134,7 @@ class ScrutinAN extends Model
         if ($this->pour > 0) {
             return $this->pour;
         }
+
         return $this->calculerTotalVotes('pour');
     }
 
@@ -142,6 +146,7 @@ class ScrutinAN extends Model
         if ($this->contre > 0) {
             return $this->contre;
         }
+
         return $this->calculerTotalVotes('contre');
     }
 
@@ -153,6 +158,7 @@ class ScrutinAN extends Model
         if ($this->abstentions > 0) {
             return $this->abstentions;
         }
+
         return $this->calculerTotalVotes('abstentions');
     }
 
@@ -162,13 +168,13 @@ class ScrutinAN extends Model
     protected function calculerTotalVotes(string $type): int
     {
         $ventilation = $this->ventilation_votes;
-        if (!$ventilation || !isset($ventilation['organe']['groupes']['groupe'])) {
+        if (! $ventilation || ! isset($ventilation['organe']['groupes']['groupe'])) {
             return 0;
         }
 
         $total = 0;
         $groupes = $ventilation['organe']['groupes']['groupe'];
-        
+
         foreach ($groupes as $groupe) {
             if (isset($groupe['vote']['decompteVoix'][$type])) {
                 $total += (int) $groupe['vote']['decompteVoix'][$type];
@@ -189,6 +195,7 @@ class ScrutinAN extends Model
         if ($this->resultat_code) {
             return ucfirst($this->resultat_code);
         }
+
         return $this->pour_calcule > $this->contre_calcule ? 'Adopté' : 'Rejeté';
     }
 
@@ -197,6 +204,7 @@ class ScrutinAN extends Model
         if ($this->nombre_votants === 0) {
             return 0.0;
         }
+
         return round(($this->nombre_votants / 577) * 100, 2); // 577 députés
     }
 
@@ -205,6 +213,7 @@ class ScrutinAN extends Model
         if ($this->suffrages_exprimes === 0) {
             return 0.0;
         }
+
         return round(($this->pour / $this->suffrages_exprimes) * 100, 2);
     }
 
@@ -213,6 +222,7 @@ class ScrutinAN extends Model
         if ($this->suffrages_exprimes === 0) {
             return 0.0;
         }
+
         return round(($this->contre / $this->suffrages_exprimes) * 100, 2);
     }
 
@@ -221,6 +231,7 @@ class ScrutinAN extends Model
         if ($this->suffrages_exprimes === 0) {
             return 0.0;
         }
+
         return round(($this->abstentions / $this->nombre_votants) * 100, 2);
     }
 
@@ -251,4 +262,3 @@ class ScrutinAN extends Model
         return 'scrutins_an';
     }
 }
-

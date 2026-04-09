@@ -68,15 +68,16 @@ class NotificationPreference extends Model
     public function isEnabled(string $category, string $channel): bool
     {
         // Vérifier d'abord si le canal est activé
-        if ($channel === 'site' && !$this->channel_in_app) {
+        if ($channel === 'site' && ! $this->channel_in_app) {
             return false;
         }
-        if ($channel === 'email' && !$this->channel_email) {
+        if ($channel === 'email' && ! $this->channel_email) {
             return false;
         }
 
         // Vérifier la catégorie
         $field = self::CATEGORY_MAPPING[$category] ?? 'notify_system_announcement';
+
         return $this->{$field} ?? true;
     }
 

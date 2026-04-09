@@ -176,6 +176,7 @@ class Tag extends Model
                 return $color;
             }
         }
+
         return self::$thematicColors['default'];
     }
 
@@ -187,6 +188,7 @@ class Tag extends Model
                 return $icon;
             }
         }
+
         return self::$thematicIcons['default'];
     }
 }

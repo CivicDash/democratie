@@ -15,8 +15,11 @@ class EluActivityDigestMail extends Mailable
     use Queueable, SerializesModels;
 
     public User $user;
+
     public Collection $activities;
+
     public string $frequency;
+
     public string $periodLabel;
 
     public function __construct(User $user, Collection $activities, string $frequency = 'daily')
@@ -36,12 +39,12 @@ class EluActivityDigestMail extends Mailable
     {
         $elusCount = $this->activities->unique('elu_id')->count();
         $activitiesCount = $this->activities->count();
-        
+
         $subject = match ($this->frequency) {
             'instant' => "🔔 {$this->activities->first()['elu_nom']} - Nouvelle activité",
             'daily' => "📊 Résumé quotidien - {$activitiesCount} activité(s) de vos élus",
             'weekly' => "📅 Résumé hebdomadaire - {$activitiesCount} activité(s) de vos élus",
-            default => "🔔 Activités de vos élus suivis",
+            default => '🔔 Activités de vos élus suivis',
         };
 
         return new Envelope(subject: $subject);

@@ -57,26 +57,26 @@ class DemocratieController extends Controller
      */
     private const ORDRE_HEMICYCLE_AN = [
         'LFI-NFP' => 1,
-        'GDR'     => 2,
-        'ECOLO'   => 3,
-        'SOC'     => 4,
-        'RE'      => 5,
-        'DEM'     => 6,
-        'HOR'     => 7,
-        'LIOT'    => 8,
-        'LR'      => 9,
-        'RN'      => 10,
+        'GDR' => 2,
+        'ECOLO' => 3,
+        'SOC' => 4,
+        'RE' => 5,
+        'DEM' => 6,
+        'HOR' => 7,
+        'LIOT' => 8,
+        'LR' => 9,
+        'RN' => 10,
     ];
 
     private const ORDRE_HEMICYCLE_SENAT = [
         'CRCE' => 1,
-        'SER'  => 2,
+        'SER' => 2,
         'GEST' => 3,
         'RDSE' => 4,
         'RDPI' => 5,
-        'UC'   => 6,
+        'UC' => 6,
         'INDEP' => 7,
-        'LR'   => 8,
+        'LR' => 8,
     ];
 
     public function representants(): Response
@@ -235,7 +235,7 @@ class DemocratieController extends Controller
     {
         return $postes->map(fn ($p) => [
             'id' => $p->id,
-            'nom' => $p->personne?->prenom . ' ' . $p->personne?->nom,
+            'nom' => $p->personne?->prenom.' '.$p->personne?->nom,
             'fonction' => $p->fonction ?? $p->type_fonction_libelle ?? $p->type_fonction,
             'ministere' => $p->ministere?->nom,
             'photo_url' => $p->personne?->photo_url,

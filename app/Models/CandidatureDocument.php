@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * Document justificatif pour une candidature
- * 
+ *
  * Peut être attaché à une ListeElectorale ou un CandidatMunicipal.
  */
 class CandidatureDocument extends Model
@@ -115,7 +115,7 @@ class CandidatureDocument extends Model
      */
     public function getUrlAttribute(): string
     {
-        return asset('storage/' . $this->chemin_fichier);
+        return asset('storage/'.$this->chemin_fichier);
     }
 
     /**
@@ -124,14 +124,14 @@ class CandidatureDocument extends Model
     public function getTailleFormateeAttribute(): string
     {
         $bytes = $this->taille_octets;
-        
+
         if ($bytes >= 1048576) {
-            return round($bytes / 1048576, 2) . ' Mo';
+            return round($bytes / 1048576, 2).' Mo';
         } elseif ($bytes >= 1024) {
-            return round($bytes / 1024, 2) . ' Ko';
+            return round($bytes / 1024, 2).' Ko';
         }
-        
-        return $bytes . ' octets';
+
+        return $bytes.' octets';
     }
 
     /**
@@ -139,7 +139,7 @@ class CandidatureDocument extends Model
      */
     public function getTypeFormateAttribute(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'recepisse_prefecture' => 'Récépissé de dépôt en préfecture',
             'piece_identite' => 'Pièce d\'identité',
             'attestation_eligibilite' => 'Attestation d\'éligibilité',
@@ -156,7 +156,7 @@ class CandidatureDocument extends Model
      */
     public function getStatutFormateAttribute(): string
     {
-        return match($this->statut_verification) {
+        return match ($this->statut_verification) {
             'en_attente' => 'En attente de vérification',
             'en_cours' => 'Vérification en cours',
             'valide' => 'Validé',
@@ -171,7 +171,7 @@ class CandidatureDocument extends Model
      */
     public function getStatutCouleurAttribute(): string
     {
-        return match($this->statut_verification) {
+        return match ($this->statut_verification) {
             'en_attente' => 'yellow',
             'en_cours' => 'blue',
             'valide' => 'green',
@@ -210,7 +210,7 @@ class CandidatureDocument extends Model
         $this->verified_at = now();
         $this->verified_by = $moderateur->id;
         $this->commentaire_verification = $commentaire;
-        
+
         return $this->save();
     }
 
@@ -223,7 +223,7 @@ class CandidatureDocument extends Model
         $this->verified_at = now();
         $this->verified_by = $moderateur->id;
         $this->commentaire_verification = $raison;
-        
+
         return $this->save();
     }
 }

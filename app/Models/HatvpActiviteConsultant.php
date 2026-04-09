@@ -55,4 +55,3 @@ class HatvpActiviteConsultant extends Model
             ->toArray();
     }
 }
-

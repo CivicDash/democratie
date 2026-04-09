@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\UserSanction;
 use App\Services\UserSanctionService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class UserSanctionController extends Controller
 {
@@ -27,7 +26,7 @@ class UserSanctionController extends Controller
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(fn($s) => [
+            ->map(fn ($s) => [
                 'id' => $s->id,
                 'type' => $s->type,
                 'type_label' => $s->getTypeLabel(),
@@ -131,7 +130,7 @@ class UserSanctionController extends Controller
         }
 
         $userName = $user->name;
-        
+
         // Soft delete
         $user->update(['account_status' => 'deleted']);
         $user->delete();
@@ -152,7 +151,7 @@ class UserSanctionController extends Controller
         }
 
         $userName = $user->name;
-        
+
         // Force delete
         $user->forceDelete();
 
@@ -165,7 +164,7 @@ class UserSanctionController extends Controller
     public function restore($userId)
     {
         $user = User::withTrashed()->findOrFail($userId);
-        
+
         $user->restore();
         $user->update(['account_status' => 'active']);
 

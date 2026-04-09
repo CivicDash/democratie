@@ -29,4 +29,3 @@ class SenateurHistoriqueGroupe extends Model
         return $query->whereNull('date_fin');
     }
 }
-

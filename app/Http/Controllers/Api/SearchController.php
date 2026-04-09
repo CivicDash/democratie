@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Topic;
-use App\Models\Post;
 use App\Models\Document;
+use App\Models\Post;
+use App\Models\Topic;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +17,7 @@ class SearchController extends Controller
 {
     /**
      * Recherche globale (tous les modèles)
-     * 
+     *
      * GET /api/search?q=piste+cyclable&type=topics&scope=region&limit=20
      */
     public function search(Request $request): JsonResponse
@@ -58,12 +58,12 @@ class SearchController extends Controller
                 }
 
                 $topics = $topicsQuery->take($limit)->get();
-                
+
                 $results['topics'] = $topics->map(function ($topic) {
                     return [
                         'id' => $topic->id,
                         'title' => $topic->title,
-                        'description' => substr($topic->description, 0, 200) . '...',
+                        'description' => substr($topic->description, 0, 200).'...',
                         'type' => $topic->type,
                         'scope' => $topic->scope,
                         'author' => $topic->author?->display_name,
@@ -82,11 +82,11 @@ class SearchController extends Controller
                 }
 
                 $posts = $postsQuery->take($limit)->get();
-                
+
                 $results['posts'] = $posts->map(function ($post) {
                     return [
                         'id' => $post->id,
-                        'content' => substr($post->content, 0, 200) . '...',
+                        'content' => substr($post->content, 0, 200).'...',
                         'topic_id' => $post->topic_id,
                         'topic_title' => $post->topic?->title,
                         'author' => $post->author?->display_name,
@@ -106,7 +106,7 @@ class SearchController extends Controller
                 }
 
                 $documents = $documentsQuery->take($limit)->get();
-                
+
                 $results['documents'] = $documents->map(function ($document) {
                     return [
                         'id' => $document->id,
@@ -122,7 +122,7 @@ class SearchController extends Controller
             }
 
             // Compteurs totaux
-            $totalResults = collect($results)->sum(fn($items) => $items->count());
+            $totalResults = collect($results)->sum(fn ($items) => $items->count());
 
             return response()->json([
                 'success' => true,
@@ -142,7 +142,7 @@ class SearchController extends Controller
 
     /**
      * Autocomplete / Suggestions
-     * 
+     *
      * GET /api/search/autocomplete?q=pist
      */
     public function autocomplete(Request $request): JsonResponse
@@ -192,7 +192,7 @@ class SearchController extends Controller
 
     /**
      * Statistiques de recherche
-     * 
+     *
      * GET /api/search/stats
      */
     public function stats(): JsonResponse
@@ -219,4 +219,3 @@ class SearchController extends Controller
         }
     }
 }
-

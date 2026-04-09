@@ -7,14 +7,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Question au Gouvernement (Assemblée Nationale)
- * 
+ *
  * Source: data.assemblee-nationale.fr
  */
 class QuestionAN extends Model
 {
     protected $table = 'questions_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -96,7 +99,7 @@ class QuestionAN extends Model
     public function scopeMinistere($query, string $ministere)
     {
         return $query->where('ministere_sigle', 'ILIKE', "%{$ministere}%")
-                     ->orWhere('ministere_nom', 'ILIKE', "%{$ministere}%");
+            ->orWhere('ministere_nom', 'ILIKE', "%{$ministere}%");
     }
 
     /**
@@ -104,9 +107,10 @@ class QuestionAN extends Model
      */
     public function getDelaiReponseAttribute(): ?int
     {
-        if (!$this->date_reponse || !$this->date_question) {
+        if (! $this->date_reponse || ! $this->date_question) {
             return null;
         }
+
         return $this->date_question->diffInDays($this->date_reponse);
     }
 
@@ -115,11 +119,12 @@ class QuestionAN extends Model
      */
     public function getExtraitReponseAttribute(): ?string
     {
-        if (!$this->texte_reponse) {
+        if (! $this->texte_reponse) {
             return null;
         }
         $text = strip_tags(html_entity_decode($this->texte_reponse));
-        return mb_substr($text, 0, 500) . (mb_strlen($text) > 500 ? '...' : '');
+
+        return mb_substr($text, 0, 500).(mb_strlen($text) > 500 ? '...' : '');
     }
 
     /**
@@ -130,4 +135,3 @@ class QuestionAN extends Model
         return "https://questions.assemblee-nationale.fr/q{$this->legislature}/17-{$this->numero}QG.htm";
     }
 }
-

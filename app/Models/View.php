@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Vue d'un contenu (Topic, PropositionLoi, Post, etc.)
- * 
+ *
  * @property int $id
  * @property int $user_id
  * @property int $viewable_id
@@ -57,4 +57,3 @@ class View extends Model
             ->where('viewable_id', $viewableId);
     }
 }
-

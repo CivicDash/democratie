@@ -18,7 +18,7 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->display_name,
             'email' => $this->when($this->shouldShowEmail($request), $this->email),
-            'roles' => $this->whenLoaded('roles', fn() => $this->roles->pluck('name')),
+            'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
             'profile' => new ProfileResource($this->whenLoaded('profile')),
             'created_at' => $this->created_at?->toISOString(),
             'is_online' => $this->when(
@@ -34,7 +34,7 @@ class UserResource extends JsonResource
     protected function shouldShowEmail(Request $request): bool
     {
         // Email visible uniquement pour l'utilisateur lui-même ou les admins
-        return $request->user()?->id === $this->id 
+        return $request->user()?->id === $this->id
             || $request->user()?->hasRole('admin');
     }
 }

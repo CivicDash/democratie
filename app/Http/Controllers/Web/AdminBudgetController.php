@@ -24,7 +24,7 @@ class AdminBudgetController extends Controller
         $budgets = BudgetMinistere::where('annee', $annee)
             ->orderByDesc('budget_total')
             ->get()
-            ->map(fn($b) => [
+            ->map(fn ($b) => [
                 'id' => $b->id,
                 'code' => $b->code,
                 'nom' => $b->nom,
@@ -88,7 +88,7 @@ class AdminBudgetController extends Controller
         ]);
 
         $validated['code'] = Str::slug($validated['nom']);
-        $validated['budget_total'] = 
+        $validated['budget_total'] =
             ($validated['budget_general'] ?? 0) +
             ($validated['budgets_annexes'] ?? 0) +
             ($validated['comptes_affectation_speciale'] ?? 0) +
@@ -142,7 +142,7 @@ class AdminBudgetController extends Controller
             'comptes_concours_financiers' => 'nullable|numeric|min:0',
         ]);
 
-        $validated['budget_total'] = 
+        $validated['budget_total'] =
             ($validated['budget_general'] ?? 0) +
             ($validated['budgets_annexes'] ?? 0) +
             ($validated['comptes_affectation_speciale'] ?? 0) +
@@ -181,7 +181,7 @@ class AdminBudgetController extends Controller
         ]);
 
         $budgetsSource = BudgetMinistere::where('annee', $validated['annee_source'])->get();
-        
+
         if ($budgetsSource->isEmpty()) {
             return redirect()->back()->with('error', 'Aucun budget trouvé pour l\'année source.');
         }
@@ -192,7 +192,7 @@ class AdminBudgetController extends Controller
                 ->where('annee', $validated['annee_cible'])
                 ->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 $newBudget = $budget->replicate();
                 $newBudget->annee = $validated['annee_cible'];
                 $newBudget->type_loi = 'plf';
@@ -218,7 +218,7 @@ class AdminBudgetController extends Controller
             ->get();
 
         $csv = "nom;Budget général;Budgets annexes;Comptes d'affectation spéciale;Comptes de concours financiers;\n";
-        
+
         foreach ($budgets as $budget) {
             $csv .= sprintf(
                 "%s;%s;%s;%s;%s;\n",

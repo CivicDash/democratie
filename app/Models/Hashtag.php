@@ -9,7 +9,7 @@ use Laravel\Scout\Searchable;
 
 /**
  * Hashtag (style Twitter)
- * 
+ *
  * @property int $id
  * @property string $slug Slug normalisé (lowercase, no accents)
  * @property string $display_name Nom affiché (original case)
@@ -81,7 +81,7 @@ class Hashtag extends Model
 
     /**
      * Normalise un hashtag (slug)
-     * 
+     *
      * #Climat → climat
      * #Réforme-Retraites → reforme-retraites
      */
@@ -89,16 +89,16 @@ class Hashtag extends Model
     {
         // Retirer # si présent
         $hashtag = ltrim($hashtag, '#');
-        
+
         // Lowercase
         $hashtag = mb_strtolower($hashtag);
-        
+
         // Retirer accents
         $hashtag = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $hashtag);
-        
+
         // Conserver uniquement lettres, chiffres, tirets
         $hashtag = preg_replace('/[^a-z0-9\-]/', '', $hashtag);
-        
+
         // Limiter longueur
         return substr($hashtag, 0, 50);
     }
@@ -152,8 +152,8 @@ class Hashtag extends Model
      */
     public function scopeSearch($query, string $term)
     {
-        return $query->where('slug', 'like', '%' . self::normalize($term) . '%')
-            ->orWhere('display_name', 'like', '%' . $term . '%');
+        return $query->where('slug', 'like', '%'.self::normalize($term).'%')
+            ->orWhere('display_name', 'like', '%'.$term.'%');
     }
 
     /**

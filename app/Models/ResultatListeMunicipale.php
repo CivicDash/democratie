@@ -68,12 +68,12 @@ class ResultatListeMunicipale extends Model
 
     public function getTeteDeListeNomCompletAttribute(): string
     {
-        return trim(($this->tete_de_liste_prenom ?? '') . ' ' . ($this->tete_de_liste_nom ?? ''));
+        return trim(($this->tete_de_liste_prenom ?? '').' '.($this->tete_de_liste_nom ?? ''));
     }
 
     public function getPourcentageFormateAttribute(): string
     {
-        return number_format($this->pourcentage_exprimes, 2, ',', ' ') . ' %';
+        return number_format($this->pourcentage_exprimes, 2, ',', ' ').' %';
     }
 
     public function getVoixFormateAttribute(): string

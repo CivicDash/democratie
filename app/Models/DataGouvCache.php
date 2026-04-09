@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Cache des données récupérées depuis data.gouv.fr
- * 
+ *
  * @property int $id
  * @property string $dataset_id
  * @property string|null $resource_id
@@ -105,4 +105,3 @@ class DataGouvCache extends Model
         return $cache?->data;
     }
 }
-

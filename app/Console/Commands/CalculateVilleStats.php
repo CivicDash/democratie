@@ -8,7 +8,6 @@ use App\Models\Ville;
 use App\Models\VillePopulation;
 use App\Models\VilleStats;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Calcule et met à jour les statistiques pré-calculées des villes
@@ -24,6 +23,7 @@ class CalculateVilleStats extends Command
     protected $description = 'Calcule les statistiques pré-calculées des villes (endettement, évolution population, etc.)';
 
     private int $calculated = 0;
+
     private int $skipped = 0;
 
     public function handle(): int
@@ -65,7 +65,7 @@ class CalculateVilleStats extends Command
         $bar->finish();
         $this->newLine(2);
 
-        $this->info("✅ Terminé !");
+        $this->info('✅ Terminé !');
         $this->info("   Statistiques calculées : {$this->calculated}");
         $this->info("   Ignorées (à jour) : {$this->skipped}");
 
@@ -79,10 +79,11 @@ class CalculateVilleStats extends Command
             ->whereNull('annee')
             ->first();
 
-        if ($existingStats && !$force) {
+        if ($existingStats && ! $force) {
             // Vérifie si calculé il y a moins de 24h
             if ($existingStats->calculated_at && $existingStats->calculated_at->diffInHours(now()) < 24) {
                 $this->skipped++;
+
                 return;
             }
         }
@@ -159,7 +160,7 @@ class CalculateVilleStats extends Command
             ->orderByDesc('annee')
             ->first();
 
-        if (!$budget) {
+        if (! $budget) {
             return $stats;
         }
 
@@ -197,10 +198,10 @@ class CalculateVilleStats extends Command
         $stats['nb_maires_historique'] = $mandats->count();
 
         // Durée moyenne des mandats terminés
-        $mandatsTermines = $mandats->filter(fn($m) => $m->date_fin !== null && $m->date_debut !== null);
-        
+        $mandatsTermines = $mandats->filter(fn ($m) => $m->date_fin !== null && $m->date_debut !== null);
+
         if ($mandatsTermines->isNotEmpty()) {
-            $totalMois = $mandatsTermines->sum(fn($m) => $m->date_debut->diffInMonths($m->date_fin));
+            $totalMois = $mandatsTermines->sum(fn ($m) => $m->date_debut->diffInMonths($m->date_fin));
             $stats['duree_moyenne_mandat_mois'] = round($totalMois / $mandatsTermines->count());
         }
 
@@ -210,7 +211,7 @@ class CalculateVilleStats extends Command
     private function calculateScoreSanteFinanciere(array $stats): ?int
     {
         // Score de 0 à 100 basé sur plusieurs critères
-        if (!isset($stats['taux_endettement_pct']) && !isset($stats['dette_par_habitant'])) {
+        if (! isset($stats['taux_endettement_pct']) && ! isset($stats['dette_par_habitant'])) {
             return null;
         }
 

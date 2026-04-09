@@ -26,4 +26,3 @@ class ArticleJO extends Model
         return $this->belongsTo(TexteJO::class, 'texte_jo_id');
     }
 }
-

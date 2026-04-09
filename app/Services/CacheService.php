@@ -11,21 +11,32 @@ class CacheService
      * Durées de cache (en secondes)
      */
     const CACHE_FOREVER = 0; // Permanent jusqu'à invalidation
+
     const CACHE_1_HOUR = 3600;
+
     const CACHE_4_HOURS = 14400;
+
     const CACHE_1_DAY = 86400;
+
     const CACHE_1_WEEK = 604800;
 
     /**
      * Préfixes des clés de cache
      */
     const PREFIX_VOTE_RESULTS = 'vote:results:';
+
     const PREFIX_BUDGET_STATS = 'budget:stats';
+
     const PREFIX_BUDGET_AVERAGES = 'budget:averages';
+
     const PREFIX_BUDGET_RANKING = 'budget:ranking';
+
     const PREFIX_MODERATION_STATS = 'moderation:stats';
+
     const PREFIX_DOCUMENT_STATS = 'documents:stats';
+
     const PREFIX_TOPIC_STATS = 'topic:stats:';
+
     const PREFIX_USER_ALLOCATIONS = 'user:allocations:';
 
     /**
@@ -47,12 +58,12 @@ class CacheService
     /**
      * Stocker une valeur dans le cache
      */
-    public function put(string $key, mixed $value, int $ttl = null): bool
+    public function put(string $key, mixed $value, ?int $ttl = null): bool
     {
         if ($ttl === null) {
             return Cache::forever($key, $value);
         }
-        
+
         return Cache::put($key, $value, $ttl);
     }
 
@@ -70,7 +81,7 @@ class CacheService
     public function forgetPattern(string $pattern): int
     {
         $keys = Redis::keys($pattern);
-        
+
         if (empty($keys)) {
             return 0;
         }
@@ -126,7 +137,7 @@ class CacheService
      */
     public function cacheVoteResults(int $topicId, array $results): void
     {
-        $key = self::PREFIX_VOTE_RESULTS . $topicId;
+        $key = self::PREFIX_VOTE_RESULTS.$topicId;
         $this->put($key, $results, self::CACHE_1_HOUR);
     }
 
@@ -135,7 +146,8 @@ class CacheService
      */
     public function getVoteResults(int $topicId): ?array
     {
-        $key = self::PREFIX_VOTE_RESULTS . $topicId;
+        $key = self::PREFIX_VOTE_RESULTS.$topicId;
+
         return $this->get($key);
     }
 
@@ -144,7 +156,8 @@ class CacheService
      */
     public function invalidateVoteResults(int $topicId): bool
     {
-        $key = self::PREFIX_VOTE_RESULTS . $topicId;
+        $key = self::PREFIX_VOTE_RESULTS.$topicId;
+
         return $this->forget($key);
     }
 
@@ -207,7 +220,8 @@ class CacheService
         $count += $this->forget(self::PREFIX_BUDGET_STATS) ? 1 : 0;
         $count += $this->forget(self::PREFIX_BUDGET_AVERAGES) ? 1 : 0;
         $count += $this->forget(self::PREFIX_BUDGET_RANKING) ? 1 : 0;
-        $count += $this->forgetPattern(self::PREFIX_USER_ALLOCATIONS . '*');
+        $count += $this->forgetPattern(self::PREFIX_USER_ALLOCATIONS.'*');
+
         return $count;
     }
 
@@ -216,7 +230,7 @@ class CacheService
      */
     public function cacheUserAllocations(int $userId, array $allocations): void
     {
-        $key = self::PREFIX_USER_ALLOCATIONS . $userId;
+        $key = self::PREFIX_USER_ALLOCATIONS.$userId;
         $this->put($key, $allocations, self::CACHE_1_DAY);
     }
 
@@ -225,7 +239,8 @@ class CacheService
      */
     public function getUserAllocations(int $userId): ?array
     {
-        $key = self::PREFIX_USER_ALLOCATIONS . $userId;
+        $key = self::PREFIX_USER_ALLOCATIONS.$userId;
+
         return $this->get($key);
     }
 
@@ -234,7 +249,8 @@ class CacheService
      */
     public function invalidateUserAllocations(int $userId): bool
     {
-        $key = self::PREFIX_USER_ALLOCATIONS . $userId;
+        $key = self::PREFIX_USER_ALLOCATIONS.$userId;
+
         return $this->forget($key);
     }
 
@@ -297,7 +313,7 @@ class CacheService
      */
     public function cacheTopicStats(int $topicId, array $stats): void
     {
-        $key = self::PREFIX_TOPIC_STATS . $topicId;
+        $key = self::PREFIX_TOPIC_STATS.$topicId;
         $this->put($key, $stats, self::CACHE_1_HOUR);
     }
 
@@ -306,7 +322,8 @@ class CacheService
      */
     public function getTopicStats(int $topicId): ?array
     {
-        $key = self::PREFIX_TOPIC_STATS . $topicId;
+        $key = self::PREFIX_TOPIC_STATS.$topicId;
+
         return $this->get($key);
     }
 
@@ -315,7 +332,8 @@ class CacheService
      */
     public function invalidateTopicCache(int $topicId): bool
     {
-        $key = self::PREFIX_TOPIC_STATS . $topicId;
+        $key = self::PREFIX_TOPIC_STATS.$topicId;
+
         return $this->forget($key);
     }
 
@@ -339,4 +357,3 @@ class CacheService
         return Cache::tags([$tag])->flush();
     }
 }
-

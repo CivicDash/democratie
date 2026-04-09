@@ -11,9 +11,6 @@ class ScrutinsANController extends Controller
 {
     /**
      * Liste des scrutins avec filtres
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -71,9 +68,6 @@ class ScrutinsANController extends Controller
 
     /**
      * Détails d'un scrutin
-     * 
-     * @param string $uid
-     * @return JsonResponse
      */
     public function show(string $uid): JsonResponse
     {
@@ -92,10 +86,6 @@ class ScrutinsANController extends Controller
 
     /**
      * Votes individuels d'un scrutin
-     * 
-     * @param string $uid
-     * @param Request $request
-     * @return JsonResponse
      */
     public function votes(string $uid, Request $request): JsonResponse
     {
@@ -115,8 +105,8 @@ class ScrutinsANController extends Controller
 
         if ($request->boolean('rebelles_only')) {
             $query->whereRaw('position != position_groupe')
-                  ->whereNotNull('position_groupe')
-                  ->where('position_groupe', '!=', 'mixte');
+                ->whereNotNull('position_groupe')
+                ->where('position_groupe', '!=', 'mixte');
         }
 
         // Tri
@@ -131,9 +121,6 @@ class ScrutinsANController extends Controller
 
     /**
      * Statistiques par groupe pour un scrutin
-     * 
-     * @param string $uid
-     * @return JsonResponse
      */
     public function statsParGroupe(string $uid): JsonResponse
     {
@@ -187,4 +174,3 @@ class ScrutinsANController extends Controller
         ]);
     }
 }
-

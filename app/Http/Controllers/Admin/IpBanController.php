@@ -23,7 +23,7 @@ class IpBanController extends Controller
 
         $query = IpBan::query()
             ->when($scope, fn ($q) => $q->where('scope', $scope))
-            ->when($ip, fn ($q) => $q->where('ip', 'like', '%' . $ip . '%'))
+            ->when($ip, fn ($q) => $q->where('ip', 'like', '%'.$ip.'%'))
             ->when($status === 'active', fn ($q) => $q->active())
             ->when($status === 'expired', fn ($q) => $q->whereNotNull('unbanned_at')
                 ->orWhere('expires_at', '<=', now()))

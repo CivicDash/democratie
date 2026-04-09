@@ -8,7 +8,7 @@ class CastVoteRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     * 
+     *
      * Note: L'autorisation réelle est vérifiée par le token, pas par l'utilisateur.
      */
     public function authorize(): bool
@@ -49,19 +49,18 @@ class CastVoteRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $topic = $this->route('topic');
-            
+
             // Valider le choix selon le type de ballot
             if ($topic->ballot_type === 'yes_no') {
-                if (!in_array($this->input('vote.choice'), ['yes', 'no', 'abstain'])) {
+                if (! in_array($this->input('vote.choice'), ['yes', 'no', 'abstain'])) {
                     $validator->errors()->add('vote.choice', 'Le choix doit être : yes, no ou abstain.');
                 }
             } elseif ($topic->ballot_type === 'multiple_choice') {
                 $validOptions = json_decode($topic->ballot_options, true) ?? [];
-                if (!in_array($this->input('vote.choice'), $validOptions)) {
+                if (! in_array($this->input('vote.choice'), $validOptions)) {
                     $validator->errors()->add('vote.choice', 'Le choix n\'est pas valide pour ce scrutin.');
                 }
             }
         });
     }
 }
-

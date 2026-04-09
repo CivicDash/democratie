@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\DeputeSenateur;
 use App\Models\AmendementParlementaire;
+use App\Models\DeputeSenateur;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,11 +14,13 @@ class EnrichAmendementsFromApi extends Command
                             {--limit= : Limiter le nombre de députés/sénateurs} 
                             {--depute= : UID d\'un député/sénateur spécifique}
                             {--source=both : Source (assemblee/senat/both)}';
-    
+
     protected $description = 'Enrichit les amendements depuis les APIs NosDéputés.fr et NosSénateurs.fr';
 
     private int $parlementairesProcessed = 0;
+
     private int $amendementsImported = 0;
+
     private int $errors = 0;
 
     public function handle()
@@ -29,7 +31,7 @@ class EnrichAmendementsFromApi extends Command
         $limit = $this->option('limit');
         $deputeUid = $this->option('depute');
         $source = $this->option('source');
-        
+
         // Récupérer les parlementaires à enrichir
         $query = DeputeSenateur::where('en_exercice', true);
 
@@ -48,11 +50,12 @@ class EnrichAmendementsFromApi extends Command
 
         if ($parlementaires->isEmpty()) {
             $this->warn('⚠️  Aucun parlementaire à enrichir');
+
             return Command::SUCCESS;
         }
 
         $this->info("📊 {$parlementaires->count()} parlementaires à enrichir");
-        $this->info("⏱️  Estimation : " . ($parlementaires->count() * 2) . " secondes (pause de 2s par parlementaire)");
+        $this->info('⏱️  Estimation : '.($parlementaires->count() * 2).' secondes (pause de 2s par parlementaire)');
         $this->newLine();
 
         $bar = $this->output->createProgressBar($parlementaires->count());
@@ -61,7 +64,7 @@ class EnrichAmendementsFromApi extends Command
         foreach ($parlementaires as $parlementaire) {
             $this->enrichAmendements($parlementaire);
             $bar->advance();
-            
+
             // Pause obligatoire pour ne pas surcharger l'API
             sleep(2);
         }
@@ -82,22 +85,24 @@ class EnrichAmendementsFromApi extends Command
         try {
             // Construire le slug
             $slug = $this->buildSlug($parlementaire);
-            
-            if (!$slug) {
+
+            if (! $slug) {
                 $this->errors++;
+
                 return;
             }
 
             // Déterminer l'URL de base selon la source
-            $baseUrl = $parlementaire->source === 'assemblee' 
-                ? 'https://www.nosdeputes.fr' 
+            $baseUrl = $parlementaire->source === 'assemblee'
+                ? 'https://www.nosdeputes.fr'
                 : 'https://www.nossenateurs.fr';
 
             // Appeler l'endpoint /slug/amendements/json
             $response = Http::timeout(30)->get("{$baseUrl}/{$slug}/amendements/json");
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->errors++;
+
                 return;
             }
 
@@ -107,14 +112,14 @@ class EnrichAmendementsFromApi extends Command
             foreach ($amendements as $amendementData) {
                 try {
                     $amend = $amendementData['amendement'] ?? $amendementData;
-                    
+
                     // Extraire les co-signataires
                     $cosignataires = [];
                     $nombreCosignataires = 0;
-                    
-                    if (!empty($amend['cosignataires'])) {
-                        $cosignataires = is_array($amend['cosignataires']) 
-                            ? $amend['cosignataires'] 
+
+                    if (! empty($amend['cosignataires'])) {
+                        $cosignataires = is_array($amend['cosignataires'])
+                            ? $amend['cosignataires']
                             : [$amend['cosignataires']];
                         $nombreCosignataires = count($cosignataires);
                     }
@@ -146,9 +151,9 @@ class EnrichAmendementsFromApi extends Command
                     $this->amendementsImported++;
                 } catch (\Exception $e) {
                     // Ignorer les erreurs individuelles
-                    Log::debug("Erreur import amendement", [
+                    Log::debug('Erreur import amendement', [
                         'parlementaire' => $parlementaire->nom,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -158,7 +163,7 @@ class EnrichAmendementsFromApi extends Command
         } catch (\Exception $e) {
             $this->errors++;
             Log::error("Erreur enrichissement amendements {$parlementaire->nom}", [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -170,16 +175,16 @@ class EnrichAmendementsFromApi extends Command
     {
         $prenom = strtolower($parlementaire->prenom);
         $nom = strtolower($parlementaire->nom);
-        
+
         // Normaliser
         $prenom = $this->slugify($prenom);
         $nom = $this->slugify($nom);
-        
+
         // Prendre le premier prénom uniquement
         $prenomParts = explode('-', $prenom);
         $prenom = $prenomParts[0];
-        
-        return $prenom . '-' . $nom;
+
+        return $prenom.'-'.$nom;
     }
 
     /**
@@ -191,6 +196,7 @@ class EnrichAmendementsFromApi extends Command
         $str = preg_replace('/[^a-z0-9\s-]/', '', $str);
         $str = preg_replace('/[\s-]+/', '-', $str);
         $str = trim($str, '-');
+
         return $str;
     }
 
@@ -199,7 +205,7 @@ class EnrichAmendementsFromApi extends Command
      */
     private function parseDate(?string $date)
     {
-        if (!$date) {
+        if (! $date) {
             return null;
         }
 
@@ -215,13 +221,13 @@ class EnrichAmendementsFromApi extends Command
      */
     private function normalizeSortAmendement(?string $sort): ?string
     {
-        if (!$sort) {
+        if (! $sort) {
             return null;
         }
 
         $sort = strtolower($sort);
-        
-        return match(true) {
+
+        return match (true) {
             str_contains($sort, 'adopt') => 'adopte',
             str_contains($sort, 'rejet') => 'rejete',
             str_contains($sort, 'retir') => 'retire',
@@ -236,35 +242,34 @@ class EnrichAmendementsFromApi extends Command
      */
     private function displaySummary()
     {
-        $this->info("✅ Enrichissement terminé !");
+        $this->info('✅ Enrichissement terminé !');
         $this->newLine();
-        
-        $this->info("📊 Résumé :");
+
+        $this->info('📊 Résumé :');
         $this->line("   ✓ {$this->parlementairesProcessed} parlementaires traités");
         $this->line("   📝 {$this->amendementsImported} amendements importés");
-        
+
         if ($this->errors > 0) {
             $this->warn("   ⚠️  {$this->errors} erreurs");
         }
 
         $this->newLine();
-        
+
         // Statistiques globales
         try {
             $totalAmendements = AmendementParlementaire::count();
             $totalAdoptes = AmendementParlementaire::where('sort', 'adopte')->count();
             $totalRejetes = AmendementParlementaire::where('sort', 'rejete')->count();
-            $tauxAdoption = $totalAmendements > 0 
-                ? round(($totalAdoptes / $totalAmendements) * 100, 2) 
+            $tauxAdoption = $totalAmendements > 0
+                ? round(($totalAdoptes / $totalAmendements) * 100, 2)
                 : 0;
 
-            $this->info("📈 Total en base de données :");
+            $this->info('📈 Total en base de données :');
             $this->line("   {$totalAmendements} amendements");
             $this->line("   {$totalAdoptes} adoptés ({$tauxAdoption}%)");
             $this->line("   {$totalRejetes} rejetés");
         } catch (\Exception $e) {
-            $this->warn("⚠️  Tables non créées. Lancer: php artisan migrate");
+            $this->warn('⚠️  Tables non créées. Lancer: php artisan migrate');
         }
     }
 }
-

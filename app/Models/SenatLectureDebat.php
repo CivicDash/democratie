@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SenatLectureDebat extends Model
 {
     protected $table = 'senat_lectures_debats';
+
     public $incrementing = false;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -38,7 +40,7 @@ class SenatLectureDebat extends Model
     public function getLectureInfoAttribute(): array
     {
         $id = $this->lecture_id;
-        
+
         // Essayer d'extraire les informations du format
         // Le format est généralement AAAA + type (1 ou 2 chiffres) + numéro
         if (preg_match('/^(\d{4})(\d{1,2})(\d+)$/', $id, $matches)) {
@@ -48,7 +50,7 @@ class SenatLectureDebat extends Model
                 'numero' => $matches[3],
             ];
         }
-        
+
         return [
             'id' => $id,
         ];

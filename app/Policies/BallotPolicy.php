@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\BallotToken;
 use App\Models\Topic;
-use App\Models\TopicBallot;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -18,7 +17,7 @@ class BallotPolicy
     public function viewResults(?User $user, Topic $topic): bool
     {
         // Vérifier que le topic a un scrutin
-        if (!$topic->has_ballot) {
+        if (! $topic->has_ballot) {
             return false;
         }
 
@@ -41,17 +40,17 @@ class BallotPolicy
     public function vote(User $user, Topic $topic): bool
     {
         // Vérifier que le topic a un scrutin
-        if (!$topic->has_ballot) {
+        if (! $topic->has_ballot) {
             return false;
         }
 
         // Vérifier que le scrutin est ouvert
-        if (!$topic->isVotingOpen()) {
+        if (! $topic->isVotingOpen()) {
             return false;
         }
 
         // User doit avoir la permission
-        if (!$user->hasPermissionTo('vote_in_ballots')) {
+        if (! $user->hasPermissionTo('vote_in_ballots')) {
             return false;
         }
 
@@ -75,7 +74,7 @@ class BallotPolicy
     public function requestToken(User $user, Topic $topic): bool
     {
         // Mêmes vérifications que vote
-        if (!$this->vote($user, $topic)) {
+        if (! $this->vote($user, $topic)) {
             return false;
         }
 
@@ -93,7 +92,7 @@ class BallotPolicy
     public function create(User $user, Topic $topic): bool
     {
         // User doit être l'auteur du topic ou avoir la permission
-        if ($topic->author_id !== $user->id && !$user->hasPermissionTo('create_ballots')) {
+        if ($topic->author_id !== $user->id && ! $user->hasPermissionTo('create_ballots')) {
             return false;
         }
 
@@ -112,7 +111,7 @@ class BallotPolicy
     public function update(User $user, Topic $topic): bool
     {
         // User doit être l'auteur ou admin
-        if ($topic->author_id !== $user->id && !$user->hasRole('admin')) {
+        if ($topic->author_id !== $user->id && ! $user->hasRole('admin')) {
             return false;
         }
 
@@ -130,7 +129,7 @@ class BallotPolicy
     public function close(User $user, Topic $topic): bool
     {
         // Seul l'auteur ou admin peut fermer prématurément
-        if ($topic->author_id !== $user->id && !$user->hasRole('admin')) {
+        if ($topic->author_id !== $user->id && ! $user->hasRole('admin')) {
             return false;
         }
 
@@ -144,7 +143,7 @@ class BallotPolicy
     public function extend(User $user, Topic $topic): bool
     {
         // Seuls les admins peuvent étendre la deadline
-        if (!$user->hasRole('admin')) {
+        if (! $user->hasRole('admin')) {
             return false;
         }
 
@@ -182,7 +181,7 @@ class BallotPolicy
         }
 
         // User doit avoir un profil
-        if (!$user->profile) {
+        if (! $user->profile) {
             return false;
         }
 
@@ -199,4 +198,3 @@ class BallotPolicy
         return false;
     }
 }
-

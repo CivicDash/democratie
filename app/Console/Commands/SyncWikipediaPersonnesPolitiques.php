@@ -17,6 +17,7 @@ class SyncWikipediaPersonnesPolitiques extends Command
     protected $description = 'Enrichir les personnes politiques depuis Wikipedia (photos, biographies)';
 
     private const WIKIPEDIA_API = 'https://fr.wikipedia.org/w/api.php';
+
     private const USER_AGENT = 'CivicDash/1.0 (contact@civicdash.fr)';
 
     public function handle(): int
@@ -30,16 +31,16 @@ class SyncWikipediaPersonnesPolitiques extends Command
 
         // Sélectionner les personnes à traiter
         $query = PersonnePolitique::query();
-        
+
         if ($onlyMissing) {
             $query->whereNull('photo_url')
-                  ->orWhereNull('wikipedia_extract');
+                ->orWhereNull('wikipedia_extract');
         }
-        
-        if (!$force) {
+
+        if (! $force) {
             $query->where(function ($q) {
                 $q->whereNull('wikipedia_url')
-                  ->orWhereNull('photo_url');
+                    ->orWhereNull('photo_url');
             });
         }
 
@@ -47,6 +48,7 @@ class SyncWikipediaPersonnesPolitiques extends Command
 
         if ($personnes->isEmpty()) {
             $this->info('✅ Toutes les personnes sont déjà synchronisées');
+
             return Command::SUCCESS;
         }
 
@@ -61,7 +63,7 @@ class SyncWikipediaPersonnesPolitiques extends Command
         foreach ($personnes as $personne) {
             try {
                 $result = $this->enrichFromWikipedia($personne);
-                
+
                 if ($result['success']) {
                     $stats['success']++;
                     if ($result['photo']) {
@@ -72,12 +74,12 @@ class SyncWikipediaPersonnesPolitiques extends Command
                 }
             } catch (\Exception $e) {
                 $this->newLine();
-                $this->warn("   ⚠️ Erreur pour {$personne->nom_complet}: " . $e->getMessage());
+                $this->warn("   ⚠️ Erreur pour {$personne->nom_complet}: ".$e->getMessage());
                 $stats['failed']++;
             }
 
             $bar->advance();
-            
+
             // Pause pour éviter de surcharger Wikipedia
             usleep(500000); // 0.5s
         }
@@ -97,17 +99,17 @@ class SyncWikipediaPersonnesPolitiques extends Command
     {
         // Construire le titre Wikipedia
         $wikiTitle = $this->buildWikipediaTitle($personne);
-        
+
         // 1. Récupérer les infos de la page
         $pageInfo = $this->getWikipediaPageInfo($wikiTitle);
-        
-        if (!$pageInfo) {
+
+        if (! $pageInfo) {
             // Essayer avec une variante du nom
             $wikiTitle = $this->buildWikipediaTitle($personne, true);
             $pageInfo = $this->getWikipediaPageInfo($wikiTitle);
         }
 
-        if (!$pageInfo) {
+        if (! $pageInfo) {
             return ['success' => false, 'photo' => false];
         }
 
@@ -115,12 +117,12 @@ class SyncWikipediaPersonnesPolitiques extends Command
         $photoFound = false;
 
         // URL Wikipedia
-        if (!empty($pageInfo['fullurl'])) {
+        if (! empty($pageInfo['fullurl'])) {
             $updates['wikipedia_url'] = $pageInfo['fullurl'];
         }
 
         // Extrait
-        if (!empty($pageInfo['extract'])) {
+        if (! empty($pageInfo['extract'])) {
             $updates['wikipedia_extract'] = Str::limit($pageInfo['extract'], 2000);
         }
 
@@ -134,7 +136,7 @@ class SyncWikipediaPersonnesPolitiques extends Command
         }
 
         // Mettre à jour
-        if (!empty($updates)) {
+        if (! empty($updates)) {
             $personne->update($updates);
         }
 
@@ -173,13 +175,13 @@ class SyncWikipediaPersonnesPolitiques extends Command
             'redirects' => 1,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return null;
         }
 
         $data = $response->json();
         $pages = $data['query']['pages'] ?? [];
-        
+
         // Récupérer la première page (et pas la page -1 qui indique "not found")
         foreach ($pages as $pageId => $page) {
             if ($pageId > 0) {
@@ -204,7 +206,7 @@ class SyncWikipediaPersonnesPolitiques extends Command
             'redirects' => 1,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return null;
         }
 
@@ -212,7 +214,7 @@ class SyncWikipediaPersonnesPolitiques extends Command
         $pages = $data['query']['pages'] ?? [];
 
         foreach ($pages as $page) {
-            if (!empty($page['thumbnail']['source'])) {
+            if (! empty($page['thumbnail']['source'])) {
                 return $page['thumbnail']['source'];
             }
         }
@@ -237,7 +239,7 @@ class SyncWikipediaPersonnesPolitiques extends Command
             'Ç' => 'C',
             'ñ' => 'n', 'Ñ' => 'N',
         ];
-        
+
         return strtr($string, $unwanted);
     }
 }

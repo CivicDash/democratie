@@ -62,7 +62,7 @@ class LegalReference extends Model
      */
     public function getTypeLabelAttribute(): string
     {
-        return match($this->article_type) {
+        return match ($this->article_type) {
             'legislative' => 'Législatif (Loi)',
             'regulatory' => 'Réglementaire',
             'decree' => 'Décret',
@@ -76,10 +76,10 @@ class LegalReference extends Model
      */
     public function getLegifranceUrlAttribute(): ?string
     {
-        if (!$this->legifrance_id) {
+        if (! $this->legifrance_id) {
             return null;
         }
-        
+
         return "https://www.legifrance.gouv.fr/codes/article_lc/{$this->legifrance_id}";
     }
 
@@ -88,14 +88,14 @@ class LegalReference extends Model
      */
     public function needsSync(): bool
     {
-        if (!$this->sync_success) {
+        if (! $this->sync_success) {
             return true;
         }
-        
-        if (!$this->last_synced_at) {
+
+        if (! $this->last_synced_at) {
             return true;
         }
-        
+
         // Re-sync après 7 jours
         return $this->last_synced_at->diffInDays(now()) > 7;
     }
@@ -127,8 +127,8 @@ class LegalReference extends Model
     {
         return $query->where(function ($q) {
             $q->where('sync_success', false)
-              ->orWhere('last_synced_at', '<', now()->subDays(7))
-              ->orWhereNull('last_synced_at');
+                ->orWhere('last_synced_at', '<', now()->subDays(7))
+                ->orWhereNull('last_synced_at');
         });
     }
 

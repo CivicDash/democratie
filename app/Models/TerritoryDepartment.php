@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Département français (INSEE)
- * 
+ *
  * @property int $id
  * @property string $code Code INSEE (ex: 75, 2A)
  * @property string $name Nom du département
@@ -85,4 +85,3 @@ class TerritoryDepartment extends Model
         return $query->where('region_id', $regionId);
     }
 }
-

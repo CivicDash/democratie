@@ -38,7 +38,6 @@ class ThematiqueLegislation extends Model
     /**
      * Relations
      */
-    
     public function parent(): BelongsTo
     {
         return $this->belongsTo(ThematiqueLegislation::class, 'parent_id');
@@ -64,7 +63,6 @@ class ThematiqueLegislation extends Model
     /**
      * Scopes
      */
-    
     public function scopePrincipales($query)
     {
         return $query->whereNull('parent_id')->orderBy('ordre');
@@ -79,19 +77,18 @@ class ThematiqueLegislation extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('nom', 'LIKE', "%{$search}%")
-              ->orWhere('description', 'LIKE', "%{$search}%");
+                ->orWhere('description', 'LIKE', "%{$search}%");
         });
     }
 
     /**
      * Accessors
      */
-    
     public function getMotsClesCombinesAttribute(): array
     {
         $motsCles = $this->mots_cles ?? [];
         $synonymes = $this->synonymes ?? [];
-        
+
         return array_unique(array_merge($motsCles, $synonymes));
     }
 
@@ -103,7 +100,7 @@ class ThematiqueLegislation extends Model
     /**
      * Méthodes métier
      */
-    
+
     /**
      * Incrémente le compteur de propositions
      */
@@ -148,7 +145,7 @@ class ThematiqueLegislation extends Model
     {
         $texte = mb_strtolower($texte);
         $motsCles = $this->mots_cles_combines;
-        
+
         if (empty($motsCles)) {
             return 0;
         }
@@ -158,11 +155,11 @@ class ThematiqueLegislation extends Model
 
         foreach ($motsCles as $motCle) {
             $motCle = mb_strtolower($motCle);
-            
+
             // Recherche exacte
             if (str_contains($texte, $motCle)) {
                 $score += 10;
-                
+
                 // Bonus si le mot-clé est dans le titre (supposons que les 100 premiers caractères sont le titre)
                 if (str_contains(mb_substr($texte, 0, 100), $motCle)) {
                     $score += 5;
@@ -208,10 +205,12 @@ class ThematiqueLegislation extends Model
             foreach ($votes as $vote) {
                 foreach ($vote->votesGroupes as $voteGroupe) {
                     $groupe = $voteGroupe->groupeParlementaire;
-                    if (!$groupe) continue;
+                    if (! $groupe) {
+                        continue;
+                    }
 
                     $key = $groupe->id;
-                    if (!isset($groupesCounts[$key])) {
+                    if (! isset($groupesCounts[$key])) {
                         $groupesCounts[$key] = [
                             'groupe' => $groupe,
                             'votes_pour' => 0,
@@ -220,7 +219,7 @@ class ThematiqueLegislation extends Model
                         ];
                     }
 
-                    match($voteGroupe->position_groupe) {
+                    match ($voteGroupe->position_groupe) {
                         'pour' => $groupesCounts[$key]['votes_pour']++,
                         'contre' => $groupesCounts[$key]['votes_contre']++,
                         'abstention' => $groupesCounts[$key]['votes_abstention']++,
@@ -231,13 +230,13 @@ class ThematiqueLegislation extends Model
         }
 
         // Trier par nombre total de votes
-        usort($groupesCounts, function($a, $b) {
+        usort($groupesCounts, function ($a, $b) {
             $totalA = $a['votes_pour'] + $a['votes_contre'] + $a['votes_abstention'];
             $totalB = $b['votes_pour'] + $b['votes_contre'] + $b['votes_abstention'];
+
             return $totalB <=> $totalA;
         });
 
         return array_slice($groupesCounts, 0, $limit);
     }
 }
-

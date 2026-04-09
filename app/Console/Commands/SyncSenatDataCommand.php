@@ -2,14 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Senat\AkomaNtosoParser;
+use App\Services\Senat\SenatDataDownloader;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use App\Services\Senat\SenatDataDownloader;
-use App\Services\Senat\AkomaNtosoParser;
 
 /**
  * Commande de synchronisation des données du Sénat
- * 
+ *
  * Usage :
  *   php artisan senat:sync                    # Tout synchroniser
  *   php artisan senat:sync senateurs          # Source spécifique
@@ -30,6 +30,7 @@ class SyncSenatDataCommand extends Command
     protected $description = 'Synchronise les données Open Data du Sénat (bases SQL et textes XML)';
 
     private SenatDataDownloader $downloader;
+
     private AkomaNtosoParser $parser;
 
     public function __construct()
@@ -39,8 +40,8 @@ class SyncSenatDataCommand extends Command
 
     public function handle(): int
     {
-        $this->downloader = new SenatDataDownloader();
-        $this->parser = new AkomaNtosoParser();
+        $this->downloader = new SenatDataDownloader;
+        $this->parser = new AkomaNtosoParser;
 
         $this->info('');
         $this->info('🏛️  Synchronisation des données du Sénat');
@@ -58,7 +59,7 @@ class SyncSenatDataCommand extends Command
 
         // Synchronisation bases SQL
         $source = $this->argument('source');
-        $all = $this->option('all') || !$source;
+        $all = $this->option('all') || ! $source;
 
         if ($all) {
             return $this->syncAllDatabases();
@@ -78,14 +79,14 @@ class SyncSenatDataCommand extends Command
 
         // Statistiques du cache
         $cacheStats = $this->downloader->getCacheStats();
-        
+
         $this->table(
             ['Base', 'Téléchargé', 'Taille', 'Dernière MAJ', 'Cache valide'],
             collect($cacheStats)->map(function ($stats, $type) {
                 return [
                     $type,
                     $stats['exists'] ? '✅' : '❌',
-                    $stats['size_mb'] . ' Mo',
+                    $stats['size_mb'].' Mo',
                     $stats['modified'] ?? '-',
                     $stats['cache_valid'] ? '✅' : '❌',
                 ];
@@ -95,7 +96,7 @@ class SyncSenatDataCommand extends Command
         // Statistiques des tables
         $this->newLine();
         $this->info('📋 Tables importées :');
-        
+
         try {
             $tables = DB::select("
                 SELECT tablename, 
@@ -115,13 +116,13 @@ class SyncSenatDataCommand extends Command
                 }
             }
         } catch (\Exception $e) {
-            $this->error('   Erreur : ' . $e->getMessage());
+            $this->error('   Erreur : '.$e->getMessage());
         }
 
         // Statistiques des vues
         $this->newLine();
         $this->info('👁️ Vues SQL :');
-        
+
         try {
             $views = DB::select("
                 SELECT viewname 
@@ -144,7 +145,7 @@ class SyncSenatDataCommand extends Command
                 }
             }
         } catch (\Exception $e) {
-            $this->error('   Erreur : ' . $e->getMessage());
+            $this->error('   Erreur : '.$e->getMessage());
         }
 
         return Command::SUCCESS;
@@ -156,9 +157,9 @@ class SyncSenatDataCommand extends Command
     private function syncAllDatabases(): int
     {
         $databases = config('senat.databases', []);
-        
+
         // Trier par priorité
-        uasort($databases, fn($a, $b) => ($a['priority'] ?? 99) <=> ($b['priority'] ?? 99));
+        uasort($databases, fn ($a, $b) => ($a['priority'] ?? 99) <=> ($b['priority'] ?? 99));
 
         $this->info('');
         $this->info('📦 Synchronisation de toutes les bases');
@@ -175,8 +176,9 @@ class SyncSenatDataCommand extends Command
             })->toArray()
         );
 
-        if (!$this->option('no-confirm') && !$this->confirm('Voulez-vous continuer ?', false)) {
+        if (! $this->option('no-confirm') && ! $this->confirm('Voulez-vous continuer ?', false)) {
             $this->info('❌ Annulé');
+
             return Command::FAILURE;
         }
 
@@ -185,7 +187,7 @@ class SyncSenatDataCommand extends Command
 
         foreach (array_keys($databases) as $type) {
             $result = $this->syncDatabase($type, false);
-            
+
             if ($result === Command::SUCCESS) {
                 $success++;
             } else {
@@ -194,7 +196,7 @@ class SyncSenatDataCommand extends Command
         }
 
         $this->newLine();
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->info("✅ Terminé : {$success} réussi(s), {$failed} échec(s)");
 
         return $failed > 0 ? Command::FAILURE : Command::SUCCESS;
@@ -206,10 +208,11 @@ class SyncSenatDataCommand extends Command
     private function syncDatabase(string $type, bool $standalone = true): int
     {
         $databases = config('senat.databases', []);
-        
-        if (!isset($databases[$type])) {
+
+        if (! isset($databases[$type])) {
             $this->error("❌ Base inconnue : {$type}");
-            $this->info("   Bases disponibles : " . implode(', ', array_keys($databases)));
+            $this->info('   Bases disponibles : '.implode(', ', array_keys($databases)));
+
             return Command::FAILURE;
         }
 
@@ -222,24 +225,26 @@ class SyncSenatDataCommand extends Command
         $this->line("   Source : {$config['url']}");
 
         // Télécharger
-        $this->line("   ⏳ Téléchargement...");
+        $this->line('   ⏳ Téléchargement...');
         $zipFile = $this->downloader->downloadDatabase($type, $force);
-        
-        if (!$zipFile) {
-            $this->error("   ❌ Échec du téléchargement");
+
+        if (! $zipFile) {
+            $this->error('   ❌ Échec du téléchargement');
+
             return Command::FAILURE;
         }
-        $this->line("   ✅ Téléchargé");
+        $this->line('   ✅ Téléchargé');
 
         // Extraire
-        $this->line("   ⏳ Extraction...");
+        $this->line('   ⏳ Extraction...');
         $sqlFiles = $this->downloader->extractZip($zipFile, $type);
-        
+
         if (empty($sqlFiles)) {
-            $this->error("   ❌ Aucun fichier SQL trouvé");
+            $this->error('   ❌ Aucun fichier SQL trouvé');
+
             return Command::FAILURE;
         }
-        $this->line("   ✅ " . count($sqlFiles) . " fichier(s) SQL");
+        $this->line('   ✅ '.count($sqlFiles).' fichier(s) SQL');
 
         // Analyser ou importer
         if ($analyze) {
@@ -255,17 +260,17 @@ class SyncSenatDataCommand extends Command
     private function analyzeSqlFiles(array $sqlFiles, array $config): int
     {
         $this->newLine();
-        $this->info("🔍 Analyse de la structure");
+        $this->info('🔍 Analyse de la structure');
 
         foreach ($sqlFiles as $sqlFile) {
-            $this->line("   📄 " . basename($sqlFile));
-            
+            $this->line('   📄 '.basename($sqlFile));
+
             $content = file_get_contents($sqlFile);
-            
+
             // Compter les tables
             preg_match_all('/CREATE TABLE\s+(\w+)/i', $content, $tables);
-            $this->line("      Tables : " . count($tables[1]));
-            
+            $this->line('      Tables : '.count($tables[1]));
+
             foreach ($tables[1] as $table) {
                 $this->line("      - {$table}");
             }
@@ -280,17 +285,18 @@ class SyncSenatDataCommand extends Command
     private function importSqlFiles(array $sqlFiles, array $config): int
     {
         $prefix = $config['table_prefix'] ?? '';
-        
+
         $this->line("   ⏳ Import SQL (préfixe : {$prefix})...");
 
         $dbConfig = config('database.connections.pgsql');
-        
+
         foreach ($sqlFiles as $sqlFile) {
             // Transformer le SQL avec le préfixe
             $transformedFile = $this->transformSqlWithPrefix($sqlFile, $prefix);
-            
-            if (!$transformedFile) {
-                $this->error("   ❌ Erreur transformation : " . basename($sqlFile));
+
+            if (! $transformedFile) {
+                $this->error('   ❌ Erreur transformation : '.basename($sqlFile));
+
                 continue;
             }
 
@@ -315,17 +321,19 @@ class SyncSenatDataCommand extends Command
             }
 
             if ($returnVar !== 0) {
-                $this->error("   ❌ Erreur import : " . basename($sqlFile));
+                $this->error('   ❌ Erreur import : '.basename($sqlFile));
                 // Afficher les dernières erreurs
-                $errors = array_filter($output, fn($line) => stripos($line, 'error') !== false);
+                $errors = array_filter($output, fn ($line) => stripos($line, 'error') !== false);
                 foreach (array_slice($errors, -3) as $error) {
-                    $this->line("      " . $error);
+                    $this->line('      '.$error);
                 }
+
                 return Command::FAILURE;
             }
         }
 
-        $this->line("   ✅ Import terminé");
+        $this->line('   ✅ Import terminé');
+
         return Command::SUCCESS;
     }
 
@@ -342,13 +350,13 @@ class SyncSenatDataCommand extends Command
             return $sqlFile;
         }
 
-        $tempFile = storage_path('app/temp_' . basename($sqlFile));
+        $tempFile = storage_path('app/temp_'.basename($sqlFile));
 
         try {
             $input = fopen($sqlFile, 'r');
             $output = fopen($tempFile, 'w');
 
-            if (!$input || !$output) {
+            if (! $input || ! $output) {
                 return null;
             }
 
@@ -406,6 +414,7 @@ class SyncSenatDataCommand extends Command
                     $inCopy = false;
                     $currentStagingTable = null;
                     $currentRealTable = null;
+
                     continue;
                 }
 
@@ -439,10 +448,10 @@ class SyncSenatDataCommand extends Command
             if (file_exists($tempFile)) {
                 @unlink($tempFile);
             }
+
             return null;
         }
     }
-
 
     /**
      * Synchronise les textes Akoma Ntoso
@@ -457,28 +466,29 @@ class SyncSenatDataCommand extends Command
 
         // Télécharger les flux
         $this->info('📥 Téléchargement des flux...');
-        
+
         $depotsFile = $this->downloader->downloadAkomaNtosoFeed('depots', $force);
         $adoptionsFile = $this->downloader->downloadAkomaNtosoFeed('adoptions', $force);
 
-        if (!$depotsFile && !$adoptionsFile) {
+        if (! $depotsFile && ! $adoptionsFile) {
             $this->error('❌ Impossible de télécharger les flux');
+
             return Command::FAILURE;
         }
 
         // Parser les flux
         $textes = [];
-        
+
         if ($depotsFile) {
             $depots = $this->downloader->parseAkomaNtosoFeed($depotsFile);
-            $this->line("   ✅ Textes déposés : " . count($depots));
-            $textes = array_merge($textes, array_map(fn($t) => array_merge($t, ['source' => 'depots']), $depots));
+            $this->line('   ✅ Textes déposés : '.count($depots));
+            $textes = array_merge($textes, array_map(fn ($t) => array_merge($t, ['source' => 'depots']), $depots));
         }
 
         if ($adoptionsFile) {
             $adoptions = $this->downloader->parseAkomaNtosoFeed($adoptionsFile);
-            $this->line("   ✅ Textes adoptés : " . count($adoptions));
-            $textes = array_merge($textes, array_map(fn($t) => array_merge($t, ['source' => 'adoptions']), $adoptions));
+            $this->line('   ✅ Textes adoptés : '.count($adoptions));
+            $textes = array_merge($textes, array_map(fn ($t) => array_merge($t, ['source' => 'adoptions']), $adoptions));
         }
 
         // Afficher les statistiques
@@ -520,20 +530,20 @@ class SyncSenatDataCommand extends Command
 
             if ($textFile) {
                 $parsed = $this->parser->parseFile($textFile);
-                
+
                 if ($parsed) {
                     $stats = $this->parser->extractStats($parsed);
                     $this->line("   Type : {$stats['type']}");
                     $this->line("   Articles : {$stats['articles_count']}");
                     $this->line("   Références : {$stats['references_count']}");
 
-                    if (!empty($parsed['preface']['title'])) {
-                        $this->line("   Titre : " . substr($parsed['preface']['title'], 0, 80) . '...');
+                    if (! empty($parsed['preface']['title'])) {
+                        $this->line('   Titre : '.substr($parsed['preface']['title'], 0, 80).'...');
                     }
 
                     $authors = $this->parser->extractAuthors($parsed);
-                    if (!empty($authors)) {
-                        $this->line("   Auteurs : " . count($authors));
+                    if (! empty($authors)) {
+                        $this->line('   Auteurs : '.count($authors));
                         foreach (array_slice($authors, 0, 3) as $author) {
                             $this->line("      - {$author['name']}");
                         }
@@ -545,4 +555,3 @@ class SyncSenatDataCommand extends Command
         return Command::SUCCESS;
     }
 }
-

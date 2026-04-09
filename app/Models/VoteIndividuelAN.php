@@ -90,11 +90,10 @@ class VoteIndividuelAN extends Model
     public function getEstRebelle(): bool
     {
         // Un député est "rebelle" si sa position diffère de celle de son groupe
-        if (!$this->position_groupe || $this->position_groupe === 'mixte') {
+        if (! $this->position_groupe || $this->position_groupe === 'mixte') {
             return false;
         }
-        
+
         return $this->position !== $this->position_groupe;
     }
 }
-

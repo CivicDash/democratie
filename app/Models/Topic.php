@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Taggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,11 +11,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
-use App\Traits\Taggable;
 
 /**
  * Sujet de débat, projet de loi ou référendum
- * 
+ *
  * @property int $id
  * @property string $title
  * @property string $description
@@ -35,7 +35,7 @@ use App\Traits\Taggable;
  */
 class Topic extends Model
 {
-    use HasFactory, SoftDeletes, Searchable, Taggable;
+    use HasFactory, Searchable, SoftDeletes, Taggable;
 
     /**
      * Get the route key for the model (utilise le slug au lieu de l'id).
@@ -55,7 +55,7 @@ class Topic extends Model
         if (is_numeric($value)) {
             return $this->where('id', $value)->first();
         }
-        
+
         // Sinon chercher par slug
         return $this->where('slug', $value)->first();
     }
@@ -63,57 +63,57 @@ class Topic extends Model
     // Types d'idées citoyennes
     public const IDEA_TYPES = [
         'question' => [
-            'label' => 'Question', 
-            'icon' => '❓', 
-            'color' => 'sky', 
+            'label' => 'Question',
+            'icon' => '❓',
+            'color' => 'sky',
             'restricted' => false,
             'description' => 'Posez une question à la communauté',
             'requires' => ['category'],
         ],
         'poll' => [
-            'label' => 'Sondage', 
-            'icon' => '📊', 
-            'color' => 'indigo', 
+            'label' => 'Sondage',
+            'icon' => '📊',
+            'color' => 'indigo',
             'restricted' => false,
             'description' => 'Mesurez l\'opinion avec des choix de réponse',
             'requires' => ['category', 'poll_options'],
         ],
         'discussion' => [
-            'label' => 'Discussion', 
-            'icon' => '💬', 
-            'color' => 'slate', 
+            'label' => 'Discussion',
+            'icon' => '💬',
+            'color' => 'slate',
             'restricted' => true,
             'description' => 'Ouvrez un sujet de société pour échanger',
             'requires' => ['category'],
         ],
         'proposal' => [
-            'label' => 'Proposition', 
-            'icon' => '💡', 
-            'color' => 'emerald', 
+            'label' => 'Proposition',
+            'icon' => '💡',
+            'color' => 'emerald',
             'restricted' => false,
             'description' => 'Proposez une idée concrète',
             'requires' => ['category'],
         ],
         'debate' => [
-            'label' => 'Débat', 
-            'icon' => '⚔️', 
-            'color' => 'amber', 
+            'label' => 'Débat',
+            'icon' => '⚔️',
+            'color' => 'amber',
             'restricted' => false,
             'description' => 'Lancez un débat Pour/Contre structuré',
             'requires' => ['category'],
         ],
         'interpellation' => [
-            'label' => 'Interpellation', 
-            'icon' => '📣', 
-            'color' => 'rose', 
+            'label' => 'Interpellation',
+            'icon' => '📣',
+            'color' => 'rose',
             'restricted' => false,
             'description' => 'Posez une question directe à un élu',
             'requires' => ['category', 'elus'],
         ],
         'petition' => [
-            'label' => 'Pétition', 
-            'icon' => '✍️', 
-            'color' => 'violet', 
+            'label' => 'Pétition',
+            'icon' => '✍️',
+            'color' => 'violet',
             'restricted' => false,
             'description' => 'Mobilisez pour une cause, collectez des signatures',
             'requires' => ['category'],
@@ -278,7 +278,7 @@ class Topic extends Model
      */
     public function isPollActive(): bool
     {
-        if (!$this->isPoll()) {
+        if (! $this->isPoll()) {
             return false;
         }
 
@@ -302,7 +302,7 @@ class Topic extends Model
      */
     public function hasUserVotedInPoll(?int $userId): bool
     {
-        if (!$userId) {
+        if (! $userId) {
             return false;
         }
 
@@ -443,11 +443,12 @@ class Topic extends Model
      */
     public function isVotingOpen(): bool
     {
-        if (!$this->has_ballot) {
+        if (! $this->has_ballot) {
             return false;
         }
 
         $now = now();
+
         return $now->gte($this->voting_opens_at) && $now->lt($this->voting_deadline_at);
     }
 
@@ -456,7 +457,7 @@ class Topic extends Model
      */
     public function isVotingClosed(): bool
     {
-        if (!$this->has_ballot) {
+        if (! $this->has_ballot) {
             return false;
         }
 
@@ -639,6 +640,7 @@ class Topic extends Model
     public function getPctPourAttribute(): float
     {
         $total = $this->total_votes;
+
         return $total > 0 ? round(($this->votes_pour / $total) * 100, 1) : 0;
     }
 
@@ -648,6 +650,7 @@ class Topic extends Model
     public function getPctContreAttribute(): float
     {
         $total = $this->total_votes;
+
         return $total > 0 ? round(($this->votes_contre / $total) * 100, 1) : 0;
     }
 
@@ -661,7 +664,7 @@ class Topic extends Model
         $count = 1;
 
         while (static::where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . $count++;
+            $slug = $originalSlug.'-'.$count++;
         }
 
         return $slug;
@@ -692,16 +695,17 @@ class Topic extends Model
                 $domain = strtolower(preg_replace('/:\d+$/', '', $domain)); // Enlever le port
                 $isAllowed = false;
                 foreach (static::$allowedDomains as $allowed) {
-                    if ($domain === $allowed || str_ends_with($domain, '.' . $allowed)) {
+                    if ($domain === $allowed || str_ends_with($domain, '.'.$allowed)) {
                         $isAllowed = true;
                         break;
                     }
                 }
-                if (!$isAllowed) {
+                if (! $isAllowed) {
                     return true;
                 }
             }
         }
+
         return false;
     }
 
@@ -731,6 +735,7 @@ class Topic extends Model
                 return true;
             }
         }
+
         return false;
     }
 
@@ -742,32 +747,32 @@ class Topic extends Model
     {
         // Supprimer les images markdown
         $content = preg_replace('/!\[.*?\]\(.*?\)/i', '[image supprimée]', $content);
-        
+
         // Supprimer les balises HTML non autorisées
         $content = strip_tags($content, '<p><br><strong><em><ul><ol><li><blockquote><h1><h2><h3><h4><h5><h6><a>');
-        
+
         // Supprimer les liens externes dans les balises <a>
         $content = preg_replace_callback(
             '/<a[^>]*href\s*=\s*["\']([^"\']*)["\'][^>]*>(.*?)<\/a>/i',
             function ($matches) {
                 $url = $matches[1];
                 $text = $matches[2];
-                
+
                 // Vérifier si c'est un lien interne
                 if (preg_match('/^(\/|#|mailto:|tel:)/i', $url)) {
                     return $matches[0]; // Garder les liens internes relatifs
                 }
-                
+
                 if (preg_match('/https?:\/\/([^\s<>\[\]\/]+)/i', $url, $urlMatch)) {
                     $domain = strtolower(preg_replace('/:\d+$/', '', $urlMatch[1]));
                     foreach (static::$allowedDomains as $allowed) {
-                        if ($domain === $allowed || str_ends_with($domain, '.' . $allowed)) {
+                        if ($domain === $allowed || str_ends_with($domain, '.'.$allowed)) {
                             return $matches[0]; // Garder le lien
                         }
                     }
                 }
-                
-                return $text . ' [lien externe supprimé]';
+
+                return $text.' [lien externe supprimé]';
             },
             $content
         );
@@ -844,4 +849,3 @@ class Topic extends Model
         return $this->status === 'published';
     }
 }
-

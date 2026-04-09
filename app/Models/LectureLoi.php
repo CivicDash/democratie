@@ -9,9 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class LectureLoi extends Model
 {
     protected $table = 'senat_dosleg_lecture';
+
     protected $primaryKey = 'lecidt';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -59,4 +63,3 @@ class LectureLoi extends Model
         return trim($this->leccom ?? '');
     }
 }
-

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Vote d'un utilisateur sur une option de sondage
- * 
+ *
  * @property int $id
  * @property int $poll_option_id
  * @property int $user_id

@@ -7,7 +7,6 @@ use App\Models\ResultatListeMunicipale;
 use App\Models\ResultatMunicipal;
 use App\Models\StatsElectionMunicipale;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class CalculateStatsMunicipales extends Command
 {
@@ -47,9 +46,9 @@ class CalculateStatsMunicipales extends Command
                 ['Communes', $data['communes']['total'] ?? '-'],
                 ['Élues T1', $data['communes']['elues_t1'] ?? '-'],
                 ['Second tour', $data['communes']['second_tour'] ?? '-'],
-                ['Participation T1', ($data['participation']['t1']['taux'] ?? '-') . ' %'],
-                ['Taux femmes maires', ($data['parite_maires']['taux_femmes'] ?? '-') . ' %'],
-                ['Taux réélection', ($data['renouvellement']['taux_reelection'] ?? '-') . ' %'],
+                ['Participation T1', ($data['participation']['t1']['taux'] ?? '-').' %'],
+                ['Taux femmes maires', ($data['parite_maires']['taux_femmes'] ?? '-').' %'],
+                ['Taux réélection', ($data['renouvellement']['taux_reelection'] ?? '-').' %'],
             ]);
         }
 
@@ -146,7 +145,7 @@ class CalculateStatsMunicipales extends Command
             ->orderByDesc('communes_gagnees')
             ->get()
             ->keyBy('nuance_politique')
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'listes_total' => (int) $row->listes_total,
                 'communes_gagnees' => (int) $row->communes_gagnees,
                 'voix_total' => (int) $row->voix_total,

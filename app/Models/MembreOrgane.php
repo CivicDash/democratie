@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Membre d'un organe parlementaire
- * 
+ *
  * @property int $id
  * @property int $organe_id
  * @property int $depute_senateur_id
@@ -98,7 +98,7 @@ class MembreOrgane extends Model
      */
     public function getFonctionLabelAttribute(): string
     {
-        if (!$this->fonction) {
+        if (! $this->fonction) {
             return 'Membre';
         }
 
@@ -111,6 +111,7 @@ class MembreOrgane extends Model
     public function getDureeJoursAttribute(): int
     {
         $fin = $this->date_fin ?? now();
+
         return $this->date_debut->diffInDays($fin);
     }
 
@@ -130,4 +131,3 @@ class MembreOrgane extends Model
         return $this->fonction && str_contains(strtolower($this->fonction), 'rapporteur');
     }
 }
-

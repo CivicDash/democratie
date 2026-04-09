@@ -16,7 +16,7 @@ class CheckAccountStatus
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return $next($request);
         }
 

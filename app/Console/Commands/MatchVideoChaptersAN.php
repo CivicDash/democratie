@@ -16,8 +16,11 @@ class MatchVideoChaptersAN extends Command
     protected $description = 'Match video chapters with QAG questions and amendments by speaker/date/number';
 
     private int $qagMatched = 0;
+
     private int $qagUnmatched = 0;
+
     private int $adtMatched = 0;
+
     private int $adtUnmatched = 0;
 
     public function handle(): int
@@ -69,6 +72,7 @@ class MatchVideoChaptersAN extends Command
 
             if (! $date) {
                 $this->qagUnmatched += $chapters->count();
+
                 continue;
             }
 
@@ -110,6 +114,7 @@ class MatchVideoChaptersAN extends Command
 
             if (empty($numbers)) {
                 $this->adtUnmatched++;
+
                 continue;
             }
 

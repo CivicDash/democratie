@@ -2,7 +2,7 @@
 
 /**
  * Configuration des sources de données du Sénat
- * 
+ *
  * Documentation : https://data.senat.fr/
  */
 
@@ -45,7 +45,7 @@ return [
                 'man' => 'Mandats',
             ],
         ],
-        
+
         'dosleg' => [
             'url' => 'https://data.senat.fr/data/dosleg/dosleg.zip',
             'description' => 'Dossiers Législatifs (DOSLEG)',
@@ -62,7 +62,7 @@ return [
                 'autdos' => 'Auteurs',
             ],
         ],
-        
+
         'questions' => [
             'url' => 'https://data.senat.fr/data/questions/questions.zip',
             'description' => 'Questions au Gouvernement',
@@ -77,7 +77,7 @@ return [
                 'quethe' => 'Liens question-thème',
             ],
         ],
-        
+
         'debats' => [
             'url' => 'https://data.senat.fr/data/debats/debats.zip',
             'description' => 'Comptes rendus des débats',
@@ -89,7 +89,7 @@ return [
                 'ora' => 'Orateurs',
             ],
         ],
-        
+
         'ameli' => [
             'url' => 'https://data.senat.fr/data/ameli/ameli.zip',
             'description' => 'Amendements (Base AMELI)',
@@ -220,4 +220,3 @@ return [
         'path' => storage_path('logs/senat-sync.log'),
     ],
 ];
-

@@ -6,7 +6,6 @@ use App\Models\Notification;
 use App\Models\NotificationEmail;
 use App\Models\NotificationPreference;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class NotificationService
@@ -27,7 +26,7 @@ class NotificationService
         $siteEnabled = $this->isChannelEnabled($user, 'site', $category);
         $emailEnabled = $this->isChannelEnabled($user, 'email', $category);
 
-        if (!$siteEnabled && !$emailEnabled) {
+        if (! $siteEnabled && ! $emailEnabled) {
             return null; // L'utilisateur a tout désactivé pour cette catégorie
         }
 
@@ -69,13 +68,13 @@ class NotificationService
         array $extraData = []
     ): int {
         $count = 0;
-        
+
         foreach ($users as $user) {
             if ($this->notify($user, $category, $title, $message, $actionUrl, $icon, $extraData)) {
                 $count++;
             }
         }
-        
+
         return $count;
     }
 
@@ -85,6 +84,7 @@ class NotificationService
     public function isChannelEnabled(User $user, string $channel, string $category): bool
     {
         $preference = NotificationPreference::getOrCreateForUser($user->id);
+
         return $preference->isEnabled($category, $channel);
     }
 
@@ -94,7 +94,7 @@ class NotificationService
     public function updatePreferences(User $user, array $preferences): void
     {
         $pref = NotificationPreference::getOrCreateForUser($user->id);
-        
+
         foreach ($preferences as $p) {
             $channel = $p['channel'] ?? null;
             $category = $p['category'] ?? null;
@@ -113,7 +113,7 @@ class NotificationService
                 $pref->{$field} = $enabled;
             }
         }
-        
+
         $pref->save();
     }
 
@@ -253,7 +253,7 @@ class NotificationService
      */
     protected function getCategoryNotificationType(string $category): string
     {
-        return 'App\\Notifications\\' . Str::studly($category) . 'Notification';
+        return 'App\\Notifications\\'.Str::studly($category).'Notification';
     }
 
     /**
@@ -263,7 +263,6 @@ class NotificationService
     {
         return Notification::CATEGORIES[$category]['icon'] ?? '🔔';
     }
-
 
     /**
      * Obtenir les statistiques de notifications pour un utilisateur

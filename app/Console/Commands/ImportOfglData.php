@@ -3,14 +3,14 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Importe les données OFGL (Observatoire des Finances et de la Gestion publique Locales)
- * 
+ *
  * Source : https://data.ofgl.fr
- * 
+ *
  * Dataset : ofgl-base-communes-consolidee (13M+ lignes)
  * Pour le PoC on agrège par département et année
  */
@@ -31,8 +31,8 @@ class ImportOfglData extends Command
         $dep = $this->option('departement');
         $limit = (int) $this->option('limit');
 
-        $this->info("🏛️ Import des données OFGL - Collectivités locales");
-        $this->info("   Source : https://data.ofgl.fr");
+        $this->info('🏛️ Import des données OFGL - Collectivités locales');
+        $this->info('   Source : https://data.ofgl.fr');
         $this->info("   Année : {$year}");
         $this->newLine();
 
@@ -43,14 +43,14 @@ class ImportOfglData extends Command
         $this->importDepartementStats($year, $dep);
 
         $this->newLine();
-        $this->info("✅ Import terminé !");
+        $this->info('✅ Import terminé !');
 
         return Command::SUCCESS;
     }
 
     private function importDepartementStats(int $year, ?string $dep): void
     {
-        $this->info("📊 Récupération des statistiques par département...");
+        $this->info('📊 Récupération des statistiques par département...');
 
         // On récupère les totaux des recettes et dépenses par département
         $agregats = [
@@ -63,7 +63,7 @@ class ImportOfglData extends Command
 
         foreach ($agregats as $agregat => $column) {
             $this->info("   → {$agregat}...");
-            
+
             try {
                 $refine = "exer:{$year}";
                 if ($dep) {
@@ -79,8 +79,9 @@ class ImportOfglData extends Command
                     'rows' => 0,
                 ]);
 
-                if (!$response->successful()) {
-                    $this->warn("     ⚠️ Erreur API : " . $response->status());
+                if (! $response->successful()) {
+                    $this->warn('     ⚠️ Erreur API : '.$response->status());
+
                     continue;
                 }
 
@@ -88,7 +89,8 @@ class ImportOfglData extends Command
                 $facets = $data['facet_groups'][0]['facets'] ?? [];
 
                 if (empty($facets)) {
-                    $this->warn("     ⚠️ Pas de données");
+                    $this->warn('     ⚠️ Pas de données');
+
                     continue;
                 }
 
@@ -97,7 +99,7 @@ class ImportOfglData extends Command
                 foreach ($facets as $facet) {
                     $depCode = $facet['name'];
                     $count = $facet['count'];
-                    
+
                     // Récupérer le montant total pour ce département
                     $this->fetchDepartementTotal($year, $depCode, $agregat, $column);
                     $bar->advance();
@@ -106,7 +108,7 @@ class ImportOfglData extends Command
                 $this->newLine();
 
             } catch (\Exception $e) {
-                $this->error("     ❌ Erreur : " . $e->getMessage());
+                $this->error('     ❌ Erreur : '.$e->getMessage());
             }
         }
     }
@@ -122,19 +124,19 @@ class ImportOfglData extends Command
                 'rows' => 0,
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return;
             }
 
             $data = $response->json();
             $total = $data['nhits'] ?? 0;
-            
+
             // On doit calculer la somme - pas disponible directement via l'API
             // Pour le PoC, on stocke le nombre de communes
             DB::table('ofgl_departements')->updateOrInsert(
                 ['annee' => $year, 'dep_code' => $depCode],
                 [
-                    'nb_communes_' . $column => $total,
+                    'nb_communes_'.$column => $total,
                     'updated_at' => now(),
                 ]
             );
@@ -174,6 +176,6 @@ class ImportOfglData extends Command
             $table->index('annee');
         });
 
-        $this->info("   📋 Table ofgl_departements créée");
+        $this->info('   📋 Table ofgl_departements créée');
     }
 }

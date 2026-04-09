@@ -30,8 +30,11 @@ class ImportAgendaSenat extends Command
     ];
 
     private int $created = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -54,7 +57,8 @@ class ImportAgendaSenat extends Command
             $instancesToImport = [$instance => $this->instances[$instance]];
         } else {
             $this->error("Instance inconnue: {$instance}");
-            $this->info("Instances disponibles: " . implode(', ', array_keys($this->instances)));
+            $this->info('Instances disponibles: '.implode(', ', array_keys($this->instances)));
+
             return self::FAILURE;
         }
 
@@ -77,29 +81,31 @@ class ImportAgendaSenat extends Command
     private function importInstance(string $code, array $config): void
     {
         $url = "https://www.senat.fr/aglae/{$code}/ical.ics";
-        
+
         $this->info("📥 Import {$config['nom']} ({$code})...");
 
         try {
             $response = Http::timeout(30)->get($url);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 $this->error("  ❌ Erreur HTTP {$response->status()} pour {$url}");
                 $this->errors++;
+
                 return;
             }
 
             $icalContent = $response->body();
-            
+
             if (empty($icalContent)) {
                 $this->warn("  ⚠️ Fichier iCal vide pour {$code}");
+
                 return;
             }
 
             $this->parseIcal($icalContent, $code, $config);
-            
+
         } catch (\Exception $e) {
-            $this->error("  ❌ Erreur: " . $e->getMessage());
+            $this->error('  ❌ Erreur: '.$e->getMessage());
             $this->errors++;
         }
     }
@@ -109,13 +115,15 @@ class ImportAgendaSenat extends Command
         try {
             $vcalendar = Reader::read($content);
         } catch (\Exception $e) {
-            $this->error("  ❌ Erreur parsing iCal: " . $e->getMessage());
+            $this->error('  ❌ Erreur parsing iCal: '.$e->getMessage());
             $this->errors++;
+
             return;
         }
 
-        if (!isset($vcalendar->VEVENT)) {
-            $this->warn("  ⚠️ Aucun événement dans le calendrier");
+        if (! isset($vcalendar->VEVENT)) {
+            $this->warn('  ⚠️ Aucun événement dans le calendrier');
+
             return;
         }
 
@@ -137,19 +145,20 @@ class ImportAgendaSenat extends Command
             $description = (string) ($vevent->DESCRIPTION ?? '');
             $location = (string) ($vevent->LOCATION ?? '');
             $url = (string) ($vevent->URL ?? '');
-            
+
             // Dates
             $dtstart = $vevent->DTSTART;
             $dtend = $vevent->DTEND ?? null;
-            
-            if (!$dtstart) {
+
+            if (! $dtstart) {
                 $this->skipped++;
+
                 return;
             }
 
             $dateDebut = $dtstart->getDateTime();
             $dateFin = $dtend ? $dtend->getDateTime() : null;
-            
+
             // Détecter si c'est une journée entière
             $journeeEntiere = false;
             if ($dtstart->hasTime() === false) {
@@ -157,16 +166,16 @@ class ImportAgendaSenat extends Command
             }
 
             // Créer un UID unique pour notre système
-            $ourUid = 'senat-' . $instanceCode . '-' . md5($uid . $dateDebut->format('Y-m-d H:i:s'));
+            $ourUid = 'senat-'.$instanceCode.'-'.md5($uid.$dateDebut->format('Y-m-d H:i:s'));
 
             // Last modified
-            $lastModified = isset($vevent->{'LAST-MODIFIED'}) 
-                ? $vevent->{'LAST-MODIFIED'}->getDateTime() 
+            $lastModified = isset($vevent->{'LAST-MODIFIED'})
+                ? $vevent->{'LAST-MODIFIED'}->getDateTime()
                 : null;
 
             // Déterminer le type
             $type = $config['type'];
-            
+
             // Affiner le type selon le contenu
             if (stripos($summary, 'audition') !== false) {
                 $type = EvenementLegislatif::TYPE_AUDITION;
@@ -185,7 +194,7 @@ class ImportAgendaSenat extends Command
             $description = preg_replace('/\s+/', ' ', $description);
             $description = trim($description);
             if (strlen($description) > 2000) {
-                $description = substr($description, 0, 1997) . '...';
+                $description = substr($description, 0, 1997).'...';
             }
 
             // Upsert
@@ -219,27 +228,26 @@ class ImportAgendaSenat extends Command
             }
 
         } catch (\Exception $e) {
-            $this->error("  ⚠️ Erreur événement: " . $e->getMessage());
+            $this->error('  ⚠️ Erreur événement: '.$e->getMessage());
             $this->errors++;
         }
     }
 
     private function cleanText(?string $text, int $maxLength = 255): ?string
     {
-        if (!$text) {
+        if (! $text) {
             return null;
         }
-        
+
         $text = strip_tags($text);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = preg_replace('/\s+/', ' ', $text);
         $text = trim($text);
-        
+
         if (strlen($text) > $maxLength) {
-            $text = substr($text, 0, $maxLength - 3) . '...';
+            $text = substr($text, 0, $maxLength - 3).'...';
         }
-        
+
         return $text ?: null;
     }
 }
-

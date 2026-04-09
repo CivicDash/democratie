@@ -3,26 +3,21 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Topic;
-use App\Models\PropositionLoi;
-use App\Models\VotePropositionLoi;
-use App\Models\Loi;
 use App\Models\CitizenLawStats;
-use App\Models\UserAllocation;
-use App\Models\TopicBallot;
-use App\Models\GroupeParlementaire;
-use App\Models\VoteLegislatif;
-use App\Models\DeputeSenateur;
-use App\Models\ActeurAN;
-use App\Models\Senateur;
-use App\Models\ScrutinAN;
-use App\Models\OrganeAN;
 use App\Models\DashboardStat;
+use App\Models\DeputeSenateur;
 use App\Models\FranceDemographics;
 use App\Models\FranceEconomy;
+use App\Models\GroupeParlementaire;
+use App\Models\Loi;
+use App\Models\PropositionLoi;
+use App\Models\Topic;
+use App\Models\TopicBallot;
+use App\Models\UserAllocation;
+use App\Models\VoteLegislatif;
+use App\Models\VotePropositionLoi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
@@ -66,24 +61,26 @@ class DashboardController extends Controller
             $loisStats = CitizenLawStats::orderByDesc('total_votes')
                 ->limit(10)
                 ->get();
-            
+
             $loisCodes = $loisStats->pluck('loi_cod')->toArray();
-            
+
             // Récupérer les détails des lois
             $lois = Loi::whereIn('loicod', $loisCodes)->get()->keyBy('loicod');
-            
+
             $result = $loisStats->take(5)->map(function ($stats) use ($lois) {
                 $loi = $lois[$stats->loi_cod] ?? null;
-                if (!$loi) return null;
-                
+                if (! $loi) {
+                    return null;
+                }
+
                 // Déterminer la source (AN ou Sénat) selon le code de la loi
                 $source = str_starts_with($stats->loi_cod, 'a') ? 'assemblee' : 'senat';
-                
+
                 return [
                     'id' => $stats->id,
                     'loicod' => trim($stats->loi_cod),
                     'numero' => $loi->numero ?? substr(trim($stats->loi_cod), -4),
-                    'titre' => $loi->loitit ?: $loi->loiint ?: 'Loi ' . trim($stats->loi_cod),
+                    'titre' => $loi->loitit ?: $loi->loiint ?: 'Loi '.trim($stats->loi_cod),
                     'source' => $source,
                     'statut' => $loi->etat?->etaloilib ?? 'En cours',
                     'date_depot' => null,
@@ -91,29 +88,29 @@ class DashboardController extends Controller
                         'upvotes' => $stats->votes_pour,
                         'downvotes' => $stats->votes_contre,
                         'score' => $stats->score ?? ($stats->votes_pour - $stats->votes_contre),
-                        'pourcentage_pour' => $stats->total_votes > 0 
-                            ? round(($stats->votes_pour / $stats->total_votes) * 100) 
+                        'pourcentage_pour' => $stats->total_votes > 0
+                            ? round(($stats->votes_pour / $stats->total_votes) * 100)
                             : 50,
                     ],
                 ];
             })->filter()->values();
-            
+
             // Si pas assez de lois votées, compléter avec des lois récentes importantes
             if ($result->count() < 5) {
                 $existingCodes = $result->pluck('loicod')->toArray();
-                
+
                 $loisRecentes = Loi::whereNotNull('loitit')
                     ->whereNotIn('loicod', $existingCodes)
-                    ->whereHas('etat', fn($q) => $q->whereIn('etaloicod', ['PROMULGUE', 'ADOPDEF', 'ENCOURS']))
+                    ->whereHas('etat', fn ($q) => $q->whereIn('etaloicod', ['PROMULGUE', 'ADOPDEF', 'ENCOURS']))
                     ->orderByDesc('date_loi')
                     ->limit(5 - $result->count())
                     ->get()
                     ->map(function ($loi) {
                         $source = str_starts_with($loi->loicod, 'a') ? 'assemblee' : 'senat';
-                        
+
                         // Récupérer les stats de vote citoyen si elles existent
                         $stats = CitizenLawStats::where('loi_cod', $loi->loicod)->first();
-                        
+
                         return [
                             'id' => trim($loi->loicod),
                             'loicod' => trim($loi->loicod),
@@ -126,16 +123,16 @@ class DashboardController extends Controller
                                 'upvotes' => $stats?->votes_pour ?? 0,
                                 'downvotes' => $stats?->votes_contre ?? 0,
                                 'score' => $stats?->score ?? 0,
-                                'pourcentage_pour' => $stats && $stats->total_votes > 0 
-                                    ? round(($stats->votes_pour / $stats->total_votes) * 100) 
+                                'pourcentage_pour' => $stats && $stats->total_votes > 0
+                                    ? round(($stats->votes_pour / $stats->total_votes) * 100)
                                     : 50,
                             ],
                         ];
                     });
-                
+
                 $result = $result->concat($loisRecentes);
             }
-            
+
             return $result->take(5);
         });
 
@@ -150,7 +147,7 @@ class DashboardController extends Controller
             ->map(function ($topic) use ($user) {
                 $totalVotes = $topic->ballots()->count();
                 $hasVoted = false;
-                
+
                 if ($user) {
                     // Vérifier si l'utilisateur a un token consommé pour ce topic
                     $hasVoted = $topic->ballotTokens()
@@ -158,7 +155,7 @@ class DashboardController extends Controller
                         ->where('consumed', true)
                         ->exists();
                 }
-                
+
                 return [
                     'id' => $topic->id,
                     'topic_id' => $topic->id,
@@ -190,13 +187,13 @@ class DashboardController extends Controller
                 $budgetStats['has_allocated'] = true;
                 $budgetStats['total_allocated'] = $allocations->sum('amount');
                 $budgetStats['nb_sectors'] = $allocations->count();
-                
+
                 $topAllocation = $allocations->sortByDesc('amount')->first();
                 $budgetStats['top_sector'] = [
                     'name' => $topAllocation->sector->name ?? 'Inconnu',
                     'amount' => $topAllocation->amount,
-                    'percentage' => $budgetStats['total_allocated'] > 0 
-                        ? round(($topAllocation->amount / $budgetStats['total_allocated']) * 100, 1) 
+                    'percentage' => $budgetStats['total_allocated'] > 0
+                        ? round(($topAllocation->amount / $budgetStats['total_allocated']) * 100, 1)
                         : 0,
                 ];
             }
@@ -218,7 +215,7 @@ class DashboardController extends Controller
                 ->orderByDesc('created_at')
                 ->limit(3)
                 ->get(['id', 'slug', 'title', 'created_at'])
-                ->map(fn($t) => [
+                ->map(fn ($t) => [
                     'id' => $t->id,
                     'slug' => $t->slug,
                     'titre' => $t->title,
@@ -229,7 +226,7 @@ class DashboardController extends Controller
                 ->orderByDesc('created_at')
                 ->limit(3)
                 ->get()
-                ->map(fn($v) => [
+                ->map(fn ($v) => [
                     'id' => $v->proposition?->id,
                     'numero' => $v->proposition?->numero,
                     'titre' => $v->proposition?->titre,
@@ -245,7 +242,7 @@ class DashboardController extends Controller
                 ->orderByDesc('nombre_membres')
                 ->limit(5)
                 ->get()
-                ->map(fn($groupe) => [
+                ->map(fn ($groupe) => [
                     'id' => $groupe->id,
                     'nom' => $groupe->nom,
                     'sigle' => $groupe->sigle,
@@ -268,7 +265,7 @@ class DashboardController extends Controller
                 ->orderBy('date_debut')
                 ->limit(5)
                 ->get()
-                ->map(fn($r) => [
+                ->map(fn ($r) => [
                     'uid' => $r->uid,
                     'titre' => $r->titre_odj ?? $r->organe_nom ?? 'Réunion',
                     'type' => $r->type_reunion,
@@ -282,12 +279,12 @@ class DashboardController extends Controller
         });
 
         // Fallback pour votes législatifs si pas de scrutins
-        $votesLegislatifs = $derniersScrutins->isEmpty() 
+        $votesLegislatifs = $derniersScrutins->isEmpty()
             ? VoteLegislatif::with('proposition:id,numero,titre')
                 ->orderByDesc('date_vote')
                 ->limit(5)
                 ->get()
-                ->map(fn($vote) => [
+                ->map(fn ($vote) => [
                     'id' => $vote->id,
                     'titre' => $vote->titre,
                     'proposition_numero' => $vote->proposition?->numero,
@@ -333,12 +330,12 @@ class DashboardController extends Controller
             $deptCode = substr($profile->circonscription, 0, 2);
             $senateurs = DeputeSenateur::senateurs()
                 ->enExercice()
-                ->where('circonscription', 'like', $deptCode . '%')
+                ->where('circonscription', 'like', $deptCode.'%')
                 ->with(['groupeParlementaire'])
                 ->limit(3)
                 ->get();
 
-            $mesRepresentants['senateurs'] = $senateurs->map(fn($senateur) => [
+            $mesRepresentants['senateurs'] = $senateurs->map(fn ($senateur) => [
                 'id' => $senateur->id,
                 'nom_complet' => $senateur->nom_complet,
                 'photo_url' => $senateur->photo_url,
@@ -355,6 +352,7 @@ class DashboardController extends Controller
         $franceStats = Cache::remember('dashboard_france_stats', 86400, function () {
             $demo = FranceDemographics::orderByDesc('year')->first();
             $eco = FranceEconomy::whereNull('quarter')->orderByDesc('year')->first();
+
             return [
                 'population' => $demo?->population_total,
                 'pib' => $eco?->gdp_billions_euros,
@@ -387,4 +385,3 @@ class DashboardController extends Controller
         ]);
     }
 }
-

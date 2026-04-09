@@ -26,9 +26,10 @@ class ClearAllCache extends Command
      */
     public function handle(CacheService $cacheService): int
     {
-        if (!$this->option('force')) {
-            if (!$this->confirm('Êtes-vous sûr de vouloir vider TOUT le cache CivicDash ?')) {
+        if (! $this->option('force')) {
+            if (! $this->confirm('Êtes-vous sûr de vouloir vider TOUT le cache CivicDash ?')) {
                 $this->info('Opération annulée.');
+
                 return self::SUCCESS;
             }
         }
@@ -36,7 +37,7 @@ class ClearAllCache extends Command
         $this->info('Vidage du cache en cours...');
 
         // Vote
-        $voteCount = $cacheService->forgetPattern(CacheService::PREFIX_VOTE_RESULTS . '*');
+        $voteCount = $cacheService->forgetPattern(CacheService::PREFIX_VOTE_RESULTS.'*');
         $this->line("✓ Vote : {$voteCount} clé(s)");
 
         // Budget
@@ -52,11 +53,11 @@ class ClearAllCache extends Command
         $this->line("✓ Documents : {$documentsCount} clé(s)");
 
         // Topics
-        $topicsCount = $cacheService->forgetPattern(CacheService::PREFIX_TOPIC_STATS . '*');
+        $topicsCount = $cacheService->forgetPattern(CacheService::PREFIX_TOPIC_STATS.'*');
         $this->line("✓ Topics : {$topicsCount} clé(s)");
 
         $total = $voteCount + $budgetCount + $moderationCount + $documentsCount + $topicsCount;
-        
+
         $this->newLine();
         $this->info("✅ Cache CivicDash vidé : {$total} clé(s) supprimée(s) au total");
 

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modèle pour les votes législatifs
- * 
+ *
  * @property int $id
  * @property int $proposition_loi_id
  * @property string $source
@@ -117,6 +117,7 @@ class VoteLegislatif extends Model
         if ($this->total_votants === 0) {
             return 0.0;
         }
+
         return round(($this->votes_pour / $this->total_votants) * 100, 2);
     }
 
@@ -125,6 +126,7 @@ class VoteLegislatif extends Model
         if ($this->total_votants === 0) {
             return 0.0;
         }
+
         return round(($this->votes_contre / $this->total_votants) * 100, 2);
     }
 
@@ -133,6 +135,7 @@ class VoteLegislatif extends Model
         if ($this->total_votants === 0) {
             return 0.0;
         }
+
         return round(($this->abstentions / $this->total_votants) * 100, 2);
     }
 
@@ -177,4 +180,3 @@ class VoteLegislatif extends Model
         ];
     }
 }
-

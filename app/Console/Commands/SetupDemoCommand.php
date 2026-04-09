@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
 class SetupDemoCommand extends Command
@@ -32,15 +31,17 @@ class SetupDemoCommand extends Command
         $this->displayBanner();
 
         // Vérification de l'environnement
-        if (app()->environment('production') && !$this->option('force')) {
+        if (app()->environment('production') && ! $this->option('force')) {
             $this->error('❌ Cette commande ne peut pas être exécutée en production sans --force');
+
             return self::FAILURE;
         }
 
         // Confirmation
-        if (!$this->option('force')) {
-            if (!$this->confirm('⚠️  Cette opération va modifier la base de données. Continuer ?', false)) {
+        if (! $this->option('force')) {
+            if (! $this->confirm('⚠️  Cette opération va modifier la base de données. Continuer ?', false)) {
                 $this->info('Opération annulée.');
+
                 return self::SUCCESS;
             }
         }
@@ -105,8 +106,9 @@ class SetupDemoCommand extends Command
 
         // Étape 5 : Index de recherche (optionnel si Scout est configuré)
         $this->step('Indexation des données pour la recherche', function () {
-            if (!config('scout.driver')) {
+            if (! config('scout.driver')) {
                 $this->warn('⚠️  Scout non configuré, indexation ignorée');
+
                 return;
             }
 
@@ -158,11 +160,11 @@ class SetupDemoCommand extends Command
     private function step(string $description, callable $callback): void
     {
         $this->info("⏳ $description...");
-        
+
         $startTime = microtime(true);
         $callback();
         $duration = round(microtime(true) - $startTime, 2);
-        
+
         $this->info("✅ $description terminé ({$duration}s)");
         $this->newLine();
     }
@@ -207,12 +209,12 @@ class SetupDemoCommand extends Command
                 ]
             );
 
-            if (!$user->hasRole($userData['role'])) {
+            if (! $user->hasRole($userData['role'])) {
                 $user->assignRole($userData['role']);
             }
 
             // Créer le profil pour le citoyen
-            if ($userData['role'] === 'citizen' && !$user->profile) {
+            if ($userData['role'] === 'citizen' && ! $user->profile) {
                 \App\Models\Profile::create([
                     'user_id' => $user->id,
                     'display_name' => \App\Models\Profile::generateDisplayName(),
@@ -252,7 +254,7 @@ class SetupDemoCommand extends Command
         $this->newLine();
         $this->info('🔐 Comptes de test disponibles :');
         $this->newLine();
-        
+
         $this->table(
             ['Rôle', 'Email', 'Mot de passe'],
             [
@@ -277,4 +279,3 @@ class SetupDemoCommand extends Command
         $this->newLine();
     }
 }
-

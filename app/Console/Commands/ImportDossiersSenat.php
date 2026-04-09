@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\DossierLegislatifSenat;
 use App\Models\DossierLegislatifAN;
+use App\Models\DossierLegislatifSenat;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -19,12 +19,13 @@ class ImportDossiersSenat extends Command
     protected $description = 'Importe les dossiers législatifs du Sénat depuis data.senat.fr (CSV)';
 
     private const CSV_URL = 'https://data.senat.fr/data/dosleg/dossiers-legislatifs.csv';
+
     private const CSV_PATH = 'temp/dossiers-senat.csv';
 
     public function handle(): int
     {
         $this->info('📥 Import des dossiers législatifs Sénat...');
-        
+
         if ($this->option('fresh')) {
             $this->warn('⚠️  Mode --fresh : suppression des dossiers existants...');
             DossierLegislatifSenat::truncate();
@@ -32,48 +33,53 @@ class ImportDossiersSenat extends Command
 
         // 1. Télécharger le CSV
         $this->info('📥 Téléchargement du fichier CSV...');
-        
+
         try {
             $response = Http::timeout(60)->get(self::CSV_URL);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 $this->error("❌ Erreur HTTP {$response->status()}");
+
                 return Command::FAILURE;
             }
 
             Storage::put(self::CSV_PATH, $response->body());
             $this->info('✅ Fichier téléchargé');
-            
+
         } catch (\Exception $e) {
-            $this->error("❌ Erreur de téléchargement : " . $e->getMessage());
+            $this->error('❌ Erreur de téléchargement : '.$e->getMessage());
+
             return Command::FAILURE;
         }
 
         // 2. Parser le CSV
         $csvPath = Storage::path(self::CSV_PATH);
-        
-        if (!file_exists($csvPath)) {
+
+        if (! file_exists($csvPath)) {
             $this->error('❌ Fichier CSV introuvable');
+
             return Command::FAILURE;
         }
 
         $handle = fopen($csvPath, 'r');
-        
-        if (!$handle) {
+
+        if (! $handle) {
             $this->error('❌ Impossible d\'ouvrir le fichier CSV');
+
             return Command::FAILURE;
         }
 
         // Lire l'en-tête
         $header = fgetcsv($handle, 0, ';');
-        
-        if (!$header) {
+
+        if (! $header) {
             $this->error('❌ En-tête CSV invalide');
             fclose($handle);
+
             return Command::FAILURE;
         }
 
-        $this->info('📊 Colonnes CSV : ' . implode(', ', $header));
+        $this->info('📊 Colonnes CSV : '.implode(', ', $header));
 
         $stats = [
             'total' => 0,
@@ -85,7 +91,7 @@ class ImportDossiersSenat extends Command
 
         $limit = $this->option('limit');
         $doMatch = $this->option('match');
-        
+
         if ($limit) {
             $this->warn("⚠️  Mode TEST : {$limit} dossiers maximum");
         }
@@ -97,7 +103,7 @@ class ImportDossiersSenat extends Command
         $lineNumber = 1; // Commence à 1 pour l'en-tête
         while (($row = fgetcsv($handle, 0, ';')) !== false) {
             $lineNumber++;
-            
+
             if ($limit && $stats['total'] >= $limit) {
                 break;
             }
@@ -109,20 +115,21 @@ class ImportDossiersSenat extends Command
 
             try {
                 $data = array_combine($header, $row);
-                
+
                 // Si array_combine échoue (nombre de colonnes différent)
                 if ($data === false) {
                     $stats['erreurs']++;
+
                     continue;
                 }
-                
+
                 $this->importDossier($data, $doMatch, $stats);
             } catch (\Exception $e) {
                 $stats['erreurs']++;
                 // Seulement afficher les 5 premières erreurs
                 if ($stats['erreurs'] <= 5) {
                     $this->newLine();
-                    $this->error("❌ Erreur ligne {$lineNumber}: " . $e->getMessage());
+                    $this->error("❌ Erreur ligne {$lineNumber}: ".$e->getMessage());
                 }
             }
 
@@ -160,10 +167,10 @@ class ImportDossiersSenat extends Command
     {
         // Mapping des colonnes CSV (à adapter selon la structure réelle)
         // Note : Les noms de colonnes peuvent varier, vérifier avec le CSV réel
-        
+
         $numeroSenat = $data['Numéro'] ?? $data['numero'] ?? null;
-        
-        if (!$numeroSenat) {
+
+        if (! $numeroSenat) {
             throw new \Exception('Numéro de dossier manquant');
         }
 
@@ -187,7 +194,7 @@ class ImportDossiersSenat extends Command
         // Matching avec AN si demandé
         if ($doMatch && $dossierData['numero_an']) {
             $dossierAN = DossierLegislatifAN::where('uid', 'LIKE', "%{$dossierData['numero_an']}%")
-                ->orWhere('titre', 'LIKE', '%' . Str::limit($dossierData['titre'], 50) . '%')
+                ->orWhere('titre', 'LIKE', '%'.Str::limit($dossierData['titre'], 50).'%')
                 ->first();
 
             if ($dossierAN) {
@@ -214,7 +221,8 @@ class ImportDossiersSenat extends Command
         // Ex: "2023-2024-123" -> "2023"
         if (preg_match('/(\d{2,4})/', $numero, $matches)) {
             $year = $matches[1];
-            return strlen($year) === 2 ? '20' . $year : $year;
+
+            return strlen($year) === 2 ? '20'.$year : $year;
         }
 
         return 'Inconnue';
@@ -222,16 +230,16 @@ class ImportDossiersSenat extends Command
 
     private function detectStatut(array $data): string
     {
-        if (!empty($data['Date de promulgation']) || !empty($data['date_promulgation'])) {
+        if (! empty($data['Date de promulgation']) || ! empty($data['date_promulgation'])) {
             return 'Promulgué';
         }
 
-        if (!empty($data['Date d\'adoption']) || !empty($data['date_adoption'])) {
+        if (! empty($data['Date d\'adoption']) || ! empty($data['date_adoption'])) {
             return 'Adopté';
         }
 
         $statut = $data['Statut'] ?? $data['statut'] ?? 'En cours';
-        
+
         return match (strtolower($statut)) {
             'promulgué', 'promulguée' => 'Promulgué',
             'adopté', 'adoptée' => 'Adopté',
@@ -243,7 +251,7 @@ class ImportDossiersSenat extends Command
 
     private function parseDate(?string $date): ?string
     {
-        if (!$date || $date === '0000-00-00') {
+        if (! $date || $date === '0000-00-00') {
             return null;
         }
 
@@ -254,4 +262,3 @@ class ImportDossiersSenat extends Command
         }
     }
 }
-

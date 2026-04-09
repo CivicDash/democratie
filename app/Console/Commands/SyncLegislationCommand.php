@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 /**
  * Commande pour synchroniser les données législatives
- * 
+ *
  * Usage:
  *   php artisan legislation:sync
  *   php artisan legislation:sync --agenda-only
@@ -36,13 +36,13 @@ class SyncLegislationCommand extends Command
 
         try {
             // Synchroniser l'agenda
-            if (!$propositionsOnly) {
+            if (! $propositionsOnly) {
                 $this->info('📅 Synchronisation de l\'agenda...');
                 $this->syncAgenda();
             }
 
             // Synchroniser les propositions
-            if (!$agendaOnly) {
+            if (! $agendaOnly) {
                 $this->info('📜 Synchronisation des propositions...');
                 $this->call('legislation:import', [
                     '--source' => 'both',
@@ -57,13 +57,14 @@ class SyncLegislationCommand extends Command
             return self::SUCCESS;
         } catch (\Exception $e) {
             $this->error("❌ Erreur: {$e->getMessage()}");
+
             return self::FAILURE;
         }
     }
 
     private function syncAgenda(): void
     {
-        $dateDebut = new \DateTime();
+        $dateDebut = new \DateTime;
         $dateFin = (clone $dateDebut)->modify('+30 days');
 
         $agenda = $this->legislationService->getAgendaLegislatif('both', $dateDebut, $dateFin);
@@ -80,4 +81,3 @@ class SyncLegislationCommand extends Command
         $this->info("  ✅ {$total} séances synchronisées");
     }
 }
-

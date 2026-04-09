@@ -35,8 +35,8 @@ class DocumentPolicy
     {
         // Users avec permission peuvent uploader
         return $user->hasPermissionTo('upload_documents') &&
-               !$user->isMuted() &&
-               !$user->isBanned();
+               ! $user->isMuted() &&
+               ! $user->isBanned();
     }
 
     /**
@@ -46,7 +46,7 @@ class DocumentPolicy
     {
         // L'uploader peut mettre à jour (description, etc.)
         if ($document->uploader_id === $user->id) {
-            return !$user->isMuted() && !$user->isBanned();
+            return ! $user->isMuted() && ! $user->isBanned();
         }
 
         // Admins peuvent mettre à jour
@@ -59,7 +59,7 @@ class DocumentPolicy
     public function delete(User $user, Document $document): bool
     {
         // L'uploader peut supprimer si pas encore vérifié
-        if ($document->uploader_id === $user->id && !$document->is_verified) {
+        if ($document->uploader_id === $user->id && ! $document->is_verified) {
             return true;
         }
 
@@ -73,12 +73,12 @@ class DocumentPolicy
     public function verify(User $user, Document $document): bool
     {
         // User doit avoir la permission de vérifier
-        if (!$user->hasPermissionTo('verify_documents')) {
+        if (! $user->hasPermissionTo('verify_documents')) {
             return false;
         }
 
         // User doit être vérifié lui-même (profil verified)
-        if (!$user->profile || !$user->profile->is_verified) {
+        if (! $user->profile || ! $user->profile->is_verified) {
             return false;
         }
 
@@ -88,7 +88,7 @@ class DocumentPolicy
         }
 
         // Document ne doit pas déjà être vérifié
-        return !$document->is_verified;
+        return ! $document->is_verified;
     }
 
     /**
@@ -118,4 +118,3 @@ class DocumentPolicy
         return $this->upload($user);
     }
 }
-

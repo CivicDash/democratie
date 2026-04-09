@@ -4,18 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 
 class Loi extends Model
 {
     use Searchable;
+
     protected $table = 'senat_dosleg_loi';
+
     protected $primaryKey = 'loicod';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -156,6 +161,7 @@ class Loi extends Model
     public function getTitreCourtAttribute(): string
     {
         $titre = trim($this->loitit ?? $this->loiint ?? '');
+
         return Str::limit($titre, 100);
     }
 
@@ -173,7 +179,7 @@ class Loi extends Model
             ->select('senat_dosleg_lecass.codass')
             ->first();
 
-        if (!$premierPassage) {
+        if (! $premierPassage) {
             return null;
         }
 
@@ -289,7 +295,7 @@ class Loi extends Model
             ->orderByDesc('senat_dosleg_typlec.typlecord')
             ->first();
 
-        if (!$derniereLecture) {
+        if (! $derniereLecture) {
             return 10;
         }
 
@@ -344,4 +350,3 @@ class Loi extends Model
         return 'lois';
     }
 }
-

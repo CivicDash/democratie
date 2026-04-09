@@ -51,10 +51,13 @@ class InseeDepartement extends Model
     // Accessors
     public function getPopulationFormateAttribute(): string
     {
-        if (!$this->population) return 'N/A';
-        if ($this->population >= 1_000_000) {
-            return number_format($this->population / 1_000_000, 1, ',', ' ') . 'M hab.';
+        if (! $this->population) {
+            return 'N/A';
         }
-        return number_format($this->population, 0, ',', ' ') . ' hab.';
+        if ($this->population >= 1_000_000) {
+            return number_format($this->population / 1_000_000, 1, ',', ' ').'M hab.';
+        }
+
+        return number_format($this->population, 0, ',', ' ').' hab.';
     }
 }

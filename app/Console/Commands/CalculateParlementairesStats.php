@@ -13,7 +13,6 @@ use App\Models\VoteIndividuelAN;
 use App\Models\VoteSenat;
 use App\Services\DisciplineGroupeService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class CalculateParlementairesStats extends Command
 {
@@ -25,7 +24,9 @@ class CalculateParlementairesStats extends Command
     protected $description = 'Calcule et met à jour les statistiques pré-calculées des parlementaires';
 
     private DisciplineGroupeService $disciplineService;
+
     private int $totalScrutinsAN = 0;
+
     private int $totalScrutinsSenat = 0;
 
     public function handle(): int
@@ -35,7 +36,7 @@ class CalculateParlementairesStats extends Command
         $legislature = (int) $this->option('legislature');
         $force = $this->option('force');
 
-        $this->info("🔄 Calcul des statistiques parlementaires...");
+        $this->info('🔄 Calcul des statistiques parlementaires...');
         $startTime = now();
 
         // Pré-charger le nombre total de scrutins
@@ -66,9 +67,9 @@ class CalculateParlementairesStats extends Command
         $this->info("👥 Calcul des statistiques des députés (L{$legislature})...");
 
         // Récupérer tous les députés actifs
-        $deputes = ActeurAN::whereHas('mandats', function ($q) use ($legislature) {
+        $deputes = ActeurAN::whereHas('mandats', function ($q) {
             $q->where('type_organe', 'ASSEMBLEE')
-              ->whereNull('date_fin');
+                ->whereNull('date_fin');
         })->get();
 
         $this->output->progressStart($deputes->count());
@@ -77,11 +78,12 @@ class CalculateParlementairesStats extends Command
 
         foreach ($deputes as $depute) {
             // Vérifier si les stats sont récentes (sauf si --force)
-            if (!$force) {
+            if (! $force) {
                 $existing = ParlementaireStats::forDepute($depute->uid, $legislature);
-                if ($existing && !$existing->isStale()) {
+                if ($existing && ! $existing->isStale()) {
                     $skipped++;
                     $this->output->progressAdvance();
+
                     continue;
                 }
             }
@@ -108,7 +110,7 @@ class CalculateParlementairesStats extends Command
     {
         // Votes
         $votesQuery = VoteIndividuelAN::where('acteur_ref', $depute->uid)
-            ->whereHas('scrutin', fn($q) => $q->where('legislature', $legislature));
+            ->whereHas('scrutin', fn ($q) => $q->where('legislature', $legislature));
 
         $votesTotal = $votesQuery->count();
         $votesPour = (clone $votesQuery)->where('position', 'pour')->count();
@@ -159,7 +161,7 @@ class CalculateParlementairesStats extends Command
      */
     private function calculateSenateursStats(bool $force): void
     {
-        $this->info("🏛️ Calcul des statistiques des sénateurs...");
+        $this->info('🏛️ Calcul des statistiques des sénateurs...');
 
         $senateurs = Senateur::actifs()->get();
 
@@ -169,11 +171,12 @@ class CalculateParlementairesStats extends Command
 
         foreach ($senateurs as $senateur) {
             // Vérifier si les stats sont récentes (sauf si --force)
-            if (!$force) {
+            if (! $force) {
                 $existing = ParlementaireStats::forSenateur($senateur->matricule);
-                if ($existing && !$existing->isStale()) {
+                if ($existing && ! $existing->isStale()) {
                     $skipped++;
                     $this->output->progressAdvance();
+
                     continue;
                 }
             }

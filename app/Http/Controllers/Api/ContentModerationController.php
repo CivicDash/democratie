@@ -23,14 +23,14 @@ class ContentModerationController extends Controller
     public function whitelistedDomains(): JsonResponse
     {
         $domains = $this->moderationService->getWhitelistedDomains();
-        
+
         // Grouper par catégorie pour une meilleure lisibilité
         $grouped = [
-            'gouvernement' => array_filter($domains, fn($d) => str_contains($d, 'gouv.fr') || in_array($d, ['assemblee-nationale.fr', 'senat.fr', 'elysee.fr'])),
-            'statistiques' => array_filter($domains, fn($d) => str_contains($d, 'insee.fr')),
-            'europe' => array_filter($domains, fn($d) => str_contains($d, 'europa.eu')),
-            'institutions' => array_filter($domains, fn($d) => in_array($d, ['conseil-constitutionnel.fr', 'conseil-etat.fr', 'ccomptes.fr', 'hatvp.fr'])),
-            'interne' => array_filter($domains, fn($d) => str_contains($d, 'civicdash.fr') || $d === 'localhost'),
+            'gouvernement' => array_filter($domains, fn ($d) => str_contains($d, 'gouv.fr') || in_array($d, ['assemblee-nationale.fr', 'senat.fr', 'elysee.fr'])),
+            'statistiques' => array_filter($domains, fn ($d) => str_contains($d, 'insee.fr')),
+            'europe' => array_filter($domains, fn ($d) => str_contains($d, 'europa.eu')),
+            'institutions' => array_filter($domains, fn ($d) => in_array($d, ['conseil-constitutionnel.fr', 'conseil-etat.fr', 'ccomptes.fr', 'hatvp.fr'])),
+            'interne' => array_filter($domains, fn ($d) => str_contains($d, 'civicdash.fr') || $d === 'localhost'),
         ];
 
         return response()->json([
@@ -49,7 +49,7 @@ class ContentModerationController extends Controller
     public function referenceFormats(): JsonResponse
     {
         $patterns = config('moderation.reference_patterns', []);
-        
+
         $formats = [];
         foreach ($patterns as $type => $config) {
             $formats[$type] = [
@@ -102,7 +102,7 @@ class ContentModerationController extends Controller
         ]);
 
         $content = $request->input('content');
-        
+
         $result = $this->moderationService->fullModerate(
             $content,
             auth()->id(),
@@ -146,8 +146,8 @@ class ContentModerationController extends Controller
         return response()->json([
             'success' => true,
             'references' => $references,
-            'valid_count' => count(array_filter($references, fn($r) => $r['exists'])),
-            'invalid_count' => count(array_filter($references, fn($r) => !$r['exists'])),
+            'valid_count' => count(array_filter($references, fn ($r) => $r['exists'])),
+            'invalid_count' => count(array_filter($references, fn ($r) => ! $r['exists'])),
         ]);
     }
 
@@ -158,14 +158,14 @@ class ContentModerationController extends Controller
     {
         $recommendations = [];
 
-        if (!empty($validation['issues']['banned_words'])) {
+        if (! empty($validation['issues']['banned_words'])) {
             $recommendations[] = [
                 'type' => 'warning',
                 'message' => 'Votre texte contient des mots qui seront automatiquement remplacés. Considérez reformuler pour plus de clarté.',
             ];
         }
 
-        if (!empty($validation['issues']['external_links'])) {
+        if (! empty($validation['issues']['external_links'])) {
             $count = count($validation['issues']['external_links']);
             $recommendations[] = [
                 'type' => 'info',
@@ -173,7 +173,7 @@ class ContentModerationController extends Controller
             ];
         }
 
-        if (!empty($validation['issues']['invalid_references'])) {
+        if (! empty($validation['issues']['invalid_references'])) {
             $recommendations[] = [
                 'type' => 'warning',
                 'message' => 'Certaines références internes (@loi:, @depute:, etc.) ne correspondent à aucun élément existant.',

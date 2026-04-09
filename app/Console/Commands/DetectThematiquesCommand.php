@@ -36,7 +36,7 @@ class DetectThematiquesCommand extends Command
         $id = $this->option('id');
         $limit = (int) $this->option('limit');
 
-        $this->info("🏷️  Détection automatique des thématiques");
+        $this->info('🏷️  Détection automatique des thématiques');
         $this->newLine();
 
         // Cas 1: Proposition spécifique
@@ -65,8 +65,9 @@ class DetectThematiquesCommand extends Command
     {
         $proposition = PropositionLoi::find($id);
 
-        if (!$proposition) {
+        if (! $proposition) {
             $this->error("❌ Proposition {$id} non trouvée");
+
             return Command::FAILURE;
         }
 
@@ -84,6 +85,7 @@ class DetectThematiquesCommand extends Command
 
             if ($thematiques->isEmpty()) {
                 $this->warn('⚠️  Aucune thématique détectée');
+
                 return Command::SUCCESS;
             }
 
@@ -95,7 +97,7 @@ class DetectThematiquesCommand extends Command
                 $rows[] = [
                     $item['thematique']->nom,
                     $item['thematique']->code,
-                    $item['score'] . '%',
+                    $item['score'].'%',
                     $item['est_principal'] ? '⭐ Principal' : 'Secondaire',
                 ];
             }
@@ -109,6 +111,7 @@ class DetectThematiquesCommand extends Command
 
         } catch (\Exception $e) {
             $this->error("❌ Erreur: {$e->getMessage()}");
+
             return Command::FAILURE;
         }
     }
@@ -125,14 +128,16 @@ class DetectThematiquesCommand extends Command
 
         if ($propositions->isEmpty()) {
             $this->info('✅ Toutes les propositions ont déjà des thématiques !');
+
             return Command::SUCCESS;
         }
 
         $this->info("📦 {$propositions->count()} proposition(s) sans thématique trouvée(s)");
         $this->newLine();
 
-        if (!$this->confirm('Lancer la détection ?', true)) {
+        if (! $this->confirm('Lancer la détection ?', true)) {
             $this->info('Détection annulée');
+
             return Command::SUCCESS;
         }
 
@@ -145,7 +150,7 @@ class DetectThematiquesCommand extends Command
             $bar->finish();
             $this->newLine(2);
 
-            $this->info("✅ Détection terminée !");
+            $this->info('✅ Détection terminée !');
             $this->table(
                 ['Métrique', 'Valeur'],
                 [
@@ -160,6 +165,7 @@ class DetectThematiquesCommand extends Command
 
         } catch (\Exception $e) {
             $this->error("❌ Erreur: {$e->getMessage()}");
+
             return Command::FAILURE;
         }
     }
@@ -174,11 +180,12 @@ class DetectThematiquesCommand extends Command
             ->get();
 
         $this->warn("⚠️  Recalcul de {$propositions->count()} proposition(s)");
-        $this->warn("Les thématiques auto-détectées existantes seront remplacées");
+        $this->warn('Les thématiques auto-détectées existantes seront remplacées');
         $this->newLine();
 
-        if (!$this->confirm('Confirmer le recalcul ?', false)) {
+        if (! $this->confirm('Confirmer le recalcul ?', false)) {
             $this->info('Recalcul annulé');
+
             return Command::SUCCESS;
         }
 
@@ -197,13 +204,14 @@ class DetectThematiquesCommand extends Command
             $bar->finish();
             $this->newLine(2);
 
-            $this->info("✅ Recalcul terminé !");
+            $this->info('✅ Recalcul terminé !');
             $this->info("📊 {$recalculated} proposition(s) recalculée(s)");
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
             $this->error("❌ Erreur: {$e->getMessage()}");
+
             return Command::FAILURE;
         }
     }
@@ -216,7 +224,7 @@ class DetectThematiquesCommand extends Command
         try {
             $stats = $service->getStatistiques();
 
-            $this->info("📊 Statistiques de détection");
+            $this->info('📊 Statistiques de détection');
             $this->newLine();
 
             $this->table(
@@ -227,22 +235,22 @@ class DetectThematiquesCommand extends Command
                     ['Sans thématique', $stats['sans_thematique']],
                     ['Auto-détectées', $stats['auto_detectees']],
                     ['Manuelles', $stats['manuelles']],
-                    ['Taux de couverture', $stats['taux_couverture'] . '%'],
+                    ['Taux de couverture', $stats['taux_couverture'].'%'],
                 ]
             );
 
             $this->newLine();
-            $this->info("💡 Commandes disponibles:");
-            $this->line("  • php artisan thematiques:detect --all          → Détecter pour les propositions sans thématique");
-            $this->line("  • php artisan thematiques:detect --recalculate  → Recalculer toutes les thématiques");
-            $this->line("  • php artisan thematiques:detect --id=123       → Détecter pour une proposition spécifique");
+            $this->info('💡 Commandes disponibles:');
+            $this->line('  • php artisan thematiques:detect --all          → Détecter pour les propositions sans thématique');
+            $this->line('  • php artisan thematiques:detect --recalculate  → Recalculer toutes les thématiques');
+            $this->line('  • php artisan thematiques:detect --id=123       → Détecter pour une proposition spécifique');
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
             $this->error("❌ Erreur: {$e->getMessage()}");
+
             return Command::FAILURE;
         }
     }
 }
-

@@ -29,14 +29,14 @@ class StoreTopicRequest extends FormRequest
             'scope' => ['required', Rule::in(['national', 'region', 'dept'])],
             'region_id' => ['required_if:scope,region', 'nullable', 'exists:territories_regions,id'],
             'department_id' => ['required_if:scope,dept', 'nullable', 'exists:territories_departments,id'],
-            
+
             // Liaison optionnelle avec une loi
             'loi_cod' => ['nullable', 'string', 'max:20', 'exists:senat_dosleg_loi,loicod'],
-            
+
             // Pour les bills, seuls les législateurs peuvent
             'type.bill' => Rule::requiredIf(function () {
                 return $this->input('type') === 'bill'
-                    && !$this->user()->hasAnyRole(['legislator', 'state', 'admin']);
+                    && ! $this->user()->hasAnyRole(['legislator', 'state', 'admin']);
             }),
         ];
     }
@@ -73,4 +73,3 @@ class StoreTopicRequest extends FormRequest
         ];
     }
 }
-

@@ -8,13 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Section de discussion législative au Sénat
- * 
+ *
  * Représente une partie du débat (article, amendement, motion, etc.)
  */
 class SenatSectionDiscussion extends Model
 {
     protected $table = 'senat_sections_discussion';
+
     protected $primaryKey = 'id';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -69,10 +71,11 @@ class SenatSectionDiscussion extends Model
      */
     public function getUrlCompletAttribute(): ?string
     {
-        if (!$this->url) {
+        if (! $this->url) {
             return null;
         }
-        return 'https://www.senat.fr/seances/' . ltrim($this->url, '/');
+
+        return 'https://www.senat.fr/seances/'.ltrim($this->url, '/');
     }
 
     /**

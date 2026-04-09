@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\MandatAN;
 use App\Models\ActeurAN;
+use App\Models\MandatAN;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -18,17 +18,20 @@ class ImportMandatsAN extends Command
     protected $description = 'Importe les mandats depuis les fichiers acteurs JSON (mandats imbriqués)';
 
     private int $imported = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
     {
         $legislature = $this->option('legislature');
         $importAll = $this->option('all');
-        
+
         $this->info('🏛️  Import des mandats AN...');
-        
+
         if ($importAll) {
             $this->warn('⚠️  Mode --all : import de TOUS les mandats (toutes législatures)');
         } else {
@@ -42,15 +45,16 @@ class ImportMandatsAN extends Command
 
         // On récupère les acteurs depuis la BDD (déjà importés)
         $acteurs = ActeurAN::all();
-        
+
         $limit = $this->option('limit');
         if ($limit) {
-            $acteurs = $acteurs->take((int)$limit);
+            $acteurs = $acteurs->take((int) $limit);
             $this->warn("⚠️  Mode TEST : {$limit} acteurs maximum");
         }
 
         if ($acteurs->isEmpty()) {
             $this->error('❌ Aucun acteur trouvé en BDD. Lancer d\'abord : import:acteurs-an');
+
             return self::FAILURE;
         }
 
@@ -78,20 +82,20 @@ class ImportMandatsAN extends Command
     private function importMandatsActeur(string $acteurUid, int $legislature, bool $importAll): void
     {
         $filePath = public_path("data/acteur/{$acteurUid}.json");
-        
-        if (!file_exists($filePath)) {
+
+        if (! file_exists($filePath)) {
             return;
         }
 
         $content = file_get_contents($filePath);
         $data = json_decode($content, true);
 
-        if (!isset($data['acteur']['mandats']['mandat'])) {
+        if (! isset($data['acteur']['mandats']['mandat'])) {
             return;
         }
 
         $mandats = $data['acteur']['mandats']['mandat'];
-        
+
         // Si un seul mandat, le transformer en tableau
         if (isset($mandats['uid'])) {
             $mandats = [$mandats];
@@ -105,17 +109,18 @@ class ImportMandatsAN extends Command
     private function importMandat(array $mandatData, string $acteurUid, int $legislature, bool $importAll): void
     {
         $uid = $mandatData['uid'] ?? null;
-        
-        if (!$uid) {
+
+        if (! $uid) {
             return;
         }
 
         // Filtrage par législature
         $mandatLegislature = $mandatData['legislature'] ?? null;
-        
-        if (!$importAll && $mandatLegislature) {
-            if ((int)$mandatLegislature !== (int)$legislature) {
+
+        if (! $importAll && $mandatLegislature) {
+            if ((int) $mandatLegislature !== (int) $legislature) {
                 $this->skipped++;
+
                 return;
             }
         }
@@ -145,7 +150,7 @@ class ImportMandatsAN extends Command
                 'code_qualite' => $infosQualite['codeQualite'] ?? null,
                 'libelle_qualite' => $infosQualite['libQualite'] ?? null,
                 'preseance' => $mandatData['preseance'] ?? null,
-                'nomination_principale' => (bool)($mandatData['nominPrincipale'] ?? false),
+                'nomination_principale' => (bool) ($mandatData['nominPrincipale'] ?? false),
             ]
         );
 
@@ -172,22 +177,22 @@ class ImportMandatsAN extends Command
 
         // Stats finales
         $total = MandatAN::count();
-        
+
         $statsTypes = DB::table('mandats_an')
             ->select('type_organe', DB::raw('COUNT(*) as total'))
             ->groupBy('type_organe')
             ->orderByDesc('total')
             ->limit(5)
             ->get();
-        
+
         $this->newLine();
         $this->info("📊 Total en base de données : {$total} mandats");
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $totalLeg = MandatAN::legislature($legislature)->count();
             $this->info("📊 Législature {$legislature} : {$totalLeg} mandats");
         }
-        
+
         $this->newLine();
         $this->info('📊 Top 5 types de mandats :');
         foreach ($statsTypes as $stat) {
@@ -195,4 +200,3 @@ class ImportMandatsAN extends Command
         }
     }
 }
-

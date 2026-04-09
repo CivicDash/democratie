@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BudgetAnnuel;
-use App\Models\BudgetMission;
 use App\Models\BudgetMinistere;
+use App\Models\BudgetMission;
 use App\Models\FranceBudgetRevenue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +31,7 @@ class FinancesPubliquesController extends Controller
         // Derniers budgets annuels
         $budgetsAnnuels = BudgetAnnuel::orderBy('annee', 'desc')
             ->get()
-            ->map(fn($b) => [
+            ->map(fn ($b) => [
                 'id' => $b->id,
                 'annee' => $b->annee,
                 'recettes_nettes' => $b->recettes_nettes,
@@ -47,7 +47,7 @@ class FinancesPubliquesController extends Controller
         // Recettes consolidées
         $recettesConsolidees = FranceBudgetRevenue::orderBy('year', 'desc')
             ->get()
-            ->map(fn($r) => [
+            ->map(fn ($r) => [
                 'id' => $r->id,
                 'year' => $r->year,
                 'total_billions_euros' => $r->total_billions_euros,
@@ -214,7 +214,7 @@ class FinancesPubliquesController extends Controller
     public function urssafDetails(Request $request)
     {
         $annee = $request->input('annee', date('Y'));
-        
+
         $data = DB::table('urssaf_effectifs_national')
             ->where('annee', $annee)
             ->orderBy('effectif', 'desc')
@@ -244,7 +244,7 @@ class FinancesPubliquesController extends Controller
     public function runImport(Request $request)
     {
         $type = $request->input('type');
-        
+
         try {
             switch ($type) {
                 case 'urssaf':
@@ -254,20 +254,20 @@ class FinancesPubliquesController extends Controller
                     ]);
                     $output = \Artisan::output();
                     break;
-                    
+
                 case 'budget-etat':
                     \Artisan::call('import:budget-etat');
                     $output = \Artisan::output();
                     break;
-                    
+
                 default:
                     return back()->with('error', 'Type d\'import inconnu');
             }
-            
+
             return back()->with('success', "Import {$type} lancé avec succès !");
-            
+
         } catch (\Exception $e) {
-            return back()->with('error', "Erreur : " . $e->getMessage());
+            return back()->with('error', 'Erreur : '.$e->getMessage());
         }
     }
 }

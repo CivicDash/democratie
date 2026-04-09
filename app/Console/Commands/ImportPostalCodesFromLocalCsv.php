@@ -4,11 +4,11 @@ namespace App\Console\Commands;
 
 use App\Models\FrenchPostalCode;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class ImportPostalCodesFromLocalCsv extends Command
 {
     protected $signature = 'postal-codes:import-local {--fresh : Vider la table avant l\'import}';
+
     protected $description = 'Importe les codes postaux français depuis le fichier CSV local (public/data)';
 
     public function handle()
@@ -23,33 +23,35 @@ class ImportPostalCodesFromLocalCsv extends Command
 
         // Chemin du fichier CSV local
         $csvPath = public_path('data/019HexaSmal.csv');
-        
-        if (!file_exists($csvPath)) {
-            $this->error('❌ Fichier CSV introuvable: ' . $csvPath);
+
+        if (! file_exists($csvPath)) {
+            $this->error('❌ Fichier CSV introuvable: '.$csvPath);
+
             return Command::FAILURE;
         }
 
-        $this->info('📂 Lecture du fichier: ' . basename($csvPath));
+        $this->info('📂 Lecture du fichier: '.basename($csvPath));
         $this->newLine();
 
         try {
             $handle = fopen($csvPath, 'r');
-            
-            if (!$handle) {
+
+            if (! $handle) {
                 $this->error('❌ Impossible d\'ouvrir le fichier CSV');
+
                 return Command::FAILURE;
             }
 
             // Lire l'en-tête
             $header = fgetcsv($handle, 1000, ';');
-            
+
             // Compter les lignes pour la barre de progression
             $lineCount = count(file($csvPath)) - 1;
-            
+
             $this->info("📊 {$lineCount} lignes à traiter");
             $bar = $this->output->createProgressBar($lineCount);
             $bar->setFormat('verbose');
-            
+
             $imported = 0;
             $errors = 0;
             $batch = [];
@@ -60,6 +62,7 @@ class ImportPostalCodesFromLocalCsv extends Command
                 if (count($data) < 4) {
                     $errors++;
                     $bar->advance();
+
                     continue;
                 }
 
@@ -67,10 +70,11 @@ class ImportPostalCodesFromLocalCsv extends Command
                 $cityName = trim($data[1] ?? '');
                 $postalCode = trim($data[2] ?? '');
                 $deliveryLabel = trim($data[3] ?? '');
-                
-                if (empty($inseeCode) || empty($postalCode) || !is_numeric($postalCode)) {
+
+                if (empty($inseeCode) || empty($postalCode) || ! is_numeric($postalCode)) {
                     $errors++;
                     $bar->advance();
+
                     continue;
                 }
 
@@ -80,12 +84,12 @@ class ImportPostalCodesFromLocalCsv extends Command
                 $batch[] = [
                     'postal_code' => $postalCode,
                     'insee_code' => $inseeCode,
-                    'city_name' => !empty($cityName) ? $cityName : $deliveryLabel,
+                    'city_name' => ! empty($cityName) ? $cityName : $deliveryLabel,
                     'department_code' => $departmentCode,
                     'department_name' => $this->getDepartmentName($departmentCode),
                     'region_code' => null,
                     'region_name' => null,
-                    'circonscription' => $departmentCode . '-01', // Simplifié
+                    'circonscription' => $departmentCode.'-01', // Simplifié
                     'latitude' => null,
                     'longitude' => null,
                     'population' => null,
@@ -101,7 +105,7 @@ class ImportPostalCodesFromLocalCsv extends Command
             }
 
             // Insérer le dernier batch
-            if (!empty($batch)) {
+            if (! empty($batch)) {
                 $imported += $this->insertBatch($batch);
                 $bar->advance(count($batch));
             }
@@ -110,22 +114,23 @@ class ImportPostalCodesFromLocalCsv extends Command
             $bar->finish();
             $this->newLine(2);
 
-            $this->info("✅ Import terminé !");
+            $this->info('✅ Import terminé !');
             $this->info("   ✓ {$imported} codes postaux importés");
             if ($errors > 0) {
                 $this->warn("   ⚠️  {$errors} lignes ignorées");
             }
-            
+
             // Vérification finale
             $total = FrenchPostalCode::count();
             $this->newLine();
             $this->info("📊 Total en base: {$total} codes postaux");
-            
+
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error('❌ Erreur lors de l\'import: ' . $e->getMessage());
+            $this->error('❌ Erreur lors de l\'import: '.$e->getMessage());
             $this->error($e->getTraceAsString());
+
             return Command::FAILURE;
         }
     }
@@ -150,10 +155,11 @@ class ImportPostalCodesFromLocalCsv extends Command
             } catch (\Exception $e) {
                 // Log l'erreur pour debug
                 if ($count < 5) { // Afficher seulement les 5 premières erreurs
-                    $this->warn("⚠️  Erreur: " . $e->getMessage());
+                    $this->warn('⚠️  Erreur: '.$e->getMessage());
                 }
             }
         }
+
         return $count;
     }
 
@@ -169,26 +175,27 @@ class ImportPostalCodesFromLocalCsv extends Command
         if (preg_match('/^98[0-8]/', $inseeCode)) {
             return substr($inseeCode, 0, 3);
         }
-        
+
         // Corse (2A, 2B)
         if (preg_match('/^2[AB]/', $inseeCode)) {
             return substr($inseeCode, 0, 2);
         }
-        
+
         // Fallback sur les 2 premiers caractères du code postal
         if (strlen($postalCode) >= 2) {
             $prefix = substr($postalCode, 0, 2);
-            
+
             // Corse via code postal
             if ($prefix === '20') {
                 // Corse-du-Sud: 200xx-201xx, Haute-Corse: 202xx-206xx
                 $thirdDigit = intval(substr($postalCode, 2, 1));
+
                 return $thirdDigit <= 1 ? '2A' : '2B';
             }
-            
+
             return $prefix;
         }
-        
+
         return substr($inseeCode, 0, 2);
     }
 
@@ -231,4 +238,3 @@ class ImportPostalCodesFromLocalCsv extends Command
         return $departments[$code] ?? $code;
     }
 }
-

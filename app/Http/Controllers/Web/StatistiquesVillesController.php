@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Ville;
 use App\Models\CommuneBudget;
+use App\Models\Ville;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +20,7 @@ class StatistiquesVillesController extends Controller
     {
         // Utiliser la dernière année disponible par défaut
         $anneesDisponibles = $this->getAnneesDisponibles();
-        $anneeDefaut = !empty($anneesDisponibles) ? $anneesDisponibles[0] : date('Y');
+        $anneeDefaut = ! empty($anneesDisponibles) ? $anneesDisponibles[0] : date('Y');
         $annee = $request->input('annee', $anneeDefaut);
 
         // Stats globales (cache 1h)
@@ -79,8 +79,8 @@ class StatistiquesVillesController extends Controller
         $totalPopulation = Ville::where('arrondissement_municipal', false)->sum('population');
         $totalSuperficie = Ville::where('arrondissement_municipal', false)->sum('superficie_km2');
 
-        $densiteMoyenne = $totalSuperficie > 0 
-            ? round($totalPopulation / $totalSuperficie, 1) 
+        $densiteMoyenne = $totalSuperficie > 0
+            ? round($totalPopulation / $totalSuperficie, 1)
             : 0;
 
         $villesAvecMaire = Ville::whereNotNull('maire_actuel_id')->count();
@@ -105,15 +105,15 @@ class StatistiquesVillesController extends Controller
             ->where('population', '>', 0)
             ->orderByRaw('population / superficie_km2 DESC')
             ->first();
-        
+
         $villePlusDenseInfo = null;
         if ($villePlusDense) {
             $villePlusDenseInfo = [
                 'nom' => $villePlusDense->nom,
                 'departement' => $villePlusDense->departement_nom,
                 'url' => $villePlusDense->url,
-                'densite' => $villePlusDense->superficie_km2 > 0 
-                    ? round($villePlusDense->population / $villePlusDense->superficie_km2) 
+                'densite' => $villePlusDense->superficie_km2 > 0
+                    ? round($villePlusDense->population / $villePlusDense->superficie_km2)
                     : 0,
                 'population' => $villePlusDense->population,
                 'population_formate' => $villePlusDense->population_formate,
@@ -128,15 +128,15 @@ class StatistiquesVillesController extends Controller
             ->where('population', '>', 0)
             ->orderByRaw('population / superficie_km2 ASC')
             ->first();
-        
+
         $villeMoinsDenseInfo = null;
         if ($villeMoinsDense) {
             $villeMoinsDenseInfo = [
                 'nom' => $villeMoinsDense->nom,
                 'departement' => $villeMoinsDense->departement_nom,
                 'url' => $villeMoinsDense->url,
-                'densite' => $villeMoinsDense->superficie_km2 > 0 
-                    ? round($villeMoinsDense->population / $villeMoinsDense->superficie_km2, 2) 
+                'densite' => $villeMoinsDense->superficie_km2 > 0
+                    ? round($villeMoinsDense->population / $villeMoinsDense->superficie_km2, 2)
                     : 0,
                 'population' => $villeMoinsDense->population,
                 'population_formate' => $villeMoinsDense->population_formate,
@@ -153,8 +153,8 @@ class StatistiquesVillesController extends Controller
             'total_superficie_km2' => round($totalSuperficie),
             'densite_moyenne' => $densiteMoyenne,
             'villes_avec_maire' => $villesAvecMaire,
-            'pct_villes_avec_maire' => $totalVilles > 0 
-                ? round(($villesAvecMaire / $totalVilles) * 100, 1) 
+            'pct_villes_avec_maire' => $totalVilles > 0
+                ? round(($villesAvecMaire / $totalVilles) * 100, 1)
                 : 0,
             'nb_regions' => $nbRegions,
             'nb_departements' => $nbDepartements,
@@ -185,7 +185,7 @@ class StatistiquesVillesController extends Controller
             ->groupBy('region_code', 'region_nom')
             ->orderByDesc('population')
             ->get()
-            ->map(fn($r) => [
+            ->map(fn ($r) => [
                 'code' => $r->region_code,
                 'nom' => $r->region_nom,
                 'nb_villes' => (int) $r->nb_villes,
@@ -193,8 +193,8 @@ class StatistiquesVillesController extends Controller
                 'population_formate' => number_format($r->population, 0, ',', ' '),
                 'population_millions' => round($r->population / 1_000_000, 2),
                 'superficie' => round($r->superficie ?? 0),
-                'densite' => ($r->superficie ?? 0) > 0 
-                    ? round($r->population / $r->superficie, 1) 
+                'densite' => ($r->superficie ?? 0) > 0
+                    ? round($r->population / $r->superficie, 1)
                     : 0,
                 'pop_moyenne' => round($r->pop_moyenne ?? 0),
             ])
@@ -219,7 +219,7 @@ class StatistiquesVillesController extends Controller
         foreach ($tranches as $tranche) {
             $query = Ville::where('arrondissement_municipal', false)
                 ->where('population', '>=', $tranche['min']);
-            
+
             if ($tranche['max'] < PHP_INT_MAX) {
                 $query->where('population', '<', $tranche['max']);
             }
@@ -250,7 +250,7 @@ class StatistiquesVillesController extends Controller
             ->limit($limit)
             ->with('maireActuel:id,nom,prenom,civilite,photo_url')
             ->get()
-            ->map(fn($v) => [
+            ->map(fn ($v) => [
                 'id' => $v->id,
                 'nom' => $v->nom,
                 'slug' => $v->slug,
@@ -261,7 +261,7 @@ class StatistiquesVillesController extends Controller
                 'densite' => $v->densite,
                 'url' => $v->url,
                 'maire' => $v->maireActuel ? [
-                    'nom' => $v->maireActuel->nom_complet ?? trim($v->maireActuel->prenom . ' ' . $v->maireActuel->nom),
+                    'nom' => $v->maireActuel->nom_complet ?? trim($v->maireActuel->prenom.' '.$v->maireActuel->nom),
                     'photo_url' => $v->maireActuel->photo_url,
                 ] : null,
             ])
@@ -299,9 +299,9 @@ class StatistiquesVillesController extends Controller
             ->sum('population');
 
         // % de villes endettées (dette > 0)
-        $villesEndettees = $budgets->filter(fn($b) => ($b->encours_dette ?? 0) > 0)->count();
-        $pctVillesEndettees = $budgets->count() > 0 
-            ? round(($villesEndettees / $budgets->count()) * 100, 1) 
+        $villesEndettees = $budgets->filter(fn ($b) => ($b->encours_dette ?? 0) > 0)->count();
+        $pctVillesEndettees = $budgets->count() > 0
+            ? round(($villesEndettees / $budgets->count()) * 100, 1)
             : 0;
 
         // Ville avec le plus gros budget (dépenses fonctionnement)
@@ -340,13 +340,13 @@ class StatistiquesVillesController extends Controller
         }
 
         // Moyenne de budget par ville
-        $moyenneBudget = $budgets->count() > 0 
-            ? $totalDepensesFonct / $budgets->count() 
+        $moyenneBudget = $budgets->count() > 0
+            ? $totalDepensesFonct / $budgets->count()
             : 0;
 
         // Moyenne d'endettement par habitant
-        $moyenneDetteParHab = $populationCouverte > 0 
-            ? round($totalDette / $populationCouverte) 
+        $moyenneDetteParHab = $populationCouverte > 0
+            ? round($totalDette / $populationCouverte)
             : 0;
 
         return [
@@ -395,12 +395,13 @@ class StatistiquesVillesController extends Controller
         if ($evolution->isEmpty()) {
             // Fallback: données actuelles uniquement
             $currentPop = Ville::where('arrondissement_municipal', false)->sum('population');
+
             return [
                 ['annee' => date('Y'), 'population' => $currentPop, 'population_millions' => round($currentPop / 1_000_000, 1)],
             ];
         }
 
-        return $evolution->map(fn($e) => [
+        return $evolution->map(fn ($e) => [
             'annee' => (int) $e->annee,
             'population' => (int) $e->total,
             'population_millions' => round($e->total / 1_000_000, 1),

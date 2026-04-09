@@ -40,12 +40,12 @@ class PostPolicy
     public function create(User $user, ?Topic $topic = null): bool
     {
         // User doit avoir la permission
-        if (!$user->hasPermissionTo('create_posts')) {
+        if (! $user->hasPermissionTo('create_posts')) {
             return false;
         }
 
         // User ne doit pas être muted/banned
-        if (!$user->canPost()) {
+        if (! $user->canPost()) {
             return false;
         }
 
@@ -77,7 +77,7 @@ class PostPolicy
     public function update(User $user, Post $post): bool
     {
         // L'auteur peut modifier son post (si pas masqué)
-        if ($post->user_id === $user->id && !$post->is_hidden) {
+        if ($post->user_id === $user->id && ! $post->is_hidden) {
             return $user->canPost();
         }
 
@@ -127,7 +127,7 @@ class PostPolicy
         }
 
         // User doit avoir la permission
-        if (!$user->hasPermissionTo('vote_on_posts')) {
+        if (! $user->hasPermissionTo('vote_on_posts')) {
             return false;
         }
 
@@ -137,7 +137,7 @@ class PostPolicy
         }
 
         // Post ne doit pas être masqué
-        return !$post->is_hidden;
+        return ! $post->is_hidden;
     }
 
     /**
@@ -170,7 +170,6 @@ class PostPolicy
         }
 
         // User doit avoir la permission
-        return !$user->isMuted() && !$user->isBanned();
+        return ! $user->isMuted() && ! $user->isBanned();
     }
 }
-

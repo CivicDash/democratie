@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Budget\AllocateBudgetRequest;
+use App\Http\Requests\Budget\BulkAllocateBudgetRequest;
 use App\Models\Sector;
 use App\Models\UserAllocation;
 use App\Services\BudgetService;
-use App\Http\Requests\Budget\AllocateBudgetRequest;
-use App\Http\Requests\Budget\BulkAllocateBudgetRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -153,4 +153,3 @@ class BudgetController extends Controller
         return back()->with('success', 'Allocation réinitialisée avec succès.');
     }
 }
-

@@ -67,7 +67,7 @@ class Ville extends Model
 
         static::creating(function ($ville) {
             if (empty($ville->slug)) {
-                $ville->slug = Str::slug($ville->nom . '-' . $ville->code_insee);
+                $ville->slug = Str::slug($ville->nom.'-'.$ville->code_insee);
             }
             // Calculer la densité
             if ($ville->population && $ville->superficie_km2 > 0) {
@@ -166,6 +166,14 @@ class Ville extends Model
         return $this->hasMany(ResultatMunicipal::class);
     }
 
+    /**
+     * Page commune (hub citoyen v2.0)
+     */
+    public function communePage(): HasOne
+    {
+        return $this->hasOne(CommunePage::class);
+    }
+
     // ========================================================================
     // SCOPES
     // ========================================================================
@@ -203,20 +211,29 @@ class Ville extends Model
 
     public function getPopulationFormateAttribute(): string
     {
-        if (!$this->population) return 'N/A';
-        return number_format($this->population, 0, ',', ' ') . ' hab.';
+        if (! $this->population) {
+            return 'N/A';
+        }
+
+        return number_format($this->population, 0, ',', ' ').' hab.';
     }
 
     public function getDensiteFormateAttribute(): string
     {
-        if (!$this->densite) return 'N/A';
-        return number_format($this->densite, 0, ',', ' ') . ' hab/km²';
+        if (! $this->densite) {
+            return 'N/A';
+        }
+
+        return number_format($this->densite, 0, ',', ' ').' hab/km²';
     }
 
     public function getSuperficieFormateAttribute(): string
     {
-        if (!$this->superficie_km2) return 'N/A';
-        return number_format($this->superficie_km2, 2, ',', ' ') . ' km²';
+        if (! $this->superficie_km2) {
+            return 'N/A';
+        }
+
+        return number_format($this->superficie_km2, 2, ',', ' ').' km²';
     }
 
     public function getUrlAttribute(): string
@@ -228,8 +245,9 @@ class Ville extends Model
     {
         $nom = $this->nom;
         if ($this->arrondissement_municipal && $this->villeParent) {
-            $nom = $this->villeParent->nom . ' - ' . $this->nom;
+            $nom = $this->villeParent->nom.' - '.$this->nom;
         }
+
         return $nom;
     }
 
@@ -244,6 +262,7 @@ class Ville extends Model
 
         // Générer l'URL Wikipedia automatiquement
         $nom = str_replace(' ', '_', $this->nom);
+
         return "https://fr.wikipedia.org/wiki/{$nom}";
     }
 
@@ -257,10 +276,10 @@ class Ville extends Model
         }
 
         if ($this->altitude_min === $this->altitude_max) {
-            return $this->altitude_min . ' m';
+            return $this->altitude_min.' m';
         }
 
-        return ($this->altitude_min ?? '?') . ' - ' . ($this->altitude_max ?? '?') . ' m';
+        return ($this->altitude_min ?? '?').' - '.($this->altitude_max ?? '?').' m';
     }
 
     // ========================================================================

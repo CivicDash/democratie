@@ -26,4 +26,3 @@ return [
     // Timeout des requêtes (en secondes)
     'timeout' => 30,
 ];
-

@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
-use App\Models\Senateur;
 use App\Models\Maire;
 use App\Models\Ministre;
 use App\Models\PersonnePolitique;
+use App\Models\Senateur;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -40,7 +40,7 @@ class AdminElusController extends Controller
             ],
             'ministres' => [
                 'total' => PersonnePolitique::count(),
-                'actifs' => PersonnePolitique::whereHas('postes', fn($q) => $q->whereNull('date_fin'))->count(),
+                'actifs' => PersonnePolitique::whereHas('postes', fn ($q) => $q->whereNull('date_fin'))->count(),
             ],
         ];
 
@@ -62,7 +62,7 @@ class AdminElusController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ilike', "%{$search}%")
-                  ->orWhere('prenom', 'ilike', "%{$search}%");
+                    ->orWhere('prenom', 'ilike', "%{$search}%");
             });
         }
 
@@ -114,7 +114,7 @@ class AdminElusController extends Controller
 
         $acteurAn->update($validated);
 
-        return back()->with('success', 'Député mis à jour : ' . $acteurAn->nom_complet);
+        return back()->with('success', 'Député mis à jour : '.$acteurAn->nom_complet);
     }
 
     /**
@@ -129,8 +129,8 @@ class AdminElusController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ilike', "%{$search}%")
-                  ->orWhere('prenom', 'ilike', "%{$search}%")
-                  ->orWhere('circonscription', 'ilike', "%{$search}%");
+                    ->orWhere('prenom', 'ilike', "%{$search}%")
+                    ->orWhere('circonscription', 'ilike', "%{$search}%");
             });
         }
 
@@ -186,7 +186,7 @@ class AdminElusController extends Controller
 
         $senateur->update($validated);
 
-        return back()->with('success', 'Sénateur mis à jour : ' . $senateur->nom_complet);
+        return back()->with('success', 'Sénateur mis à jour : '.$senateur->nom_complet);
     }
 
     /**
@@ -201,9 +201,9 @@ class AdminElusController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ilike', "%{$search}%")
-                  ->orWhere('prenom', 'ilike', "%{$search}%")
-                  ->orWhere('nom_commune', 'ilike', "%{$search}%")
-                  ->orWhere('code_commune', 'like', "{$search}%");
+                    ->orWhere('prenom', 'ilike', "%{$search}%")
+                    ->orWhere('nom_commune', 'ilike', "%{$search}%")
+                    ->orWhere('code_commune', 'like', "{$search}%");
             });
         }
 
@@ -218,7 +218,7 @@ class AdminElusController extends Controller
             ->distinct()
             ->orderBy('code_departement')
             ->get()
-            ->mapWithKeys(fn($d) => [$d->code_departement => $d->nom_departement ?? $d->code_departement]);
+            ->mapWithKeys(fn ($d) => [$d->code_departement => $d->nom_departement ?? $d->code_departement]);
 
         return Inertia::render('Admin/Elus/Maires', [
             'maires' => $maires,
@@ -258,7 +258,7 @@ class AdminElusController extends Controller
 
         $maire->update($validated);
 
-        return back()->with('success', 'Maire mis à jour : ' . $maire->nom_complet);
+        return back()->with('success', 'Maire mis à jour : '.$maire->nom_complet);
     }
 
     /**
@@ -277,7 +277,7 @@ class AdminElusController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'ilike', "%{$search}%")
-                  ->orWhere('prenom', 'ilike', "%{$search}%");
+                    ->orWhere('prenom', 'ilike', "%{$search}%");
             });
         }
 
@@ -293,6 +293,7 @@ class AdminElusController extends Controller
 
         $ministres = $query->paginate(50)->through(function ($personne) {
             $dernierPoste = $personne->postes->first();
+
             return [
                 'id' => $personne->id,
                 'nom' => $personne->nom,
@@ -304,7 +305,7 @@ class AdminElusController extends Controller
                 'photo_url' => $personne->photo_url,
                 'nb_postes' => $personne->postes_count,
                 'dernier_poste' => $dernierPoste?->fonction,
-                'actif' => $dernierPoste && !$dernierPoste->date_fin,
+                'actif' => $dernierPoste && ! $dernierPoste->date_fin,
             ];
         });
 
@@ -352,11 +353,11 @@ class AdminElusController extends Controller
             'wikipedia_url' => 'nullable|url|max:500',
         ]);
 
-        $validated['slug'] = \Illuminate\Support\Str::slug($validated['prenom'] . '-' . $validated['nom']);
-        
+        $validated['slug'] = \Illuminate\Support\Str::slug($validated['prenom'].'-'.$validated['nom']);
+
         $personne->update($validated);
 
-        return back()->with('success', 'Ministre mis à jour : ' . $personne->nom_complet);
+        return back()->with('success', 'Ministre mis à jour : '.$personne->nom_complet);
     }
 
     /**
@@ -365,7 +366,7 @@ class AdminElusController extends Controller
     public function search(Request $request)
     {
         $search = $request->input('q', '');
-        
+
         if (strlen($search) < 2) {
             return response()->json([]);
         }
@@ -377,10 +378,10 @@ class AdminElusController extends Controller
             ->orWhere('prenom', 'ilike', "%{$search}%")
             ->limit(5)
             ->get()
-            ->map(fn($d) => [
+            ->map(fn ($d) => [
                 'id' => $d->id,
                 'type' => 'depute',
-                'label' => $d->nom_complet . ' (Député)',
+                'label' => $d->nom_complet.' (Député)',
                 'url' => route('admin.elus.deputes.edit', $d),
             ]);
 
@@ -389,10 +390,10 @@ class AdminElusController extends Controller
             ->orWhere('prenom', 'ilike', "%{$search}%")
             ->limit(5)
             ->get()
-            ->map(fn($s) => [
+            ->map(fn ($s) => [
                 'id' => $s->id,
                 'type' => 'senateur',
-                'label' => $s->nom_complet . ' (Sénateur)',
+                'label' => $s->nom_complet.' (Sénateur)',
                 'url' => route('admin.elus.senateurs.edit', $s),
             ]);
 
@@ -401,10 +402,10 @@ class AdminElusController extends Controller
             ->orWhere('prenom', 'ilike', "%{$search}%")
             ->limit(5)
             ->get()
-            ->map(fn($m) => [
+            ->map(fn ($m) => [
                 'id' => $m->id,
                 'type' => 'ministre',
-                'label' => $m->nom_complet . ' (Ministre)',
+                'label' => $m->nom_complet.' (Ministre)',
                 'url' => route('admin.gouvernement.show', $m->gouvernement_id),
             ]);
 

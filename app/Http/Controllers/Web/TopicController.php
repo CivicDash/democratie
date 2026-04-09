@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Loi;
-use App\Models\Topic;
-use App\Models\TopicCategory;
-use App\Models\TerritoryRegion;
-use App\Models\TerritoryDepartment;
-use App\Services\TopicService;
 use App\Http\Requests\Topic\StoreTopicRequest;
 use App\Http\Requests\Topic\UpdateTopicRequest;
-use Illuminate\Http\Request;
+use App\Models\Loi;
+use App\Models\TerritoryDepartment;
+use App\Models\TerritoryRegion;
+use App\Models\Topic;
+use App\Models\TopicCategory;
+use App\Services\TopicService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,7 +36,7 @@ class TopicController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('title', 'like', "%{$request->search}%")
-                  ->orWhere('description', 'like', "%{$request->description}%");
+                    ->orWhere('description', 'like', "%{$request->description}%");
             });
         }
 
@@ -114,7 +114,7 @@ class TopicController extends Controller
                 ->withCount('votes')
                 ->latest()
                 ->first();
-            
+
             if ($ballot) {
                 $ballot = [
                     'id' => $ballot->id,
@@ -130,9 +130,9 @@ class TopicController extends Controller
         // ✅ PAGINATION avec 20 posts par page + optimisations + relations parent/replies
         $posts = $topic->posts()
             ->with([
-                'author' => fn($q) => $q->select('id', 'name'), // Limiter colonnes
-                'votes' => fn($q) => $q->where('user_id', auth()->id())->select('post_id', 'user_id', 'vote'), // Vote de l'user
-                'parent' => fn($q) => $q->with('author:id,name')->select('id', 'content', 'user_id'), // Parent post
+                'author' => fn ($q) => $q->select('id', 'name'), // Limiter colonnes
+                'votes' => fn ($q) => $q->where('user_id', auth()->id())->select('post_id', 'user_id', 'vote'), // Vote de l'user
+                'parent' => fn ($q) => $q->with('author:id,name')->select('id', 'content', 'user_id'), // Parent post
             ])
             ->withCount('replies') // Nombre de réponses
             ->withVoteScore()
@@ -140,7 +140,7 @@ class TopicController extends Controller
             ->orderBy('parent_id') // Posts parents d'abord
             ->orderByDesc('vote_score')
             ->paginate(20)
-            ->through(fn($post) => [
+            ->through(fn ($post) => [
                 'id' => $post->id,
                 'content' => $post->content,
                 'is_pinned' => $post->is_pinned,
@@ -198,7 +198,7 @@ class TopicController extends Controller
                     'loicod' => trim($loi->loicod),
                     'numero' => trim($loi->numero ?? ''),
                     'titre' => $loi->titre_court ?? $loi->loitit,
-                    'suggested_title' => 'Débat : ' . ($loi->titre_court ?? \Str::limit($loi->loitit, 100)),
+                    'suggested_title' => 'Débat : '.($loi->titre_court ?? \Str::limit($loi->loitit, 100)),
                 ];
             }
         }
@@ -262,4 +262,3 @@ class TopicController extends Controller
             ->with('success', 'Sujet supprimé avec succès.');
     }
 }
-

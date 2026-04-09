@@ -69,6 +69,7 @@ class NotificationEmail extends Model
             'status' => 'sent',
             'sent_at' => now(),
         ]);
+
         return $this;
     }
 
@@ -81,6 +82,7 @@ class NotificationEmail extends Model
             'status' => 'failed',
             'error' => $error,
         ]);
+
         return $this;
     }
 }

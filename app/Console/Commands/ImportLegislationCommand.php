@@ -2,13 +2,13 @@
 
 namespace App\Console\Commands;
 
-use App\Services\LegislationService;
 use App\Models\PropositionLoi;
+use App\Services\LegislationService;
 use Illuminate\Console\Command;
 
 /**
  * Commande pour importer les propositions de loi depuis l'Assemblée et le Sénat
- * 
+ *
  * Usage:
  *   php artisan legislation:import --source=both --limit=50
  *   php artisan legislation:import --source=assemblee --recent
@@ -36,13 +36,13 @@ class ImportLegislationCommand extends Command
         $recent = $this->option('recent');
         $force = $this->option('force');
 
-        $this->info("🏛️  Import des propositions de loi");
+        $this->info('🏛️  Import des propositions de loi');
         $this->info("Source: {$source} | Limite: {$limit}");
         $this->newLine();
 
         $filters = [];
         if ($recent) {
-            $this->info("📅 Mode: Propositions récentes uniquement");
+            $this->info('📅 Mode: Propositions récentes uniquement');
             $filters['recent'] = true;
         }
 
@@ -52,7 +52,8 @@ class ImportLegislationCommand extends Command
             $propositions = $this->legislationService->getPropositionsLoi($source, $limit, $filters);
 
             if (empty($propositions)) {
-                $this->warn("⚠️  Aucune proposition trouvée");
+                $this->warn('⚠️  Aucune proposition trouvée');
+
                 return self::SUCCESS;
             }
 
@@ -75,9 +76,10 @@ class ImportLegislationCommand extends Command
                         ->where('legislature', $propData['legislature'] ?? 17)
                         ->first();
 
-                    if ($existing && !$force) {
+                    if ($existing && ! $force) {
                         $skipped++;
                         $bar->advance();
+
                         continue;
                     }
 
@@ -106,7 +108,7 @@ class ImportLegislationCommand extends Command
                     }
 
                     $bar->advance();
-                    
+
                     // Pause pour ne pas surcharger l'API
                     usleep(100000); // 100ms
                 } catch (\Exception $e) {
@@ -138,8 +140,8 @@ class ImportLegislationCommand extends Command
             return self::SUCCESS;
         } catch (\Exception $e) {
             $this->error("❌ Erreur fatale: {$e->getMessage()}");
+
             return self::FAILURE;
         }
     }
 }
-

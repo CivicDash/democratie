@@ -34,14 +34,18 @@ class ImportLog extends Model
         'options' => 'array',
         'error_details' => 'array',
     ];
-    public const TRIGGERED_MANUAL = 'manual';
-    public const TRIGGERED_SCHEDULER = 'scheduler';
 
+    public const TRIGGERED_MANUAL = 'manual';
+
+    public const TRIGGERED_SCHEDULER = 'scheduler';
 
     // Statuts
     public const STATUS_RUNNING = 'running';
+
     public const STATUS_SUCCESS = 'success';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_PARTIAL = 'partial';
 
     // Sources
@@ -92,7 +96,7 @@ class ImportLog extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_RUNNING => '🔄 En cours',
             self::STATUS_SUCCESS => '✅ Succès',
             self::STATUS_FAILED => '❌ Échec',
@@ -103,7 +107,7 @@ class ImportLog extends Model
 
     public function getStatusColorAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             self::STATUS_RUNNING => 'blue',
             self::STATUS_SUCCESS => 'green',
             self::STATUS_FAILED => 'red',
@@ -114,12 +118,12 @@ class ImportLog extends Model
 
     public function getDurationFormattedAttribute(): ?string
     {
-        if (!$this->duration_seconds) {
+        if (! $this->duration_seconds) {
             return null;
         }
 
         if ($this->duration_seconds < 60) {
-            return $this->duration_seconds . 's';
+            return $this->duration_seconds.'s';
         }
 
         $minutes = intdiv($this->duration_seconds, 60);
@@ -161,10 +165,9 @@ class ImportLog extends Model
         int $errors = 0,
         ?int $exitCode = null,
         ?string $outputTail = null
-    ): self
-    {
+    ): self {
         $duration = max(0, (int) now()->diffInSeconds($this->started_at));
-        
+
         $this->update([
             'status' => $errors > 0 ? self::STATUS_PARTIAL : self::STATUS_SUCCESS,
             'records_created' => $created,
@@ -183,7 +186,7 @@ class ImportLog extends Model
     public function fail(string $message, ?array $details = null, ?int $exitCode = null, ?string $outputTail = null): self
     {
         $duration = max(0, (int) now()->diffInSeconds($this->started_at));
-        
+
         $this->update([
             'status' => self::STATUS_FAILED,
             'error_message' => \Illuminate\Support\Str::limit($message, 65000),
@@ -199,7 +202,7 @@ class ImportLog extends Model
 
     public static function shouldLogCommand(?string $command): bool
     {
-        if (!$command) {
+        if (! $command) {
             return false;
         }
 
@@ -238,4 +241,3 @@ class ImportLog extends Model
         };
     }
 }
-

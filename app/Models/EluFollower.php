@@ -134,7 +134,7 @@ class EluFollower extends Model
      */
     public function getElu(): ?Model
     {
-        return match($this->elu_type) {
+        return match ($this->elu_type) {
             'depute' => ActeurAN::find($this->elu_id),
             'senateur' => Senateur::find($this->elu_id),
             'maire' => Maire::find($this->elu_id),
@@ -148,7 +148,7 @@ class EluFollower extends Model
      */
     public function getEluUrlAttribute(): ?string
     {
-        return match($this->elu_type) {
+        return match ($this->elu_type) {
             'depute' => route('representants.deputes.show', $this->elu_id),
             'senateur' => route('representants.senateurs.show', $this->elu_id),
             'maire' => route('elus.public-profile', ['type' => 'maire', 'ref' => $this->elu_id]),
@@ -171,6 +171,7 @@ class EluFollower extends Model
     public function shouldNotify(string $activityType): bool
     {
         $field = "notify_{$activityType}";
+
         return $this->$field ?? false;
     }
 
@@ -233,6 +234,7 @@ class EluFollower extends Model
     public function scopeInterestedIn($query, string $activityType)
     {
         $field = "notify_{$activityType}";
+
         return $query->where($field, true);
     }
 }

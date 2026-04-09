@@ -43,7 +43,7 @@ class PostController extends Controller
         $sortBy = in_array($sortBy, $allowedSorts, true) ? $sortBy : 'created_at';
 
         if ($sortBy === 'score') {
-            $query->orderByRaw('(upvotes - downvotes) ' . $sortOrder);
+            $query->orderByRaw('(upvotes - downvotes) '.$sortOrder);
         } else {
             $query->orderBy($sortBy, $sortOrder);
         }
@@ -188,4 +188,3 @@ class PostController extends Controller
         return response()->json($replies);
     }
 }
-

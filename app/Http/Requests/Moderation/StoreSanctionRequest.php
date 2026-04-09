@@ -14,6 +14,7 @@ class StoreSanctionRequest extends FormRequest
     public function authorize(): bool
     {
         $targetUser = $this->route('user');
+
         return $this->user()->can('create', [Sanction::class, $targetUser]);
     }
 
@@ -55,12 +56,11 @@ class StoreSanctionRequest extends FormRequest
             if ($this->type === 'warning' && $this->duration_days) {
                 $validator->errors()->add('duration_days', 'Un avertissement ne peut pas avoir de durée.');
             }
-            
+
             // Un ban permanent (type=ban sans duration) nécessite le rôle admin
-            if ($this->type === 'ban' && !$this->duration_days && !$this->user()->hasRole('admin')) {
+            if ($this->type === 'ban' && ! $this->duration_days && ! $this->user()->hasRole('admin')) {
                 $validator->errors()->add('type', 'Seuls les admins peuvent créer des bans permanents.');
             }
         });
     }
 }
-

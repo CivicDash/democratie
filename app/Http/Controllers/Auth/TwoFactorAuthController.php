@@ -17,7 +17,7 @@ class TwoFactorAuthController extends Controller
 
     public function __construct()
     {
-        $this->google2fa = new Google2FA();
+        $this->google2fa = new Google2FA;
     }
 
     /**
@@ -26,12 +26,12 @@ class TwoFactorAuthController extends Controller
     public function show(Request $request): Response
     {
         $user = $request->user();
-        
+
         return Inertia::render('Auth/TwoFactor/Index', [
             'enabled' => $user->two_factor_enabled,
             'confirmedAt' => $user->two_factor_confirmed_at,
             'isEluOrAdmin' => $user->is_verified_elu || $user->hasRole('admin') || $user->hasRole('super-admin'),
-            'hasPassword' => !empty($user->password) && $user->franceconnect_sub === null,
+            'hasPassword' => ! empty($user->password) && $user->franceconnect_sub === null,
             'isDemoAccount' => $user->isDemoAccount(),
             'canEnable' => $user->canEnableTwoFactor(),
         ]);
@@ -43,37 +43,37 @@ class TwoFactorAuthController extends Controller
     public function enable(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
-        
+
         // Vérifier si l'utilisateur peut activer la 2FA
-        if (!$user->canEnableTwoFactor()) {
+        if (! $user->canEnableTwoFactor()) {
             return redirect()->route('two-factor.show')
                 ->with('error', 'La double authentification n\'est pas disponible pour ce type de compte.');
         }
-        
+
         // Si déjà activé, rediriger
         if ($user->two_factor_enabled) {
             return redirect()->route('two-factor.show')
                 ->with('info', 'La double authentification est déjà activée.');
         }
-        
+
         // Générer un nouveau secret
         $secret = $this->google2fa->generateSecretKey();
-        
+
         // Sauvegarder temporairement le secret (non confirmé)
         $user->two_factor_secret = Crypt::encryptString($secret);
         $user->two_factor_enabled = false;
         $user->save();
-        
+
         // Générer le QR code URL
         $qrCodeUrl = $this->google2fa->getQRCodeUrl(
             config('app.name', 'CivicDash'),
             $user->email,
             $secret
         );
-        
+
         // Générer le QR code SVG
         $qrCodeSvg = $this->generateQrCodeSvg($qrCodeUrl);
-        
+
         return Inertia::render('Auth/TwoFactor/Enable', [
             'secret' => $secret,
             'qrCodeSvg' => $qrCodeSvg,
@@ -88,36 +88,36 @@ class TwoFactorAuthController extends Controller
         $request->validate([
             'code' => ['required', 'string', 'size:6'],
         ]);
-        
+
         $user = $request->user();
-        
-        if (!$user->two_factor_secret) {
+
+        if (! $user->two_factor_secret) {
             return back()->withErrors([
                 'code' => 'Veuillez d\'abord initialiser la configuration 2FA.',
             ]);
         }
-        
+
         // Décrypter le secret
         $secret = Crypt::decryptString($user->two_factor_secret);
-        
+
         // Vérifier le code OTP
         $valid = $this->google2fa->verifyKey($secret, $request->code);
-        
-        if (!$valid) {
+
+        if (! $valid) {
             return back()->withErrors([
                 'code' => 'Le code de vérification est incorrect. Veuillez réessayer.',
             ]);
         }
-        
+
         // Générer les codes de récupération
         $recoveryCodes = $this->generateRecoveryCodes();
-        
+
         // Activer la 2FA
         $user->two_factor_enabled = true;
         $user->two_factor_confirmed_at = now();
         $user->two_factor_recovery_codes = Crypt::encryptString(json_encode($recoveryCodes));
         $user->save();
-        
+
         return redirect()->route('two-factor.recovery-codes')
             ->with('success', 'Double authentification activée avec succès !');
     }
@@ -128,16 +128,16 @@ class TwoFactorAuthController extends Controller
     public function recoveryCodes(Request $request): Response
     {
         $user = $request->user();
-        
-        if (!$user->two_factor_enabled || !$user->two_factor_recovery_codes) {
+
+        if (! $user->two_factor_enabled || ! $user->two_factor_recovery_codes) {
             return redirect()->route('two-factor.show');
         }
-        
+
         $recoveryCodes = json_decode(
             Crypt::decryptString($user->two_factor_recovery_codes),
             true
         );
-        
+
         return Inertia::render('Auth/TwoFactor/RecoveryCodes', [
             'recoveryCodes' => $recoveryCodes,
             'justEnabled' => session('success') === 'Double authentification activée avec succès !',
@@ -150,16 +150,16 @@ class TwoFactorAuthController extends Controller
     public function regenerateRecoveryCodes(Request $request): RedirectResponse
     {
         $user = $request->user();
-        
-        if (!$user->two_factor_enabled) {
+
+        if (! $user->two_factor_enabled) {
             return redirect()->route('two-factor.show');
         }
-        
+
         $recoveryCodes = $this->generateRecoveryCodes();
-        
+
         $user->two_factor_recovery_codes = Crypt::encryptString(json_encode($recoveryCodes));
         $user->save();
-        
+
         return redirect()->route('two-factor.recovery-codes')
             ->with('success', 'Codes de récupération régénérés.');
     }
@@ -172,15 +172,15 @@ class TwoFactorAuthController extends Controller
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
-        
+
         $user = $request->user();
-        
+
         $user->two_factor_secret = null;
         $user->two_factor_recovery_codes = null;
         $user->two_factor_confirmed_at = null;
         $user->two_factor_enabled = false;
         $user->save();
-        
+
         return redirect()->route('two-factor.show')
             ->with('success', 'Double authentification désactivée.');
     }
@@ -201,27 +201,27 @@ class TwoFactorAuthController extends Controller
         $request->validate([
             'code' => ['required', 'string'],
         ]);
-        
+
         $user = $request->user();
-        
+
         // Vérifier si c'est un code de récupération
         if (strlen($request->code) > 6) {
             return $this->verifyRecoveryCode($request, $user);
         }
-        
+
         // Vérifier le code OTP
         $secret = Crypt::decryptString($user->two_factor_secret);
         $valid = $this->google2fa->verifyKey($secret, $request->code);
-        
-        if (!$valid) {
+
+        if (! $valid) {
             return back()->withErrors([
                 'code' => 'Le code de vérification est incorrect.',
             ]);
         }
-        
+
         // Marquer la 2FA comme validée pour cette session
         $request->session()->put('two_factor_authenticated', true);
-        
+
         return redirect()->intended(route('dashboard'));
     }
 
@@ -234,26 +234,26 @@ class TwoFactorAuthController extends Controller
             Crypt::decryptString($user->two_factor_recovery_codes),
             true
         );
-        
+
         $code = $request->code;
-        
-        if (!in_array($code, $recoveryCodes)) {
+
+        if (! in_array($code, $recoveryCodes)) {
             return back()->withErrors([
                 'code' => 'Le code de récupération est invalide.',
             ]);
         }
-        
+
         // Supprimer le code utilisé
-        $recoveryCodes = array_values(array_filter($recoveryCodes, fn($c) => $c !== $code));
-        
+        $recoveryCodes = array_values(array_filter($recoveryCodes, fn ($c) => $c !== $code));
+
         $user->two_factor_recovery_codes = Crypt::encryptString(json_encode($recoveryCodes));
         $user->save();
-        
+
         // Marquer la 2FA comme validée pour cette session
         $request->session()->put('two_factor_authenticated', true);
-        
+
         return redirect()->intended(route('dashboard'))
-            ->with('warning', 'Vous avez utilisé un code de récupération. Il vous reste ' . count($recoveryCodes) . ' codes.');
+            ->with('warning', 'Vous avez utilisé un code de récupération. Il vous reste '.count($recoveryCodes).' codes.');
     }
 
     /**
@@ -263,8 +263,9 @@ class TwoFactorAuthController extends Controller
     {
         $codes = [];
         for ($i = 0; $i < $count; $i++) {
-            $codes[] = strtoupper(Str::random(4) . '-' . Str::random(4));
+            $codes[] = strtoupper(Str::random(4).'-'.Str::random(4));
         }
+
         return $codes;
     }
 
@@ -275,11 +276,11 @@ class TwoFactorAuthController extends Controller
     {
         $renderer = new \BaconQrCode\Renderer\ImageRenderer(
             new \BaconQrCode\Renderer\RendererStyle\RendererStyle(200),
-            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd
         );
-        
+
         $writer = new \BaconQrCode\Writer($renderer);
-        
+
         return $writer->writeString($content);
     }
 }

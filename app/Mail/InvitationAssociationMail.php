@@ -13,9 +13,13 @@ class InvitationAssociationMail extends Mailable
     use Queueable, SerializesModels;
 
     public string $memberName;
+
     public string $associationName;
+
     public string $inviterName;
+
     public string $registerUrl;
+
     public ?string $personalMessage;
 
     /**

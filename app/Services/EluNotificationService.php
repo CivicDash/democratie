@@ -29,12 +29,13 @@ class EluNotificationService
     {
         // Récupérer les informations de l'élu
         $eluInfo = $this->getEluInfo($topicElu->elu_type, $topicElu->elu_id);
-        
-        if (!$eluInfo) {
-            Log::warning("Élu non trouvé pour notification", [
+
+        if (! $eluInfo) {
+            Log::warning('Élu non trouvé pour notification', [
                 'elu_type' => $topicElu->elu_type,
                 'elu_id' => $topicElu->elu_id,
             ]);
+
             return;
         }
 
@@ -49,7 +50,7 @@ class EluNotificationService
             $this->notificationService->notify(
                 $eluUser,
                 'interpellation',
-                "📣 Nouvelle interpellation citoyenne",
+                '📣 Nouvelle interpellation citoyenne',
                 "Vous avez été interpellé par {$author->name} : \"{$topic->title}\"",
                 route('elu.interpellations.show', $topicElu->id),
                 '📣',
@@ -90,17 +91,17 @@ class EluNotificationService
         string $contextTitle
     ): void {
         $eluUser = $this->findEluUser($eluType, $eluId);
-        
-        if (!$eluUser) {
+
+        if (! $eluUser) {
             return; // Pas de compte, pas de notification
         }
 
         $eluInfo = $this->getEluInfo($eluType, $eluId);
-        
+
         $this->notificationService->notify(
             $eluUser,
             'mention',
-            "@ Vous avez été mentionné",
+            '@ Vous avez été mentionné',
             "{$author->name} vous a mentionné dans \"{$contextTitle}\"",
             $contextUrl,
             '@',
@@ -123,7 +124,7 @@ class EluNotificationService
     ): int {
         $moderationService = app(ContentModerationService::class);
         $references = $moderationService->extractReferences($content);
-        
+
         $eluTypes = ['depute', 'senateur', 'maire'];
         $notified = 0;
 
@@ -155,20 +156,21 @@ class EluNotificationService
         string $eluName
     ): bool {
         // Vérifier les préférences email
-        if (!$this->notificationService->isChannelEnabled($eluUser, 'email', 'interpellation')) {
+        if (! $this->notificationService->isChannelEnabled($eluUser, 'email', 'interpellation')) {
             return false;
         }
 
         try {
             Mail::to($eluUser->email)
                 ->queue(new InterpellationNotificationMail($topic, $topicElu, $author, $eluName));
-            
+
             return true;
         } catch (\Exception $e) {
-            Log::error("Erreur envoi email interpellation", [
+            Log::error('Erreur envoi email interpellation', [
                 'user_id' => $eluUser->id,
                 'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -200,13 +202,13 @@ class EluNotificationService
     protected function getDeputeInfo(string $uid): ?array
     {
         $depute = ActeurAN::where('uid', $uid)->first(['uid', 'prenom', 'nom', 'slug']);
-        
-        if (!$depute) {
+
+        if (! $depute) {
             return null;
         }
 
         return [
-            'name' => $depute->prenom . ' ' . $depute->nom,
+            'name' => $depute->prenom.' '.$depute->nom,
             'url' => route('representants.deputes.show', $depute->slug ?? $uid),
         ];
     }
@@ -214,13 +216,13 @@ class EluNotificationService
     protected function getSenateurInfo(string $matricule): ?array
     {
         $senateur = Senateur::where('matricule', $matricule)->first(['matricule', 'prenom', 'nom']);
-        
-        if (!$senateur) {
+
+        if (! $senateur) {
             return null;
         }
 
         return [
-            'name' => $senateur->prenom . ' ' . $senateur->nom,
+            'name' => $senateur->prenom.' '.$senateur->nom,
             'url' => route('representants.senateurs.show', $matricule),
         ];
     }
@@ -228,13 +230,13 @@ class EluNotificationService
     protected function getMaireInfo(string $id): ?array
     {
         $maire = Maire::find($id, ['id', 'prenom', 'nom', 'commune']);
-        
-        if (!$maire) {
+
+        if (! $maire) {
             return null;
         }
 
         return [
-            'name' => $maire->prenom . ' ' . $maire->nom . ' (Maire de ' . $maire->commune . ')',
+            'name' => $maire->prenom.' '.$maire->nom.' (Maire de '.$maire->commune.')',
             'url' => route('representants.maires.show', $id),
         ];
     }
@@ -247,7 +249,7 @@ class EluNotificationService
         $notified = 0;
 
         foreach ($topic->elus as $topicElu) {
-            if ($topicElu->is_interpellation && !$topicElu->notified_at) {
+            if ($topicElu->is_interpellation && ! $topicElu->notified_at) {
                 $this->notifyInterpellation($topic, $topicElu);
                 $notified++;
             }

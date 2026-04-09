@@ -19,6 +19,7 @@ class SyncAllDataCommand extends Command
     protected $description = 'Synchronise toutes les données parlementaires (Sénat, AN, HATVP, Wikipedia)';
 
     private bool $dryRun = false;
+
     private array $results = [];
 
     public function handle(): int
@@ -26,24 +27,24 @@ class SyncAllDataCommand extends Command
         $this->dryRun = $this->option('dry-run');
         $quick = $this->option('quick');
         $fresh = $this->option('fresh');
-        
-        // Déterminer quoi synchroniser
-        $syncSenat = $this->option('senat') || (!$this->option('an') && !$this->option('hatvp') && !$this->option('photos'));
-        $syncAN = $this->option('an') || (!$this->option('senat') && !$this->option('hatvp') && !$this->option('photos'));
-        $syncHatvp = $this->option('hatvp') || (!$this->option('senat') && !$this->option('an') && !$this->option('photos'));
-        $syncPhotos = $this->option('photos') || (!$this->option('senat') && !$this->option('an') && !$this->option('hatvp'));
 
-        $this->info("🔄 Synchronisation des données parlementaires");
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        
+        // Déterminer quoi synchroniser
+        $syncSenat = $this->option('senat') || (! $this->option('an') && ! $this->option('hatvp') && ! $this->option('photos'));
+        $syncAN = $this->option('an') || (! $this->option('senat') && ! $this->option('hatvp') && ! $this->option('photos'));
+        $syncHatvp = $this->option('hatvp') || (! $this->option('senat') && ! $this->option('an') && ! $this->option('photos'));
+        $syncPhotos = $this->option('photos') || (! $this->option('senat') && ! $this->option('an') && ! $this->option('hatvp'));
+
+        $this->info('🔄 Synchronisation des données parlementaires');
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
         if ($this->dryRun) {
-            $this->warn("⚠️  Mode dry-run : les commandes ne seront pas exécutées");
+            $this->warn('⚠️  Mode dry-run : les commandes ne seront pas exécutées');
         }
-        
+
         if ($quick) {
-            $this->info("⚡ Mode rapide activé");
+            $this->info('⚡ Mode rapide activé');
         }
-        
+
         $startTime = now();
 
         // 1. Données Sénat
@@ -69,7 +70,7 @@ class SyncAllDataCommand extends Command
         // Résumé
         $duration = now()->diffInMinutes($startTime);
         $this->newLine();
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->info("✅ Synchronisation terminée en {$duration} minutes");
         $this->displayResults();
 
@@ -79,24 +80,24 @@ class SyncAllDataCommand extends Command
     private function syncSenat(bool $quick, bool $fresh): void
     {
         $this->newLine();
-        $this->info("🏛️  1/4 - Données Sénat");
-        
-        if (!$quick) {
+        $this->info('🏛️  1/4 - Données Sénat');
+
+        if (! $quick) {
             // Import complet des bases SQL
             $this->executeCommand('import:senat-sql', ['type' => 'senateurs'], 'Sénateurs');
-            
-            if (!$fresh) {
+
+            if (! $fresh) {
                 // En mode normal, on ne réimporte pas AMELI (très long)
-                $this->info("   ⏭️  AMELI ignoré (utilisez --fresh pour réimporter)");
+                $this->info('   ⏭️  AMELI ignoré (utilisez --fresh pour réimporter)');
             } else {
                 $this->executeCommand('import:senat-sql', ['type' => 'ameli', '--fresh' => true], 'Amendements AMELI');
             }
-            
+
             $this->executeCommand('import:senat-sql', ['type' => 'questions'], 'Questions');
         } else {
-            $this->info("   ⏭️  Mode rapide : bases SQL ignorées");
+            $this->info('   ⏭️  Mode rapide : bases SQL ignorées');
         }
-        
+
         // Textes Akoma Ntoso (toujours, car incrémental)
         $since = $quick ? 3 : 30;
         $this->executeCommand('import:akoma-ntoso', ['--since' => $since], "Textes Akoma Ntoso ({$since}j)");
@@ -105,40 +106,40 @@ class SyncAllDataCommand extends Command
     private function syncAN(bool $quick, bool $fresh): void
     {
         $this->newLine();
-        $this->info("🏛️  2/4 - Données Assemblée Nationale");
-        
+        $this->info('🏛️  2/4 - Données Assemblée Nationale');
+
         $limit = $quick ? 100 : null;
         $options = $limit ? ['--limit' => $limit] : [];
-        
+
         $this->executeCommand('import:questions-an', $options, 'Questions au Gouvernement');
     }
 
     private function syncHatvp(bool $quick, bool $fresh): void
     {
         $this->newLine();
-        $this->info("📋 3/4 - Données HATVP (Transparence)");
-        
+        $this->info('📋 3/4 - Données HATVP (Transparence)');
+
         $options = ['--import-details' => true];
-        
+
         if ($quick) {
             $options['--limit'] = 200;
             $options['--parlementaires'] = true;
         }
-        
+
         $this->executeCommand('hatvp:sync', $options, 'Déclarations HATVP');
     }
 
     private function syncPhotos(bool $quick): void
     {
         $this->newLine();
-        $this->info("📸 4/4 - Photos Wikipedia");
-        
+        $this->info('📸 4/4 - Photos Wikipedia');
+
         $limit = $quick ? 50 : null;
-        
+
         // Sénateurs
         $options = $limit ? ['--limit' => $limit] : [];
         $this->executeCommand('enrich:senateurs-wikipedia', $options, 'Photos sénateurs');
-        
+
         // Députés
         $this->executeCommand('enrich:deputes-wikipedia', $options, 'Photos députés');
     }
@@ -146,28 +147,29 @@ class SyncAllDataCommand extends Command
     private function executeCommand(string $command, array $options = [], string $label = ''): void
     {
         $label = $label ?: $command;
-        $optionsStr = collect($options)->map(fn($v, $k) => is_bool($v) ? $k : "{$k}={$v}")->implode(' ');
-        
+        $optionsStr = collect($options)->map(fn ($v, $k) => is_bool($v) ? $k : "{$k}={$v}")->implode(' ');
+
         $this->info("   → {$label}...");
-        
+
         if ($this->dryRun) {
             $this->line("     <fg=gray>php artisan {$command} {$optionsStr}</>");
             $this->results[$label] = 'dry-run';
+
             return;
         }
-        
+
         try {
             $exitCode = Artisan::call($command, $options);
-            
+
             if ($exitCode === 0) {
-                $this->info("     ✅ Succès");
+                $this->info('     ✅ Succès');
                 $this->results[$label] = 'success';
             } else {
                 $this->warn("     ⚠️  Code retour: {$exitCode}");
                 $this->results[$label] = 'warning';
             }
         } catch (\Exception $e) {
-            $this->error("     ❌ Erreur: " . $e->getMessage());
+            $this->error('     ❌ Erreur: '.$e->getMessage());
             $this->results[$label] = 'error';
         }
     }
@@ -177,17 +179,16 @@ class SyncAllDataCommand extends Command
         $this->newLine();
         $this->table(
             ['Tâche', 'Statut'],
-            collect($this->results)->map(fn($status, $task) => [
+            collect($this->results)->map(fn ($status, $task) => [
                 $task,
-                match($status) {
+                match ($status) {
                     'success' => '✅ Succès',
                     'warning' => '⚠️ Attention',
                     'error' => '❌ Erreur',
                     'dry-run' => '🔍 Dry-run',
                     default => $status,
-                }
+                },
             ])->toArray()
         );
     }
 }
-

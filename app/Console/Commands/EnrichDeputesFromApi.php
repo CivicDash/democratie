@@ -11,12 +11,17 @@ use Illuminate\Support\Facades\Log;
 class EnrichDeputesFromApi extends Command
 {
     protected $signature = 'enrich:deputes {--limit= : Limiter le nombre de députés à enrichir (pour test)} {--force : Forcer la mise à jour même si déjà enrichi}';
+
     protected $description = 'Enrichit les données des députés via l\'API NosDéputés.fr (groupes, photos, stats)';
 
     private const API_BASE_URL = 'https://www.nosdeputes.fr';
+
     private const API_SYNTHESE = 'https://www.nosdeputes.fr/synthese/legislature/17/json';
+
     private int $successCount = 0;
+
     private int $errorCount = 0;
+
     private int $skippedCount = 0;
 
     public function handle()
@@ -35,9 +40,10 @@ class EnrichDeputesFromApi extends Command
             // 1. Récupérer tous les députés depuis l'API
             $this->info('📥 Récupération de la liste des députés depuis l\'API...');
             $apiDeputes = $this->fetchDeputesFromApi();
-            
+
             if (empty($apiDeputes)) {
                 $this->error('❌ Impossible de récupérer les données de l\'API');
+
                 return Command::FAILURE;
             }
 
@@ -46,12 +52,12 @@ class EnrichDeputesFromApi extends Command
 
             // 2. Récupérer nos députés en base
             $query = DeputeSenateur::where('source', 'assemblee');
-            
-            if (!$force) {
-                $query->where(function($q) {
+
+            if (! $force) {
+                $query->where(function ($q) {
                     $q->whereNull('groupe_politique')
-                      ->orWhereNull('photo_url')
-                      ->orWhere('nb_propositions', 0);
+                        ->orWhereNull('photo_url')
+                        ->orWhere('nb_propositions', 0);
                 });
             }
 
@@ -60,9 +66,10 @@ class EnrichDeputesFromApi extends Command
             }
 
             $deputes = $query->get();
-            
+
             if ($deputes->isEmpty()) {
                 $this->warn('⚠️  Aucun député à enrichir');
+
                 return Command::SUCCESS;
             }
 
@@ -74,7 +81,7 @@ class EnrichDeputesFromApi extends Command
             foreach ($deputes as $depute) {
                 $this->enrichDepute($depute, $apiDeputes);
                 $bar->advance();
-                
+
                 // Pause pour ne pas surcharger l'API
                 usleep(100000); // 0.1 seconde
             }
@@ -88,8 +95,9 @@ class EnrichDeputesFromApi extends Command
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error('❌ Erreur lors de l\'enrichissement: ' . $e->getMessage());
+            $this->error('❌ Erreur lors de l\'enrichissement: '.$e->getMessage());
             Log::error('EnrichDeputes error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
             return Command::FAILURE;
         }
     }
@@ -101,18 +109,19 @@ class EnrichDeputesFromApi extends Command
     {
         try {
             $response = Http::timeout(30)->get(self::API_SYNTHESE);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 return collect([]);
             }
 
             $data = $response->json();
-            
+
             // L'API retourne un objet avec les députés comme clés
             return collect($data['deputes'] ?? []);
 
         } catch (\Exception $e) {
-            $this->warn("⚠️  Erreur API: " . $e->getMessage());
+            $this->warn('⚠️  Erreur API: '.$e->getMessage());
+
             return collect([]);
         }
     }
@@ -126,8 +135,9 @@ class EnrichDeputesFromApi extends Command
             // Chercher le député dans les données API par nom/prénom
             $apiDepute = $this->findDeputeInApi($depute, $apiDeputes);
 
-            if (!$apiDepute) {
+            if (! $apiDepute) {
                 $this->skippedCount++;
+
                 return;
             }
 
@@ -135,7 +145,7 @@ class EnrichDeputesFromApi extends Command
             $updated = false;
 
             // Groupe politique
-            if (!empty($apiDepute['groupe_sigle'])) {
+            if (! empty($apiDepute['groupe_sigle'])) {
                 $depute->groupe_sigle = $apiDepute['groupe_sigle'];
                 $depute->groupe_politique = $apiDepute['groupe'] ?? null;
                 $updated = true;
@@ -145,7 +155,7 @@ class EnrichDeputesFromApi extends Command
             }
 
             // Photo
-            if (!empty($apiDepute['url_an'])) {
+            if (! empty($apiDepute['url_an'])) {
                 // Construire l'URL de la photo depuis l'ID
                 if (preg_match('/\/(\d+)$/', $apiDepute['url_an'], $matches)) {
                     $deputeId = $matches[1];
@@ -155,8 +165,8 @@ class EnrichDeputesFromApi extends Command
             }
 
             // URL profil
-            if (!empty($apiDepute['slug'])) {
-                $depute->url_profil = self::API_BASE_URL . '/' . $apiDepute['slug'];
+            if (! empty($apiDepute['slug'])) {
+                $depute->url_profil = self::API_BASE_URL.'/'.$apiDepute['slug'];
                 $updated = true;
             }
 
@@ -179,7 +189,7 @@ class EnrichDeputesFromApi extends Command
             }
 
             // Fonctions (si disponibles)
-            if (!empty($apiDepute['responsabilites'])) {
+            if (! empty($apiDepute['responsabilites'])) {
                 $fonctions = [];
                 foreach ($apiDepute['responsabilites'] as $resp) {
                     $fonctions[] = [
@@ -238,8 +248,8 @@ class EnrichDeputesFromApi extends Command
         // Correspondance partielle (premier prénom uniquement)
         $prenom1Parts = explode(' ', $prenom1);
         $prenom2Parts = explode(' ', $prenom2);
-        
-        if ($nom1 === $nom2 && !empty($prenom1Parts[0]) && !empty($prenom2Parts[0])) {
+
+        if ($nom1 === $nom2 && ! empty($prenom1Parts[0]) && ! empty($prenom2Parts[0])) {
             if ($prenom1Parts[0] === $prenom2Parts[0]) {
                 return true;
             }
@@ -257,6 +267,7 @@ class EnrichDeputesFromApi extends Command
         $str = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
         $str = preg_replace('/[^a-z0-9\s-]/', '', $str);
         $str = trim($str);
+
         return $str;
     }
 
@@ -291,19 +302,19 @@ class EnrichDeputesFromApi extends Command
      */
     private function displaySummary()
     {
-        $this->info("✅ Enrichissement terminé !");
+        $this->info('✅ Enrichissement terminé !');
         $this->newLine();
-        
-        $this->info("📊 Résumé :");
+
+        $this->info('📊 Résumé :');
         $this->line("   ✓ {$this->successCount} députés enrichis");
         $this->line("   ↻ {$this->skippedCount} députés ignorés");
-        
+
         if ($this->errorCount > 0) {
             $this->warn("   ⚠️  {$this->errorCount} erreurs");
         }
 
         $this->newLine();
-        
+
         // Statistiques finales
         $stats = DeputeSenateur::where('source', 'assemblee')
             ->selectRaw('
@@ -315,12 +326,11 @@ class EnrichDeputesFromApi extends Command
             ')
             ->first();
 
-        $this->info("📈 Statistiques globales :");
+        $this->info('📈 Statistiques globales :');
         $this->line("   Total députés : {$stats->total}");
         $this->line("   Avec groupe : {$stats->avec_groupe}");
         $this->line("   Avec photo : {$stats->avec_photo}");
-        $this->line("   Moy. propositions : " . round($stats->avg_propositions, 1));
-        $this->line("   Moy. amendements : " . round($stats->avg_amendements, 1));
+        $this->line('   Moy. propositions : '.round($stats->avg_propositions, 1));
+        $this->line('   Moy. amendements : '.round($stats->avg_amendements, 1));
     }
 }
-

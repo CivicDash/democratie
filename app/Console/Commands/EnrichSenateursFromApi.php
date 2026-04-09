@@ -11,12 +11,17 @@ use Illuminate\Support\Facades\Log;
 class EnrichSenateursFromApi extends Command
 {
     protected $signature = 'enrich:senateurs {--limit= : Limiter le nombre de sénateurs à enrichir (pour test)} {--force : Forcer la mise à jour même si déjà enrichi}';
+
     protected $description = 'Enrichit les données des sénateurs via l\'API NosSénateurs.fr (groupes, photos, stats)';
 
     private const API_BASE_URL = 'https://www.nossenateurs.fr';
+
     private const API_SYNTHESE = 'https://www.nossenateurs.fr/synthese/json';
+
     private int $successCount = 0;
+
     private int $errorCount = 0;
+
     private int $skippedCount = 0;
 
     public function handle()
@@ -35,9 +40,10 @@ class EnrichSenateursFromApi extends Command
             // 1. Récupérer tous les sénateurs depuis l'API
             $this->info('📥 Récupération de la liste des sénateurs depuis l\'API...');
             $apiSenateurs = $this->fetchSenateursFromApi();
-            
+
             if (empty($apiSenateurs)) {
                 $this->error('❌ Impossible de récupérer les données de l\'API');
+
                 return Command::FAILURE;
             }
 
@@ -46,12 +52,12 @@ class EnrichSenateursFromApi extends Command
 
             // 2. Récupérer nos sénateurs en base
             $query = DeputeSenateur::where('source', 'senat');
-            
-            if (!$force) {
-                $query->where(function($q) {
+
+            if (! $force) {
+                $query->where(function ($q) {
                     $q->whereNull('groupe_politique')
-                      ->orWhereNull('photo_url')
-                      ->orWhere('nb_propositions', 0);
+                        ->orWhereNull('photo_url')
+                        ->orWhere('nb_propositions', 0);
                 });
             }
 
@@ -60,9 +66,10 @@ class EnrichSenateursFromApi extends Command
             }
 
             $senateurs = $query->get();
-            
+
             if ($senateurs->isEmpty()) {
                 $this->warn('⚠️  Aucun sénateur à enrichir');
+
                 return Command::SUCCESS;
             }
 
@@ -74,7 +81,7 @@ class EnrichSenateursFromApi extends Command
             foreach ($senateurs as $senateur) {
                 $this->enrichSenateur($senateur, $apiSenateurs);
                 $bar->advance();
-                
+
                 // Pause pour ne pas surcharger l'API
                 usleep(100000); // 0.1 seconde
             }
@@ -88,8 +95,9 @@ class EnrichSenateursFromApi extends Command
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error('❌ Erreur lors de l\'enrichissement: ' . $e->getMessage());
+            $this->error('❌ Erreur lors de l\'enrichissement: '.$e->getMessage());
             Log::error('EnrichSenateurs error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
             return Command::FAILURE;
         }
     }
@@ -101,18 +109,19 @@ class EnrichSenateursFromApi extends Command
     {
         try {
             $response = Http::timeout(30)->get(self::API_SYNTHESE);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 return collect([]);
             }
 
             $data = $response->json();
-            
+
             // L'API retourne un objet avec les sénateurs comme clés
             return collect($data['senateurs'] ?? []);
 
         } catch (\Exception $e) {
-            $this->warn("⚠️  Erreur API: " . $e->getMessage());
+            $this->warn('⚠️  Erreur API: '.$e->getMessage());
+
             return collect([]);
         }
     }
@@ -126,8 +135,9 @@ class EnrichSenateursFromApi extends Command
             // Chercher le sénateur dans les données API par nom/prénom
             $apiSenateur = $this->findSenateurInApi($senateur, $apiSenateurs);
 
-            if (!$apiSenateur) {
+            if (! $apiSenateur) {
                 $this->skippedCount++;
+
                 return;
             }
 
@@ -135,7 +145,7 @@ class EnrichSenateursFromApi extends Command
             $updated = false;
 
             // Groupe politique
-            if (!empty($apiSenateur['groupe_sigle'])) {
+            if (! empty($apiSenateur['groupe_sigle'])) {
                 $senateur->groupe_sigle = $apiSenateur['groupe_sigle'];
                 $senateur->groupe_politique = $apiSenateur['groupe'] ?? null;
                 $updated = true;
@@ -145,7 +155,7 @@ class EnrichSenateursFromApi extends Command
             }
 
             // Photo
-            if (!empty($apiSenateur['url_institution'])) {
+            if (! empty($apiSenateur['url_institution'])) {
                 // Construire l'URL de la photo depuis l'ID
                 if (preg_match('/\/(\d+)$/', $apiSenateur['url_institution'], $matches)) {
                     $senateurId = $matches[1];
@@ -155,8 +165,8 @@ class EnrichSenateursFromApi extends Command
             }
 
             // URL profil
-            if (!empty($apiSenateur['slug'])) {
-                $senateur->url_profil = self::API_BASE_URL . '/' . $apiSenateur['slug'];
+            if (! empty($apiSenateur['slug'])) {
+                $senateur->url_profil = self::API_BASE_URL.'/'.$apiSenateur['slug'];
                 $updated = true;
             }
 
@@ -179,7 +189,7 @@ class EnrichSenateursFromApi extends Command
             }
 
             // Fonctions (si disponibles)
-            if (!empty($apiSenateur['responsabilites'])) {
+            if (! empty($apiSenateur['responsabilites'])) {
                 $fonctions = [];
                 foreach ($apiSenateur['responsabilites'] as $resp) {
                     $fonctions[] = [
@@ -238,8 +248,8 @@ class EnrichSenateursFromApi extends Command
         // Correspondance partielle (premier prénom uniquement)
         $prenom1Parts = explode(' ', $prenom1);
         $prenom2Parts = explode(' ', $prenom2);
-        
-        if ($nom1 === $nom2 && !empty($prenom1Parts[0]) && !empty($prenom2Parts[0])) {
+
+        if ($nom1 === $nom2 && ! empty($prenom1Parts[0]) && ! empty($prenom2Parts[0])) {
             if ($prenom1Parts[0] === $prenom2Parts[0]) {
                 return true;
             }
@@ -257,6 +267,7 @@ class EnrichSenateursFromApi extends Command
         $str = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
         $str = preg_replace('/[^a-z0-9\s-]/', '', $str);
         $str = trim($str);
+
         return $str;
     }
 
@@ -291,19 +302,19 @@ class EnrichSenateursFromApi extends Command
      */
     private function displaySummary()
     {
-        $this->info("✅ Enrichissement terminé !");
+        $this->info('✅ Enrichissement terminé !');
         $this->newLine();
-        
-        $this->info("📊 Résumé :");
+
+        $this->info('📊 Résumé :');
         $this->line("   ✓ {$this->successCount} sénateurs enrichis");
         $this->line("   ↻ {$this->skippedCount} sénateurs ignorés");
-        
+
         if ($this->errorCount > 0) {
             $this->warn("   ⚠️  {$this->errorCount} erreurs");
         }
 
         $this->newLine();
-        
+
         // Statistiques finales
         $stats = DeputeSenateur::where('source', 'senat')
             ->selectRaw('
@@ -315,12 +326,11 @@ class EnrichSenateursFromApi extends Command
             ')
             ->first();
 
-        $this->info("📈 Statistiques globales :");
+        $this->info('📈 Statistiques globales :');
         $this->line("   Total sénateurs : {$stats->total}");
         $this->line("   Avec groupe : {$stats->avec_groupe}");
         $this->line("   Avec photo : {$stats->avec_photo}");
-        $this->line("   Moy. propositions : " . round($stats->avg_propositions, 1));
-        $this->line("   Moy. amendements : " . round($stats->avg_amendements, 1));
+        $this->line('   Moy. propositions : '.round($stats->avg_propositions, 1));
+        $this->line('   Moy. amendements : '.round($stats->avg_amendements, 1));
     }
 }
-

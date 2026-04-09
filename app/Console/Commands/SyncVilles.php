@@ -23,8 +23,11 @@ class SyncVilles extends Command
     protected $description = 'Synchronise les villes depuis french_postal_codes et lie les maires';
 
     private int $created = 0;
+
     private int $updated = 0;
+
     private int $mairesLies = 0;
+
     private int $mandatsCrees = 0;
 
     public function handle(): int
@@ -50,7 +53,7 @@ class SyncVilles extends Command
         }
 
         $this->newLine();
-        $this->info("✅ Terminé !");
+        $this->info('✅ Terminé !');
         $this->info("   Villes créées : {$this->created}");
         $this->info("   Villes mises à jour : {$this->updated}");
         if ($withMaires) {
@@ -70,20 +73,20 @@ class SyncVilles extends Command
         // Requête pour agréger les codes postaux par INSEE
         $query = DB::table('french_postal_codes')
             ->select('insee_code')
-            ->selectRaw("MIN(city_name) as city_name")
-            ->selectRaw("MIN(postal_code) as code_postal_principal")
+            ->selectRaw('MIN(city_name) as city_name')
+            ->selectRaw('MIN(postal_code) as code_postal_principal')
             ->selectRaw("STRING_AGG(DISTINCT postal_code, ',' ORDER BY postal_code) as codes_postaux")
-            ->selectRaw("MIN(department_code) as department_code")
-            ->selectRaw("MIN(department_name) as department_name")
-            ->selectRaw("MIN(region_code) as region_code")
-            ->selectRaw("MIN(region_name) as region_name")
-            ->selectRaw("MIN(circonscription) as circonscription")
-            ->selectRaw("MIN(epci_code) as epci_code")
-            ->selectRaw("MIN(epci_nom) as epci_nom")
-            ->selectRaw("AVG(latitude) as latitude")
-            ->selectRaw("AVG(longitude) as longitude")
-            ->selectRaw("MAX(population) as population")
-            ->selectRaw("MAX(superficie) as superficie")
+            ->selectRaw('MIN(department_code) as department_code')
+            ->selectRaw('MIN(department_name) as department_name')
+            ->selectRaw('MIN(region_code) as region_code')
+            ->selectRaw('MIN(region_name) as region_name')
+            ->selectRaw('MIN(circonscription) as circonscription')
+            ->selectRaw('MIN(epci_code) as epci_code')
+            ->selectRaw('MIN(epci_nom) as epci_nom')
+            ->selectRaw('AVG(latitude) as latitude')
+            ->selectRaw('AVG(longitude) as longitude')
+            ->selectRaw('MAX(population) as population')
+            ->selectRaw('MAX(superficie) as superficie')
             ->whereNotNull('insee_code')
             ->groupBy('insee_code');
 
@@ -115,7 +118,7 @@ class SyncVilles extends Command
         // Détecter si c'est un arrondissement
         $estArrondissement = preg_match('/\s+\d{2}$/', $data->city_name);
         $villeParentInsee = null;
-        
+
         if ($estArrondissement) {
             // Paris, Lyon, Marseille
             if (preg_match('/^751\d{2}$/', $data->insee_code)) {
@@ -155,7 +158,7 @@ class SyncVilles extends Command
             $this->updated++;
         } else {
             $villeData['code_insee'] = $data->insee_code;
-            $villeData['slug'] = Str::slug($nom . '-' . $data->insee_code);
+            $villeData['slug'] = Str::slug($nom.'-'.$data->insee_code);
             Ville::create($villeData);
             $this->created++;
         }
@@ -174,7 +177,7 @@ class SyncVilles extends Command
 
         foreach ($maires as $maire) {
             $ville = Ville::where('code_insee', $maire->code_commune)->first();
-            
+
             if ($ville) {
                 $maire->ville_id = $ville->id;
                 $maire->save();
@@ -210,7 +213,7 @@ class SyncVilles extends Command
                 ->where('maire_id', $maire->id)
                 ->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 MaireMandat::create([
                     'ville_id' => $maire->ville_id,
                     'maire_id' => $maire->id,
@@ -220,8 +223,8 @@ class SyncVilles extends Command
                     'date_debut' => $maire->debut_mandat ?? $maire->debut_fonction,
                     'date_fin' => $maire->fin_mandat,
                     'type_mandat' => 'election',
-                    'annee_election' => $maire->debut_mandat 
-                        ? (int) substr($maire->debut_mandat, 0, 4) 
+                    'annee_election' => $maire->debut_mandat
+                        ? (int) substr($maire->debut_mandat, 0, 4)
                         : null,
                     'nuance_politique' => $maire->nuance_politique,
                     'mandature' => $maire->mandature ?? '2020-2026',

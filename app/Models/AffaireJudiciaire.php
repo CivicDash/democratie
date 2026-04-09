@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class AffaireJudiciaire extends Model
@@ -86,7 +86,7 @@ class AffaireJudiciaire extends Model
     public function moderationLogs(): HasMany
     {
         return $this->hasMany(AffaireModerationLog::class, 'affaire_id')
-                    ->orderByDesc('created_at');
+            ->orderByDesc('created_at');
     }
 
     // ── Scopes ──
@@ -94,7 +94,7 @@ class AffaireJudiciaire extends Model
     public function scopePubliques($q)
     {
         return $q->where('affiche_publiquement', true)
-                 ->where('statut_validation', 'valide');
+            ->where('statut_validation', 'valide');
     }
 
     public function scopeEnAttente($q)
@@ -221,16 +221,17 @@ class AffaireJudiciaire extends Model
         $parts = [];
         if ($this->peine_prison_mois) {
             $txt = $this->peine_prison_mois >= 12
-                ? floor($this->peine_prison_mois / 12) . ' an(s)'
-                : $this->peine_prison_mois . ' mois';
-            $parts[] = $txt . ($this->peine_prison_avec_sursis ? ' avec sursis' : ' ferme');
+                ? floor($this->peine_prison_mois / 12).' an(s)'
+                : $this->peine_prison_mois.' mois';
+            $parts[] = $txt.($this->peine_prison_avec_sursis ? ' avec sursis' : ' ferme');
         }
         if ($this->peine_amende_euros) {
-            $parts[] = number_format((float) $this->peine_amende_euros, 0, ',', ' ') . ' € d\'amende';
+            $parts[] = number_format((float) $this->peine_amende_euros, 0, ',', ' ').' € d\'amende';
         }
         if ($this->peine_ineligibilite_mois) {
-            $parts[] = $this->peine_ineligibilite_mois . ' mois d\'inéligibilité';
+            $parts[] = $this->peine_ineligibilite_mois.' mois d\'inéligibilité';
         }
+
         return count($parts) > 0 ? implode(' + ', $parts) : null;
     }
 
@@ -243,12 +244,13 @@ class AffaireJudiciaire extends Model
             'manquement' => 3,
             default => 2,
         };
-        if ($this->peine_prison_mois && !$this->peine_prison_avec_sursis) {
+        if ($this->peine_prison_mois && ! $this->peine_prison_avec_sursis) {
             $score += 2;
         }
         if ($this->peine_ineligibilite_mois) {
             $score += 1;
         }
+
         return min(10, $score);
     }
 

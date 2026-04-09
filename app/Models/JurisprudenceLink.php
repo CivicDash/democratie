@@ -60,7 +60,7 @@ class JurisprudenceLink extends Model
             'TA' => 'Tribunal Administratif',
             'CAA' => 'Cour Administrative d\'Appel',
         ];
-        
+
         return $labels[$this->jurisdiction] ?? $this->jurisdiction;
     }
 
@@ -69,7 +69,7 @@ class JurisprudenceLink extends Model
      */
     public function getDecisionTypeLabelAttribute(): string
     {
-        return match($this->decision_type) {
+        return match ($this->decision_type) {
             'arret' => 'Arrêt',
             'jugement' => 'Jugement',
             'ordonnance' => 'Ordonnance',
@@ -86,11 +86,11 @@ class JurisprudenceLink extends Model
         if ($this->external_url) {
             return $this->external_url;
         }
-        
+
         if ($this->legifrance_juri_id) {
             return "https://www.legifrance.gouv.fr/juri/id/{$this->legifrance_juri_id}";
         }
-        
+
         return null;
     }
 

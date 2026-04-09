@@ -6,7 +6,6 @@ use App\Models\GroupeParlementaire;
 use App\Models\PropositionLoi;
 use App\Models\ThematiqueLegislation;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\View;
 
 class ExportService
 {
@@ -36,7 +35,7 @@ class ExportService
             'generated_at' => now()->format('d/m/Y H:i'),
         ]);
 
-        $filename = "groupe-{$groupe->sigle}-" . now()->format('Y-m-d') . ".pdf";
+        $filename = "groupe-{$groupe->sigle}-".now()->format('Y-m-d').'.pdf';
 
         return $pdf->download($filename);
     }
@@ -64,7 +63,7 @@ class ExportService
             'generated_at' => now()->format('d/m/Y H:i'),
         ]);
 
-        $filename = "thematique-{$thematique->code}-" . now()->format('Y-m-d') . ".pdf";
+        $filename = "thematique-{$thematique->code}-".now()->format('Y-m-d').'.pdf';
 
         return $pdf->download($filename);
     }
@@ -84,7 +83,7 @@ class ExportService
             'generated_at' => now()->format('d/m/Y H:i'),
         ]);
 
-        $filename = "proposition-{$proposition->id}-" . now()->format('Y-m-d') . ".pdf";
+        $filename = "proposition-{$proposition->id}-".now()->format('Y-m-d').'.pdf';
 
         return $pdf->download($filename);
     }
@@ -125,7 +124,7 @@ class ExportService
             'generated_at' => now()->format('d/m/Y H:i'),
         ]);
 
-        $filename = "statistiques-" . now()->format('Y-m-d') . ".pdf";
+        $filename = 'statistiques-'.now()->format('Y-m-d').'.pdf';
 
         return $pdf->download($filename);
     }
@@ -153,9 +152,8 @@ class ExportService
             'generated_at' => now()->format('d/m/Y H:i'),
         ]);
 
-        $filename = "comparaison-groupes-" . now()->format('Y-m-d') . ".pdf";
+        $filename = 'comparaison-groupes-'.now()->format('Y-m-d').'.pdf';
 
         return $pdf->download($filename);
     }
 }
-

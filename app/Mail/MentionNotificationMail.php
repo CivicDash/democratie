@@ -14,10 +14,15 @@ class MentionNotificationMail extends Mailable
     use Queueable, SerializesModels;
 
     public User $mentionedUser;
+
     public User $author;
+
     public string $contentType;
+
     public string $contentTitle;
+
     public string $contentExcerpt;
+
     public string $contentUrl;
 
     /**

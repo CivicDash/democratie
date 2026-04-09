@@ -61,8 +61,7 @@ class HatvpMandatElectif extends Model
     {
         return $this->remunerations
             ->sortByDesc('annee')
-            ->mapWithKeys(fn($r) => [$r->annee => $r->montant])
+            ->mapWithKeys(fn ($r) => [$r->annee => $r->montant])
             ->toArray();
     }
 }
-

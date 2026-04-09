@@ -103,7 +103,7 @@ class UserFollow extends Model
      */
     public function canNotify(int $cooldownMinutes = 5): bool
     {
-        if (!$this->last_notified_at) {
+        if (! $this->last_notified_at) {
             return true;
         }
 

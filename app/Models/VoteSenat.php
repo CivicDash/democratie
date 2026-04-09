@@ -53,4 +53,3 @@ class VoteSenat extends Model
         return $query->where('position', 'non_votant');
     }
 }
-

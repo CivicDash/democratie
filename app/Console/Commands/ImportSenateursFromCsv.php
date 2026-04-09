@@ -3,13 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Models\DeputeSenateur;
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
 
 class ImportSenateursFromCsv extends Command
 {
     protected $signature = 'import:senateurs {--fresh : Vider la table des sénateurs avant l\'import}';
+
     protected $description = 'Importe les sénateurs depuis le fichier CSV local (public/data/elus-senateurs-sen.csv)';
 
     public function handle()
@@ -24,33 +24,35 @@ class ImportSenateursFromCsv extends Command
 
         // Chemin du fichier CSV local
         $csvPath = public_path('data/elus-senateurs-sen.csv');
-        
-        if (!file_exists($csvPath)) {
-            $this->error('❌ Fichier CSV introuvable: ' . $csvPath);
+
+        if (! file_exists($csvPath)) {
+            $this->error('❌ Fichier CSV introuvable: '.$csvPath);
+
             return Command::FAILURE;
         }
 
-        $this->info('📂 Lecture du fichier: ' . basename($csvPath));
+        $this->info('📂 Lecture du fichier: '.basename($csvPath));
         $this->newLine();
 
         try {
             $handle = fopen($csvPath, 'r');
-            
-            if (!$handle) {
+
+            if (! $handle) {
                 $this->error('❌ Impossible d\'ouvrir le fichier CSV');
+
                 return Command::FAILURE;
             }
 
             // Lire l'en-tête
             $header = fgetcsv($handle, 2000, ';');
-            
+
             // Compter les lignes pour la barre de progression
             $lineCount = count(file($csvPath)) - 1;
-            
+
             $this->info("📊 {$lineCount} lignes à traiter");
             $bar = $this->output->createProgressBar($lineCount);
             $bar->setFormat('verbose');
-            
+
             $imported = 0;
             $updated = 0;
             $errors = 0;
@@ -61,10 +63,11 @@ class ImportSenateursFromCsv extends Command
                 // Libellé de la collectivité à statut particulier;Nom de l'élu;Prénom de l'élu;
                 // Code sexe;Date de naissance;Code de la catégorie socio-professionnelle;
                 // Libellé de la catégorie socio-professionnelle;Date de début du mandat
-                
+
                 if (count($data) < 11) {
                     $errors++;
                     $bar->advance();
+
                     continue;
                 }
 
@@ -77,23 +80,24 @@ class ImportSenateursFromCsv extends Command
                 $professionCode = trim($data[8] ?? '');
                 $profession = trim($data[9] ?? '');
                 $dateDebutMandat = trim($data[10] ?? '');
-                
+
                 if (empty($nom) || empty($prenom) || empty($deptCode)) {
                     $errors++;
                     $bar->advance();
+
                     continue;
                 }
 
                 // Générer un UID unique basé sur nom, prénom et département
-                $uid = 'SEN-' . strtoupper($deptCode) . '-' . $this->slugify($nom . '-' . $prenom);
-                
+                $uid = 'SEN-'.strtoupper($deptCode).'-'.$this->slugify($nom.'-'.$prenom);
+
                 // Pour les sénateurs, la circonscription est le département
-                $circonscription = $deptCode . ' - ' . $deptName;
-                
+                $circonscription = $deptCode.' - '.$deptName;
+
                 // Convertir les dates
                 $dateNaissanceParsed = $this->parseDate($dateNaissance);
                 $dateDebutMandatParsed = $this->parseDate($dateDebutMandat);
-                
+
                 // Déterminer la civilité
                 $civilite = $sexeCode === 'F' ? 'Mme' : 'M.';
 
@@ -106,7 +110,7 @@ class ImportSenateursFromCsv extends Command
                         [
                             'nom' => strtoupper($nom),
                             'prenom' => ucwords(strtolower($prenom)),
-                            'nom_complet' => $civilite . ' ' . ucwords(strtolower($prenom)) . ' ' . strtoupper($nom),
+                            'nom_complet' => $civilite.' '.ucwords(strtolower($prenom)).' '.strtoupper($nom),
                             'civilite' => $civilite,
                             'circonscription' => $circonscription,
                             'numero_circonscription' => null, // Pas de numéro pour les sénateurs
@@ -137,7 +141,7 @@ class ImportSenateursFromCsv extends Command
                 } catch (\Exception $e) {
                     $errors++;
                     if ($errors < 5) { // Afficher seulement les 5 premières erreurs
-                        $this->warn("⚠️  Erreur pour {$prenom} {$nom}: " . $e->getMessage());
+                        $this->warn("⚠️  Erreur pour {$prenom} {$nom}: ".$e->getMessage());
                     }
                 }
 
@@ -148,23 +152,24 @@ class ImportSenateursFromCsv extends Command
             $bar->finish();
             $this->newLine(2);
 
-            $this->info("✅ Import terminé !");
+            $this->info('✅ Import terminé !');
             $this->info("   ✓ {$imported} sénateurs importés");
             $this->info("   ↻ {$updated} sénateurs mis à jour");
             if ($errors > 0) {
                 $this->warn("   ⚠️  {$errors} lignes ignorées");
             }
-            
+
             // Vérification finale
             $total = DeputeSenateur::where('source', 'senat')->count();
             $this->newLine();
             $this->info("📊 Total en base: {$total} sénateurs");
-            
+
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error('❌ Erreur lors de l\'import: ' . $e->getMessage());
+            $this->error('❌ Erreur lors de l\'import: '.$e->getMessage());
             $this->error($e->getTraceAsString());
+
             return Command::FAILURE;
         }
     }
@@ -183,6 +188,7 @@ class ImportSenateursFromCsv extends Command
             if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $date, $matches)) {
                 return Carbon::createFromFormat('d/m/Y', $date);
             }
+
             return null;
         } catch (\Exception $e) {
             return null;
@@ -200,8 +206,7 @@ class ImportSenateursFromCsv extends Command
         $text = trim($text, '-');
         $text = preg_replace('~-+~', '-', $text);
         $text = strtolower($text);
-        
+
         return $text;
     }
 }
-

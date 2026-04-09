@@ -3,19 +3,19 @@
 use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\DataGouvController;
 use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\LegislationController;
 use App\Http\Controllers\Api\ModerationController;
 use App\Http\Controllers\Api\PostalCodeController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\RepresentantsSearchController;
 use App\Http\Controllers\Api\SearchController;
-use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\TopicController;
-use App\Http\Controllers\Api\VoteController;
 use App\Http\Controllers\Api\V1\ActeursANController;
-use App\Http\Controllers\Api\V1\ScrutinsANController;
 use App\Http\Controllers\Api\V1\AmendementsANController;
+use App\Http\Controllers\Api\V1\ScrutinsANController;
 use App\Http\Controllers\Api\V1\SenateursController;
+use App\Http\Controllers\Api\VoteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,13 +28,12 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-
 // ============================================================================
 // CADDY ON_DEMAND TLS - Verification sous-domaine commune
 // ============================================================================
 Route::get('/verify-subdomain', function (\Illuminate\Http\Request $request) {
     $domain = $request->query('domain', '');
-    if (!str_ends_with($domain, '.civicdash.fr')) {
+    if (! str_ends_with($domain, '.civicdash.fr')) {
         return response('', 404);
     }
     $slug = str_replace('.civicdash.fr', '', $domain);
@@ -42,6 +41,7 @@ Route::get('/verify-subdomain', function (\Illuminate\Http\Request $request) {
         return response('', 404);
     }
     $exists = \App\Models\Ville::where('slug', $slug)->exists();
+
     return response('', $exists ? 200 : 404);
 });
 
@@ -104,7 +104,7 @@ Route::prefix('search')->name('search.')->group(function () {
 // ============================================================================
 
 Route::prefix('v1')->name('v1.')->group(function () {
-    
+
     // ========================================================================
     // ACTEURS AN (Députés)
     // ========================================================================
@@ -115,7 +115,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
         Route::get('/{uid}/amendements', [ActeursANController::class, 'amendements'])->name('amendements');
         Route::get('/{uid}/stats', [ActeursANController::class, 'stats'])->name('stats');
     });
-    
+
     // ========================================================================
     // SCRUTINS AN
     // ========================================================================
@@ -125,7 +125,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
         Route::get('/{uid}/votes', [ScrutinsANController::class, 'votes'])->name('votes');
         Route::get('/{uid}/stats-par-groupe', [ScrutinsANController::class, 'statsParGroupe'])->name('stats_par_groupe');
     });
-    
+
     // ========================================================================
     // AMENDEMENTS AN
     // ========================================================================
@@ -134,7 +134,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
         Route::get('/stats', [AmendementsANController::class, 'stats'])->name('stats');
         Route::get('/{uid}', [AmendementsANController::class, 'show'])->name('show');
     });
-    
+
     // ========================================================================
     // SÉNATEURS
     // ========================================================================
@@ -168,10 +168,10 @@ Route::get('/documents/pending', [DocumentController::class, 'pending'])
 Route::prefix('search-meilisearch')->group(function () {
     // Recherche globale
     Route::get('/', [SearchController::class, 'search']);
-    
+
     // Autocomplete / Suggestions
     Route::get('/autocomplete', [SearchController::class, 'autocomplete']);
-    
+
     // Statistiques
     Route::get('/stats', [SearchController::class, 'stats']);
 });
@@ -189,7 +189,7 @@ Route::prefix('datagouv')->group(function () {
     Route::get('/communes/compare', [DataGouvController::class, 'compareBudgets']);
     Route::get('/communes/search', [DataGouvController::class, 'searchCommunes']);
     Route::get('/project/context', [DataGouvController::class, 'getProjectContext']);
-    
+
     // Statistiques
     Route::get('/stats', [DataGouvController::class, 'getStats']);
 });
@@ -206,24 +206,24 @@ Route::prefix('legislation')->group(function () {
     Route::get('/propositions/{source}/{numero}', [LegislationController::class, 'getPropositionDetail']);
     Route::get('/propositions/{source}/{numero}/amendements', [LegislationController::class, 'getAmendements']);
     Route::get('/propositions/{source}/{numero}/votes', [LegislationController::class, 'getVotes']);
-    
+
     // 🔥 KILLER FEATURE: Comparaison avec propositions citoyennes
     Route::post('/find-similar', [LegislationController::class, 'findSimilar'])->middleware('throttle:60,1');
-    
+
     // 👍👎 VOTES CITOYENS (routes publiques pour consultation)
     Route::get('/propositions/{id}/votes/stats', [LegislationController::class, 'getVoteStats']);
-    
+
     // Agenda législatif
     Route::get('/agenda', [LegislationController::class, 'getAgenda']);
-    
+
     // Statistiques
     Route::get('/stats', [LegislationController::class, 'getStatistiques']);
-    
+
     // Élus (députés & sénateurs)
     Route::get('/elus/search', [LegislationController::class, 'searchElus']);
     Route::get('/elus/suggest', [\App\Http\Controllers\Api\ElusSuggestionController::class, 'suggest']);
     Route::get('/elus/{uid}', [LegislationController::class, 'getEluDetail']);
-    
+
     // Votes citoyens (stats publiques)
     Route::get('/lois/{loiCod}/votes', [\App\Http\Controllers\Api\CitizenVoteController::class, 'getLoiVotes']);
 });
@@ -233,7 +233,7 @@ Route::prefix('legislation')->group(function () {
 // ============================================================================
 
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     // ========================================================================
     // TOPICS (écriture - bloqué pour comptes démo)
     // ========================================================================
@@ -245,7 +245,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/topics/{topic}/archive', [TopicController::class, 'archive']);
         Route::post('/topics/{topic}/ballot', [TopicController::class, 'createBallot']);
     });
-    
+
     // ========================================================================
     // POSTS (écriture - bloqué pour comptes démo)
     // ========================================================================
@@ -255,7 +255,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/posts/{post}', [PostController::class, 'destroy']);
         Route::post('/posts/{post}/vote', [PostController::class, 'vote']);
     });
-    
+
     // ========================================================================
     // VOTE ANONYME (écriture - bloqué pour comptes démo)
     // ========================================================================
@@ -266,7 +266,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/cast', [VoteController::class, 'castVote']);
         });
     });
-    
+
     // ========================================================================
     // SONDAGES (POLLS)
     // ========================================================================
@@ -276,17 +276,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vote', [App\Http\Controllers\Api\PollController::class, 'vote']);
         });
     });
-    
+
     // Vote - routes admin
     Route::middleware('role:admin')->group(function () {
         Route::get('/topics/{topic}/vote/integrity', [VoteController::class, 'verifyIntegrity']);
     });
-    
+
     // Vote - routes admin/state
     Route::middleware('role:admin|state')->group(function () {
         Route::get('/topics/{topic}/vote/export', [VoteController::class, 'export']);
     });
-    
+
     // ========================================================================
     // VOTES CITOYENS SUR LES LOIS (écriture - bloqué pour comptes démo)
     // ========================================================================
@@ -295,7 +295,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/vote', [\App\Http\Controllers\Api\CitizenVoteController::class, 'voteLoi']);
         Route::delete('/vote', [\App\Http\Controllers\Api\CitizenVoteController::class, 'removeVoteLoi']);
     });
-    
+
     // ========================================================================
     // BUDGET PARTICIPATIF (écriture - bloqué pour comptes démo)
     // ========================================================================
@@ -307,20 +307,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/reset', [BudgetController::class, 'reset']);
         });
     });
-    
+
     // Budget - routes admin/state
     Route::middleware('role:admin|state')->group(function () {
         Route::get('/budget/export', [BudgetController::class, 'export']);
     });
-    
+
     // ========================================================================
     // MODÉRATION
     // ========================================================================
-    
+
     // Signalements - tous les utilisateurs authentifiés
-Route::post('/moderation/reports', [ModerationController::class, 'storeReport'])->middleware(['rate.limit:report', 'auth:sanctum']);
-Route::post('/reports', [ModerationController::class, 'storeReport'])->middleware(['rate.limit:report', 'auth:sanctum']); // Alias simplifié
-    
+    Route::post('/moderation/reports', [ModerationController::class, 'storeReport'])->middleware(['rate.limit:report', 'auth:sanctum']);
+    Route::post('/reports', [ModerationController::class, 'storeReport'])->middleware(['rate.limit:report', 'auth:sanctum']); // Alias simplifié
+
     // Modération - routes modérateurs/admins
     Route::middleware('role:moderator|admin')->prefix('moderation')->group(function () {
         // Reports
@@ -329,30 +329,30 @@ Route::post('/reports', [ModerationController::class, 'storeReport'])->middlewar
         Route::post('/reports/{report}/assign', [ModerationController::class, 'assignReport']);
         Route::post('/reports/{report}/resolve', [ModerationController::class, 'resolveReport']);
         Route::post('/reports/{report}/reject', [ModerationController::class, 'rejectReport']);
-        
+
         // Sanctions
         Route::get('/users/{user}/sanctions', [ModerationController::class, 'userSanctions']);
         Route::post('/users/{user}/sanctions', [ModerationController::class, 'storeSanction']);
         Route::delete('/sanctions/{sanction}', [ModerationController::class, 'revokeSanction']);
-        
+
         // Stats
         Route::get('/stats', [ModerationController::class, 'stats']);
         Route::get('/top-moderators', [ModerationController::class, 'topModerators']);
     });
-    
+
     // ========================================================================
     // DOCUMENTS
     // ========================================================================
     Route::post('/documents', [DocumentController::class, 'store'])->middleware('rate.limit:document');
     Route::put('/documents/{document}', [DocumentController::class, 'update']);
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);
-    
+
     // Vérification - journalistes/ONGs
     Route::middleware('role:journalist|ong|admin')->group(function () {
         Route::post('/documents/{document}/verify', [DocumentController::class, 'verify']);
         Route::get('/documents/pending', [DocumentController::class, 'pending']);
     });
-    
+
     // ========================================================================
     // LÉGISLATION - Routes authentifiées (votes citoyens)
     // ========================================================================
@@ -362,7 +362,7 @@ Route::post('/reports', [ModerationController::class, 'storeReport'])->middlewar
         Route::delete('/{id}/vote', [LegislationController::class, 'removeVoteProposition']);
         Route::get('/{id}/my-vote', [LegislationController::class, 'getMyVote']);
     });
-    
+
     // ========================================================================
     // DATA.GOUV.FR - Routes admin (invalidation cache)
     // ========================================================================
@@ -495,7 +495,7 @@ Route::prefix('legal-context')->name('legal_context.')->group(function () {
     Route::get('/propositions/{propositionId}', [App\Http\Controllers\Api\LegalContextController::class, 'show'])->name('show');
     Route::get('/references/{referenceId}', [App\Http\Controllers\Api\LegalContextController::class, 'showReference'])->name('reference');
     Route::get('/stats', [App\Http\Controllers\Api\LegalContextController::class, 'stats'])->name('stats');
-    
+
     // Routes authentifiées (admin)
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/propositions/{propositionId}/sync', [App\Http\Controllers\Api\LegalContextController::class, 'sync'])->name('sync');
@@ -523,7 +523,7 @@ Route::prefix('content-moderation')->name('content-moderation.')->group(function
     // Routes publiques
     Route::get('/whitelisted-domains', [App\Http\Controllers\Api\ContentModerationController::class, 'whitelistedDomains'])->name('whitelisted_domains');
     Route::get('/reference-formats', [App\Http\Controllers\Api\ContentModerationController::class, 'referenceFormats'])->name('reference_formats');
-    
+
     // Routes authentifiées
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/validate', [App\Http\Controllers\Api\ContentModerationController::class, 'validate'])->name('validate');
@@ -549,7 +549,7 @@ Route::prefix('mentions')->name('mentions.')->group(function () {
     // Public : suggestions pour autocomplete
     Route::get('/suggest', [App\Http\Controllers\Api\MentionController::class, 'suggest'])->name('suggest');
     Route::post('/preview', [App\Http\Controllers\Api\MentionController::class, 'preview'])->name('preview')->middleware('throttle:60,1');
-    
+
     // Authentifié : gestion des mentions
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/unread', [App\Http\Controllers\Api\MentionController::class, 'unread'])->name('unread');
@@ -589,13 +589,13 @@ Route::prefix('reports')->name('reports.')->middleware('auth:sanctum')->group(fu
 Route::prefix('calendar')->name('calendar.')->group(function () {
     // Export ponctuel (téléchargement)
     Route::get('/export.ics', [App\Http\Controllers\Api\CalendarExportController::class, 'export'])->name('export');
-    
+
     // Flux d'abonnement (pour Google Calendar, Apple Calendar, etc.)
     Route::get('/feed.ics', [App\Http\Controllers\Api\CalendarExportController::class, 'feed'])->name('feed');
-    
+
     // Export d'un événement unique
     Route::get('/event/{evenement}.ics', [App\Http\Controllers\Api\CalendarExportController::class, 'single'])->name('single');
-    
+
     // Liste des flux disponibles (documentation API)
     Route::get('/feeds', [App\Http\Controllers\Api\CalendarExportController::class, 'availableFeeds'])->name('feeds');
 });
@@ -605,4 +605,3 @@ Route::fallback(function () {
         'message' => 'Endpoint introuvable. Vérifiez l\'URL et la méthode HTTP.',
     ], 404);
 });
-

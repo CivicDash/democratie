@@ -15,8 +15,11 @@ class EnrichSenateursWikipedia extends Command
     protected $description = 'Enrichit les profils des sénateurs avec les données Wikipedia (photo, URL, extrait)';
 
     private WikipediaService $wikipediaService;
+
     private int $enriched = 0;
+
     private int $notFound = 0;
+
     private int $errors = 0;
 
     public function __construct(WikipediaService $wikipediaService)
@@ -27,17 +30,17 @@ class EnrichSenateursWikipedia extends Command
 
     public function handle(): int
     {
-        $this->info("🔍 Enrichissement Wikipedia des sénateurs...");
+        $this->info('🔍 Enrichissement Wikipedia des sénateurs...');
         $this->newLine();
 
         $limit = (int) $this->option('limit');
         $force = $this->option('force');
 
         // Vérifier si la table senateurs_wikipedia existe
-        if (!\Schema::hasTable('senateurs_wikipedia')) {
+        if (! \Schema::hasTable('senateurs_wikipedia')) {
             $this->warn('⚠️ La table senateurs_wikipedia n\'existe pas.');
             $this->info('Création de la table...');
-            
+
             \Schema::create('senateurs_wikipedia', function ($table) {
                 $table->string('senateur_matricule', 20)->primary();
                 $table->string('wikipedia_url', 500)->nullable();
@@ -46,21 +49,21 @@ class EnrichSenateursWikipedia extends Command
                 $table->timestamp('wikipedia_last_sync')->nullable();
                 $table->timestamps();
             });
-            
+
             $this->info('✅ Table créée.');
         }
 
         // Query - on récupère les sénateurs actifs
         $query = Senateur::where('etat', 'ACTIF');
-        
-        if (!$force) {
+
+        if (! $force) {
             // Vérifier dans la table annexe si déjà enrichi
             $enrichedMatricules = \DB::table('senateurs_wikipedia')
                 ->whereNotNull('wikipedia_url')
                 ->pluck('senateur_matricule')
                 ->toArray();
-            
-            if (!empty($enrichedMatricules)) {
+
+            if (! empty($enrichedMatricules)) {
                 $query->whereNotIn('matricule', $enrichedMatricules);
             }
         }
@@ -75,6 +78,7 @@ class EnrichSenateursWikipedia extends Command
         if ($total === 0) {
             $this->warn('Aucun sénateur à enrichir.');
             $this->info('💡 Utilisez --force pour forcer la mise à jour des sénateurs déjà enrichis.');
+
             return Command::SUCCESS;
         }
 
@@ -91,7 +95,7 @@ class EnrichSenateursWikipedia extends Command
                 $this->errors++;
                 $this->error("\n❌ Erreur pour {$senateur->nom_complet}: {$e->getMessage()}");
             }
-            
+
             $progressBar->advance();
             usleep(100000); // 100ms entre chaque requête pour ne pas surcharger Wikipedia
         }
@@ -113,20 +117,21 @@ class EnrichSenateursWikipedia extends Command
     {
         // Rechercher sur Wikipedia
         $searchTerm = str_replace(' ', '_', "{$senateur->prenom_usuel}_{$senateur->nom_usuel}");
-        
+
         // Essayer d'abord avec l'API summary directe
         $wikiData = $this->wikipediaService->getPageSummary($searchTerm);
 
         // Si pas trouvé, essayer avec la recherche
-        if (!$wikiData) {
+        if (! $wikiData) {
             $wikiData = $this->wikipediaService->searchByName(
-                $senateur->nom_usuel, 
+                $senateur->nom_usuel,
                 $senateur->prenom_usuel
             );
         }
 
-        if (!$wikiData || !isset($wikiData['wikipedia_url'])) {
+        if (! $wikiData || ! isset($wikiData['wikipedia_url'])) {
             $this->notFound++;
+
             return;
         }
 
@@ -145,4 +150,3 @@ class EnrichSenateursWikipedia extends Command
         $this->enriched++;
     }
 }
-

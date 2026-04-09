@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Vote\CastVoteRequest;
+use App\Http\Requests\Vote\RequestBallotTokenRequest;
 use App\Models\Topic;
 use App\Services\BallotService;
-use App\Http\Requests\Vote\RequestBallotTokenRequest;
-use App\Http\Requests\Vote\CastVoteRequest;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,7 +23,7 @@ class VoteController extends Controller
     {
         abort_unless($topic->ballot_type, 404, 'Ce topic n\'a pas de scrutin.');
 
-        $hasVoted = auth()->check() 
+        $hasVoted = auth()->check()
             ? $this->ballotService->hasUserVoted($topic, auth()->user())
             : false;
 
@@ -80,4 +79,3 @@ class VoteController extends Controller
         return back()->with('success', 'Vote enregistré avec succès !');
     }
 }
-

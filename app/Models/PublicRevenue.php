@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Recettes publiques (transparence)
- * 
+ *
  * @property int $id
  * @property int $year Année fiscale
  * @property string $scope national|region|dept
@@ -87,11 +87,11 @@ class PublicRevenue extends Model
     public function scopeRegional($query, ?int $regionId = null)
     {
         $query = $query->where('scope', 'region');
-        
+
         if ($regionId) {
             $query->where('region_id', $regionId);
         }
-        
+
         return $query;
     }
 
@@ -101,11 +101,11 @@ class PublicRevenue extends Model
     public function scopeDepartmental($query, ?int $departmentId = null)
     {
         $query = $query->where('scope', 'dept');
-        
+
         if ($departmentId) {
             $query->where('department_id', $departmentId);
         }
-        
+
         return $query;
     }
 
@@ -126,4 +126,3 @@ class PublicRevenue extends Model
         return $query->sum('amount');
     }
 }
-

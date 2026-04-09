@@ -17,7 +17,9 @@ class SyncTagsFromSenat extends Command
     protected $description = 'Synchronise les thématiques du Sénat comme tags officiels';
 
     protected int $created = 0;
+
     protected int $updated = 0;
+
     protected int $linked = 0;
 
     public function handle(): int
@@ -58,9 +60,10 @@ class SyncTagsFromSenat extends Command
 
         foreach ($thematiques as $thematique) {
             $nom = $thematique->thelib ?? $thematique->thecle;
-            
+
             if (empty($nom)) {
                 $bar->advance();
+
                 continue;
             }
 
@@ -72,7 +75,7 @@ class SyncTagsFromSenat extends Command
                 ['slug' => $slug],
                 [
                     'nom' => $nom,
-                    'description' => "Thématique officielle du Sénat",
+                    'description' => 'Thématique officielle du Sénat',
                     'couleur' => $couleur,
                     'icone' => $icone,
                     'type' => 'thematique',
@@ -117,8 +120,8 @@ class SyncTagsFromSenat extends Command
                 $slug = Str::slug($nom);
 
                 $tag = Tag::where('slug', $slug)->first();
-                
-                if (!$tag) {
+
+                if (! $tag) {
                     continue;
                 }
 
@@ -128,7 +131,7 @@ class SyncTagsFromSenat extends Command
                     ->where('tag_id', $tag->id)
                     ->exists();
 
-                if (!$exists) {
+                if (! $exists) {
                     DB::table('loi_tag')->insert([
                         'loi_loicod' => $loicod,
                         'tag_id' => $tag->id,
@@ -150,4 +153,3 @@ class SyncTagsFromSenat extends Command
         $this->newLine();
     }
 }
-

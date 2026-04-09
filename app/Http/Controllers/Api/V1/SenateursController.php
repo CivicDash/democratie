@@ -11,9 +11,6 @@ class SenateursController extends Controller
 {
     /**
      * Liste des sénateurs avec filtres
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -21,18 +18,18 @@ class SenateursController extends Controller
 
         // Filtres
         if ($request->has('nom')) {
-            $query->where('nom_usuel', 'ILIKE', '%' . $request->nom . '%');
+            $query->where('nom_usuel', 'ILIKE', '%'.$request->nom.'%');
         }
 
         if ($request->has('prenom')) {
-            $query->where('prenom_usuel', 'ILIKE', '%' . $request->prenom . '%');
+            $query->where('prenom_usuel', 'ILIKE', '%'.$request->prenom.'%');
         }
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('nom_usuel', 'ILIKE', '%' . $search . '%')
-                  ->orWhere('prenom_usuel', 'ILIKE', '%' . $search . '%');
+            $query->where(function ($q) use ($search) {
+                $q->where('nom_usuel', 'ILIKE', '%'.$search.'%')
+                    ->orWhere('prenom_usuel', 'ILIKE', '%'.$search.'%');
             });
         }
 
@@ -64,7 +61,7 @@ class SenateursController extends Controller
             $with[] = 'historiqueGroupes';
         }
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $query->with($with);
         }
 
@@ -83,20 +80,17 @@ class SenateursController extends Controller
 
     /**
      * Détails d'un sénateur
-     * 
-     * @param string $matricule
-     * @return JsonResponse
      */
     public function show(string $matricule): JsonResponse
     {
         $senateur = Senateur::with([
-            'commissions' => function($query) {
+            'commissions' => function ($query) {
                 $query->orderBy('date_debut', 'desc');
             },
-            'mandats' => function($query) {
+            'mandats' => function ($query) {
                 $query->orderBy('date_debut', 'desc');
             },
-            'historiqueGroupes' => function($query) {
+            'historiqueGroupes' => function ($query) {
                 $query->orderBy('date_debut', 'desc');
             },
         ])->findOrFail($matricule);
@@ -110,10 +104,6 @@ class SenateursController extends Controller
 
     /**
      * Mandats d'un sénateur
-     * 
-     * @param string $matricule
-     * @param Request $request
-     * @return JsonResponse
      */
     public function mandats(string $matricule, Request $request): JsonResponse
     {
@@ -152,10 +142,6 @@ class SenateursController extends Controller
 
     /**
      * Commissions d'un sénateur
-     * 
-     * @param string $matricule
-     * @param Request $request
-     * @return JsonResponse
      */
     public function commissions(string $matricule, Request $request): JsonResponse
     {
@@ -182,9 +168,6 @@ class SenateursController extends Controller
 
     /**
      * Historique des groupes politiques d'un sénateur
-     * 
-     * @param string $matricule
-     * @return JsonResponse
      */
     public function groupes(string $matricule): JsonResponse
     {
@@ -202,9 +185,6 @@ class SenateursController extends Controller
 
     /**
      * Statistiques générales des sénateurs
-     * 
-     * @param Request $request
-     * @return JsonResponse
      */
     public function stats(Request $request): JsonResponse
     {
@@ -221,7 +201,7 @@ class SenateursController extends Controller
             ->groupBy('groupe_politique')
             ->orderByDesc('total')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'groupe' => $item->groupe_politique,
                     'total' => $item->total,
@@ -234,4 +214,3 @@ class SenateursController extends Controller
         ]);
     }
 }
-

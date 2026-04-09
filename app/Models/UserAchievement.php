@@ -52,12 +52,12 @@ class UserAchievement extends Model
     public function updateProgress(int $value, ?array $data = null): bool
     {
         $this->progress = $value;
-        
+
         // Débloquer si la cible est atteinte
-        if ($value >= $this->progress_target && !$this->is_unlocked) {
+        if ($value >= $this->progress_target && ! $this->is_unlocked) {
             return $this->unlock($data);
         }
-        
+
         return $this->save();
     }
 
@@ -81,18 +81,18 @@ class UserAchievement extends Model
         $this->is_unlocked = true;
         $this->unlocked_at = now();
         $this->progress = $this->progress_target;
-        
+
         if ($data) {
             $this->unlock_data = array_merge($this->unlock_data ?? [], $data);
         }
-        
+
         $saved = $this->save();
-        
+
         if ($saved) {
             // Incrémenter le compteur global
             $this->achievement->incrementUnlockCount();
         }
-        
+
         return $saved;
     }
 
@@ -102,6 +102,7 @@ class UserAchievement extends Model
     public function markAsNotified(): bool
     {
         $this->is_notified = true;
+
         return $this->save();
     }
 
@@ -111,6 +112,7 @@ class UserAchievement extends Model
     public function markAsShared(): bool
     {
         $this->is_shared = true;
+
         return $this->save();
     }
 
@@ -122,8 +124,8 @@ class UserAchievement extends Model
         if ($this->progress_target == 0) {
             return 100;
         }
-        
-        return min(100, (int)(($this->progress / $this->progress_target) * 100));
+
+        return min(100, (int) (($this->progress / $this->progress_target) * 100));
     }
 
     /**
@@ -131,7 +133,7 @@ class UserAchievement extends Model
      */
     public function isAlmostUnlocked(int $threshold = 80): bool
     {
-        return !$this->is_unlocked && $this->progress_percentage >= $threshold;
+        return ! $this->is_unlocked && $this->progress_percentage >= $threshold;
     }
 
     /**

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * Mention d'un utilisateur dans un contenu
- * 
+ *
  * @property int $id
  * @property int $user_id - L'utilisateur mentionné
  * @property int $mentioned_by - L'auteur de la mention

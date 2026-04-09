@@ -17,16 +17,18 @@ class ImportDossiersTextesAN extends Command
     protected $description = 'Importe les dossiers législatifs et textes depuis la structure amendements/';
 
     private int $dossiersImported = 0;
+
     private int $textesImported = 0;
+
     private int $errors = 0;
 
     public function handle(): int
     {
         $legislature = $this->option('legislature');
         $importAll = $this->option('all');
-        
+
         $this->info('🏛️  Import des dossiers législatifs et textes AN...');
-        
+
         if ($importAll) {
             $this->warn('⚠️  Mode --all : import de TOUS les dossiers');
         } else {
@@ -34,9 +36,10 @@ class ImportDossiersTextesAN extends Command
         }
 
         $basePath = public_path('data/amendements');
-        
-        if (!is_dir($basePath)) {
+
+        if (! is_dir($basePath)) {
             $this->error("❌ Répertoire introuvable : {$basePath}");
+
             return self::FAILURE;
         }
 
@@ -48,11 +51,11 @@ class ImportDossiersTextesAN extends Command
 
         // Parcourir les dossiers DLR*
         $dossierDirs = File::directories($basePath);
-        $dossierDirs = array_filter($dossierDirs, function($dir) {
+        $dossierDirs = array_filter($dossierDirs, function ($dir) {
             return str_starts_with(basename($dir), 'DLR');
         });
 
-        $this->info("📊 " . count($dossierDirs) . " dossiers trouvés");
+        $this->info('📊 '.count($dossierDirs).' dossiers trouvés');
         $bar = $this->output->createProgressBar(count($dossierDirs));
         $bar->start();
 
@@ -76,19 +79,19 @@ class ImportDossiersTextesAN extends Command
     private function importDossier(string $dossierPath, int $legislature, bool $importAll): void
     {
         $dossierUid = basename($dossierPath);
-        
+
         // Extraction législature depuis l'UID (ex: DLR5L17N51035 -> 17)
         preg_match('/L(\d+)N/', $dossierUid, $matches);
-        $dossierLegislature = isset($matches[1]) ? (int)$matches[1] : null;
+        $dossierLegislature = isset($matches[1]) ? (int) $matches[1] : null;
 
         // Filtrage par législature
-        if (!$importAll && $dossierLegislature && $dossierLegislature !== (int)$legislature) {
+        if (! $importAll && $dossierLegislature && $dossierLegislature !== (int) $legislature) {
             return;
         }
 
         // Extraction numéro depuis l'UID (ex: DLR5L17N51035 -> 51035)
         preg_match('/N(\d+)/', $dossierUid, $matchesNum);
-        $numero = isset($matchesNum[1]) ? (int)$matchesNum[1] : null;
+        $numero = isset($matchesNum[1]) ? (int) $matchesNum[1] : null;
 
         // Créer le dossier
         $dossier = DossierLegislatifAN::updateOrCreate(
@@ -107,12 +110,12 @@ class ImportDossiersTextesAN extends Command
 
         // Parcourir les textes (PION*, PRJL*, etc.)
         $texteDirs = File::directories($dossierPath);
-        
+
         foreach ($texteDirs as $texteDir) {
             $texteUid = basename($texteDir);
-            
+
             // Filtrer les textes par préfixe (PION, PRJL, etc.)
-            if (!preg_match('/^(PION|PRJL|RAPP|AVIS)/', $texteUid)) {
+            if (! preg_match('/^(PION|PRJL|RAPP|AVIS)/', $texteUid)) {
                 continue;
             }
 
@@ -128,7 +131,7 @@ class ImportDossiersTextesAN extends Command
 
         // Extraction numéro (ex: PIONANR5L17B0689 -> 689)
         preg_match('/B(\d+)/', $texteUid, $matchesNum);
-        $numero = isset($matchesNum[1]) ? (int)$matchesNum[1] : null;
+        $numero = isset($matchesNum[1]) ? (int) $matchesNum[1] : null;
 
         // Créer le texte
         $texte = TexteLegislatifAN::updateOrCreate(
@@ -164,18 +167,18 @@ class ImportDossiersTextesAN extends Command
         // Stats finales
         $totalDossiers = DossierLegislatifAN::count();
         $totalTextes = TexteLegislatifAN::count();
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $dossiersLeg = DossierLegislatifAN::legislature($legislature)->count();
             $textesLeg = TexteLegislatifAN::legislature($legislature)->count();
         }
-        
+
         $this->newLine();
-        $this->info("📊 Total en base de données :");
+        $this->info('📊 Total en base de données :');
         $this->info("   - Dossiers : {$totalDossiers}");
         $this->info("   - Textes : {$totalTextes}");
-        
-        if (!$importAll) {
+
+        if (! $importAll) {
             $this->newLine();
             $this->info("📊 Législature {$legislature} :");
             $this->info("   - Dossiers : {$dossiersLeg}");
@@ -183,4 +186,3 @@ class ImportDossiersTextesAN extends Command
         }
     }
 }
-

@@ -102,6 +102,34 @@ const participationBarWidth = (value, total) => {
                 </div>
             </div>
 
+            <!-- Bandeau Hub Citoyen -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+                <Link
+                    :href="route('commune.index', ville.code_insee)"
+                    class="block bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 rounded-2xl p-5 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] group"
+                >
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+                                🏘️
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold">Hub citoyen de {{ ville.nom }}</h3>
+                                <p class="text-blue-100 text-sm">
+                                    Actualités, événements, forum, budget et élus — tout votre hub local en un seul endroit
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white/20 backdrop-blur px-5 py-2.5 rounded-xl font-semibold text-sm group-hover:bg-white/30 transition-colors flex-shrink-0">
+                            Accéder au hub
+                            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                    </div>
+                </Link>
+            </div>
+
             <!-- Bandeau Élections Municipales 2026 -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
                 <!-- Post-électoral : résumé rapide avec résultats -->

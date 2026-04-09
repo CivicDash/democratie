@@ -3,10 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\Maire;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class ImportMairesFromDataGouv extends Command
 {
@@ -20,14 +20,17 @@ class ImportMairesFromDataGouv extends Command
     private const API_URL = 'https://www.data.gouv.fr/api/1/datasets/r/2876a346-d50c-4911-934e-19ee07b0e503';
 
     private int $created = 0;
+
     private int $updated = 0;
+
     private int $skipped = 0;
+
     private int $errors = 0;
 
     public function handle(): int
     {
         $this->info('🏛️ Import des maires depuis data.gouv.fr (RNE)...');
-        $this->info('📡 URL: ' . self::API_URL);
+        $this->info('📡 URL: '.self::API_URL);
         $this->newLine();
 
         if ($this->option('fresh')) {
@@ -37,34 +40,36 @@ class ImportMairesFromDataGouv extends Command
 
         // Télécharger les données
         $this->info('📥 Téléchargement du fichier CSV (peut prendre quelques secondes)...');
-        
+
         try {
             $response = Http::timeout(300)->get(self::API_URL);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 $this->error("❌ Erreur HTTP: {$response->status()}");
+
                 return self::FAILURE;
             }
 
             $csvContent = $response->body();
             $lines = explode("\n", $csvContent);
-            
+
             // Retirer l'en-tête
             $header = str_getcsv(array_shift($lines), ';');
-            
+
             // Filtrer les lignes vides
-            $lines = array_filter($lines, fn($line) => trim($line) !== '');
-            
-            $this->info("✅ " . count($lines) . " maires trouvés dans le fichier");
+            $lines = array_filter($lines, fn ($line) => trim($line) !== '');
+
+            $this->info('✅ '.count($lines).' maires trouvés dans le fichier');
 
         } catch (\Exception $e) {
             $this->error("❌ Erreur de téléchargement: {$e->getMessage()}");
+
             return self::FAILURE;
         }
 
         $limit = $this->option('limit');
         $total = $limit ? min((int) $limit, count($lines)) : count($lines);
-        
+
         if ($limit) {
             $this->warn("⚠️  Mode TEST : limité à {$limit} maires");
             $lines = array_slice($lines, 0, (int) $limit);
@@ -82,18 +87,19 @@ class ImportMairesFromDataGouv extends Command
         foreach ($lines as $line) {
             try {
                 $data = str_getcsv($line, ';');
-                
+
                 if (count($data) < 14) {
                     $this->skipped++;
                     $bar->advance();
+
                     continue;
                 }
 
                 $maireData = $this->processLine($data);
-                
+
                 if ($maireData) {
                     $batch[] = $maireData;
-                    
+
                     if (count($batch) >= $batchSize) {
                         $this->upsertBatch($batch);
                         $batch = [];
@@ -109,7 +115,7 @@ class ImportMairesFromDataGouv extends Command
         }
 
         // Traiter le dernier batch
-        if (!empty($batch)) {
+        if (! empty($batch)) {
             $this->upsertBatch($batch);
         }
 
@@ -157,11 +163,12 @@ class ImportMairesFromDataGouv extends Command
         // Validation minimale
         if (empty($nom) || empty($prenom) || empty($codeCommune)) {
             $this->skipped++;
+
             return null;
         }
 
         // Utiliser le code CSP si pas de département (DOM-TOM)
-        if (empty($deptCode) && !empty($cspCode)) {
+        if (empty($deptCode) && ! empty($cspCode)) {
             $deptCode = $cspCode;
             $deptName = $cspName;
         }
@@ -178,7 +185,7 @@ class ImportMairesFromDataGouv extends Command
             'uid' => $uid,
             'nom' => mb_convert_case($nom, MB_CASE_TITLE, 'UTF-8'),
             'prenom' => mb_convert_case($prenom, MB_CASE_TITLE, 'UTF-8'),
-            'nom_complet' => $civilite . ' ' . mb_convert_case($prenom, MB_CASE_TITLE, 'UTF-8') . ' ' . mb_convert_case($nom, MB_CASE_TITLE, 'UTF-8'),
+            'nom_complet' => $civilite.' '.mb_convert_case($prenom, MB_CASE_TITLE, 'UTF-8').' '.mb_convert_case($nom, MB_CASE_TITLE, 'UTF-8'),
             'civilite' => $civilite,
             'date_naissance' => $this->parseDate($dateNaissance),
             'code_commune' => $codeCommune,
@@ -197,7 +204,7 @@ class ImportMairesFromDataGouv extends Command
 
     private function parseDate(?string $dateStr): ?string
     {
-        if (!$dateStr || $dateStr === '') {
+        if (! $dateStr || $dateStr === '') {
             return null;
         }
 
@@ -206,6 +213,7 @@ class ImportMairesFromDataGouv extends Command
             if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateStr, $matches)) {
                 return "{$matches[3]}-{$matches[2]}-{$matches[1]}";
             }
+
             return Carbon::parse($dateStr)->format('Y-m-d');
         } catch (\Exception $e) {
             return null;
@@ -223,8 +231,7 @@ class ImportMairesFromDataGouv extends Command
             $existing = Maire::where('uid', $maireData['uid'])->first();
 
             if ($existing) {
-                $dataToUpdate = array_filter($maireData, fn($v, $k) => 
-                    $v !== null && !in_array($k, array_merge(['uid'], $preservedFields)),
+                $dataToUpdate = array_filter($maireData, fn ($v, $k) => $v !== null && ! in_array($k, array_merge(['uid'], $preservedFields)),
                     ARRAY_FILTER_USE_BOTH
                 );
                 $existing->update($dataToUpdate);
@@ -254,7 +261,7 @@ class ImportMairesFromDataGouv extends Command
         // Stats finales
         $total = Maire::count();
         $enExercice = Maire::enExercice()->count();
-        
+
         $this->newLine();
         $this->info("📊 Total maires en base : {$total}");
         $this->info("📊 Maires en exercice : {$enExercice}");
@@ -289,7 +296,7 @@ class ImportMairesFromDataGouv extends Command
             $this->newLine();
             $this->info('📊 Top 5 catégories socio-professionnelles :');
             foreach ($topProfessions as $p) {
-                $this->line("   - " . Str::limit($p->profession, 50) . " : {$p->total}");
+                $this->line('   - '.Str::limit($p->profession, 50)." : {$p->total}");
             }
         }
     }

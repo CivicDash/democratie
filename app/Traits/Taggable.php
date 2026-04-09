@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
  * Trait Taggable
- * 
+ *
  * Ajoute la capacité d'ajouter des hashtags à un modèle (Post, Topic, etc.)
  */
 trait Taggable
@@ -22,8 +22,8 @@ trait Taggable
 
     /**
      * Attache des hashtags depuis un tableau de strings
-     * 
-     * @param array $hashtagStrings Ex: ['climat', '#santé', 'Éducation']
+     *
+     * @param  array  $hashtagStrings  Ex: ['climat', '#santé', 'Éducation']
      */
     public function attachHashtags(array $hashtagStrings): void
     {
@@ -62,12 +62,13 @@ trait Taggable
     public function hasHashtag(string $slug): bool
     {
         $normalizedSlug = Hashtag::normalize($slug);
+
         return $this->hashtags()->where('slug', $normalizedSlug)->exists();
     }
 
     /**
      * Récupère les hashtags sous forme de strings
-     * 
+     *
      * @return array Ex: ['climat', 'sante', 'education']
      */
     public function getHashtagStrings(): array
@@ -77,12 +78,12 @@ trait Taggable
 
     /**
      * Récupère les hashtags avec # pour affichage
-     * 
+     *
      * @return array Ex: ['#Climat', '#Santé', '#Éducation']
      */
     public function getHashtagDisplay(): array
     {
-        return $this->hashtags->map(fn($h) => '#' . $h->display_name)->toArray();
+        return $this->hashtags->map(fn ($h) => '#'.$h->display_name)->toArray();
     }
 
     /**
@@ -91,7 +92,7 @@ trait Taggable
     public function scopeWithHashtag($query, string $slug)
     {
         $normalizedSlug = Hashtag::normalize($slug);
-        
+
         return $query->whereHas('hashtags', function ($q) use ($normalizedSlug) {
             $q->where('slug', $normalizedSlug);
         });
@@ -105,7 +106,7 @@ trait Taggable
         foreach ($slugs as $slug) {
             $query->withHashtag($slug);
         }
-        
+
         return $query;
     }
 
@@ -114,11 +115,10 @@ trait Taggable
      */
     public function scopeWithAnyHashtag($query, array $slugs)
     {
-        $normalizedSlugs = array_map(fn($s) => Hashtag::normalize($s), $slugs);
-        
+        $normalizedSlugs = array_map(fn ($s) => Hashtag::normalize($s), $slugs);
+
         return $query->whereHas('hashtags', function ($q) use ($normalizedSlugs) {
             $q->whereIn('slug', $normalizedSlugs);
         });
     }
 }
-

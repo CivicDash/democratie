@@ -54,6 +54,7 @@ class NiceWord extends Model
     public static function getRandomNice(): string
     {
         $word = static::active()->inRandomOrder()->first();
+
         return $word ? $word->word : '💖';
     }
 
@@ -66,7 +67,7 @@ class NiceWord extends Model
             ->inCategory($category)
             ->inRandomOrder()
             ->first();
-        
+
         return $word ? $word->word : static::getRandomNice();
     }
 }

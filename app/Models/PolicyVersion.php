@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Version de politique de confidentialité / CGU
- * 
+ *
  * Conforme RGPD Art. 13 (information fournie)
- * 
+ *
  * @property int $id
  * @property string $version Ex: 1.0.0
  * @property string $policy_type privacy|terms|cookies
@@ -42,7 +42,9 @@ class PolicyVersion extends Model
      * Types de politique
      */
     public const TYPE_PRIVACY = 'privacy';
+
     public const TYPE_TERMS = 'terms';
+
     public const TYPE_COOKIES = 'cookies';
 
     public const TYPES = [
@@ -56,9 +58,9 @@ class PolicyVersion extends Model
      */
     public function getContentAttribute(): string
     {
-        $fullPath = storage_path('app/' . $this->file_path);
-        
-        if (!file_exists($fullPath)) {
+        $fullPath = storage_path('app/'.$this->file_path);
+
+        if (! file_exists($fullPath)) {
             return '';
         }
 
@@ -117,6 +119,7 @@ class PolicyVersion extends Model
     public static function getCurrentVersionNumber(string $type): string
     {
         $version = self::getCurrentVersion($type);
+
         return $version ? $version->version : '1.0.0';
     }
 }

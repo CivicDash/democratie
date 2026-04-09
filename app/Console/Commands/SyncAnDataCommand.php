@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Services\AssembleeNationale\XmlDownloader;
 use App\Services\AssembleeNationale\XmlParser;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SyncAnDataCommand extends Command
@@ -22,8 +21,11 @@ class SyncAnDataCommand extends Command
     protected $description = 'Synchronise les données de l\'Assemblée Nationale depuis les sources XML';
 
     protected int $imported = 0;
+
     protected int $updated = 0;
+
     protected int $skipped = 0;
+
     protected int $errors = 0;
 
     public function handle(): int
@@ -48,8 +50,9 @@ class SyncAnDataCommand extends Command
         } catch (\Exception $e) {
             $this->error("❌ Erreur : {$e->getMessage()}");
             Log::channel('an-sync')->error("Sync error: {$e->getMessage()}", [
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return self::FAILURE;
         }
     }
@@ -60,9 +63,10 @@ class SyncAnDataCommand extends Command
     protected function syncSource(string $source, int $legislature): int
     {
         $sources = config('assemblee-nationale.sources');
-        
-        if (!isset($sources[$source])) {
+
+        if (! isset($sources[$source])) {
             $this->error("❌ Source inconnue : {$source}");
+
             return self::FAILURE;
         }
 
@@ -72,40 +76,42 @@ class SyncAnDataCommand extends Command
         $this->newLine();
 
         // Étape 1 : Téléchargement
-        if (!$this->option('skip-download')) {
-            $this->info("1️⃣  Téléchargement...");
+        if (! $this->option('skip-download')) {
+            $this->info('1️⃣  Téléchargement...');
             $downloader = new XmlDownloader($legislature);
             $downloadResult = $downloader->download($source);
-            
+
             if ($downloadResult['status'] === 'error') {
-                $this->error("   ❌ Échec du téléchargement");
+                $this->error('   ❌ Échec du téléchargement');
+
                 return self::FAILURE;
             }
-            
-            $this->info("   ✅ " . ($downloadResult['status'] === 'cached' ? 'Cache utilisé' : 'Téléchargé'));
+
+            $this->info('   ✅ '.($downloadResult['status'] === 'cached' ? 'Cache utilisé' : 'Téléchargé'));
         }
 
         // Étape 2 : Parsing et import
-        $this->info("2️⃣  Import des données...");
-        
+        $this->info('2️⃣  Import des données...');
+
         $downloader = $downloader ?? new XmlDownloader($legislature);
         $xmlPath = $downloader->getXmlPath($source);
-        
+
         $parser = new XmlParser($source);
-        
+
         // Compter les éléments
-        $this->info("   📊 Comptage des éléments...");
+        $this->info('   📊 Comptage des éléments...');
         $totalCount = $parser->count($xmlPath);
         $this->info("   📊 {$totalCount} éléments trouvés");
 
         if ($this->option('dry-run')) {
-            $this->warn("   ⚠️  Mode dry-run : aucune modification");
+            $this->warn('   ⚠️  Mode dry-run : aucune modification');
+
             return self::SUCCESS;
         }
 
         // Fresh mode
         if ($this->option('fresh')) {
-            $this->warn("   ⚠️  Mode fresh : suppression des données existantes...");
+            $this->warn('   ⚠️  Mode fresh : suppression des données existantes...');
             $modelClass = $sourceConfig['model'];
             if (class_exists($modelClass)) {
                 $modelClass::truncate();
@@ -128,10 +134,10 @@ class SyncAnDataCommand extends Command
                     'data' => array_slice($data, 0, 5), // Log partiel pour debug
                 ]);
             }
-            
+
             $bar->advance();
             $count++;
-            
+
             if ($limit && $count >= $limit) {
                 break;
             }
@@ -151,27 +157,27 @@ class SyncAnDataCommand extends Command
     protected function syncAll(int $legislature): int
     {
         $sources = config('assemblee-nationale.sources');
-        
-        // Trier par priorité
-        uasort($sources, fn($a, $b) => ($a['priority'] ?? 99) <=> ($b['priority'] ?? 99));
 
-        $this->info("📥 Synchronisation de " . count($sources) . " sources...");
+        // Trier par priorité
+        uasort($sources, fn ($a, $b) => ($a['priority'] ?? 99) <=> ($b['priority'] ?? 99));
+
+        $this->info('📥 Synchronisation de '.count($sources).' sources...');
         $this->newLine();
 
         $results = [];
-        
+
         foreach (array_keys($sources) as $sourceKey) {
             $this->newLine();
-            $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            
+            $this->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
             // Reset counters
             $this->imported = 0;
             $this->updated = 0;
             $this->skipped = 0;
             $this->errors = 0;
-            
+
             $result = $this->syncSource($sourceKey, $legislature);
-            
+
             $results[$sourceKey] = [
                 'status' => $result === self::SUCCESS ? 'success' : 'error',
                 'imported' => $this->imported,
@@ -182,8 +188,8 @@ class SyncAnDataCommand extends Command
 
         // Résumé global
         $this->newLine();
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("📊 RÉSUMÉ GLOBAL");
+        $this->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info('📊 RÉSUMÉ GLOBAL');
         $this->newLine();
 
         $this->table(
@@ -199,8 +205,8 @@ class SyncAnDataCommand extends Command
             })->toArray()
         );
 
-        $hasErrors = collect($results)->contains(fn($r) => $r['status'] === 'error');
-        
+        $hasErrors = collect($results)->contains(fn ($r) => $r['status'] === 'error');
+
         return $hasErrors ? self::FAILURE : self::SUCCESS;
     }
 
@@ -213,8 +219,8 @@ class SyncAnDataCommand extends Command
         $parser = $config['parser'];
 
         // Appeler le parser spécifique
-        $method = "parse" . ucfirst($parser);
-        
+        $method = 'parse'.ucfirst($parser);
+
         if (method_exists($this, $method)) {
             $parsed = $this->$method($data);
         } else {
@@ -224,14 +230,16 @@ class SyncAnDataCommand extends Command
 
         if (empty($parsed)) {
             $this->skipped++;
+
             return;
         }
 
         // Déterminer la clé unique
         $uid = $parsed['uid'] ?? $parsed['id'] ?? null;
-        
-        if (!$uid) {
+
+        if (! $uid) {
             $this->skipped++;
+
             return;
         }
 
@@ -254,7 +262,9 @@ class SyncAnDataCommand extends Command
     protected function parseScrutins(array $data): array
     {
         $uid = $data['uid'] ?? null;
-        if (!$uid) return [];
+        if (! $uid) {
+            return [];
+        }
 
         $syntheseVote = $data['syntheseVote'] ?? [];
 
@@ -281,7 +291,9 @@ class SyncAnDataCommand extends Command
     protected function parseDeputes(array $data): array
     {
         $uid = $data['uid']['#text'] ?? $data['uid'] ?? null;
-        if (!$uid) return [];
+        if (! $uid) {
+            return [];
+        }
 
         $etatCivil = $data['etatCivil'] ?? [];
         $ident = $etatCivil['ident'] ?? [];
@@ -315,7 +327,9 @@ class SyncAnDataCommand extends Command
     protected function parseOrganes(array $data): array
     {
         $uid = $data['uid'] ?? null;
-        if (!$uid) return [];
+        if (! $uid) {
+            return [];
+        }
 
         return [
             'uid' => $uid,
@@ -335,13 +349,15 @@ class SyncAnDataCommand extends Command
     protected function parseAmendements(array $data): array
     {
         $uid = $data['uid'] ?? null;
-        if (!$uid) return [];
+        if (! $uid) {
+            return [];
+        }
 
         $identifiant = $data['identifiant'] ?? [];
         $corps = $data['corps'] ?? [];
         $sort = $data['sort'] ?? [];
         $signataires = $data['signataires'] ?? [];
-        
+
         // Premier auteur
         $auteur = $signataires['auteur'] ?? null;
         if (is_array($auteur) && isset($auteur[0])) {
@@ -367,18 +383,19 @@ class SyncAnDataCommand extends Command
      */
     protected function showSample(?string $source, int $legislature): int
     {
-        if (!$source) {
-            $this->error("❌ Veuillez spécifier une source avec --sample");
+        if (! $source) {
+            $this->error('❌ Veuillez spécifier une source avec --sample');
+
             return self::FAILURE;
         }
 
         $limit = (int) $this->option('sample');
-        
+
         $downloader = new XmlDownloader($legislature);
         $xmlPath = $downloader->getXmlPath($source);
-        
-        if (!is_dir($xmlPath)) {
-            $this->warn("⚠️  Fichiers non téléchargés, téléchargement...");
+
+        if (! is_dir($xmlPath)) {
+            $this->warn('⚠️  Fichiers non téléchargés, téléchargement...');
             $downloader->download($source);
         }
 
@@ -389,7 +406,7 @@ class SyncAnDataCommand extends Command
         $this->newLine();
 
         foreach ($samples as $i => $sample) {
-            $this->line("━━━ Élément " . ($i + 1) . " ━━━");
+            $this->line('━━━ Élément '.($i + 1).' ━━━');
             $this->line(json_encode($sample, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
             $this->newLine();
         }
@@ -402,14 +419,13 @@ class SyncAnDataCommand extends Command
      */
     protected function displaySummary(): void
     {
-        $this->info("📊 Résumé :");
+        $this->info('📊 Résumé :');
         $this->info("   ✅ Importés : {$this->imported}");
         $this->info("   🔄 Mis à jour : {$this->updated}");
         $this->info("   ⏭️  Ignorés : {$this->skipped}");
-        
+
         if ($this->errors > 0) {
             $this->warn("   ❌ Erreurs : {$this->errors}");
         }
     }
 }
-

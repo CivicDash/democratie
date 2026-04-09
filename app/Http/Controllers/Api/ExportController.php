@@ -42,6 +42,7 @@ class ExportController extends Controller
     public function statistiques(Request $request)
     {
         $filters = $request->all();
+
         return $this->exportService->exportStatistiques($filters);
     }
 
@@ -51,7 +52,7 @@ class ExportController extends Controller
     public function comparaison(Request $request)
     {
         $groupeIds = $request->input('groupe_ids', []);
-        
+
         if (empty($groupeIds)) {
             return response()->json([
                 'success' => false,

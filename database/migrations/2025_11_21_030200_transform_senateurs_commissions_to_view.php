@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE IF EXISTS senateurs_commissions RENAME TO senateurs_commissions_backup_old");
-        
-        DB::statement("
+        if (! Schema::hasTable('senat_senateurs_memcom')) {
+            return;
+        }
+
+        DB::statement('ALTER TABLE IF EXISTS senateurs_commissions RENAME TO senateurs_commissions_backup_old');
+
+        DB::statement('
             CREATE OR REPLACE VIEW senateurs_commissions AS
             SELECT 
                 mc.memcomid AS id,
@@ -31,13 +36,12 @@ return new class extends Migration
                 
             FROM senat_senateurs_memcom mc
             ORDER BY mc.memcomdatdeb DESC NULLS LAST
-        ");
+        ');
     }
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS senateurs_commissions");
-        DB::statement("ALTER TABLE IF EXISTS senateurs_commissions_backup_old RENAME TO senateurs_commissions");
+        DB::statement('DROP VIEW IF EXISTS senateurs_commissions');
+        DB::statement('ALTER TABLE IF EXISTS senateurs_commissions_backup_old RENAME TO senateurs_commissions');
     }
 };
-

@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\BannedWord;
-use App\Models\NiceWord;
 use App\Models\ModerationLog;
+use App\Models\NiceWord;
 use App\Services\ContentModerationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,15 +26,15 @@ class AdminModerationWordsController extends Controller
 
         // Filtres pour mots bannis
         $bannedQuery = BannedWord::query();
-        
+
         if ($search = $request->input('search_banned')) {
             $bannedQuery->where('word', 'ilike', "%{$search}%");
         }
-        
+
         if ($category = $request->input('category')) {
             $bannedQuery->where('category', $category);
         }
-        
+
         if ($severity = $request->input('severity')) {
             $bannedQuery->where('severity', $severity);
         }
@@ -48,11 +48,11 @@ class AdminModerationWordsController extends Controller
 
         // Filtres pour mots gentils
         $niceQuery = NiceWord::query();
-        
+
         if ($searchNice = $request->input('search_nice')) {
             $niceQuery->where('word', 'ilike', "%{$searchNice}%");
         }
-        
+
         if ($niceCategory = $request->input('nice_category')) {
             $niceQuery->where('category', $niceCategory);
         }
@@ -93,7 +93,7 @@ class AdminModerationWordsController extends Controller
     {
         $validated = $request->validate([
             'word' => 'required|string|max:100|unique:banned_words,word',
-            'category' => 'required|string|in:' . implode(',', array_keys(BannedWord::CATEGORIES)),
+            'category' => 'required|string|in:'.implode(',', array_keys(BannedWord::CATEGORIES)),
             'severity' => 'required|string|in:low,medium,high',
             'is_regex' => 'boolean',
             'notes' => 'nullable|string|max:500',
@@ -116,8 +116,8 @@ class AdminModerationWordsController extends Controller
     public function updateBanned(Request $request, BannedWord $bannedWord)
     {
         $validated = $request->validate([
-            'word' => 'required|string|max:100|unique:banned_words,word,' . $bannedWord->id,
-            'category' => 'required|string|in:' . implode(',', array_keys(BannedWord::CATEGORIES)),
+            'word' => 'required|string|max:100|unique:banned_words,word,'.$bannedWord->id,
+            'category' => 'required|string|in:'.implode(',', array_keys(BannedWord::CATEGORIES)),
             'severity' => 'required|string|in:low,medium,high',
             'is_active' => 'boolean',
             'is_regex' => 'boolean',
@@ -149,7 +149,7 @@ class AdminModerationWordsController extends Controller
     {
         $validated = $request->validate([
             'word' => 'required|string|max:100',
-            'category' => 'required|string|in:' . implode(',', array_keys(NiceWord::CATEGORIES)),
+            'category' => 'required|string|in:'.implode(',', array_keys(NiceWord::CATEGORIES)),
         ]);
 
         NiceWord::create([
@@ -169,7 +169,7 @@ class AdminModerationWordsController extends Controller
     {
         $validated = $request->validate([
             'word' => 'required|string|max:100',
-            'category' => 'required|string|in:' . implode(',', array_keys(NiceWord::CATEGORIES)),
+            'category' => 'required|string|in:'.implode(',', array_keys(NiceWord::CATEGORIES)),
             'is_active' => 'boolean',
         ]);
 

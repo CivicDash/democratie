@@ -137,7 +137,7 @@ class TopicVote extends Model
 
         $z = 1.96; // 95% confidence
         $p = $positive / $total;
-        
+
         $left = $p + ($z * $z) / (2 * $total);
         $right = $z * sqrt(($p * (1 - $p) + ($z * $z) / (4 * $total)) / $total);
         $under = 1 + ($z * $z) / $total;

@@ -66,13 +66,18 @@ class Gouvernement extends Model
         $debut = $this->date_debut;
         $fin = $this->date_fin ?? now();
         $jours = $debut->diffInDays($fin);
-        
-        if ($jours < 30) return $jours . ' jours';
-        if ($jours < 365) return floor($jours / 30) . ' mois';
-        
+
+        if ($jours < 30) {
+            return $jours.' jours';
+        }
+        if ($jours < 365) {
+            return floor($jours / 30).' mois';
+        }
+
         $annees = floor($jours / 365);
         $mois = floor(($jours % 365) / 30);
-        return $annees . ' an' . ($annees > 1 ? 's' : '') . ($mois > 0 ? " et {$mois} mois" : '');
+
+        return $annees.' an'.($annees > 1 ? 's' : '').($mois > 0 ? " et {$mois} mois" : '');
     }
 
     public function getNbMinistresAttribute(): int
@@ -89,32 +94,32 @@ class Gouvernement extends Model
     public function getNomCompletAttribute(): string
     {
         $parts = [];
-        
+
         if ($this->numero) {
-            $parts[] = $this->numero_ordinal . ' Gouvernement';
+            $parts[] = $this->numero_ordinal.' Gouvernement';
         }
-        
+
         $parts[] = $this->nom;
-        
+
         if ($this->suffixe) {
-            $parts[count($parts) - 1] .= ' ' . $this->suffixe;
+            $parts[count($parts) - 1] .= ' '.$this->suffixe;
         }
-        
+
         return implode(' - ', $parts);
     }
 
     // Numéro ordinal : 48 -> "48ème"
     public function getNumeroOrdinalAttribute(): ?string
     {
-        if (!$this->numero) {
+        if (! $this->numero) {
             return null;
         }
-        
+
         if ($this->numero === 1) {
             return '1er';
         }
-        
-        return $this->numero . 'ème';
+
+        return $this->numero.'ème';
     }
 
     // Gouvernement actuel

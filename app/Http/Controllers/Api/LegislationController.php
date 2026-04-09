@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\LegislationService;
-use App\Models\PropositionLoi;
-use App\Models\AgendaLegislatif;
 use App\Models\DeputeSenateur;
+use App\Models\PropositionLoi;
 use App\Models\VotePropositionLoi;
+use App\Services\LegislationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Controller pour les données législatives (Assemblée + Sénat)
@@ -24,7 +23,7 @@ class LegislationController extends Controller
 
     /**
      * Liste des propositions de loi avec filtres avancés
-     * 
+     *
      * GET /api/legislation/propositions?source=both&limit=20&statut=en_cours
      * Nouveaux filtres: thematiques[], date_from, date_to, sources[], statuts[], sort_by
      */
@@ -62,21 +61,21 @@ class LegislationController extends Controller
             $query = PropositionLoi::query();
 
             // Filtres de source
-            if ($request->has('sources') && !empty($request->input('sources'))) {
+            if ($request->has('sources') && ! empty($request->input('sources'))) {
                 $query->whereIn('source', $request->input('sources'));
             } elseif ($request->has('source') && $request->input('source') !== 'both') {
                 $query->where('source', $request->input('source'));
             }
 
             // Filtres de statut
-            if ($request->has('statuts') && !empty($request->input('statuts'))) {
+            if ($request->has('statuts') && ! empty($request->input('statuts'))) {
                 $query->whereIn('statut', $request->input('statuts'));
             } elseif ($request->has('statut')) {
                 $query->where('statut', $request->input('statut'));
             }
 
             // Filtres de thématiques
-            if ($request->has('thematiques') && !empty($request->input('thematiques'))) {
+            if ($request->has('thematiques') && ! empty($request->input('thematiques'))) {
                 $query->whereHas('thematiques', function ($q) use ($request) {
                     $q->whereIn('thematiques_legislation.code', $request->input('thematiques'));
                 });
@@ -139,12 +138,12 @@ class LegislationController extends Controller
 
     /**
      * Détail d'une proposition
-     * 
+     *
      * GET /api/legislation/propositions/{source}/{numero}?legislature=17
      */
     public function getPropositionDetail(string $source, string $numero, Request $request): JsonResponse
     {
-        if (!in_array($source, ['assemblee', 'senat'])) {
+        if (! in_array($source, ['assemblee', 'senat'])) {
             return response()->json([
                 'error' => 'Source invalide',
                 'message' => 'La source doit être "assemblee" ou "senat"',
@@ -156,7 +155,7 @@ class LegislationController extends Controller
         try {
             $proposition = $this->legislationService->getPropositionDetail($source, $numero, $legislature);
 
-            if (!$proposition) {
+            if (! $proposition) {
                 return response()->json([
                     'error' => 'Proposition non trouvée',
                     'source' => $source,
@@ -179,12 +178,12 @@ class LegislationController extends Controller
 
     /**
      * Amendements d'une proposition
-     * 
+     *
      * GET /api/legislation/propositions/{source}/{numero}/amendements
      */
     public function getAmendements(string $source, string $numero, Request $request): JsonResponse
     {
-        if (!in_array($source, ['assemblee', 'senat'])) {
+        if (! in_array($source, ['assemblee', 'senat'])) {
             return response()->json(['error' => 'Source invalide'], 400);
         }
 
@@ -208,12 +207,12 @@ class LegislationController extends Controller
 
     /**
      * Votes sur une proposition
-     * 
+     *
      * GET /api/legislation/propositions/{source}/{numero}/votes
      */
     public function getVotes(string $source, string $numero, Request $request): JsonResponse
     {
-        if (!in_array($source, ['assemblee', 'senat'])) {
+        if (! in_array($source, ['assemblee', 'senat'])) {
             return response()->json(['error' => 'Source invalide'], 400);
         }
 
@@ -237,7 +236,7 @@ class LegislationController extends Controller
 
     /**
      * 🔥 KILLER FEATURE: Trouve des propositions législatives similaires
-     * 
+     *
      * POST /api/legislation/find-similar
      * Body: { "titre": "...", "description": "...", "tags": [...] }
      */
@@ -268,9 +267,9 @@ class LegislationController extends Controller
                 'success' => true,
                 'data' => $similar,
                 'count' => count($similar),
-                'message' => count($similar) > 0 
-                    ? "Nous avons trouvé " . count($similar) . " proposition(s) similaire(s) au Parlement !" 
-                    : "Aucune proposition similaire trouvée. Votre idée est peut-être unique !",
+                'message' => count($similar) > 0
+                    ? 'Nous avons trouvé '.count($similar).' proposition(s) similaire(s) au Parlement !'
+                    : 'Aucune proposition similaire trouvée. Votre idée est peut-être unique !',
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -282,7 +281,7 @@ class LegislationController extends Controller
 
     /**
      * Agenda législatif
-     * 
+     *
      * GET /api/legislation/agenda?source=both&date_debut=2025-11-01&date_fin=2025-11-30
      */
     public function getAgenda(Request $request): JsonResponse
@@ -301,7 +300,7 @@ class LegislationController extends Controller
         }
 
         $source = $request->input('source', 'both');
-        $dateDebut = $request->input('date_debut') ? new \DateTime($request->input('date_debut')) : new \DateTime();
+        $dateDebut = $request->input('date_debut') ? new \DateTime($request->input('date_debut')) : new \DateTime;
         $dateFin = $request->input('date_fin') ? new \DateTime($request->input('date_fin')) : (clone $dateDebut)->modify('+30 days');
 
         try {
@@ -325,7 +324,7 @@ class LegislationController extends Controller
 
     /**
      * Statistiques législatives
-     * 
+     *
      * GET /api/legislation/stats?legislature=17
      */
     public function getStatistiques(Request $request): JsonResponse
@@ -349,7 +348,7 @@ class LegislationController extends Controller
 
     /**
      * Recherche de députés/sénateurs
-     * 
+     *
      * GET /api/legislation/elus/search?q=macron&source=assemblee
      */
     public function searchElus(Request $request): JsonResponse
@@ -390,7 +389,7 @@ class LegislationController extends Controller
                 ->orderBy('nom')
                 ->limit($limit)
                 ->get()
-                ->map(fn($elu) => $elu->toApiArray());
+                ->map(fn ($elu) => $elu->toApiArray());
 
             return response()->json([
                 'success' => true,
@@ -407,7 +406,7 @@ class LegislationController extends Controller
 
     /**
      * Détail d'un député/sénateur
-     * 
+     *
      * GET /api/legislation/elus/{uid}
      */
     public function getEluDetail(string $uid): JsonResponse
@@ -415,7 +414,7 @@ class LegislationController extends Controller
         try {
             $elu = DeputeSenateur::where('uid', $uid)->first();
 
-            if (!$elu) {
+            if (! $elu) {
                 return response()->json([
                     'error' => 'Élu non trouvé',
                     'uid' => $uid,
@@ -436,7 +435,7 @@ class LegislationController extends Controller
 
     /**
      * Propositions locales (depuis la BDD CivicDash)
-     * 
+     *
      * GET /api/legislation/propositions/local?limit=20&statut=en_cours
      */
     public function getPropositionsLocales(Request $request): JsonResponse
@@ -464,7 +463,7 @@ class LegislationController extends Controller
 
             $propositions = $query->limit($limit)
                 ->get()
-                ->map(fn($prop) => $prop->toApiArray());
+                ->map(fn ($prop) => $prop->toApiArray());
 
             return response()->json([
                 'success' => true,
@@ -481,7 +480,7 @@ class LegislationController extends Controller
 
     /**
      * 👍👎 Vote sur une proposition (upvote/downvote)
-     * 
+     *
      * POST /api/legislation/propositions/{id}/vote
      * Body: { "type": "upvote|downvote", "commentaire": "..." }
      */
@@ -502,7 +501,7 @@ class LegislationController extends Controller
         try {
             $proposition = PropositionLoi::find($id);
 
-            if (!$proposition) {
+            if (! $proposition) {
                 return response()->json([
                     'error' => 'Proposition non trouvée',
                     'id' => $id,
@@ -529,7 +528,7 @@ class LegislationController extends Controller
                     ],
                     'stats' => $stats,
                 ],
-                'message' => $typeVote === 'upvote' 
+                'message' => $typeVote === 'upvote'
                     ? '👍 Vous soutenez cette proposition !'
                     : '👎 Vous êtes contre cette proposition.',
             ]);
@@ -543,7 +542,7 @@ class LegislationController extends Controller
 
     /**
      * Annule un vote sur une proposition
-     * 
+     *
      * DELETE /api/legislation/propositions/{id}/vote
      */
     public function removeVoteProposition(int $id): JsonResponse
@@ -551,7 +550,7 @@ class LegislationController extends Controller
         try {
             $proposition = PropositionLoi::find($id);
 
-            if (!$proposition) {
+            if (! $proposition) {
                 return response()->json([
                     'error' => 'Proposition non trouvée',
                 ], 404);
@@ -560,7 +559,7 @@ class LegislationController extends Controller
             $userId = Auth::id();
             $removed = VotePropositionLoi::removeVote($userId, $id);
 
-            if (!$removed) {
+            if (! $removed) {
                 return response()->json([
                     'error' => 'Aucun vote à supprimer',
                     'message' => 'Vous n\'avez pas voté pour cette proposition',
@@ -587,7 +586,7 @@ class LegislationController extends Controller
 
     /**
      * Récupère le vote de l'utilisateur sur une proposition
-     * 
+     *
      * GET /api/legislation/propositions/{id}/my-vote
      */
     public function getMyVote(int $id): JsonResponse
@@ -596,7 +595,7 @@ class LegislationController extends Controller
             $userId = Auth::id();
             $vote = VotePropositionLoi::getUserVote($userId, $id);
 
-            if (!$vote) {
+            if (! $vote) {
                 return response()->json([
                     'success' => true,
                     'data' => null,
@@ -623,7 +622,7 @@ class LegislationController extends Controller
 
     /**
      * Récupère les statistiques de vote d'une proposition
-     * 
+     *
      * GET /api/legislation/propositions/{id}/votes/stats
      */
     public function getVoteStats(int $id): JsonResponse
@@ -631,7 +630,7 @@ class LegislationController extends Controller
         try {
             $proposition = PropositionLoi::find($id);
 
-            if (!$proposition) {
+            if (! $proposition) {
                 return response()->json([
                     'error' => 'Proposition non trouvée',
                 ], 404);
@@ -653,7 +652,7 @@ class LegislationController extends Controller
 
     /**
      * Liste les propositions les plus populaires (par score)
-     * 
+     *
      * GET /api/legislation/propositions/trending?limit=10
      */
     public function getTrendingPropositions(Request $request): JsonResponse
@@ -673,6 +672,7 @@ class LegislationController extends Controller
                 ->map(function ($prop) {
                     $data = $prop->toApiArray();
                     $data['votes_stats'] = VotePropositionLoi::getPropositionStats($prop->id);
+
                     return $data;
                 });
 
@@ -689,4 +689,3 @@ class LegislationController extends Controller
         }
     }
 }
-

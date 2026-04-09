@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modèle pour les députés et sénateurs
- * 
+ *
  * @property int $id
  * @property string $source
  * @property string $uid
@@ -100,6 +100,7 @@ class DeputeSenateur extends Model
     {
         // Extraire le code département de la circonscription (ex: "75-01" -> "75")
         $deptCode = substr($this->circonscription ?? '', 0, 2);
+
         return $this->belongsTo(TerritoryDepartment::class, 'code', $deptCode);
     }
 
@@ -180,8 +181,8 @@ class DeputeSenateur extends Model
             'depute_senateur_id',
             'organe_id'
         )
-        ->withPivot(['fonction', 'ordre', 'date_debut', 'date_fin', 'actif'])
-        ->withTimestamps();
+            ->withPivot(['fonction', 'ordre', 'date_debut', 'date_fin', 'actif'])
+            ->withTimestamps();
     }
 
     // ========================================================================
@@ -216,18 +217,18 @@ class DeputeSenateur extends Model
     public function scopeActifs($query)
     {
         return $query->where('en_exercice', true)
-                     ->where(function ($q) {
-                         $q->whereNull('fin_mandat')
-                           ->orWhere('fin_mandat', '>', now());
-                     });
+            ->where(function ($q) {
+                $q->whereNull('fin_mandat')
+                    ->orWhere('fin_mandat', '>', now());
+            });
     }
 
     public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {
             $q->where('nom', 'like', "%{$search}%")
-              ->orWhere('prenom', 'like', "%{$search}%")
-              ->orWhere('circonscription', 'like', "%{$search}%");
+                ->orWhere('prenom', 'like', "%{$search}%")
+                ->orWhere('circonscription', 'like', "%{$search}%");
         });
     }
 
@@ -237,13 +238,14 @@ class DeputeSenateur extends Model
 
     public function getNomCompletAttribute(): string
     {
-        $civilite = $this->civilite ? $this->civilite . ' ' : '';
-        return $civilite . $this->prenom . ' ' . $this->nom;
+        $civilite = $this->civilite ? $this->civilite.' ' : '';
+
+        return $civilite.$this->prenom.' '.$this->nom;
     }
 
     public function getSourceLabelAttribute(): string
     {
-        return match($this->source) {
+        return match ($this->source) {
             'assemblee' => 'Député',
             'senat' => 'Sénateur',
             default => $this->source,
@@ -252,7 +254,7 @@ class DeputeSenateur extends Model
 
     public function getAgeAttribute(): ?int
     {
-        if (!$this->date_naissance) {
+        if (! $this->date_naissance) {
             return null;
         }
 
@@ -261,11 +263,12 @@ class DeputeSenateur extends Model
 
     public function getDureeMandatAttribute(): ?int
     {
-        if (!$this->debut_mandat) {
+        if (! $this->debut_mandat) {
             return null;
         }
 
         $fin = $this->fin_mandat ?? now();
+
         return $this->debut_mandat->diffInYears($fin);
     }
 
@@ -305,13 +308,13 @@ class DeputeSenateur extends Model
     {
         // Score d'activité basé sur nombre de propositions, amendements et présence
         $score = 0;
-        
+
         // Propositions (max 40 points)
         $score += min($this->nb_propositions * 2, 40);
-        
+
         // Amendements (max 30 points)
         $score += min($this->nb_amendements * 0.5, 30);
-        
+
         // Présence (max 30 points)
         if ($this->taux_presence) {
             $score += ($this->taux_presence / 100) * 30;
@@ -357,4 +360,3 @@ class DeputeSenateur extends Model
         ];
     }
 }
-

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasTable('senat_senateurs_sen')) {
+            return;
+        }
+
         // 1. Renommer la table actuelle comme backup
-        DB::statement("ALTER TABLE IF EXISTS senateurs RENAME TO senateurs_backup_old");
-        
+        DB::statement('ALTER TABLE IF EXISTS senateurs RENAME TO senateurs_backup_old');
+
         // 2. Créer une vue avec le même nom qui mappe les données brutes
         DB::statement("
             CREATE OR REPLACE VIEW senateurs AS
@@ -74,8 +79,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS senateurs");
-        DB::statement("ALTER TABLE IF EXISTS senateurs_backup_old RENAME TO senateurs");
+        DB::statement('DROP VIEW IF EXISTS senateurs');
+        DB::statement('ALTER TABLE IF EXISTS senateurs_backup_old RENAME TO senateurs');
     }
 };
-

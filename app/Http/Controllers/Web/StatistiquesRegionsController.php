@@ -49,11 +49,11 @@ class StatistiquesRegionsController extends Controller
                     : 0,
                 // Indicateurs économiques/sociaux (depuis FranceRegionalData)
                 'pib' => $rd?->gdp_billion_euros,
-                'pib_formate' => $rd?->gdp_billion_euros ? number_format($rd->gdp_billion_euros, 1, ',', ' ') . ' Md€' : null,
+                'pib_formate' => $rd?->gdp_billion_euros ? number_format($rd->gdp_billion_euros, 1, ',', ' ').' Md€' : null,
                 'taux_chomage' => $rd?->unemployment_rate,
                 'taux_pauvrete' => $rd?->poverty_rate,
                 'revenu_median' => $rd?->median_income,
-                'revenu_median_formate' => $rd?->median_income ? number_format($rd->median_income, 0, ',', ' ') . ' €' : null,
+                'revenu_median_formate' => $rd?->median_income ? number_format($rd->median_income, 0, ',', ' ').' €' : null,
                 'esperance_vie' => $rd?->life_expectancy,
                 'est_drom' => in_array($vs->region_code, ['01', '02', '03', '04', '06']),
             ];
@@ -114,7 +114,7 @@ class StatistiquesRegionsController extends Controller
             ->groupBy('region_code', 'region_nom')
             ->first();
 
-        if (!$villeInfo) {
+        if (! $villeInfo) {
             abort(404, 'Région non trouvée');
         }
 
@@ -130,11 +130,11 @@ class StatistiquesRegionsController extends Controller
                 : 0,
             // Indicateurs économiques
             'pib' => $regionData?->gdp_billion_euros,
-            'pib_formate' => $regionData?->gdp_billion_euros ? number_format($regionData->gdp_billion_euros, 1, ',', ' ') . ' Md€' : null,
+            'pib_formate' => $regionData?->gdp_billion_euros ? number_format($regionData->gdp_billion_euros, 1, ',', ' ').' Md€' : null,
             'taux_chomage' => $regionData?->unemployment_rate,
             'taux_pauvrete' => $regionData?->poverty_rate,
             'revenu_median' => $regionData?->median_income,
-            'revenu_median_formate' => $regionData?->median_income ? number_format($regionData->median_income, 0, ',', ' ') . ' €' : null,
+            'revenu_median_formate' => $regionData?->median_income ? number_format($regionData->median_income, 0, ',', ' ').' €' : null,
             'esperance_vie' => $regionData?->life_expectancy,
             'est_drom' => in_array($code, ['01', '02', '03', '04', '06']),
         ];
@@ -150,7 +150,7 @@ class StatistiquesRegionsController extends Controller
             ->groupBy('departement_code', 'departement_nom')
             ->orderByDesc('population')
             ->get()
-            ->map(fn($d) => [
+            ->map(fn ($d) => [
                 'code' => $d->departement_code,
                 'nom' => $d->departement_nom,
                 'nb_communes' => (int) $d->nb_communes,
@@ -171,7 +171,7 @@ class StatistiquesRegionsController extends Controller
             ->orderByDesc('population')
             ->take(10)
             ->get()
-            ->map(fn($v) => [
+            ->map(fn ($v) => [
                 'id' => $v->id,
                 'nom' => $v->nom,
                 'slug' => $v->slug,

@@ -1,0 +1,38 @@
+# =============================================================================
+# CivicDash - Extension Commune Hub (v2.0)
+# =============================================================================
+# Usage: docker compose -f docker-compose.yml -f docker-compose.communes.yml up -d
+#
+# Ajoute Caddy pour le wildcard TLS *.civicdash.fr
+# Architecture: Internet -> SafeLine -> Caddy -> Laravel Octane
+# =============================================================================
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: civicdash-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - app_storage:/srv/storage:ro
+    depends_on:
+      - app
+    networks:
+      - civicdash
+
+  # Override: app expose le port 8000 pour Caddy
+  app:
+    environment:
+      - COMMUNE_DOMAIN=${COMMUNE_DOMAIN:-civicdash.fr}
+
+volumes:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

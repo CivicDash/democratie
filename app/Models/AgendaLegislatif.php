@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Modèle pour l'agenda législatif
- * 
+ *
  * @property int $id
  * @property string $source
  * @property \Carbon\Carbon $date
@@ -72,7 +72,7 @@ class AgendaLegislatif extends Model
     public function scopeFutur($query)
     {
         return $query->where('date', '>=', now()->toDateString())
-                     ->where('statut', 'prevu');
+            ->where('statut', 'prevu');
     }
 
     public function scopeEnCours($query)
@@ -106,7 +106,7 @@ class AgendaLegislatif extends Model
 
     public function getTypeLabelAttribute(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'seance_publique' => 'Séance publique',
             'commission' => 'Commission',
             'questions_gouvernement' => 'Questions au Gouvernement',
@@ -116,7 +116,7 @@ class AgendaLegislatif extends Model
 
     public function getStatutLabelAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             'prevu' => 'Prévu',
             'en_cours' => 'En cours',
             'termine' => 'Terminé',
@@ -137,11 +137,10 @@ class AgendaLegislatif extends Model
 
     public function getDureeAttribute(): ?int
     {
-        if (!$this->heure_debut || !$this->heure_fin) {
+        if (! $this->heure_debut || ! $this->heure_fin) {
             return null;
         }
 
         return $this->heure_debut->diffInMinutes($this->heure_fin);
     }
 }
-

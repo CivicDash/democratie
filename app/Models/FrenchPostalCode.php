@@ -85,7 +85,7 @@ class FrenchPostalCode extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('postal_code', 'LIKE', "{$search}%")
-              ->orWhere('city_name', 'ILIKE', "%{$search}%");
+                ->orWhere('city_name', 'ILIKE', "%{$search}%");
         });
     }
 
@@ -180,8 +180,11 @@ class FrenchPostalCode extends Model
      */
     public function getPopulationFormattedAttribute(): string
     {
-        if (!$this->population) return 'N/A';
-        return number_format($this->population, 0, ',', ' ') . ' hab.';
+        if (! $this->population) {
+            return 'N/A';
+        }
+
+        return number_format($this->population, 0, ',', ' ').' hab.';
     }
 
     /**
@@ -189,7 +192,10 @@ class FrenchPostalCode extends Model
      */
     public function getDensiteAttribute(): ?float
     {
-        if (!$this->population || !$this->superficie) return null;
+        if (! $this->population || ! $this->superficie) {
+            return null;
+        }
+
         return round($this->population / $this->superficie, 1);
     }
 
@@ -201,7 +207,7 @@ class FrenchPostalCode extends Model
         // "PARIS 01" → "Paris"
         // "LYON 03" → "Lyon"
         $nom = preg_replace('/\s+\d{2}$/', '', $this->city_name);
+
         return ucwords(strtolower($nom));
     }
 }
-

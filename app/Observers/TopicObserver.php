@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\Topic;
 use App\Models\Achievement;
+use App\Models\Topic;
 use App\Services\GamificationService;
 
 class TopicObserver
@@ -17,7 +17,7 @@ class TopicObserver
      */
     public function created(Topic $topic): void
     {
-        if (!$topic->user_id) {
+        if (! $topic->user_id) {
             return;
         }
 

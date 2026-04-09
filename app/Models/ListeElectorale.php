@@ -6,14 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 /**
  * Liste électorale pour les élections municipales
- * 
+ *
  * Une liste regroupe plusieurs candidats qui se présentent ensemble
  * sous une même étiquette/bannière.
  */
@@ -216,10 +215,11 @@ class ListeElectorale extends Model
      */
     public function getLogoUrlAttribute(): ?string
     {
-        if (!$this->logo_path) {
+        if (! $this->logo_path) {
             return null;
         }
-        return asset('storage/' . $this->logo_path);
+
+        return asset('storage/'.$this->logo_path);
     }
 
     /**
@@ -227,10 +227,11 @@ class ListeElectorale extends Model
      */
     public function getProgrammePdfUrlAttribute(): ?string
     {
-        if (!$this->programme_pdf_path) {
+        if (! $this->programme_pdf_path) {
             return null;
         }
-        return asset('storage/' . $this->programme_pdf_path);
+
+        return asset('storage/'.$this->programme_pdf_path);
     }
 
     /**
@@ -262,7 +263,7 @@ class ListeElectorale extends Model
      */
     public function getStatutFormateAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             'brouillon' => 'Brouillon',
             'en_attente' => 'En attente de validation',
             'documents_requis' => 'Documents requis',
@@ -279,7 +280,7 @@ class ListeElectorale extends Model
      */
     public function getStatutCouleurAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             'brouillon' => 'gray',
             'en_attente' => 'yellow',
             'documents_requis' => 'orange',
@@ -297,13 +298,23 @@ class ListeElectorale extends Model
     public function getReseauxSociauxAttribute(): array
     {
         $reseaux = [];
-        
-        if ($this->facebook_url) $reseaux['facebook'] = $this->facebook_url;
-        if ($this->twitter_url) $reseaux['twitter'] = $this->twitter_url;
-        if ($this->instagram_url) $reseaux['instagram'] = $this->instagram_url;
-        if ($this->youtube_url) $reseaux['youtube'] = $this->youtube_url;
-        if ($this->tiktok_url) $reseaux['tiktok'] = $this->tiktok_url;
-        
+
+        if ($this->facebook_url) {
+            $reseaux['facebook'] = $this->facebook_url;
+        }
+        if ($this->twitter_url) {
+            $reseaux['twitter'] = $this->twitter_url;
+        }
+        if ($this->instagram_url) {
+            $reseaux['instagram'] = $this->instagram_url;
+        }
+        if ($this->youtube_url) {
+            $reseaux['youtube'] = $this->youtube_url;
+        }
+        if ($this->tiktok_url) {
+            $reseaux['tiktok'] = $this->tiktok_url;
+        }
+
         return $reseaux;
     }
 
@@ -334,7 +345,7 @@ class ListeElectorale extends Model
     public function valider(User $moderateur, ?string $commentaire = null): bool
     {
         $ancienStatut = $this->statut;
-        
+
         $this->statut = 'valide';
         $this->validated_at = now();
         $this->validated_by = $moderateur->id;
@@ -351,7 +362,7 @@ class ListeElectorale extends Model
     public function rejeter(User $moderateur, string $motif): bool
     {
         $ancienStatut = $this->statut;
-        
+
         $this->statut = 'rejete';
         $this->motif_rejet = $motif;
         $this->save();
@@ -367,7 +378,7 @@ class ListeElectorale extends Model
     public function demanderDocuments(User $moderateur, string $commentaire): bool
     {
         $ancienStatut = $this->statut;
-        
+
         $this->statut = 'documents_requis';
         $this->save();
 

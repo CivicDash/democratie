@@ -21,6 +21,7 @@ class EnrichPostalCodesPopulation extends Command
     protected $description = 'Enrichit les codes postaux avec les populations depuis geo.api.gouv.fr';
 
     private int $updated = 0;
+
     private int $errors = 0;
 
     public function handle(): int
@@ -41,10 +42,10 @@ class EnrichPostalCodesPopulation extends Command
             $query->where('department_code', $department);
         }
 
-        if (!$force) {
+        if (! $force) {
             $query->where(function ($q) {
                 $q->whereNull('population')
-                  ->orWhere('population', 0);
+                    ->orWhere('population', 0);
             });
         }
 
@@ -55,6 +56,7 @@ class EnrichPostalCodesPopulation extends Command
 
         if ($inseeCodes->isEmpty()) {
             $this->info('✅ Toutes les communes ont déjà une population.');
+
             return self::SUCCESS;
         }
 
@@ -65,7 +67,7 @@ class EnrichPostalCodesPopulation extends Command
         foreach ($inseeCodes->chunk($batchSize) as $batch) {
             $this->processBatch($batch->toArray());
             $bar->advance($batch->count());
-            
+
             // Pause pour ne pas surcharger l'API
             usleep(100000); // 100ms
         }
@@ -85,7 +87,7 @@ class EnrichPostalCodesPopulation extends Command
                 $this->enrichCommune($inseeCode);
             } catch (\Exception $e) {
                 $this->errors++;
-                Log::warning("Erreur enrichissement {$inseeCode}: " . $e->getMessage());
+                Log::warning("Erreur enrichissement {$inseeCode}: ".$e->getMessage());
             }
         }
     }
@@ -98,7 +100,7 @@ class EnrichPostalCodesPopulation extends Command
                 'fields' => 'population,surface,codeEpci,nom',
             ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             // Peut-être un code arrondissement, essayer sans
             if (preg_match('/^(75|69|13)(\d{3})$/', $inseeCode, $matches)) {
                 // Paris/Lyon/Marseille : utiliser le code commune principal
@@ -118,8 +120,9 @@ class EnrichPostalCodesPopulation extends Command
             }
         }
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             $this->errors++;
+
             return;
         }
 
@@ -139,7 +142,7 @@ class EnrichPostalCodesPopulation extends Command
             $updateData['epci_code'] = $data['codeEpci'];
         }
 
-        if (!empty($updateData)) {
+        if (! empty($updateData)) {
             FrenchPostalCode::where('insee_code', $inseeCode)->update($updateData);
             $this->updated++;
         }

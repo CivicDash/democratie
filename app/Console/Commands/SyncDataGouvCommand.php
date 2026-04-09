@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 /**
  * Commande pour synchroniser les données depuis data.gouv.fr
  * À exécuter quotidiennement via le scheduler
- * 
+ *
  * Usage:
  *   php artisan datagouv:sync
  *   php artisan datagouv:sync --type=budgets
@@ -67,6 +67,7 @@ class SyncDataGouvCommand extends Command
 
             if ($communes->isEmpty()) {
                 $this->warn('⚠️  Aucune commune en cache');
+
                 return [$synced, $errors];
             }
 
@@ -79,15 +80,16 @@ class SyncDataGouvCommand extends Command
                         ->orderBy('fetched_at', 'desc')
                         ->first();
 
-                    if (!$force && $latest && $latest->fetched_at > now()->subDays(30)) {
+                    if (! $force && $latest && $latest->fetched_at > now()->subDays(30)) {
                         // Données récentes, on skip
                         $bar->advance();
+
                         continue;
                     }
 
                     // Invalider le cache et re-fetch
-                    \Cache::forget("budget:commune:{$code}:" . date('Y'));
-                    
+                    \Cache::forget("budget:commune:{$code}:".date('Y'));
+
                     $budget = app(\App\Services\BudgetTerritorialService::class)
                         ->getCommuneBudget($code);
 
@@ -114,4 +116,3 @@ class SyncDataGouvCommand extends Command
         return [$synced, $errors];
     }
 }
-

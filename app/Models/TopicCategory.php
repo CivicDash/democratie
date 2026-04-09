@@ -49,4 +49,3 @@ class TopicCategory extends Model
         return $query->orderBy('order');
     }
 }
-

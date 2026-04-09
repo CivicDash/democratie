@@ -21,7 +21,7 @@ class GroupeParlementaireService
         'GDR-NUPES' => '#DD0000',   // Gauche démocrate et républicaine - Rouge foncé
         'DEM' => '#FF9900',         // Démocrate (MoDem) - Orange
         'NI' => '#999999',          // Non-inscrits - Gris
-        
+
         // Anciens groupes (L15-16)
         'LaREM' => '#FFD700',
         'MODEM' => '#FF9900',
@@ -66,5 +66,3 @@ class GroupeParlementaireService
         return strtoupper(trim($sigle));
     }
 }
-
-

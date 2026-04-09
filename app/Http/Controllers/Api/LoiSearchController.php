@@ -34,17 +34,17 @@ class LoiSearchController extends Controller
         // Recherche textuelle sur le titre ou l'intitulé
         $loisQuery->where(function ($q) use ($query) {
             $q->where('loitit', 'ilike', "%{$query}%")
-              ->orWhere('loiint', 'ilike', "%{$query}%")
-              ->orWhere('loinumjo', 'ilike', "%{$query}%");
+                ->orWhere('loiint', 'ilike', "%{$query}%")
+                ->orWhere('loinumjo', 'ilike', "%{$query}%");
         });
 
         // Filtre par état
-        if (!empty($validated['etat'])) {
+        if (! empty($validated['etat'])) {
             $loisQuery->where('etaloicod', $validated['etat']);
         }
 
         // Filtre par année
-        if (!empty($validated['annee'])) {
+        if (! empty($validated['annee'])) {
             $loisQuery->whereYear('loidatjo', $validated['annee']);
         }
 

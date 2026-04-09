@@ -11,7 +11,7 @@ class TagController extends Controller
 {
     /**
      * Liste de tous les tags
-     * 
+     *
      * GET /tags
      */
     public function index(): Response
@@ -26,14 +26,14 @@ class TagController extends Controller
             ->get();
 
         return Inertia::render('Tags/Index', [
-            'tags' => $tags->map(fn($t) => $this->formatTag($t)),
-            'popularTags' => $popularTags->map(fn($t) => $this->formatTag($t)),
+            'tags' => $tags->map(fn ($t) => $this->formatTag($t)),
+            'popularTags' => $popularTags->map(fn ($t) => $this->formatTag($t)),
         ]);
     }
 
     /**
      * Afficher un tag et son contenu
-     * 
+     *
      * GET /tags/{slug}
      */
     public function show(string $slug): Response
@@ -64,7 +64,7 @@ class TagController extends Controller
         return Inertia::render('Tags/Show', [
             'tag' => $this->formatTag($tag),
             'lois' => [
-                'data' => $lois->map(fn($l) => [
+                'data' => $lois->map(fn ($l) => [
                     'loicod' => $l->loicod,
                     'titre' => $l->titre_court,
                     'numero' => $l->numero,
@@ -75,7 +75,7 @@ class TagController extends Controller
                 'total' => $tag->lois()->count(),
             ],
             'topics' => [
-                'data' => $topics->map(fn($t) => [
+                'data' => $topics->map(fn ($t) => [
                     'id' => $t->id,
                     'title' => $t->title,
                     'description' => $t->description,
@@ -86,7 +86,7 @@ class TagController extends Controller
                 'total' => $tag->topics()->count(),
             ],
             'textesJo' => [
-                'data' => $textesJo->map(fn($t) => [
+                'data' => $textesJo->map(fn ($t) => [
                     'id' => $t->id,
                     'jorf_id' => $t->jorf_id,
                     'titre' => $t->titre_court,

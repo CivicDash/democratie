@@ -68,9 +68,10 @@ class LoiStats extends Model
      */
     public function isStale(): bool
     {
-        if (!$this->calculated_at) {
+        if (! $this->calculated_at) {
             return true;
         }
+
         return $this->calculated_at->diffInHours(now()) >= 24;
     }
 

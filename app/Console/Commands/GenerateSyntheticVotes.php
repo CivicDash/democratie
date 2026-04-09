@@ -32,13 +32,14 @@ class GenerateSyntheticVotes extends Command
 
         // Récupérer des utilisateurs (ou en créer des fictifs)
         $users = User::limit(50)->pluck('id')->toArray();
-        
+
         if (empty($users)) {
             $this->error('Aucun utilisateur trouvé. Créez d\'abord des utilisateurs.');
+
             return Command::FAILURE;
         }
 
-        $this->info("   Utilisateurs disponibles : " . count($users));
+        $this->info('   Utilisateurs disponibles : '.count($users));
 
         // Récupérer des lois récentes (promulguées ou en cours)
         // La table senat_dosleg_loi utilise: loicod, loitit, etaloicod
@@ -54,10 +55,11 @@ class GenerateSyntheticVotes extends Command
                 ->get(['loicod', 'loitit']);
         }
 
-        $this->info("   Lois ciblées : " . $lois->count());
+        $this->info('   Lois ciblées : '.$lois->count());
 
         if ($lois->isEmpty()) {
             $this->error('Aucune loi trouvée.');
+
             return Command::FAILURE;
         }
 
@@ -76,7 +78,7 @@ class GenerateSyntheticVotes extends Command
             // Pour simuler des lois populaires/impopulaires
             $loiHash = crc32($loi->loicod);
             $biasPour = ($loiHash % 100) / 100; // 0 à 1
-            
+
             $vote = (mt_rand(0, 100) / 100) < $biasPour ? 1 : -1;
 
             try {
@@ -102,34 +104,34 @@ class GenerateSyntheticVotes extends Command
 
         // Recalculer les statistiques pour toutes les lois votées
         $this->info('📊 Recalcul des statistiques...');
-        
+
         $loiCods = CitizenLawVote::distinct()->pluck('loi_cod');
         $statsBar = $this->output->createProgressBar($loiCods->count());
-        
+
         foreach ($loiCods as $loiCod) {
             CitizenLawStats::recalculateForLoi($loiCod);
             $statsBar->advance();
         }
-        
+
         $statsBar->finish();
         $this->newLine();
 
         // Afficher quelques exemples
         $this->info('');
         $this->info('📋 Exemples de résultats :');
-        
+
         $examples = CitizenLawStats::orderByDesc('total_votes')
             ->limit(5)
             ->get();
 
         $this->table(
             ['Loi', 'Pour', 'Contre', 'Total', '% Pour'],
-            $examples->map(fn($s) => [
+            $examples->map(fn ($s) => [
                 substr($s->loi_cod, 0, 30),
                 $s->votes_pour,
                 $s->votes_contre,
                 $s->total_votes,
-                $s->pct_pour . '%',
+                $s->pct_pour.'%',
             ])
         );
 

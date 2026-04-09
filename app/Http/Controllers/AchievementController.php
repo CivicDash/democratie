@@ -33,7 +33,7 @@ class AchievementController extends Controller
         }
 
         // Masquer les secrets si l'utilisateur n'est pas connecté
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             $query->visible();
         }
 
@@ -60,7 +60,7 @@ class AchievementController extends Controller
                 'total' => $achievements->count(),
                 'by_category' => $achievements->groupBy('category')->map->count(),
                 'by_rarity' => $achievements->groupBy('rarity')->map->count(),
-            ]
+            ],
         ]);
     }
 
@@ -108,7 +108,7 @@ class AchievementController extends Controller
         $recent = $this->gamificationService->getRecentAchievements($user, 10);
 
         return response()->json([
-            'achievements' => $recent->map(fn($ua) => [
+            'achievements' => $recent->map(fn ($ua) => [
                 'id' => $ua->achievement->id,
                 'name' => $ua->achievement->name,
                 'description' => $ua->achievement->description,
@@ -129,7 +129,7 @@ class AchievementController extends Controller
         $almost = $this->gamificationService->getAlmostUnlockedAchievements($user, 5);
 
         return response()->json([
-            'achievements' => $almost->map(fn($ua) => [
+            'achievements' => $almost->map(fn ($ua) => [
                 'id' => $ua->achievement->id,
                 'name' => $ua->achievement->name,
                 'description' => $ua->achievement->description,
@@ -217,7 +217,7 @@ class AchievementController extends Controller
     public function markNotified($achievementId)
     {
         $user = Auth::user();
-        
+
         $userAchievement = UserAchievement::where('user_id', $user->id)
             ->where('achievement_id', $achievementId)
             ->firstOrFail();
@@ -233,7 +233,7 @@ class AchievementController extends Controller
     public function share($achievementId)
     {
         $user = Auth::user();
-        
+
         $userAchievement = UserAchievement::where('user_id', $user->id)
             ->where('achievement_id', $achievementId)
             ->where('is_unlocked', true)

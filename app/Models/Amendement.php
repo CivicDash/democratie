@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modèle pour les amendements
- * 
+ *
  * @property int $id
  * @property int $proposition_loi_id
  * @property string $source
@@ -101,7 +101,7 @@ class Amendement extends Model
 
     public function getSortLabelAttribute(): string
     {
-        return match($this->sort) {
+        return match ($this->sort) {
             'adopte' => 'Adopté',
             'rejete' => 'Rejeté',
             'retire' => 'Retiré',
@@ -114,7 +114,7 @@ class Amendement extends Model
 
     public function getSortBadgeAttribute(): string
     {
-        return match($this->sort) {
+        return match ($this->sort) {
             'adopte' => 'success',
             'rejete' => 'danger',
             'retire' => 'secondary',
@@ -127,17 +127,17 @@ class Amendement extends Model
 
     public function getEstSousAmendementAttribute(): bool
     {
-        return !empty($this->numero_parent);
+        return ! empty($this->numero_parent);
     }
 
     public function getAuteurPrincipalAttribute(): ?string
     {
-        if (empty($this->auteurs) || !is_array($this->auteurs)) {
+        if (empty($this->auteurs) || ! is_array($this->auteurs)) {
             return null;
         }
 
         $premier = $this->auteurs[0];
+
         return is_string($premier) ? $premier : ($premier['nom'] ?? null);
     }
 }
-

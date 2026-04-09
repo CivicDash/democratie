@@ -11,8 +11,11 @@ class MandatAN extends Model
     use HasFactory;
 
     protected $table = 'mandats_an';
+
     protected $primaryKey = 'uid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -96,4 +99,3 @@ class MandatAN extends Model
         return str_contains(strtolower($this->code_qualite), 'president');
     }
 }
-

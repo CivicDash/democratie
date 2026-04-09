@@ -39,10 +39,10 @@ class RegisteredUserController extends Controller
             'date_of_birth.before_or_equal' => 'Vous devez avoir au moins 18 ans pour vous inscrire.',
         ]);
 
-        $dolibarr = new DolibarrService();
+        $dolibarr = new DolibarrService;
         $check = $dolibarr->validateRegistration($request->email, $request->date_of_birth);
 
-        if (!$check['ok']) {
+        if (! $check['ok']) {
             throw ValidationException::withMessages([
                 $check['error'] => $check['message'],
             ]);

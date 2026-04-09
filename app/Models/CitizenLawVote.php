@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Vote citoyen sur une loi
- * 
+ *
  * Permet aux utilisateurs de voter Pour ou Contre une loi
  * et de comparer avec le vote parlementaire
  */
@@ -87,7 +87,7 @@ class CitizenLawVote extends Model
     public static function getStatsForLoi(string $loiCod): array
     {
         $votes = self::where('loi_cod', $loiCod)->get();
-        
+
         $pour = $votes->where('vote', 1)->count();
         $contre = $votes->where('vote', -1)->count();
         $total = $pour + $contre;

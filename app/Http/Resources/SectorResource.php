@@ -20,19 +20,19 @@ class SectorResource extends JsonResource
             'description' => $this->description,
             'color' => $this->color,
             'icon' => $this->icon,
-            
+
             // Average allocation (si calculé)
             'average_allocation' => $this->when(
                 isset($this->average_allocation),
-                fn() => round($this->average_allocation, 2)
+                fn () => round($this->average_allocation, 2)
             ),
-            
+
             // Participant count (si calculé)
             'participant_count' => $this->when(
                 isset($this->participant_count),
                 $this->participant_count
             ),
-            
+
             // Timestamps
             'created_at' => $this->created_at->toISOString(),
         ];

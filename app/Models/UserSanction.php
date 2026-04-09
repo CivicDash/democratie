@@ -34,8 +34,11 @@ class UserSanction extends Model
 
     // Types de sanctions
     public const TYPE_WARNING = 'warning';
+
     public const TYPE_SUSPENSION = 'suspension';
+
     public const TYPE_BAN = 'ban';
+
     public const TYPE_UNBAN = 'unban';
 
     public const TYPES = [
@@ -69,28 +72,31 @@ class UserSanction extends Model
 
     public function isExpired(): bool
     {
-        if (!$this->ends_at) {
+        if (! $this->ends_at) {
             return false; // Permanent
         }
+
         return $this->ends_at->isPast();
     }
 
     public function getRemainingDays(): ?int
     {
-        if (!$this->ends_at || $this->ends_at->isPast()) {
+        if (! $this->ends_at || $this->ends_at->isPast()) {
             return null;
         }
+
         return (int) now()->diffInDays($this->ends_at, false);
     }
 
     public function getRemainingTime(): ?string
     {
-        if (!$this->ends_at) {
+        if (! $this->ends_at) {
             return null;
         }
         if ($this->ends_at->isPast()) {
             return 'Expirée';
         }
+
         return $this->ends_at->diffForHumans(['parts' => 2]);
     }
 }

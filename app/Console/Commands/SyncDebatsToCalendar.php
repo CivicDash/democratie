@@ -44,11 +44,11 @@ class SyncDebatsToCalendar extends Command
         $skipped = 0;
 
         foreach ($debats as $debat) {
-            $uid = 'senat-debat-' . $debat->date_seance->format('Y-m-d');
-            
+            $uid = 'senat-debat-'.$debat->date_seance->format('Y-m-d');
+
             // Vérifier si existe déjà
             $existing = EvenementLegislatif::where('uid', $uid)->first();
-            
+
             // Construire le titre
             $titre = 'Séance publique du Sénat';
             if ($debat->numero) {
@@ -65,7 +65,7 @@ class SyncDebatsToCalendar extends Command
             $description = $this->buildDescription($debat);
 
             // URL interne vers la page des débats
-            $urlInterne = '/debats/senat/' . $debat->date_seance->format('Y-m-d');
+            $urlInterne = '/debats/senat/'.$debat->date_seance->format('Y-m-d');
 
             $data = [
                 'source' => 'senat',
@@ -99,7 +99,7 @@ class SyncDebatsToCalendar extends Command
         $bar->finish();
         $this->newLine(2);
 
-        $this->info("✅ Synchronisation terminée");
+        $this->info('✅ Synchronisation terminée');
         $this->table(
             ['Action', 'Nombre'],
             [
@@ -130,10 +130,10 @@ class SyncDebatsToCalendar extends Command
             ->values();
 
         if ($sections->isNotEmpty()) {
-            $parts[] = "📋 Ordre du jour :";
+            $parts[] = '📋 Ordre du jour :';
             foreach ($sections as $index => $objet) {
                 $numero = $index + 1;
-                $objetCourt = strlen($objet) > 100 ? substr($objet, 0, 100) . '...' : $objet;
+                $objetCourt = strlen($objet) > 100 ? substr($objet, 0, 100).'...' : $objet;
                 $parts[] = "  {$numero}. {$objetCourt}";
             }
         }
@@ -146,14 +146,14 @@ class SyncDebatsToCalendar extends Command
             ->first();
 
         if ($stats && $stats->nb_interventions > 0) {
-            $parts[] = "";
+            $parts[] = '';
             $parts[] = "📊 {$stats->nb_interventions} interventions par {$stats->nb_orateurs} orateurs";
         }
 
         // Lien vers le compte rendu
         if ($debat->url_compte_rendu) {
-            $parts[] = "";
-            $parts[] = "🔗 Compte rendu intégral disponible";
+            $parts[] = '';
+            $parts[] = '🔗 Compte rendu intégral disponible';
         }
 
         return implode("\n", $parts);

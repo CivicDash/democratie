@@ -5,11 +5,11 @@ namespace App\Console\Commands;
 use App\Models\FrenchPostalCode;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
 
 class ImportPostalCodesFromCsv extends Command
 {
     protected $signature = 'postal-codes:import-csv {--fresh : Vider la table avant l\'import}';
+
     protected $description = 'Importe les codes postaux français depuis le CSV de data.gouv.fr';
 
     public function handle()
@@ -24,42 +24,46 @@ class ImportPostalCodesFromCsv extends Command
 
         // URL du CSV
         $csvUrl = 'https://www.data.gouv.fr/api/1/datasets/r/008a2dda-2c60-4b63-b910-998f6f818089';
-        
+
         $this->info('📥 Téléchargement du fichier CSV...');
-        
+
         try {
             $response = Http::timeout(60)->get($csvUrl);
-            
+
             if ($response->failed()) {
                 $this->error('❌ Erreur lors du téléchargement du CSV');
+
                 return Command::FAILURE;
             }
 
             $csvContent = $response->body();
-            $this->info('✓ Fichier téléchargé (' . strlen($csvContent) . ' octets)');
+            $this->info('✓ Fichier téléchargé ('.strlen($csvContent).' octets)');
             $this->newLine();
 
             // Parser le CSV
             $lines = explode("\n", $csvContent);
             $header = array_shift($lines); // Retirer l'en-tête
-            
+
             $this->info('📊 Parsing et import des données...');
             $bar = $this->output->createProgressBar(count($lines));
             $bar->setFormat('verbose');
-            
+
             $imported = 0;
             $errors = 0;
             $batch = [];
             $batchSize = 500; // Import par batch pour performance
 
             foreach ($lines as $line) {
-                if (empty(trim($line))) continue;
+                if (empty(trim($line))) {
+                    continue;
+                }
 
                 $data = str_getcsv($line, ';');
-                
+
                 // Format CSV: Code_commune_INSEE;Nom_de_la_commune;Code_postal;Libellé_d_acheminement;Ligne_5
                 if (count($data) < 4) {
                     $errors++;
+
                     continue;
                 }
 
@@ -67,15 +71,16 @@ class ImportPostalCodesFromCsv extends Command
                 $cityName = $data[1] ?? null;
                 $postalCode = $data[2] ?? null;
                 $deliveryLabel = $data[3] ?? null;
-                
-                if (!$inseeCode || !$postalCode) {
+
+                if (! $inseeCode || ! $postalCode) {
                     $errors++;
+
                     continue;
                 }
 
                 // Extraire département (2 premiers chiffres du code INSEE)
                 $departmentCode = substr($inseeCode, 0, 2);
-                
+
                 // Départements spéciaux (Corse, DOM)
                 if (substr($inseeCode, 0, 3) === '97') {
                     $departmentCode = substr($inseeCode, 0, 3);
@@ -95,7 +100,7 @@ class ImportPostalCodesFromCsv extends Command
                     'department_name' => $this->getDepartmentName($departmentCode),
                     'region_code' => null, // À compléter si besoin
                     'region_name' => null,
-                    'circonscription' => $departmentCode . '-01', // Simplifié
+                    'circonscription' => $departmentCode.'-01', // Simplifié
                     'latitude' => null,
                     'longitude' => null,
                     'population' => null,
@@ -125,7 +130,7 @@ class ImportPostalCodesFromCsv extends Command
             }
 
             // Insérer le dernier batch
-            if (!empty($batch)) {
+            if (! empty($batch)) {
                 foreach ($batch as $record) {
                     try {
                         FrenchPostalCode::updateOrCreate(
@@ -146,16 +151,17 @@ class ImportPostalCodesFromCsv extends Command
             $bar->finish();
             $this->newLine(2);
 
-            $this->info("✅ Import terminé !");
+            $this->info('✅ Import terminé !');
             $this->info("   ✓ {$imported} codes postaux importés");
             if ($errors > 0) {
                 $this->warn("   ⚠️  {$errors} erreurs ignorées");
             }
-            
+
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
-            $this->error('❌ Erreur lors de l\'import: ' . $e->getMessage());
+            $this->error('❌ Erreur lors de l\'import: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
@@ -197,4 +203,3 @@ class ImportPostalCodesFromCsv extends Command
         return $departments[$code] ?? $code;
     }
 }
-

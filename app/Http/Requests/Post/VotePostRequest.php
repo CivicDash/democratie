@@ -13,6 +13,7 @@ class VotePostRequest extends FormRequest
     public function authorize(): bool
     {
         $post = $this->route('post');
+
         return $this->user()->can('vote', $post);
     }
 
@@ -37,4 +38,3 @@ class VotePostRequest extends FormRequest
         ];
     }
 }
-

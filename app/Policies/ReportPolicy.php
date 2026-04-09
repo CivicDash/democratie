@@ -35,7 +35,7 @@ class ReportPolicy
      */
     public function create(User $user): bool
     {
-        return !$user->isMuted() && !$user->isBanned();
+        return ! $user->isMuted() && ! $user->isBanned();
     }
 
     /**
@@ -43,7 +43,7 @@ class ReportPolicy
      */
     public function review(User $user, Report $report): bool
     {
-        if (!$user->hasPermissionTo('handle_reports')) {
+        if (! $user->hasPermissionTo('handle_reports')) {
             return false;
         }
 
@@ -55,7 +55,7 @@ class ReportPolicy
      */
     public function resolve(User $user, Report $report): bool
     {
-        if (!$user->hasPermissionTo('handle_reports')) {
+        if (! $user->hasPermissionTo('handle_reports')) {
             return false;
         }
 
@@ -112,4 +112,3 @@ class ReportPolicy
                ($report->moderator_id === $user->id || $user->hasRole('admin'));
     }
 }
-

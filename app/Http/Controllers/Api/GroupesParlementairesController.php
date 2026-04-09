@@ -19,7 +19,7 @@ class GroupesParlementairesController extends Controller
 
     /**
      * Liste des groupes parlementaires
-     * 
+     *
      * GET /api/groupes-parlementaires
      */
     public function index(Request $request): JsonResponse
@@ -37,7 +37,7 @@ class GroupesParlementairesController extends Controller
         }
 
         if ($legislature) {
-            $query->legislature((int)$legislature);
+            $query->legislature((int) $legislature);
         }
 
         $groupes = $query->get();
@@ -71,14 +71,14 @@ class GroupesParlementairesController extends Controller
 
     /**
      * Détails d'un groupe parlementaire
-     * 
+     *
      * GET /api/groupes-parlementaires/{id}
      */
     public function show(int $id): JsonResponse
     {
         $groupe = GroupeParlementaire::find($id);
 
-        if (!$groupe) {
+        if (! $groupe) {
             return response()->json([
                 'success' => false,
                 'message' => 'Groupe parlementaire non trouvé',
@@ -119,14 +119,14 @@ class GroupesParlementairesController extends Controller
 
     /**
      * Statistiques d'un groupe
-     * 
+     *
      * GET /api/groupes-parlementaires/{id}/statistiques
      */
     public function statistiques(Request $request, int $id): JsonResponse
     {
         $groupe = GroupeParlementaire::find($id);
 
-        if (!$groupe) {
+        if (! $groupe) {
             return response()->json([
                 'success' => false,
                 'message' => 'Groupe parlementaire non trouvé',
@@ -146,14 +146,14 @@ class GroupesParlementairesController extends Controller
 
     /**
      * Députés/Sénateurs d'un groupe
-     * 
+     *
      * GET /api/groupes-parlementaires/{id}/membres
      */
     public function membres(int $id): JsonResponse
     {
         $groupe = GroupeParlementaire::find($id);
 
-        if (!$groupe) {
+        if (! $groupe) {
             return response()->json([
                 'success' => false,
                 'message' => 'Groupe parlementaire non trouvé',
@@ -164,7 +164,7 @@ class GroupesParlementairesController extends Controller
             ->where('en_exercice', true)
             ->orderBy('nom')
             ->get()
-            ->map(fn($depute) => [
+            ->map(fn ($depute) => [
                 'id' => $depute->id,
                 'nom' => $depute->nom,
                 'prenom' => $depute->prenom,
@@ -184,14 +184,14 @@ class GroupesParlementairesController extends Controller
 
     /**
      * Votes récents d'un groupe
-     * 
+     *
      * GET /api/groupes-parlementaires/{id}/votes
      */
     public function votes(Request $request, int $id): JsonResponse
     {
         $groupe = GroupeParlementaire::find($id);
 
-        if (!$groupe) {
+        if (! $groupe) {
             return response()->json([
                 'success' => false,
                 'message' => 'Groupe parlementaire non trouvé',
@@ -205,7 +205,7 @@ class GroupesParlementairesController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get()
-            ->map(fn($vote) => [
+            ->map(fn ($vote) => [
                 'id' => $vote->id,
                 'position' => $vote->position_groupe,
                 'position_label' => $vote->position_label,
@@ -236,7 +236,7 @@ class GroupesParlementairesController extends Controller
 
     /**
      * Synchroniser les groupes depuis l'API
-     * 
+     *
      * POST /api/groupes-parlementaires/sync
      */
     public function sync(Request $request): JsonResponse
@@ -284,14 +284,14 @@ class GroupesParlementairesController extends Controller
 
     /**
      * Comparaison de groupes
-     * 
+     *
      * GET /api/groupes-parlementaires/comparaison
      */
     public function comparaison(Request $request): JsonResponse
     {
         $ids = $request->query('ids'); // ex: "1,2,3"
-        
-        if (!$ids) {
+
+        if (! $ids) {
             return response()->json([
                 'success' => false,
                 'message' => 'Paramètre ids requis (ex: ?ids=1,2,3)',
@@ -332,4 +332,3 @@ class GroupesParlementairesController extends Controller
         ]);
     }
 }
-

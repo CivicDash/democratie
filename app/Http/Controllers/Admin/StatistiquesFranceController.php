@@ -9,14 +9,10 @@ use App\Models\FranceBudgetSpending;
 use App\Models\FranceDemographics;
 use App\Models\FranceEconomy;
 use App\Models\FranceEducation;
+use App\Models\FranceEmploymentDetailed;
 use App\Models\FranceEnvironment;
 use App\Models\FranceHealth;
-use App\Models\FranceHousing;
-use App\Models\FranceLostRevenue;
-use App\Models\FranceMigration;
-use App\Models\FranceQualityOfLife;
 use App\Models\FranceSecurity;
-use App\Models\FranceEmploymentDetailed;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,7 +29,7 @@ class StatistiquesFranceController extends Controller
     public function index(Request $request): Response
     {
         $annee = $request->input('annee', date('Y'));
-        
+
         // Récupérer les années disponibles
         $anneesDisponibles = collect([
             FranceDemographics::pluck('year'),
@@ -135,7 +131,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', date('Y'));
         $data = FranceDemographics::where('year', $annee)->first();
         $anneesDisponibles = FranceDemographics::orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Demographie', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -174,7 +170,7 @@ class StatistiquesFranceController extends Controller
         $data = FranceEconomy::where('year', $annee)->whereNull('quarter')->first();
         $dataQuarterly = FranceEconomy::where('year', $annee)->whereNotNull('quarter')->get();
         $anneesDisponibles = FranceEconomy::whereNull('quarter')->orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Economie', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -215,7 +211,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', BudgetAnnuel::max('annee') ?? date('Y'));
         $data = BudgetAnnuel::where('annee', $annee)->first();
         $anneesDisponibles = BudgetAnnuel::orderBy('annee', 'desc')->pluck('annee')->toArray();
-        
+
         // Missions et programmes liés
         $missions = \App\Models\BudgetMission::where('annee', $annee)
             ->orderByDesc('credits_cp')
@@ -255,7 +251,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', FranceBudgetRevenue::max('year') ?? date('Y'));
         $data = FranceBudgetRevenue::where('year', $annee)->first();
         $anneesDisponibles = FranceBudgetRevenue::orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Recettes', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -295,7 +291,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', FranceBudgetSpending::max('year') ?? date('Y'));
         $data = FranceBudgetSpending::where('year', $annee)->first();
         $anneesDisponibles = FranceBudgetSpending::orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Depenses', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -336,7 +332,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', FranceEducation::max('year') ?? date('Y'));
         $data = FranceEducation::where('year', $annee)->first();
         $anneesDisponibles = FranceEducation::orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Education', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -373,7 +369,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', FranceHealth::max('year') ?? date('Y'));
         $data = FranceHealth::where('year', $annee)->first();
         $anneesDisponibles = FranceHealth::orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Sante', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -409,7 +405,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', FranceEnvironment::max('year') ?? date('Y'));
         $data = FranceEnvironment::where('year', $annee)->first();
         $anneesDisponibles = FranceEnvironment::orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Environnement', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -444,7 +440,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', FranceSecurity::max('year') ?? date('Y'));
         $data = FranceSecurity::where('year', $annee)->first();
         $anneesDisponibles = FranceSecurity::orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Securite', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -479,7 +475,7 @@ class StatistiquesFranceController extends Controller
         $annee = $request->input('annee', FranceEmploymentDetailed::max('year') ?? date('Y'));
         $data = FranceEmploymentDetailed::where('year', $annee)->first();
         $anneesDisponibles = FranceEmploymentDetailed::orderBy('year', 'desc')->pluck('year')->toArray();
-        
+
         return Inertia::render('Admin/StatistiquesFrance/Emploi', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
@@ -513,8 +509,8 @@ class StatistiquesFranceController extends Controller
     public function createYear(Request $request)
     {
         $annee = $request->input('annee');
-        
-        if (!$annee || $annee < 2000 || $annee > 2030) {
+
+        if (! $annee || $annee < 2000 || $annee > 2030) {
             return back()->with('error', 'Année invalide.');
         }
 

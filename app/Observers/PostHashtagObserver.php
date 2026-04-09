@@ -45,7 +45,7 @@ class PostHashtagObserver
     {
         $hashtags = HashtagParser::extract($post->content ?? '');
         $hashtags = HashtagParser::filter($hashtags); // Filtre blacklist
-        
+
         $post->attachHashtags($hashtags);
     }
 }

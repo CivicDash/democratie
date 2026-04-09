@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -20,14 +20,18 @@ return new class extends Migration
             $table->text('wikipedia_extract')->nullable();
             $table->timestamp('wikipedia_last_sync')->nullable();
             $table->timestamps();
-            
+
             // Foreign key vers la table raw (optionnel, car c'est une vue)
             // $table->foreign('senateur_matricule')->references('senmat')->on('senat_senateurs_sen')->onDelete('cascade');
         });
 
         // 2. Recréer la vue 'senateurs' en incluant les données Wikipedia
-        DB::statement("DROP VIEW IF EXISTS senateurs");
-        
+        if (! Schema::hasTable('senat_senateurs_sen')) {
+            return;
+        }
+
+        DB::statement('DROP VIEW IF EXISTS senateurs');
+
         DB::statement("
             CREATE VIEW senateurs AS
             SELECT 
@@ -99,8 +103,8 @@ return new class extends Migration
     public function down(): void
     {
         // Recréer la vue sans Wikipedia
-        DB::statement("DROP VIEW IF EXISTS senateurs");
-        
+        DB::statement('DROP VIEW IF EXISTS senateurs');
+
         DB::statement("
             CREATE VIEW senateurs AS
             SELECT 
@@ -135,9 +139,8 @@ return new class extends Migration
             FROM senat_senateurs_sen sen
             LEFT JOIN senat_senateurs_qua qua ON sen.quacod = qua.quacod
         ");
-        
+
         // Supprimer la table annexe
         Schema::dropIfExists('senateurs_wikipedia');
     }
 };
-

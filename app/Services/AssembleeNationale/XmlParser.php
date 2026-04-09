@@ -9,7 +9,9 @@ use XMLReader;
 class XmlParser
 {
     protected string $sourceKey;
+
     protected array $sourceConfig;
+
     protected int $chunkSize;
 
     public function __construct(string $sourceKey)
@@ -17,8 +19,8 @@ class XmlParser
         $this->sourceKey = $sourceKey;
         $this->sourceConfig = config("assemblee-nationale.sources.{$sourceKey}");
         $this->chunkSize = config('assemblee-nationale.import.chunk_size', 1000);
-        
-        if (!$this->sourceConfig) {
+
+        if (! $this->sourceConfig) {
             throw new \InvalidArgumentException("Source inconnue : {$sourceKey}");
         }
     }
@@ -29,10 +31,10 @@ class XmlParser
     public function parse(string $xmlPath): \Generator
     {
         $files = $this->getXmlFiles($xmlPath);
-        
+
         foreach ($files as $file) {
             Log::channel('an-sync')->info("Parsing : {$file}");
-            
+
             if ($this->shouldUseChunkedParsing()) {
                 yield from $this->parseChunked($file);
             } else {
@@ -47,13 +49,13 @@ class XmlParser
     protected function parseSimple(string $filePath): \Generator
     {
         $xml = simplexml_load_file($filePath);
-        
+
         if ($xml === false) {
             throw new \RuntimeException("Impossible de parser : {$filePath}");
         }
 
         $itemElement = $this->sourceConfig['item_element'];
-        
+
         // Chercher les éléments dans la structure XML
         foreach ($this->findElements($xml, $itemElement) as $element) {
             yield $this->elementToArray($element);
@@ -65,24 +67,24 @@ class XmlParser
      */
     protected function parseChunked(string $filePath): \Generator
     {
-        $reader = new XMLReader();
-        
-        if (!$reader->open($filePath)) {
+        $reader = new XMLReader;
+
+        if (! $reader->open($filePath)) {
             throw new \RuntimeException("Impossible d'ouvrir : {$filePath}");
         }
 
         $itemElement = $this->sourceConfig['item_element'];
-        
+
         while ($reader->read()) {
             if ($reader->nodeType === XMLReader::ELEMENT && $reader->localName === $itemElement) {
                 $xml = simplexml_load_string($reader->readOuterXml());
-                
+
                 if ($xml !== false) {
                     yield $this->elementToArray($xml);
                 }
             }
         }
-        
+
         $reader->close();
     }
 
@@ -96,6 +98,7 @@ class XmlParser
             foreach ($xml->{$elementName} as $element) {
                 yield $element;
             }
+
             return;
         }
 
@@ -106,7 +109,7 @@ class XmlParser
                     yield $element;
                 }
             }
-            
+
             // Chercher aussi dans les sous-enfants (deux niveaux)
             foreach ($child->children() as $subChild) {
                 if ($subChild->getName() === $elementName) {
@@ -122,20 +125,20 @@ class XmlParser
     protected function elementToArray(\SimpleXMLElement $element): array
     {
         $result = [];
-        
+
         // Attributs
         foreach ($element->attributes() as $key => $value) {
-            $result['@' . $key] = (string) $value;
+            $result['@'.$key] = (string) $value;
         }
-        
+
         // Enfants
         foreach ($element->children() as $child) {
             $name = $child->getName();
             $value = $this->parseChild($child);
-            
+
             // Gérer les éléments multiples
             if (isset($result[$name])) {
-                if (!is_array($result[$name]) || !isset($result[$name][0])) {
+                if (! is_array($result[$name]) || ! isset($result[$name][0])) {
                     $result[$name] = [$result[$name]];
                 }
                 $result[$name][] = $value;
@@ -143,12 +146,12 @@ class XmlParser
                 $result[$name] = $value;
             }
         }
-        
+
         // Si l'élément n'a pas d'enfants, retourner sa valeur textuelle
         if (empty($result) && (string) $element !== '') {
             return (string) $element;
         }
-        
+
         return $result;
     }
 
@@ -158,24 +161,25 @@ class XmlParser
     protected function parseChild(\SimpleXMLElement $child): mixed
     {
         $children = $child->children();
-        
+
         if (count($children) === 0) {
             // Élément simple
             $value = (string) $child;
-            
+
             // Vérifier les attributs
             $attributes = $child->attributes();
             if (count($attributes) > 0) {
                 $result = ['#text' => $value];
                 foreach ($attributes as $key => $attrValue) {
-                    $result['@' . $key] = (string) $attrValue;
+                    $result['@'.$key] = (string) $attrValue;
                 }
+
                 return $result;
             }
-            
+
             return $value;
         }
-        
+
         // Élément avec enfants
         return $this->elementToArray($child);
     }
@@ -185,14 +189,14 @@ class XmlParser
      */
     protected function getXmlFiles(string $xmlPath): array
     {
-        if (!File::isDirectory($xmlPath)) {
+        if (! File::isDirectory($xmlPath)) {
             throw new \RuntimeException("Répertoire introuvable : {$xmlPath}");
         }
 
         // Recherche récursive de tous les fichiers .xml
         $files = File::allFiles($xmlPath);
         $xmlFiles = [];
-        
+
         foreach ($files as $file) {
             if (strtolower($file->getExtension()) === 'xml') {
                 $xmlFiles[] = $file->getPathname();
@@ -221,23 +225,23 @@ class XmlParser
     {
         $count = 0;
         $files = $this->getXmlFiles($xmlPath);
-        
+
         foreach ($files as $file) {
-            $reader = new XMLReader();
+            $reader = new XMLReader;
             if ($reader->open($file)) {
                 $itemElement = $this->sourceConfig['item_element'];
-                
+
                 while ($reader->read()) {
                     if ($reader->nodeType === XMLReader::ELEMENT && $reader->localName === $itemElement) {
                         $count++;
                         $reader->next(); // Sauter le contenu de l'élément
                     }
                 }
-                
+
                 $reader->close();
             }
         }
-        
+
         return $count;
     }
 
@@ -248,17 +252,16 @@ class XmlParser
     {
         $samples = [];
         $count = 0;
-        
+
         foreach ($this->parse($xmlPath) as $element) {
             $samples[] = $element;
             $count++;
-            
+
             if ($count >= $limit) {
                 break;
             }
         }
-        
+
         return $samples;
     }
 }
-

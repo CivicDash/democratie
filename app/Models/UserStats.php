@@ -71,12 +71,12 @@ class UserStats extends Model
     public function addXp(int $amount): bool
     {
         $this->xp += $amount;
-        
+
         // Vérifier si on level up
         while ($this->xp >= $this->xp_to_next_level) {
             $this->levelUp();
         }
-        
+
         return $this->save();
     }
 
@@ -87,10 +87,10 @@ class UserStats extends Model
     {
         $this->level++;
         $this->xp -= $this->xp_to_next_level;
-        
+
         // Formule exponentielle pour XP requis
         // Level 1: 100 XP, Level 2: 150 XP, Level 3: 225 XP, etc.
-        $this->xp_to_next_level = (int)($this->xp_to_next_level * 1.5);
+        $this->xp_to_next_level = (int) ($this->xp_to_next_level * 1.5);
     }
 
     /**
@@ -100,8 +100,8 @@ class UserStats extends Model
     {
         $today = now()->startOfDay();
         $lastActivity = $this->last_activity_date?->startOfDay();
-        
-        if (!$lastActivity) {
+
+        if (! $lastActivity) {
             // Première activité
             $this->current_streak = 1;
             $this->longest_streak = 1;
@@ -113,7 +113,7 @@ class UserStats extends Model
             // Jour consécutif !
             $this->current_streak++;
             $this->last_activity_date = $today;
-            
+
             if ($this->current_streak > $this->longest_streak) {
                 $this->longest_streak = $this->current_streak;
             }
@@ -122,7 +122,7 @@ class UserStats extends Model
             $this->current_streak = 1;
             $this->last_activity_date = $today;
         }
-        
+
         return $this->save();
     }
 
@@ -131,11 +131,12 @@ class UserStats extends Model
      */
     public function incrementCounter(string $field, int $amount = 1): bool
     {
-        if (!in_array($field, $this->fillable)) {
+        if (! in_array($field, $this->fillable)) {
             return false;
         }
-        
+
         $this->$field += $amount;
+
         return $this->save();
     }
 
@@ -145,16 +146,16 @@ class UserStats extends Model
     public function calculateReputation(): int
     {
         $reputation = 0;
-        
+
         // Points de base par niveau
         $reputation += $this->level * 10;
-        
+
         // Upvotes reçus
         $reputation += $this->upvotes_received * 2;
-        
+
         // Downvotes retirent des points
         $reputation -= $this->downvotes_received;
-        
+
         // Bonus pour streak
         if ($this->current_streak >= 7) {
             $reputation += 50;
@@ -162,13 +163,13 @@ class UserStats extends Model
         if ($this->current_streak >= 30) {
             $reputation += 100;
         }
-        
+
         // Bonus pour achievements
         $reputation += $this->total_achievements * 5;
         $reputation += $this->rare_achievements * 10;
         $reputation += $this->epic_achievements * 25;
         $reputation += $this->legendary_achievements * 100;
-        
+
         return max(0, $reputation);
     }
 
@@ -178,6 +179,7 @@ class UserStats extends Model
     public function updateReputation(): bool
     {
         $this->reputation_score = $this->calculateReputation();
+
         return $this->save();
     }
 
@@ -189,8 +191,8 @@ class UserStats extends Model
         if ($this->xp_to_next_level == 0) {
             return 100;
         }
-        
-        return min(100, (int)(($this->xp / $this->xp_to_next_level) * 100));
+
+        return min(100, (int) (($this->xp / $this->xp_to_next_level) * 100));
     }
 
     /**
@@ -198,7 +200,7 @@ class UserStats extends Model
      */
     public function getLevelTitleAttribute(): string
     {
-        return match(true) {
+        return match (true) {
             $this->level >= 50 => 'Légende Démocratique',
             $this->level >= 40 => 'Visionnaire Citoyen',
             $this->level >= 30 => 'Leader d\'Opinion',
@@ -214,7 +216,7 @@ class UserStats extends Model
      */
     public function getLevelColorAttribute(): string
     {
-        return match(true) {
+        return match (true) {
             $this->level >= 50 => 'text-yellow-500',
             $this->level >= 40 => 'text-purple-500',
             $this->level >= 30 => 'text-red-500',

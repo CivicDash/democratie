@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
 use App\Models\ElusGlobalStats;
-use App\Models\Senateur;
 use App\Models\Maire;
 use App\Models\OrganeAN;
+use App\Models\Senateur;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,9 +18,9 @@ class ParlementController extends Controller
 {
     /**
      * Page de statistiques globales : Députés / Sénateurs / Maires
-     * 
+     *
      * GET /parlement/comparaison
-     * 
+     *
      * Utilise les statistiques pré-calculées (table elus_global_stats)
      * mises à jour quotidiennement par calculate:elus-global-stats
      */
@@ -28,7 +28,7 @@ class ParlementController extends Controller
     {
         // Vérifier si les stats pré-calculées existent
         $statsExist = ElusGlobalStats::exists();
-        
+
         if ($statsExist) {
             // Utiliser les stats pré-calculées (performant)
             $stats = ElusGlobalStats::getAllForComparison();
@@ -38,7 +38,7 @@ class ParlementController extends Controller
             $stats = Cache::remember('parlement_stats_globales', 3600, function () {
                 return $this->calculateStats();
             });
-            
+
             // Déclencher le calcul en arrière-plan pour la prochaine fois
             Artisan::queue('calculate:elus-global-stats');
         }
@@ -51,9 +51,9 @@ class ParlementController extends Controller
         // ========================================================================
         // EFFECTIFS
         // ========================================================================
-        $deputesActifs = ActeurAN::whereHas('mandats', function($q) {
+        $deputesActifs = ActeurAN::whereHas('mandats', function ($q) {
             $q->where('type_organe', 'ASSEMBLEE')
-              ->whereNull('date_fin');
+                ->whereNull('date_fin');
         })->count();
 
         $senateursActifs = Senateur::actifs()->count();
@@ -78,9 +78,9 @@ class ParlementController extends Controller
         // PARITÉ HOMMES / FEMMES
         // ========================================================================
         $pariteDeputes = [
-            'hommes' => ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
+            'hommes' => ActeurAN::whereHas('mandats', fn ($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
                 ->where('civilite', 'M.')->count(),
-            'femmes' => ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
+            'femmes' => ActeurAN::whereHas('mandats', fn ($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
                 ->where('civilite', 'Mme')->count(),
         ];
 
@@ -95,14 +95,14 @@ class ParlementController extends Controller
         ];
 
         // Calcul pourcentages
-        $pariteDeputes['pct_femmes'] = $deputesActifs > 0 
-            ? round(($pariteDeputes['femmes'] / $deputesActifs) * 100, 1) 
+        $pariteDeputes['pct_femmes'] = $deputesActifs > 0
+            ? round(($pariteDeputes['femmes'] / $deputesActifs) * 100, 1)
             : 0;
-        $pariteSenateurs['pct_femmes'] = $senateursActifs > 0 
-            ? round(($pariteSenateurs['femmes'] / $senateursActifs) * 100, 1) 
+        $pariteSenateurs['pct_femmes'] = $senateursActifs > 0
+            ? round(($pariteSenateurs['femmes'] / $senateursActifs) * 100, 1)
             : 0;
-        $pariteMaires['pct_femmes'] = $mairesActifs > 0 
-            ? round(($pariteMaires['femmes'] / $mairesActifs) * 100, 1) 
+        $pariteMaires['pct_femmes'] = $mairesActifs > 0
+            ? round(($pariteMaires['femmes'] / $mairesActifs) * 100, 1)
             : 0;
 
         $parite = [
@@ -114,25 +114,25 @@ class ParlementController extends Controller
         // ========================================================================
         // ÂGE
         // ========================================================================
-        $ageDeputes = ActeurAN::whereHas('mandats', function($q) {
+        $ageDeputes = ActeurAN::whereHas('mandats', function ($q) {
             $q->where('type_organe', 'ASSEMBLEE')
-              ->whereNull('date_fin');
+                ->whereNull('date_fin');
         })
-        ->whereNotNull('date_naissance')
-        ->get()
-        ->map(fn($d) => $d->date_naissance->age)
-        ->filter();
+            ->whereNotNull('date_naissance')
+            ->get()
+            ->map(fn ($d) => $d->date_naissance->age)
+            ->filter();
 
         $ageSenateurs = Senateur::actifs()
             ->whereNotNull('date_naissance')
             ->get()
-            ->map(fn($s) => $s->date_naissance->age)
+            ->map(fn ($s) => $s->date_naissance->age)
             ->filter();
 
         $ageMaires = Maire::enExercice()
             ->whereNotNull('date_naissance')
             ->get()
-            ->map(fn($m) => $m->date_naissance->age)
+            ->map(fn ($m) => $m->date_naissance->age)
             ->filter();
 
         $ages = [
@@ -144,7 +144,7 @@ class ParlementController extends Controller
         // ========================================================================
         // TOP 10 PROFESSIONS
         // ========================================================================
-        $professionsDeputes = ActeurAN::whereHas('mandats', fn($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
+        $professionsDeputes = ActeurAN::whereHas('mandats', fn ($q) => $q->where('type_organe', 'ASSEMBLEE')->whereNull('date_fin'))
             ->whereNotNull('profession')
             ->where('profession', '!=', '')
             ->select('profession', DB::raw('count(*) as count'))
@@ -152,7 +152,7 @@ class ParlementController extends Controller
             ->orderBy('count', 'desc')
             ->limit(10)
             ->get()
-            ->map(fn($p) => ['profession' => $p->profession, 'count' => $p->count]);
+            ->map(fn ($p) => ['profession' => $p->profession, 'count' => $p->count]);
 
         $professionsSenateurs = Senateur::actifs()
             ->whereNotNull('description_profession')
@@ -162,7 +162,7 @@ class ParlementController extends Controller
             ->orderBy('count', 'desc')
             ->limit(10)
             ->get()
-            ->map(fn($p) => ['profession' => $p->profession, 'count' => $p->count]);
+            ->map(fn ($p) => ['profession' => $p->profession, 'count' => $p->count]);
 
         $professionsMaires = Maire::enExercice()
             ->whereNotNull('profession')
@@ -172,7 +172,7 @@ class ParlementController extends Controller
             ->orderBy('count', 'desc')
             ->limit(10)
             ->get()
-            ->map(fn($p) => ['profession' => $p->profession, 'count' => $p->count]);
+            ->map(fn ($p) => ['profession' => $p->profession, 'count' => $p->count]);
 
         $professions = [
             'deputes' => $professionsDeputes,
@@ -185,12 +185,12 @@ class ParlementController extends Controller
         // ========================================================================
         $groupesDeputes = OrganeAN::where('code_type', 'GP')
             ->where('legislature', 17)
-            ->withCount(['mandats' => function($q) {
+            ->withCount(['mandats' => function ($q) {
                 $q->whereNull('date_fin');
             }])
             ->orderBy('mandats_count', 'desc')
             ->get()
-            ->map(fn($g) => [
+            ->map(fn ($g) => [
                 'sigle' => $g->libelle_abrege,
                 'nom' => $g->libelle,
                 'effectif' => $g->mandats_count,
@@ -202,7 +202,7 @@ class ParlementController extends Controller
             ->groupBy('groupe_politique')
             ->orderBy('effectif', 'desc')
             ->get()
-            ->map(fn($g) => [
+            ->map(fn ($g) => [
                 'sigle' => $g->sigle,
                 'nom' => $g->sigle,
                 'effectif' => $g->effectif,
@@ -217,7 +217,7 @@ class ParlementController extends Controller
             ->orderBy('effectif', 'desc')
             ->limit(15)
             ->get()
-            ->map(fn($n) => [
+            ->map(fn ($n) => [
                 'sigle' => $n->sigle,
                 'nom' => $this->getNuanceLibelle($n->sigle),
                 'effectif' => $n->effectif,
@@ -276,19 +276,19 @@ class ParlementController extends Controller
             'min' => $ages->min() ?? 0,
             'max' => $ages->max() ?? 0,
             'distribution' => [
-                '< 30 ans' => $ages->filter(fn($a) => $a < 30)->count(),
-                '30-39 ans' => $ages->filter(fn($a) => $a >= 30 && $a < 40)->count(),
-                '40-49 ans' => $ages->filter(fn($a) => $a >= 40 && $a < 50)->count(),
-                '50-59 ans' => $ages->filter(fn($a) => $a >= 50 && $a < 60)->count(),
-                '60-69 ans' => $ages->filter(fn($a) => $a >= 60 && $a < 70)->count(),
-                '70+ ans' => $ages->filter(fn($a) => $a >= 70)->count(),
+                '< 30 ans' => $ages->filter(fn ($a) => $a < 30)->count(),
+                '30-39 ans' => $ages->filter(fn ($a) => $a >= 30 && $a < 40)->count(),
+                '40-49 ans' => $ages->filter(fn ($a) => $a >= 40 && $a < 50)->count(),
+                '50-59 ans' => $ages->filter(fn ($a) => $a >= 50 && $a < 60)->count(),
+                '60-69 ans' => $ages->filter(fn ($a) => $a >= 60 && $a < 70)->count(),
+                '70+ ans' => $ages->filter(fn ($a) => $a >= 70)->count(),
             ],
         ];
     }
 
     private function getNuanceLibelle(string $code): string
     {
-        return match($code) {
+        return match ($code) {
             'LDVG' => 'Divers gauche',
             'LDVD' => 'Divers droite',
             'LDVC' => 'Divers centre',

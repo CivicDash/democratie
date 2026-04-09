@@ -7,16 +7,21 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Service de téléchargement des données HATVP
- * 
+ *
  * Haute Autorité pour la Transparence de la Vie Publique
  */
 class HatvpDataDownloader
 {
     private string $storagePath;
+
     private string $xmlPath;
+
     private string $cachePath;
+
     private int $timeout;
+
     private bool $cacheEnabled;
+
     private int $cacheDuration;
 
     public function __construct()
@@ -25,14 +30,14 @@ class HatvpDataDownloader
         $this->storagePath = $config['path'] ?? storage_path('app/hatvp-data');
         $this->xmlPath = $config['xml_path'] ?? storage_path('app/hatvp-data/xml');
         $this->cachePath = $config['cache_path'] ?? storage_path('app/hatvp-data/cache');
-        
+
         $importConfig = config('hatvp.import', []);
         $this->timeout = $importConfig['timeout'] ?? 300;
-        
+
         $cacheConfig = config('hatvp.cache', []);
         $this->cacheEnabled = $cacheConfig['enabled'] ?? true;
         $this->cacheDuration = $cacheConfig['duration'] ?? 86400;
-        
+
         $this->ensureDirectoriesExist();
     }
 
@@ -42,7 +47,7 @@ class HatvpDataDownloader
     private function ensureDirectoriesExist(): void
     {
         foreach ([$this->storagePath, $this->xmlPath, $this->cachePath] as $path) {
-            if (!file_exists($path)) {
+            if (! file_exists($path)) {
                 mkdir($path, 0755, true);
             }
         }
@@ -55,33 +60,36 @@ class HatvpDataDownloader
     {
         $url = config('hatvp.sources.declarations.url');
         $localFile = "{$this->xmlPath}/declarations.xml";
-        
+
         // Vérifier le cache
-        if (!$forceRefresh && $this->isCacheValid($localFile)) {
-            Log::info("[HatvpDataDownloader] Cache valide pour declarations.xml");
+        if (! $forceRefresh && $this->isCacheValid($localFile)) {
+            Log::info('[HatvpDataDownloader] Cache valide pour declarations.xml');
+
             return $localFile;
         }
-        
+
         Log::info("[HatvpDataDownloader] Téléchargement de declarations.xml depuis {$url}");
-        
+
         try {
             $response = Http::timeout($this->timeout)
                 ->withOptions(['sink' => $localFile])
                 ->get($url);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 Log::error("[HatvpDataDownloader] Erreur HTTP {$response->status()}");
+
                 return null;
             }
-            
+
             $size = filesize($localFile);
             $sizeMB = round($size / 1024 / 1024, 2);
             Log::info("[HatvpDataDownloader] Téléchargé declarations.xml ({$sizeMB} Mo)");
-            
+
             return $localFile;
-            
+
         } catch (\Exception $e) {
-            Log::error("[HatvpDataDownloader] Erreur téléchargement : " . $e->getMessage());
+            Log::error('[HatvpDataDownloader] Erreur téléchargement : '.$e->getMessage());
+
             return null;
         }
     }
@@ -92,34 +100,37 @@ class HatvpDataDownloader
     public function downloadDeclaration(string $slug, bool $forceRefresh = false): ?string
     {
         $baseUrl = config('hatvp.sources.dossiers.url');
-        $url = $baseUrl . $slug . '.xml';
+        $url = $baseUrl.$slug.'.xml';
         $localFile = "{$this->xmlPath}/dossiers/{$slug}.xml";
-        
+
         // Créer le sous-répertoire si nécessaire
-        if (!file_exists(dirname($localFile))) {
+        if (! file_exists(dirname($localFile))) {
             mkdir(dirname($localFile), 0755, true);
         }
-        
+
         // Vérifier le cache
-        if (!$forceRefresh && $this->isCacheValid($localFile)) {
+        if (! $forceRefresh && $this->isCacheValid($localFile)) {
             return $localFile;
         }
-        
+
         Log::info("[HatvpDataDownloader] Téléchargement déclaration : {$slug}");
-        
+
         try {
             $response = Http::timeout(30)->get($url);
-            
-            if (!$response->successful()) {
+
+            if (! $response->successful()) {
                 Log::warning("[HatvpDataDownloader] Déclaration non disponible : {$slug}");
+
                 return null;
             }
-            
+
             file_put_contents($localFile, $response->body());
+
             return $localFile;
-            
+
         } catch (\Exception $e) {
-            Log::error("[HatvpDataDownloader] Erreur téléchargement {$slug} : " . $e->getMessage());
+            Log::error("[HatvpDataDownloader] Erreur téléchargement {$slug} : ".$e->getMessage());
+
             return null;
         }
     }
@@ -135,11 +146,11 @@ class HatvpDataDownloader
         string $typeMandat,
         string $codeDepartement
     ): string {
-        $slug = strtolower($nom) . '-' . strtolower($prenom);
+        $slug = strtolower($nom).'-'.strtolower($prenom);
         $slug = $this->slugify($slug);
-        
+
         $type = strtolower(substr($typeDeclaration, 0, 3)); // DIA -> dia, DSP -> dsp
-        
+
         return "{$slug}-{$type}{$id}-{$typeMandat}-{$codeDepartement}";
     }
 
@@ -148,41 +159,41 @@ class HatvpDataDownloader
      */
     public function parseDeclarationsIndex(string $xmlFile): array
     {
-        if (!file_exists($xmlFile)) {
+        if (! file_exists($xmlFile)) {
             return [];
         }
 
         Log::info("[HatvpDataDownloader] Parsing de l'index des déclarations...");
-        
+
         // Utiliser XMLReader pour les gros fichiers
-        $reader = new \XMLReader();
+        $reader = new \XMLReader;
         $reader->open($xmlFile);
-        
+
         $declarations = [];
         $count = 0;
-        
+
         while ($reader->read()) {
             if ($reader->nodeType === \XMLReader::ELEMENT && $reader->name === 'declaration') {
                 $node = $reader->readOuterXml();
-                
+
                 // Extraire les infos de base sans parser tout
                 $info = $this->extractBasicInfo($node);
-                
+
                 if ($info) {
                     $declarations[] = $info;
                     $count++;
-                    
+
                     if ($count % 100 === 0) {
                         Log::info("[HatvpDataDownloader] {$count} déclarations parsées...");
                     }
                 }
             }
         }
-        
+
         $reader->close();
-        
+
         Log::info("[HatvpDataDownloader] Total : {$count} déclarations");
-        
+
         return $declarations;
     }
 
@@ -192,14 +203,14 @@ class HatvpDataDownloader
     private function extractBasicInfo(string $xmlContent): ?array
     {
         $xml = @simplexml_load_string($xmlContent);
-        
+
         if ($xml === false) {
             return null;
         }
 
         $general = $xml->general;
         $declarant = $general->declarant;
-        
+
         return [
             'uuid' => (string) $xml->uuid,
             'date_depot' => (string) $xml->dateDepot,
@@ -220,9 +231,10 @@ class HatvpDataDownloader
     public function filterParlementaires(array $declarations): array
     {
         $filtres = config('hatvp.filtres_parlementaires', ['senateur', 'depute']);
-        
+
         return array_filter($declarations, function ($decl) use ($filtres) {
             $type = strtolower($decl['code_type_mandat'] ?? '');
+
             return in_array($type, $filtres);
         });
     }
@@ -232,15 +244,16 @@ class HatvpDataDownloader
      */
     private function isCacheValid(string $file): bool
     {
-        if (!$this->cacheEnabled) {
+        if (! $this->cacheEnabled) {
             return false;
         }
-        
-        if (!file_exists($file)) {
+
+        if (! file_exists($file)) {
             return false;
         }
-        
+
         $mtime = filemtime($file);
+
         return (time() - $mtime) < $this->cacheDuration;
     }
 
@@ -251,16 +264,16 @@ class HatvpDataDownloader
     {
         // Remplacer les caractères accentués
         $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-        
+
         // Convertir en minuscules
         $text = strtolower($text);
-        
+
         // Remplacer les espaces et caractères spéciaux par des tirets
         $text = preg_replace('/[^a-z0-9]+/', '-', $text);
-        
+
         // Supprimer les tirets en début et fin
         $text = trim($text, '-');
-        
+
         return $text;
     }
 
@@ -270,7 +283,7 @@ class HatvpDataDownloader
     public function getCacheStats(): array
     {
         $declarationsFile = "{$this->xmlPath}/declarations.xml";
-        
+
         $stats = [
             'declarations' => [
                 'exists' => file_exists($declarationsFile),
@@ -282,7 +295,7 @@ class HatvpDataDownloader
             ],
             'dossiers_count' => 0,
         ];
-        
+
         if (file_exists($declarationsFile)) {
             $stats['declarations']['size'] = filesize($declarationsFile);
             $stats['declarations']['size_mb'] = round(filesize($declarationsFile) / 1024 / 1024, 2);
@@ -290,14 +303,14 @@ class HatvpDataDownloader
             $stats['declarations']['age_hours'] = round((time() - filemtime($declarationsFile)) / 3600, 1);
             $stats['declarations']['cache_valid'] = $this->isCacheValid($declarationsFile);
         }
-        
+
         // Compter les dossiers individuels
         $dossiersPath = "{$this->xmlPath}/dossiers";
         if (file_exists($dossiersPath)) {
             $files = glob("{$dossiersPath}/*.xml");
             $stats['dossiers_count'] = count($files);
         }
-        
+
         return $stats;
     }
 
@@ -309,8 +322,8 @@ class HatvpDataDownloader
         $this->deleteDirectory($this->xmlPath);
         $this->deleteDirectory($this->cachePath);
         $this->ensureDirectoriesExist();
-        
-        Log::info("[HatvpDataDownloader] Cache nettoyé");
+
+        Log::info('[HatvpDataDownloader] Cache nettoyé');
     }
 
     /**
@@ -318,15 +331,15 @@ class HatvpDataDownloader
      */
     private function deleteDirectory(string $dir): void
     {
-        if (!file_exists($dir)) {
+        if (! file_exists($dir)) {
             return;
         }
-        
+
         $files = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::CHILD_FIRST
         );
-        
+
         foreach ($files as $file) {
             if ($file->isDir()) {
                 rmdir($file->getRealPath());
@@ -334,8 +347,7 @@ class HatvpDataDownloader
                 unlink($file->getRealPath());
             }
         }
-        
+
         rmdir($dir);
     }
 }
-

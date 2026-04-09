@@ -24,7 +24,7 @@ class EnrichPersonnesWikidata extends Command
         $query = PersonnePolitique::whereNotNull('wikipedia_url')
             ->where('wikipedia_url', '!=', '');
 
-        if (!$force) {
+        if (! $force) {
             $query->whereNull('wikidata_id');
         }
 
@@ -38,6 +38,7 @@ class EnrichPersonnesWikidata extends Command
         foreach ($personnes->chunk(self::BATCH_SIZE) as $chunk) {
             $titles = $chunk->mapWithKeys(function ($p) {
                 $title = $this->extractWikipediaTitle($p->wikipedia_url);
+
                 return $title ? [$p->id => $title] : [];
             })->filter();
 
@@ -61,9 +62,10 @@ class EnrichPersonnesWikidata extends Command
                         'redirects' => 1,
                     ]);
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     $this->error("Erreur API Wikipedia : HTTP {$response->status()}");
                     $errors++;
+
                     continue;
                 }
 
@@ -107,11 +109,12 @@ class EnrichPersonnesWikidata extends Command
     private function extractWikipediaTitle(string $url): ?string
     {
         $path = parse_url($url, PHP_URL_PATH);
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 
         $parts = explode('/wiki/', $path);
+
         return $parts[1] ?? null;
     }
 

@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\ScrutinAN;
 use App\Models\VoteIndividuelAN;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class ExtractVotesIndividuelsAN extends Command
 {
@@ -18,15 +17,16 @@ class ExtractVotesIndividuelsAN extends Command
     protected $description = 'Extrait les votes individuels depuis scrutins_an.ventilation_votes et les dénormalise dans votes_individuels_an';
 
     private int $imported = 0;
+
     private int $errors = 0;
 
     public function handle(): int
     {
         $legislature = $this->option('legislature');
         $extractAll = $this->option('all');
-        
+
         $this->info('🗳️  Extraction des votes individuels...');
-        
+
         if ($extractAll) {
             $this->warn('⚠️  Mode --all : extraction depuis TOUS les scrutins');
         } else {
@@ -40,14 +40,14 @@ class ExtractVotesIndividuelsAN extends Command
 
         // Récupération des scrutins
         $query = ScrutinAN::query();
-        
-        if (!$extractAll) {
+
+        if (! $extractAll) {
             $query->legislature($legislature);
         }
-        
+
         $limit = $this->option('limit');
         if ($limit) {
-            $query->limit((int)$limit);
+            $query->limit((int) $limit);
             $this->warn("⚠️  Mode TEST : {$limit} scrutins maximum");
         }
 
@@ -55,6 +55,7 @@ class ExtractVotesIndividuelsAN extends Command
 
         if ($scrutins->isEmpty()) {
             $this->error('❌ Aucun scrutin trouvé. Lancer d\'abord : import:scrutins-an');
+
             return self::FAILURE;
         }
 
@@ -83,12 +84,12 @@ class ExtractVotesIndividuelsAN extends Command
     {
         $ventilation = $scrutin->ventilation_votes;
 
-        if (!$ventilation || !isset($ventilation['organe'])) {
+        if (! $ventilation || ! isset($ventilation['organe'])) {
             return;
         }
 
         $organes = $ventilation['organe'];
-        
+
         // Si un seul organe, transformer en tableau
         if (isset($organes['organeRef'])) {
             $organes = [$organes];
@@ -102,7 +103,7 @@ class ExtractVotesIndividuelsAN extends Command
     private function extractVotesOrgane(ScrutinAN $scrutin, array $organe): void
     {
         $organeRef = $organe['organeRef'] ?? null;
-        
+
         // La structure est: organe.groupes.groupe[] (tableau)
         $groupesData = $organe['groupes'] ?? [];
         $groupes = $groupesData['groupe'] ?? [];
@@ -131,7 +132,7 @@ class ExtractVotesIndividuelsAN extends Command
         ];
 
         foreach ($positionsMap as $jsonKey => $dbPosition) {
-            if (!isset($groupe['vote']['decompteNominatif'][$jsonKey]['votant'])) {
+            if (! isset($groupe['vote']['decompteNominatif'][$jsonKey]['votant'])) {
                 continue;
             }
 
@@ -162,8 +163,8 @@ class ExtractVotesIndividuelsAN extends Command
         ?string $positionGroupe
     ): void {
         $acteurRef = $votant['acteurRef'] ?? null;
-        
-        if (!$acteurRef) {
+
+        if (! $acteurRef) {
             return;
         }
 
@@ -179,7 +180,7 @@ class ExtractVotesIndividuelsAN extends Command
                     'position' => $position,
                     'position_groupe' => $positionGroupe,
                     'numero_place' => $votant['numeroPlace'] ?? null,
-                    'par_delegation' => (bool)($votant['parDelegation'] ?? false),
+                    'par_delegation' => (bool) ($votant['parDelegation'] ?? false),
                     'cause_non_vote' => $votant['causeRef'] ?? null,
                 ]
             );
@@ -208,7 +209,7 @@ class ExtractVotesIndividuelsAN extends Command
         $contre = VoteIndividuelAN::contre()->count();
         $abstention = VoteIndividuelAN::abstention()->count();
         $nonVotants = VoteIndividuelAN::nonVotant()->count();
-        
+
         $this->newLine();
         $this->info("📊 Total en base de données : {$total} votes individuels");
         $this->info("   - Pour : {$pour}");
@@ -217,4 +218,3 @@ class ExtractVotesIndividuelsAN extends Command
         $this->info("   - Non votants : {$nonVotants}");
     }
 }
-

@@ -1,2 +1,7 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /commune-hub/*/admin
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://demo.objectif2027.fr/sitemap.xml
