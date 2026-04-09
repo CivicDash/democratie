@@ -43,8 +43,7 @@ class GenerateCommunePages extends Command
 
         $query = Ville::query()
             ->whereNotNull('code_insee')
-            ->where('code_insee', '!=', '')
-            ->where('arrondissement_municipal', false);
+            ->where('code_insee', '!=', '');
 
         if ($departement = $this->option('departement')) {
             $query->where('departement_code', $departement);
