@@ -53,7 +53,8 @@ else
 fi
 
 # 2. Build Frontend
-log_step "2/6 - Building frontend assets..."
+log_step "2/6 - Installing dependencies & building frontend assets..."
+docker compose exec -u root app npm ci --no-audit --no-fund 2>/dev/null || docker compose exec -u root app npm install --no-audit --no-fund
 if docker compose exec -u root app npm run build; then
     log_success "Frontend built successfully"
 else
