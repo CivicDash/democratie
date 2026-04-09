@@ -235,7 +235,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'upload_documents',
         ]);
 
-        $this->command->info('✓ 9 rôles créés : citizen, moderator, journalist, ong, legislator, state, admin, public_figure, candidat_maire');
+        $this->command->info('✓ 9 rôles créés : citizen, moderator, journalist, ong, legislator, state, admin, public_figure, candidat_maire (+ maire_admin, commune_delegue via migration)');
         $this->command->info('✓ ' . count($permissions) . ' permissions créées');
         $this->command->info('');
         $this->command->info('📋 RGPD - Rôles et anonymat :');

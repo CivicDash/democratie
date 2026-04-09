@@ -145,4 +145,11 @@ return [
     'demo_elu_email' => env('DEMO_ELU_EMAIL'),
     'demo_elu_password' => env('DEMO_ELU_PASSWORD'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Commune Hub (v2.0)
+    |--------------------------------------------------------------------------
+    */
+    'commune_domain' => env('COMMUNE_DOMAIN', 'civicdash.fr'),
+
 ];

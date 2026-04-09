@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'two-factor' => \App\Http\Middleware\EnsureTwoFactorAuthenticated::class,
             'not-readonly' => \App\Http\Middleware\CheckNotReadOnly::class,
+            'commune' => \App\Http\Middleware\ResolveCommuneSubdomain::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

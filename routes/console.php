@@ -338,3 +338,41 @@ Schedule::command('enrich:personnes-wikidata')
     ->monthly()
     ->description('Enrichissement Wikidata ID des PersonnePolitique')
     ->withoutOverlapping();
+
+/*
+|--------------------------------------------------------------------------
+| COMMUNES - Hub Citoyen v2.0
+|--------------------------------------------------------------------------
+*/
+
+// Import emails mairies via API service-public.fr (mensuel)
+Schedule::command('communes:import-emails-service-public')
+    ->monthlyOn(1, '03:00')
+    ->description('Mise a jour mensuelle des coordonnees mairies')
+    ->withoutOverlapping();
+
+// Synchronisation des stats communes (hebdomadaire)
+Schedule::command('communes:sync-stats')
+    ->weeklyOn(0, '05:00')
+    ->description('Synchronisation hebdomadaire des stats pages communes')
+    ->withoutOverlapping();
+
+// Notifications aux abonnes des communes (quotidien)
+Schedule::command('communes:notify-abonnes')
+    ->dailyAt('10:00')
+    ->description('Notifications quotidiennes aux abonnes communes')
+    ->withoutOverlapping();
+
+// Import images Wikimedia Commons (mensuel)
+Schedule::command('communes:fetch-wikimedia-images --limit=100')
+    ->monthlyOn(1, '03:00')
+    ->description('Import mensuel des images Wikimedia Commons')
+    ->withoutOverlapping();
+
+// Regeneration du sitemap (quotidien a 4h)
+Schedule::call(function () {
+    \Illuminate\Support\Facades\Cache::forget('sitemap_xml');
+    app(\App\Http\Controllers\SitemapController::class)->index();
+})
+    ->dailyAt('04:00')
+    ->description('Regeneration du sitemap XML');

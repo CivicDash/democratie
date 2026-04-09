@@ -166,6 +166,14 @@ class Ville extends Model
         return $this->hasMany(ResultatMunicipal::class);
     }
 
+    /**
+     * Page commune (hub citoyen v2.0)
+     */
+    public function communePage(): HasOne
+    {
+        return $this->hasOne(CommunePage::class);
+    }
+
     // ========================================================================
     // SCOPES
     // ========================================================================
