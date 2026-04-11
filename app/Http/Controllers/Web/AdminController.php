@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
 use App\Models\AmendementAN;
+use App\Models\DataSnapshot;
 use App\Models\EvenementLegislatif;
 use App\Models\ImportLog;
 use App\Models\Report;
@@ -12,6 +13,7 @@ use App\Models\ScrutinAN;
 use App\Models\Senateur;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
@@ -133,6 +135,20 @@ class AdminController extends Controller
             ['name' => 'import:organes-parlementaires', 'label' => 'Organes parlementaires', 'description' => 'Groupes, commissions, membres', 'icon' => '🏛️', 'category' => 'autres', 'dangerous' => false],
             ['name' => 'import:akoma-ntoso', 'label' => 'Textes Akoma Ntoso', 'description' => 'Format législatif Sénat', 'icon' => '📜', 'category' => 'autres', 'dangerous' => false],
 
+            // === KPI NATIONAUX ===
+            ['name' => 'import:insee-demographics', 'label' => 'Démographie INSEE', 'description' => 'Population, natalité, espérance de vie', 'icon' => '👥', 'category' => 'kpi', 'dangerous' => false],
+            ['name' => 'import:insee-economy', 'label' => 'Économie INSEE', 'description' => 'PIB, inflation, chômage, dette', 'icon' => '💰', 'category' => 'kpi', 'dangerous' => false],
+            ['name' => 'import:france-travail', 'label' => 'France Travail', 'description' => 'Emploi, contrats, salaires', 'icon' => '💼', 'category' => 'kpi', 'dangerous' => false],
+            ['name' => 'import:education-stats', 'label' => 'Éducation', 'description' => 'data.education.gouv.fr', 'icon' => '🎓', 'category' => 'kpi', 'dangerous' => false],
+            ['name' => 'import:sante-stats', 'label' => 'Santé', 'description' => 'API DREES', 'icon' => '🏥', 'category' => 'kpi', 'dangerous' => false],
+            ['name' => 'import:environnement-stats', 'label' => 'Environnement', 'description' => 'API ADEME', 'icon' => '🌿', 'category' => 'kpi', 'dangerous' => false],
+            ['name' => 'import:securite-stats', 'label' => 'Sécurité', 'description' => 'SSMSI data.interieur.gouv.fr', 'icon' => '🔒', 'category' => 'kpi', 'dangerous' => false],
+            ['name' => 'import:rss-franceinfo', 'label' => 'RSS France Info', 'description' => 'Flux RSS actualités politiques', 'icon' => '📰', 'category' => 'kpi', 'dangerous' => false],
+
+            // === VÉRIFICATION ===
+            ['name' => 'data:health-check', 'label' => 'Health Check', 'description' => 'Fraîcheur et complétude des données', 'icon' => '🏥', 'category' => 'system', 'dangerous' => false],
+            ['name' => 'data:validate', 'label' => 'Validation', 'description' => 'Doublons, cohérence, couverture', 'icon' => '🔍', 'category' => 'system', 'dangerous' => false],
+
             // === SYSTÈME ===
             ['name' => 'dashboard:calculate-stats', 'label' => 'Stats dashboard', 'description' => 'Recalculer statistiques', 'icon' => '📊', 'category' => 'system', 'dangerous' => false],
             ['name' => 'calculate:parlementaires-stats', 'label' => 'Stats parlementaires', 'description' => 'Pré-calcul stats députés/sénateurs', 'icon' => '📈', 'category' => 'system', 'dangerous' => false],
@@ -184,6 +200,12 @@ class AdminController extends Controller
             'enrich:amendements', 'import:deputes-wikipedia', 'enrich:senateurs-wikipedia',
             // Autres
             'import:deputes', 'import:maires', 'import:maires-datagouv', 'import:organes-parlementaires', 'import:akoma-ntoso',
+            // KPI nationaux
+            'import:insee-demographics', 'import:insee-economy', 'import:france-travail',
+            'import:education-stats', 'import:sante-stats', 'import:environnement-stats', 'import:securite-stats',
+            'import:rss-franceinfo',
+            // Vérification
+            'data:health-check', 'data:validate',
             // Système
             'dashboard:calculate-stats', 'calculate:parlementaires-stats', 'calculate:lois-stats', 'calculate:elus-global-stats', 'cache:clear', 'optimize:clear',
         ];
@@ -268,6 +290,33 @@ class AdminController extends Controller
                 'scheduleExpression' => $import->schedule_expression,
                 'user' => $import->user?->name,
             ],
+        ]);
+    }
+
+    /**
+     * Page de santé des données (fraîcheur, complétude, alertes)
+     */
+    public function dataHealth()
+    {
+        Artisan::call('data:health-check', ['--json' => true]);
+        $healthData = json_decode(Artisan::output(), true) ?? [];
+
+        $snapshots = DataSnapshot::latest()->limit(10)->get()->map(fn ($s) => [
+            'id' => $s->id,
+            'date' => $s->snapshot_date->format('d/m/Y'),
+            'counters' => $s->counters,
+            'checksum' => $s->checksum,
+            'notes' => $s->notes,
+        ]);
+
+        $latestSnapshot = DataSnapshot::latest()->first();
+        $previousSnapshot = DataSnapshot::latest()->skip(1)->first();
+        $diff = ($latestSnapshot && $previousSnapshot) ? $latestSnapshot->diffWith($previousSnapshot) : [];
+
+        return Inertia::render('Admin/DataHealth', [
+            'healthData' => $healthData,
+            'snapshots' => $snapshots,
+            'snapshotDiff' => $diff,
         ]);
     }
 

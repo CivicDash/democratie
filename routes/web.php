@@ -599,6 +599,7 @@ Route::prefix('donnees')->name('donnees.')->middleware('auth')->group(function (
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-factor'])->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/imports', [AdminController::class, 'imports'])->name('imports');
+    Route::get('/data-health', [AdminController::class, 'dataHealth'])->name('data-health');
 
     Route::prefix('ip-bans')->name('ip-bans.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\IpBanController::class, 'index'])->name('index');

@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PoliticalNewsFeed from '@/Components/PoliticalNewsFeed.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
 import { Doughnut, Bar } from 'vue-chartjs';
@@ -50,6 +51,7 @@ const props = defineProps({
     prochainesReunions: { type: Array, default: () => [] },
     platformStats: { type: Object, default: () => ({}) },
     franceStats: { type: Object, default: () => ({}) },
+    politicalNews: { type: Array, default: () => [] },
     isNewUser: { type: Boolean, default: false },
 });
 
@@ -892,6 +894,14 @@ const getScoreClass = (score) => {
                             <span class="text-xs font-medium text-slate-700 dark:text-slate-300">{{ link.label }}</span>
                         </Link>
                     </div>
+                </div>
+
+                <!-- Actualités politiques (RSS France Info) -->
+                <div v-if="politicalNews && politicalNews.length > 0" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                        📰 Actualités politiques
+                    </h2>
+                    <PoliticalNewsFeed :news="politicalNews" :limit="12" />
                 </div>
             </div>
         </div>

@@ -382,3 +382,63 @@ Schedule::call(function () {
 })
     ->dailyAt('04:00')
     ->description('Regeneration du sitemap XML');
+
+/*
+|--------------------------------------------------------------------------
+| KPI NATIONAUX - Données France v2.2
+|--------------------------------------------------------------------------
+*/
+
+Schedule::command('import:insee-demographics')
+    ->monthlyOn(1, '02:00')
+    ->description('Import mensuel données démographiques INSEE')
+    ->withoutOverlapping();
+
+Schedule::command('import:insee-economy')
+    ->monthlyOn(1, '02:15')
+    ->description('Import mensuel données économiques INSEE')
+    ->withoutOverlapping();
+
+Schedule::command('import:france-travail')
+    ->monthlyOn(1, '02:30')
+    ->description('Import mensuel données emploi France Travail')
+    ->withoutOverlapping();
+
+Schedule::command('import:education-stats')
+    ->monthlyOn(1, '02:45')
+    ->description('Import mensuel données éducation')
+    ->withoutOverlapping();
+
+Schedule::command('import:sante-stats')
+    ->monthlyOn(1, '03:00')
+    ->description('Import mensuel données santé')
+    ->withoutOverlapping();
+
+Schedule::command('import:environnement-stats')
+    ->monthlyOn(1, '03:15')
+    ->description('Import mensuel données environnement')
+    ->withoutOverlapping();
+
+Schedule::command('import:securite-stats')
+    ->monthlyOn(1, '03:30')
+    ->description('Import mensuel données sécurité')
+    ->withoutOverlapping();
+
+Schedule::command('import:rss-franceinfo')
+    ->everyThirtyMinutes()
+    ->description('Import des flux RSS France Info toutes les 30 min')
+    ->withoutOverlapping();
+
+Schedule::command('data:health-check --json')
+    ->dailyAt('07:00')
+    ->description('Health check quotidien des données')
+    ->withoutOverlapping();
+
+Schedule::call(fn () => \App\Models\DataSnapshot::capture('Snapshot automatique quotidien'))
+    ->dailyAt('07:30')
+    ->description('Snapshot quotidien des compteurs de données');
+
+Schedule::command('data:validate --json')
+    ->weeklyOn(1, '08:00')
+    ->description('Validation hebdomadaire des données (doublons, cohérence)')
+    ->withoutOverlapping();
