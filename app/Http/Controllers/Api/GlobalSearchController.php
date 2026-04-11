@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
+use App\Models\CommuneArticle;
+use App\Models\CommuneEvenement;
+use App\Models\CommunePage;
 use App\Models\Loi;
 use App\Models\Maire;
 use App\Models\PersonnePolitique;
@@ -44,6 +47,8 @@ class GlobalSearchController extends Controller
             $this->searchIdees($query, $limit),
             $this->searchMaires($query, $limit),
             $this->searchVilles($query, $limit),
+            $this->searchCommuneArticles($query, $limit),
+            $this->searchCommuneEvenements($query, $limit),
         );
 
         // Trier par pertinence (score de matching)
@@ -66,7 +71,7 @@ class GlobalSearchController extends Controller
     {
         $validated = $request->validate([
             'q' => ['required', 'string', 'min:2', 'max:200'],
-            'category' => ['nullable', 'in:all,deputes,senateurs,ministres,presidents,lois,idees,maires,villes'],
+            'category' => ['nullable', 'in:all,deputes,senateurs,ministres,presidents,lois,idees,maires,villes,commune_articles,commune_evenements'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -101,6 +106,12 @@ class GlobalSearchController extends Controller
         }
         if ($category === 'all' || $category === 'villes') {
             $results['villes'] = $this->searchVilles($query, $category === 'all' ? 5 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'commune_articles') {
+            $results['commune_articles'] = $this->searchCommuneArticles($query, $category === 'all' ? 3 : $limit, true);
+        }
+        if ($category === 'all' || $category === 'commune_evenements') {
+            $results['commune_evenements'] = $this->searchCommuneEvenements($query, $category === 'all' ? 3 : $limit, true);
         }
 
         return response()->json([
@@ -545,6 +556,86 @@ class GlobalSearchController extends Controller
         return array_slice($results, 0, $limit);
     }
 
+    private function searchCommuneArticles(string $query, int $limit, bool $detailed = false): array
+    {
+        $articles = CommuneArticle::publies()
+            ->with('communePage.ville:id,nom,code_insee,slug')
+            ->where(function ($q) use ($query) {
+                $q->where('titre', 'ilike', "%{$query}%")
+                    ->orWhere('extrait', 'ilike', "%{$query}%");
+            })
+            ->orderByDesc('publie_at')
+            ->limit($limit)
+            ->get();
+
+        return $articles->map(function ($a) use ($query, $detailed) {
+            $score = $this->calculateScore($a->titre, $query);
+            $communeNom = $a->communePage?->ville?->nom ?? '';
+            $codeInsee = $a->communePage?->code_insee ?? '';
+
+            $result = [
+                'id' => $a->id,
+                'type' => 'commune_article',
+                'category' => 'Actualite commune',
+                'icon' => '📰',
+                'title' => Str::limit($a->titre, 60),
+                'subtitle' => $communeNom,
+                'url' => url("/commune-hub/{$codeInsee}/actualites/{$a->slug}"),
+                'photo_url' => $a->image_url,
+                'score' => $score,
+            ];
+
+            if ($detailed) {
+                $result['extrait'] = $a->extrait_auto;
+                $result['categorie'] = $a->categorie_labell;
+                $result['commune'] = $communeNom;
+                $result['date'] = $a->publie_at?->format('d/m/Y');
+            }
+
+            return $result;
+        })->toArray();
+    }
+
+    private function searchCommuneEvenements(string $query, int $limit, bool $detailed = false): array
+    {
+        $evenements = CommuneEvenement::publies()
+            ->with('communePage.ville:id,nom,code_insee,slug')
+            ->where(function ($q) use ($query) {
+                $q->where('titre', 'ilike', "%{$query}%")
+                    ->orWhere('lieu_nom', 'ilike', "%{$query}%");
+            })
+            ->orderBy('date_debut')
+            ->limit($limit)
+            ->get();
+
+        return $evenements->map(function ($e) use ($query, $detailed) {
+            $score = $this->calculateScore($e->titre, $query);
+            $communeNom = $e->communePage?->ville?->nom ?? '';
+            $codeInsee = $e->communePage?->code_insee ?? '';
+
+            $result = [
+                'id' => $e->id,
+                'type' => 'commune_evenement',
+                'category' => 'Evenement commune',
+                'icon' => '📅',
+                'title' => Str::limit($e->titre, 60),
+                'subtitle' => "{$communeNom} - {$e->date_debut->format('d/m/Y')}",
+                'url' => url("/commune-hub/{$codeInsee}/evenements/{$e->slug}"),
+                'photo_url' => $e->image_url,
+                'score' => $score,
+            ];
+
+            if ($detailed) {
+                $result['lieu'] = $e->lieu_nom;
+                $result['commune'] = $communeNom;
+                $result['date'] = $e->date_debut->format('d/m/Y H:i');
+                $result['categorie'] = $e->categorie_label;
+            }
+
+            return $result;
+        })->toArray();
+    }
+
     // ========================================================================
     // HELPERS
     // ========================================================================
@@ -593,6 +684,8 @@ class GlobalSearchController extends Controller
             ['key' => 'idees', 'label' => 'Idées', 'icon' => '💡'],
             ['key' => 'maires', 'label' => 'Maires', 'icon' => '👔'],
             ['key' => 'villes', 'label' => 'Villes', 'icon' => '🏘️'],
+            ['key' => 'commune_articles', 'label' => 'Actus communes', 'icon' => '📰'],
+            ['key' => 'commune_evenements', 'label' => 'Evenements communes', 'icon' => '📅'],
         ];
     }
 }

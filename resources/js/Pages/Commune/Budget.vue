@@ -1,5 +1,7 @@
 <script setup>
 import CommuneLayout from '@/Layouts/CommuneLayout.vue';
+import AnimatedCounter from '@/Components/Commune/AnimatedCounter.vue';
+import BudgetChart from '@/Components/Commune/BudgetChart.vue';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -41,51 +43,38 @@ const maxValue = computed(() => {
             <!-- Dernier budget -->
             <div v-if="dernierBudget" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                    <div class="text-xs text-slate-500 dark:text-slate-400">Recettes fonc.</div>
-                    <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ formatMoney(dernierBudget.recettes_fonctionnement) }}</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">Recettes fonctionnement</div>
+                    <div class="text-xl font-bold text-green-600 dark:text-green-400">
+                        <AnimatedCounter :value="(dernierBudget.recettes_fonctionnement || 0) / 1000000" :decimals="1" suffix=" M€" />
+                    </div>
                     <div class="text-xs text-slate-400">{{ dernierBudget.annee }}</div>
                 </div>
                 <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                    <div class="text-xs text-slate-500 dark:text-slate-400">Depenses fonc.</div>
-                    <div class="text-xl font-bold text-red-600 dark:text-red-400">{{ formatMoney(dernierBudget.depenses_fonctionnement) }}</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">Depenses fonctionnement</div>
+                    <div class="text-xl font-bold text-red-600 dark:text-red-400">
+                        <AnimatedCounter :value="(dernierBudget.depenses_fonctionnement || 0) / 1000000" :decimals="1" suffix=" M€" />
+                    </div>
                     <div class="text-xs text-slate-400">{{ dernierBudget.annee }}</div>
                 </div>
                 <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                    <div class="text-xs text-slate-500 dark:text-slate-400">Recettes invest.</div>
-                    <div class="text-xl font-bold text-emerald-600 dark:text-emerald-400">{{ formatMoney(dernierBudget.recettes_investissement) }}</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">Recettes investissement</div>
+                    <div class="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                        <AnimatedCounter :value="(dernierBudget.recettes_investissement || 0) / 1000000" :decimals="1" suffix=" M€" />
+                    </div>
                     <div class="text-xs text-slate-400">{{ dernierBudget.annee }}</div>
                 </div>
                 <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                     <div class="text-xs text-slate-500 dark:text-slate-400">Encours dette</div>
-                    <div class="text-xl font-bold text-amber-600 dark:text-amber-400">{{ formatMoney(dernierBudget.encours_dette) }}</div>
+                    <div class="text-xl font-bold text-amber-600 dark:text-amber-400">
+                        <AnimatedCounter :value="(dernierBudget.encours_dette || 0) / 1000000" :decimals="1" suffix=" M€" />
+                    </div>
                     <div class="text-xs text-slate-400">{{ dernierBudget.annee }}</div>
                 </div>
             </div>
 
-            <!-- Graphique simple -->
-            <div v-if="chartData.length > 1" class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 mb-8">
-                <h2 class="font-bold text-slate-900 dark:text-white mb-4">Evolution budgetaire</h2>
-                <div class="flex items-end gap-1 h-48">
-                    <div v-for="d in chartData" :key="d.annee" class="flex-1 flex flex-col items-center gap-1">
-                        <div class="w-full flex gap-0.5">
-                            <div
-                                class="flex-1 bg-green-400 dark:bg-green-500 rounded-t transition-all"
-                                :style="{ height: (d.recettes / maxValue * 160) + 'px' }"
-                                :title="'Recettes: ' + formatMoney(d.recettes)"
-                            />
-                            <div
-                                class="flex-1 bg-red-400 dark:bg-red-500 rounded-t transition-all"
-                                :style="{ height: (d.depenses / maxValue * 160) + 'px' }"
-                                :title="'Depenses: ' + formatMoney(d.depenses)"
-                            />
-                        </div>
-                        <span class="text-xs text-slate-500">{{ d.annee }}</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-green-400 rounded"></span> Recettes</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-400 rounded"></span> Depenses</span>
-                </div>
+            <!-- Graphique -->
+            <div class="mb-8">
+                <BudgetChart :budgets="budgets" />
             </div>
 
             <!-- Tableau -->

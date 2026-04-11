@@ -2,11 +2,17 @@
 import { Link } from '@inertiajs/vue3';
 import CommuneLayout from '@/Layouts/CommuneLayout.vue';
 import ArticleCard from '@/Components/Commune/ArticleCard.vue';
+import ShareButtons from '@/Components/Commune/ShareButtons.vue';
+import CommentSection from '@/Components/Commune/CommentSection.vue';
+import ReactionBar from '@/Components/Commune/ReactionBar.vue';
 import { computed } from 'vue';
 
 const props = defineProps({
     ville: Object,
     article: Object,
+    commentaires: { type: Array, default: () => [] },
+    reactions: { type: Object, default: () => ({}) },
+    user_reaction: { type: String, default: null },
     articles_recents: Array,
     seo: Object,
 });
@@ -57,6 +63,29 @@ const articleJsonLd = computed(() => JSON.stringify({
 
             <!-- Contenu -->
             <div class="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed" v-html="article.contenu" />
+
+            <!-- Reactions + Partage -->
+            <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
+                <ReactionBar
+                    :reactions="reactions"
+                    :user-reaction="user_reaction"
+                    :code-insee="ville.code_insee"
+                    reactable-type="article"
+                    :reactable-id="article.id"
+                />
+                <div class="flex items-center gap-4">
+                    <ShareButtons :url="seo?.url || ''" :title="article.titre" :description="article.extrait || ''" />
+                    <span class="text-xs text-slate-400">{{ article.vues_count }} vues</span>
+                </div>
+            </div>
+
+            <!-- Commentaires -->
+            <CommentSection
+                :commentaires="commentaires"
+                :code-insee="ville.code_insee"
+                commentable-type="article"
+                :commentable-id="article.id"
+            />
 
             <!-- Articles recents -->
             <div v-if="articles_recents?.length" class="mt-12 pt-8 border-t border-slate-200 dark:border-slate-700">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Commune;
 use App\Http\Controllers\Controller;
 use App\Models\CommuneArticle;
 use App\Models\CommunePage;
+use App\Models\CommuneReaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -88,6 +89,41 @@ class CommuneArticleController extends Controller
 
         $extrait = $article->extrait ?? \Illuminate\Support\Str::limit(strip_tags($article->contenu), 160);
 
+        $commentaires = $article->commentaires()
+            ->visibles()
+            ->racines()
+            ->with(['user:id,name', 'reponses' => fn ($q) => $q->visibles()->with('user:id,name')])
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'contenu' => $c->contenu,
+                'user' => $c->user ? ['name' => $c->user->name] : null,
+                'user_id' => $c->user_id,
+                'created_at' => $c->created_at->toISOString(),
+                'reponses' => $c->reponses->map(fn ($r) => [
+                    'id' => $r->id,
+                    'contenu' => $r->contenu,
+                    'user' => $r->user ? ['name' => $r->user->name] : null,
+                    'user_id' => $r->user_id,
+                    'created_at' => $r->created_at->toISOString(),
+                ]),
+            ]);
+
+        $reactionCounts = [];
+        foreach (CommuneReaction::TYPES as $type) {
+            $count = $article->reactions()->where('type', $type)->count();
+            if ($count > 0) {
+                $reactionCounts[$type] = $count;
+            }
+        }
+
+        $userReaction = null;
+        if ($user = auth()->user()) {
+            $userReaction = $article->reactions()->where('user_id', $user->id)->value('type');
+        }
+
         return Inertia::render('Commune/ArticleShow', [
             'ville' => ['nom' => $page->ville->nom, 'code_insee' => $codeInsee, 'slug' => $page->ville->slug],
             'article' => [
@@ -102,7 +138,11 @@ class CommuneArticleController extends Controller
                 'publie_at_iso' => $article->publie_at?->toISOString(),
                 'vues_count' => $article->vues_count,
                 'auteur' => $article->auteur?->name,
+                'extrait' => $extrait,
             ],
+            'commentaires' => $commentaires,
+            'reactions' => $reactionCounts,
+            'user_reaction' => $userReaction,
             'articles_recents' => $articlesRecents,
             'seo' => [
                 'title' => "{$article->titre} - {$page->ville->nom} - Hub Citoyen",

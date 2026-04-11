@@ -1,6 +1,9 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
 import CommuneLayout from '@/Layouts/CommuneLayout.vue';
+import ShareButtons from '@/Components/Commune/ShareButtons.vue';
+import CommentSection from '@/Components/Commune/CommentSection.vue';
+import ReactionBar from '@/Components/Commune/ReactionBar.vue';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
@@ -8,6 +11,9 @@ const props = defineProps({
     evenement: Object,
     est_inscrit: Boolean,
     inscription: Object,
+    commentaires: { type: Array, default: () => [] },
+    reactions: { type: Object, default: () => ({}) },
+    user_reaction: { type: String, default: null },
     seo: Object,
 });
 
@@ -86,6 +92,24 @@ const desinscrire = () => {
                     <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-4">{{ evenement.titre }}</h1>
 
                     <div v-if="evenement.description" class="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300" v-html="evenement.description" />
+
+                    <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+                        <ReactionBar
+                            :reactions="reactions"
+                            :user-reaction="user_reaction"
+                            :code-insee="ville.code_insee"
+                            reactable-type="evenement"
+                            :reactable-id="evenement.id"
+                        />
+                        <ShareButtons :url="seo?.url || ''" :title="evenement.titre" />
+                    </div>
+
+                    <CommentSection
+                        :commentaires="commentaires"
+                        :code-insee="ville.code_insee"
+                        commentable-type="evenement"
+                        :commentable-id="evenement.id"
+                    />
                 </div>
 
                 <!-- Sidebar infos -->

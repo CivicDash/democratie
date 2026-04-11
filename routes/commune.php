@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Web\Commune\CommunePageController;
 use App\Http\Controllers\Web\Commune\CommuneArticleController;
+use App\Http\Controllers\Web\Commune\CommuneCommentaireController;
+use App\Http\Controllers\Web\Commune\CommuneConsultationController;
 use App\Http\Controllers\Web\Commune\CommuneEvenementController;
 use App\Http\Controllers\Web\Commune\CommuneForumController;
 use App\Http\Controllers\Web\Commune\CommuneAdminController;
@@ -28,10 +30,15 @@ Route::prefix('commune-hub/{codeInsee}')->name('commune.')->group(function () {
     Route::get('/evenements', [CommuneEvenementController::class, 'index'])->name('evenements');
     Route::get('/evenements/calendrier', [CommuneEvenementController::class, 'calendrier'])->name('evenements.calendrier');
     Route::get('/evenements/{slug}', [CommuneEvenementController::class, 'show'])->name('evenements.show');
+    Route::get('/consultations', [CommuneConsultationController::class, 'index'])->name('consultations');
+    Route::get('/consultations/{slug}', [CommuneConsultationController::class, 'show'])->name('consultations.show');
     Route::get('/forum', [CommuneForumController::class, 'index'])->name('forum');
+    Route::get('/forum/nouveau', [CommuneForumController::class, 'create'])->name('forum.create')->middleware('auth');
+    Route::post('/forum', [CommuneForumController::class, 'store'])->name('forum.store')->middleware('auth');
     Route::get('/budget', [CommunePageController::class, 'budget'])->name('budget');
     Route::get('/elus', [CommunePageController::class, 'elus'])->name('elus');
     Route::get('/elections', [CommunePageController::class, 'elections'])->name('elections');
+    Route::get('/faq', [CommunePageController::class, 'faq'])->name('faq');
 
     // Actions authentifiées
     Route::middleware('auth')->group(function () {
@@ -43,6 +50,15 @@ Route::prefix('commune-hub/{codeInsee}')->name('commune.')->group(function () {
         // Inscription événements
         Route::post('/evenements/{slug}/inscription', [CommuneEvenementController::class, 'inscrire'])->name('evenements.inscrire');
         Route::delete('/evenements/{slug}/inscription', [CommuneEvenementController::class, 'desinscrire'])->name('evenements.desinscrire');
+
+        // Commentaires et reactions
+        Route::post('/commentaires/{type}/{id}', [CommuneCommentaireController::class, 'store'])->name('commentaires.store');
+        Route::delete('/commentaires/{commentaireId}', [CommuneCommentaireController::class, 'destroy'])->name('commentaires.destroy');
+        Route::post('/commentaires/{commentaireId}/signaler', [CommuneCommentaireController::class, 'signaler'])->name('commentaires.signaler');
+        Route::post('/reactions/{type}/{id}', [CommuneCommentaireController::class, 'react'])->name('reactions.toggle');
+
+        // Vote consultation
+        Route::post('/consultations/{slug}/voter', [CommuneConsultationController::class, 'voter'])->name('consultations.voter');
 
         // Réclamation
         Route::get('/reclamer', [CommuneReclamationController::class, 'index'])->name('reclamer');
@@ -89,6 +105,16 @@ Route::prefix('commune-hub/{codeInsee}')->name('commune.')->group(function () {
         // Notifications
         Route::get('/notifications', [CommuneAdminController::class, 'notifications'])->name('notifications');
         Route::post('/notifications/envoyer', [CommuneAdminController::class, 'envoyerNotification'])->name('notifications.envoyer');
+
+        // Forum admin
+        Route::post('/forum/{topicId}/epingler', [CommuneForumController::class, 'epingler'])->name('forum.epingler');
+
+        // Consultations
+        Route::get('/consultations', [CommuneConsultationController::class, 'adminIndex'])->name('consultations');
+        Route::get('/consultations/create', [CommuneConsultationController::class, 'create'])->name('consultations.create');
+        Route::post('/consultations', [CommuneConsultationController::class, 'store'])->name('consultations.store');
+        Route::post('/consultations/{slug}/fermer', [CommuneConsultationController::class, 'fermer'])->name('consultations.fermer');
+        Route::delete('/consultations/{slug}', [CommuneConsultationController::class, 'destroy'])->name('consultations.destroy');
 
         // Galerie
         Route::get('/galerie', [CommuneAdminController::class, 'galerie'])->name('galerie');

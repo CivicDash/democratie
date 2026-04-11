@@ -101,6 +101,11 @@ class CommunePage extends Model
         return $this->hasMany(CommuneGalerieImage::class)->orderBy('ordre');
     }
 
+    public function consultations(): HasMany
+    {
+        return $this->hasMany(CommuneConsultation::class);
+    }
+
     public function topics(): HasMany
     {
         return $this->hasMany(Topic::class, 'commune_code_insee', 'code_insee');
