@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Commune;
 use App\Http\Controllers\Controller;
 use App\Models\CommuneEvenement;
 use App\Models\CommunePage;
+use App\Models\CommuneReaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -128,6 +129,33 @@ class CommuneEvenementController extends Controller
                 'nb_personnes' => $inscription->nb_personnes,
                 'statut' => $inscription->statut,
             ] : null,
+            'commentaires' => $evenement->commentaires()
+                ->visibles()->racines()
+                ->with(['user:id,name', 'reponses' => fn ($q) => $q->visibles()->with('user:id,name')])
+                ->orderByDesc('created_at')
+                ->limit(50)
+                ->get()
+                ->map(fn ($c) => [
+                    'id' => $c->id,
+                    'contenu' => $c->contenu,
+                    'user' => $c->user ? ['name' => $c->user->name] : null,
+                    'user_id' => $c->user_id,
+                    'created_at' => $c->created_at->toISOString(),
+                    'reponses' => $c->reponses->map(fn ($r) => [
+                        'id' => $r->id,
+                        'contenu' => $r->contenu,
+                        'user' => $r->user ? ['name' => $r->user->name] : null,
+                        'user_id' => $r->user_id,
+                        'created_at' => $r->created_at->toISOString(),
+                    ]),
+                ]),
+            'reactions' => collect(CommuneReaction::TYPES)->mapWithKeys(function ($type) use ($evenement) {
+                $count = $evenement->reactions()->where('type', $type)->count();
+                return $count > 0 ? [$type => $count] : [];
+            })->filter()->toArray(),
+            'user_reaction' => auth()->user()
+                ? $evenement->reactions()->where('user_id', auth()->id())->value('type')
+                : null,
         ]);
     }
 

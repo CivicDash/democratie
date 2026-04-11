@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Commune;
 
 use App\Http\Controllers\Controller;
 use App\Models\CommuneAbonnement;
+use App\Models\CommuneEvenement;
 use App\Models\CommunePage;
 use App\Models\DeputeCirconscription;
 use App\Models\Senateur;
@@ -53,6 +54,9 @@ class CommunePageController extends Controller
             $senateurs = $this->getSenateursCommune($ville);
             $timeline = $this->getTimeline($page, 8);
             $galerie = $this->getGalerieImages($page, 6);
+            $communesVoisines = $this->getCommunesVoisines($ville, 6);
+            $communesSimilaires = $this->getCommunesSimilaires($ville, 4);
+            $evenementsSemaine = $this->getEvenementsSemaine($page);
 
             return [
                 'ville' => $this->formatVille($ville),
@@ -72,6 +76,9 @@ class CommunePageController extends Controller
                 'deputes' => $deputes,
                 'senateurs' => $senateurs,
                 'stats' => $this->getStatsCommune($ville),
+                'communes_voisines' => $communesVoisines,
+                'communes_similaires' => $communesSimilaires,
+                'evenements_semaine' => $evenementsSemaine,
             ];
         });
 
@@ -196,6 +203,21 @@ class CommunePageController extends Controller
             'page' => $this->formatPage($page),
             'tours' => array_values($tours),
             'seo' => $this->seoData($ville, $page, 'Elections', "Resultats des elections municipales a {$ville->nom} : listes, scores et participation."),
+        ]);
+    }
+
+    public function faq(string $codeInsee): Response
+    {
+        $page = $this->resolvePage($codeInsee);
+        $ville = $page->ville;
+
+        $faqItems = $this->generateFaqItems($ville, $page);
+
+        return Inertia::render('Commune/Faq', [
+            'ville' => $this->formatVille($ville),
+            'page' => $this->formatPage($page),
+            'faq' => $faqItems,
+            'seo' => $this->seoData($ville, $page, 'FAQ', "Questions frequentes sur {$ville->nom} : maire, budget, population, superficie et informations pratiques."),
         ]);
     }
 
@@ -451,6 +473,180 @@ class CommunePageController extends Controller
                 'source' => $img->source,
             ])
             ->toArray();
+    }
+
+    private function getCommunesVoisines(Ville $ville, int $limit = 6): array
+    {
+        if (! $ville->latitude || ! $ville->longitude) {
+            return [];
+        }
+
+        return Cache::remember("commune_voisines:{$ville->code_insee}", 86400, function () use ($ville, $limit) {
+            return Ville::whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->where('id', '!=', $ville->id)
+                ->where('arrondissement_municipal', false)
+                ->whereNotNull('population')
+                ->selectRaw("*, (
+                    6371 * acos(
+                        cos(radians(?)) * cos(radians(latitude))
+                        * cos(radians(longitude) - radians(?))
+                        + sin(radians(?)) * sin(radians(latitude))
+                    )
+                ) AS distance", [$ville->latitude, $ville->longitude, $ville->latitude])
+                ->having('distance', '<', 30)
+                ->orderBy('distance')
+                ->limit($limit)
+                ->get()
+                ->map(fn ($v) => [
+                    'id' => $v->id,
+                    'nom' => $v->nom,
+                    'slug' => $v->slug,
+                    'code_insee' => $v->code_insee,
+                    'population_formate' => $v->population_formate,
+                    'distance_km' => round($v->distance, 1),
+                    'has_hub' => CommunePage::where('ville_id', $v->id)->exists(),
+                ])
+                ->toArray();
+        });
+    }
+
+    private function getCommunesSimilaires(Ville $ville, int $limit = 4): array
+    {
+        if (! $ville->population) {
+            return [];
+        }
+
+        return Cache::remember("commune_similaires:{$ville->code_insee}", 86400, function () use ($ville, $limit) {
+            $popMin = $ville->population * 0.7;
+            $popMax = $ville->population * 1.3;
+
+            return Ville::where('id', '!=', $ville->id)
+                ->where('arrondissement_municipal', false)
+                ->where('departement_code', $ville->departement_code)
+                ->whereBetween('population', [$popMin, $popMax])
+                ->whereNotNull('population')
+                ->orderByRaw('ABS(population - ?) ASC', [$ville->population])
+                ->limit($limit)
+                ->get()
+                ->map(fn ($v) => [
+                    'id' => $v->id,
+                    'nom' => $v->nom,
+                    'slug' => $v->slug,
+                    'code_insee' => $v->code_insee,
+                    'population_formate' => $v->population_formate,
+                    'has_hub' => CommunePage::where('ville_id', $v->id)->exists(),
+                ])
+                ->toArray();
+        });
+    }
+
+    private function getEvenementsSemaine(CommunePage $page): array
+    {
+        $debutSemaine = now()->startOfWeek();
+        $finSemaine = now()->endOfWeek();
+
+        return $page->evenements()
+            ->publies()
+            ->whereBetween('date_debut', [$debutSemaine, $finSemaine])
+            ->orderBy('date_debut')
+            ->limit(10)
+            ->get()
+            ->map(fn (CommuneEvenement $e) => [
+                'id' => $e->id,
+                'titre' => $e->titre,
+                'slug' => $e->slug,
+                'date_debut_iso' => $e->date_debut->toIso8601String(),
+                'date_courte' => $e->date_debut->format('D H\h'),
+            ])
+            ->toArray();
+    }
+
+    private function generateFaqItems(Ville $ville, CommunePage $page): array
+    {
+        $nom = $ville->nom;
+        $items = [];
+
+        $maire = $ville->maireActuel;
+        if ($maire) {
+            $items[] = [
+                'question' => "Qui est le maire de {$nom} ?",
+                'answer' => "Le maire actuel de {$nom} est {$maire->civilite} {$maire->prenom} {$maire->nom}.",
+            ];
+        }
+
+        if ($ville->population) {
+            $pop = number_format($ville->population, 0, ',', ' ');
+            $items[] = [
+                'question' => "Combien d'habitants a {$nom} ?",
+                'answer' => "{$nom} compte {$pop} habitants.",
+            ];
+        }
+
+        if ($ville->superficie_km2) {
+            $items[] = [
+                'question' => "Quelle est la superficie de {$nom} ?",
+                'answer' => "{$nom} s'etend sur {$ville->superficie_formate}.",
+            ];
+        }
+
+        $dernierBudget = $ville->budgets()->first();
+        if ($dernierBudget) {
+            $total = ($dernierBudget->recettes_fonctionnement ?? 0) + ($dernierBudget->recettes_investissement ?? 0);
+            $formatted = number_format($total, 0, ',', ' ');
+            $items[] = [
+                'question' => "Quel est le budget de {$nom} ?",
+                'answer' => "Le budget total de {$nom} pour {$dernierBudget->annee} s'eleve a {$formatted} euros en recettes (fonctionnement + investissement).",
+            ];
+        }
+
+        if ($ville->departement_nom) {
+            $items[] = [
+                'question' => "Dans quel departement se trouve {$nom} ?",
+                'answer' => "{$nom} se situe dans le departement {$ville->departement_nom} ({$ville->departement_code}), en region {$ville->region_nom}.",
+            ];
+        }
+
+        if ($ville->code_postal_principal) {
+            $items[] = [
+                'question' => "Quel est le code postal de {$nom} ?",
+                'answer' => "Le code postal principal de {$nom} est {$ville->code_postal_principal}.",
+            ];
+        }
+
+        if ($page->telephone || $page->email_mairie) {
+            $contact = "Vous pouvez contacter la mairie de {$nom}";
+            if ($page->telephone) {
+                $contact .= " par telephone au {$page->telephone}";
+            }
+            if ($page->email_mairie) {
+                $contact .= ($page->telephone ? ' ou' : '')." par email a {$page->email_mairie}";
+            }
+            $contact .= '.';
+            if ($page->adresse_mairie) {
+                $contact .= " Adresse : {$page->adresse_mairie}.";
+            }
+            $items[] = [
+                'question' => "Comment contacter la mairie de {$nom} ?",
+                'answer' => $contact,
+            ];
+        }
+
+        if ($ville->est_prefecture) {
+            $items[] = [
+                'question' => "{$nom} est-elle une prefecture ?",
+                'answer' => "Oui, {$nom} est la prefecture du departement {$ville->departement_nom}.",
+            ];
+        }
+
+        if ($ville->altitude_min || $ville->altitude_max) {
+            $items[] = [
+                'question' => "A quelle altitude se trouve {$nom} ?",
+                'answer' => "{$nom} se situe entre {$ville->altitude_min} m et {$ville->altitude_max} m d'altitude.",
+            ];
+        }
+
+        return $items;
     }
 
     private function seoData(Ville $ville, CommunePage $page, ?string $titre = null, ?string $description = null, ?string $type = 'website'): array

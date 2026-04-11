@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Laravel\Scout\Searchable;
 
 class CommuneEvenement extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, SoftDeletes, Searchable;
 
     protected $fillable = [
         'commune_page_id',
@@ -93,6 +95,16 @@ class CommuneEvenement extends Model
     public function inscriptions(): HasMany
     {
         return $this->hasMany(CommuneEvenementInscription::class, 'evenement_id');
+    }
+
+    public function commentaires(): MorphMany
+    {
+        return $this->morphMany(CommuneCommentaire::class, 'commentable');
+    }
+
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(CommuneReaction::class, 'reactable');
     }
 
     // ========================================================================
@@ -226,5 +238,30 @@ class CommuneEvenement extends Model
             ->where('user_id', $user->id)
             ->where('statut', '!=', 'annule')
             ->exists();
+    }
+
+    // ========================================================================
+    // SCOUT / MEILISEARCH
+    // ========================================================================
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->publie && ! $this->annule;
+    }
+
+    public function toSearchableArray(): array
+    {
+        $page = $this->communePage;
+
+        return [
+            'id' => $this->id,
+            'titre' => $this->titre,
+            'description' => $this->description ? \Illuminate\Support\Str::limit(strip_tags($this->description), 300) : null,
+            'categorie' => $this->categorie,
+            'lieu_nom' => $this->lieu_nom,
+            'commune_code_insee' => $page?->code_insee,
+            'commune_nom' => $page?->ville?->nom,
+            'date_debut' => $this->date_debut?->timestamp,
+        ];
     }
 }

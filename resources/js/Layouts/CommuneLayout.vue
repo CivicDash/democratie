@@ -36,9 +36,13 @@ const navItems = computed(() => {
         items.splice(2, 0, { label: 'Evenements', route: route('commune.evenements', villeData.value.code_insee), icon: 'calendar' });
         items.splice(3, 0, { label: 'Calendrier', route: route('commune.evenements.calendrier', villeData.value.code_insee), icon: 'calendar-month' });
     }
+    items.push({ label: 'Consultations', route: route('commune.consultations', villeData.value.code_insee), icon: 'poll' });
+
     if (fonc.forum) {
         items.push({ label: 'Forum', route: route('commune.forum', villeData.value.code_insee), icon: 'chat' });
     }
+
+    items.push({ label: 'FAQ', route: route('commune.faq', villeData.value.code_insee), icon: 'help' });
 
     return items;
 });

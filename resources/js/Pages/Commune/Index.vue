@@ -4,7 +4,9 @@ import CommuneLayout from '@/Layouts/CommuneLayout.vue';
 import CommuneHeader from '@/Components/Commune/CommuneHeader.vue';
 import GalerieSection from '@/Components/Commune/GalerieSection.vue';
 import TimelineItem from '@/Components/Commune/TimelineItem.vue';
-import AbonnementButton from '@/Components/Commune/AbonnementButton.vue';
+import AbonnementPanel from '@/Components/Commune/AbonnementPanel.vue';
+import AnimatedCounter from '@/Components/Commune/AnimatedCounter.vue';
+import WeekWidget from '@/Components/Commune/WeekWidget.vue';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -19,7 +21,11 @@ const props = defineProps({
     deputes: Array,
     senateurs: Array,
     stats: Object,
+    communes_voisines: { type: Array, default: () => [] },
+    communes_similaires: { type: Array, default: () => [] },
+    evenements_semaine: { type: Array, default: () => [] },
     est_abonne: Boolean,
+    abonnement: Object,
     est_admin: Boolean,
     role_admin: String,
 });
@@ -36,7 +42,7 @@ const formatNumber = (n) => n?.toLocaleString('fr-FR') ?? '-';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-8">
             <!-- Action bar -->
             <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
-                <AbonnementButton :code-insee="ville.code_insee" :est-abonne="est_abonne" />
+                <AbonnementPanel :code-insee="ville.code_insee" :est-abonne="est_abonne" :abonnement="abonnement" />
 
                 <div class="flex items-center gap-2">
                     <Link
@@ -207,7 +213,9 @@ const formatNumber = (n) => n?.toLocaleString('fr-FR') ?? '-';
                         <dl class="space-y-3">
                             <div class="flex justify-between">
                                 <dt class="text-sm text-slate-500 dark:text-slate-400">Population</dt>
-                                <dd class="text-sm font-semibold text-slate-900 dark:text-white">{{ stats?.population_formate }}</dd>
+                                <dd class="text-sm font-semibold text-slate-900 dark:text-white">
+                                    <AnimatedCounter :value="stats?.population || 0" suffix=" hab." />
+                                </dd>
                             </div>
                             <div class="flex justify-between">
                                 <dt class="text-sm text-slate-500 dark:text-slate-400">Superficie</dt>
@@ -231,6 +239,9 @@ const formatNumber = (n) => n?.toLocaleString('fr-FR') ?? '-';
                             Voir le budget complet
                         </Link>
                     </div>
+
+                    <!-- Cette semaine -->
+                    <WeekWidget :evenements="evenements_semaine" :code-insee="ville.code_insee" />
 
                     <!-- Infos pratiques -->
                     <div v-if="page?.adresse_mairie || page?.telephone || page?.email_mairie" class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
@@ -261,6 +272,44 @@ const formatNumber = (n) => n?.toLocaleString('fr-FR') ?? '-';
                             <a v-for="(url, reseau) in page.reseaux_sociaux" :key="reseau" :href="url" target="_blank" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium">
                                 {{ reseau === 'facebook' ? 'FB' : reseau === 'twitter' ? 'X' : reseau === 'instagram' ? 'IG' : reseau === 'youtube' ? 'YT' : 'LI' }}
                             </a>
+                        </div>
+                    </div>
+
+                    <!-- Communes voisines -->
+                    <div v-if="communes_voisines?.length" class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
+                        <h3 class="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-1 h-5 bg-emerald-500 rounded-full"></span>
+                            Communes voisines
+                        </h3>
+                        <div class="space-y-2">
+                            <Link
+                                v-for="cv in communes_voisines"
+                                :key="cv.id"
+                                :href="cv.has_hub ? route('commune.index', cv.code_insee) : route('villes.show', cv.slug)"
+                                class="flex items-center justify-between py-1.5 text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            >
+                                <span class="text-slate-700 dark:text-slate-300">{{ cv.nom }}</span>
+                                <span class="text-xs text-slate-400">{{ cv.distance_km }} km</span>
+                            </Link>
+                        </div>
+                    </div>
+
+                    <!-- Communes similaires -->
+                    <div v-if="communes_similaires?.length" class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700">
+                        <h3 class="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                            <span class="w-1 h-5 bg-violet-500 rounded-full"></span>
+                            Communes similaires
+                        </h3>
+                        <div class="space-y-2">
+                            <Link
+                                v-for="cs in communes_similaires"
+                                :key="cs.id"
+                                :href="cs.has_hub ? route('commune.index', cs.code_insee) : route('villes.show', cs.slug)"
+                                class="flex items-center justify-between py-1.5 text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            >
+                                <span class="text-slate-700 dark:text-slate-300">{{ cs.nom }}</span>
+                                <span class="text-xs text-slate-400">{{ cs.population_formate }} hab.</span>
+                            </Link>
                         </div>
                     </div>
 

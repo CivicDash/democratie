@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Commune;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\BroadcastCommuneNotification;
 use App\Models\CommuneAdmin;
 use App\Models\CommuneGalerieImage;
 use App\Models\CommunePage;
@@ -238,8 +239,16 @@ class CommuneAdminController extends Controller
             'cible' => 'required|string|in:tous,email_only,app_only',
         ]);
 
-        // TODO: dispatch job for mass notification
-        return back()->with('success', 'Notification envoyee a ' . $page->abonnes_count . ' abonnes.');
+        BroadcastCommuneNotification::dispatch(
+            communePageId: $page->id,
+            sujet: $validated['sujet'],
+            contenu: $validated['contenu'],
+            type: $validated['type'],
+            cible: $validated['cible'],
+            envoyeurId: $request->user()->id,
+        );
+
+        return back()->with('success', 'Notification en cours d\'envoi a ' . $page->abonnes_count . ' abonnes.');
     }
 
     public function analytics(string $codeInsee): Response

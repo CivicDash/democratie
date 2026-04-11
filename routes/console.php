@@ -363,6 +363,12 @@ Schedule::command('communes:notify-abonnes')
     ->description('Notifications quotidiennes aux abonnes communes')
     ->withoutOverlapping();
 
+// Digest hebdomadaire communes (lundi 8h30)
+Schedule::job(new \App\Jobs\SendCommuneDigest)
+    ->weeklyOn(1, '08:30')
+    ->description('Envoi des digests hebdomadaires communes aux abonnes')
+    ->withoutOverlapping();
+
 // Import images Wikimedia Commons (mensuel)
 Schedule::command('communes:fetch-wikimedia-images --limit=100')
     ->monthlyOn(1, '03:00')

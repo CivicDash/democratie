@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Laravel\Scout\Searchable;
 
 class CommuneArticle extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, SoftDeletes, Searchable;
 
     protected $fillable = [
         'commune_page_id',
@@ -71,6 +73,16 @@ class CommuneArticle extends Model
     public function auteur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'auteur_id');
+    }
+
+    public function commentaires(): MorphMany
+    {
+        return $this->morphMany(CommuneCommentaire::class, 'commentable');
+    }
+
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(CommuneReaction::class, 'reactable');
     }
 
     // ========================================================================
@@ -146,5 +158,30 @@ class CommuneArticle extends Model
     public function incrementerVues(): void
     {
         $this->increment('vues_count');
+    }
+
+    // ========================================================================
+    // SCOUT / MEILISEARCH
+    // ========================================================================
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->publie && $this->publie_at?->isPast();
+    }
+
+    public function toSearchableArray(): array
+    {
+        $page = $this->communePage;
+
+        return [
+            'id' => $this->id,
+            'titre' => $this->titre,
+            'extrait' => $this->extrait_auto,
+            'categorie' => $this->categorie,
+            'commune_code_insee' => $page?->code_insee,
+            'commune_nom' => $page?->ville?->nom,
+            'publie_at' => $this->publie_at?->timestamp,
+            'vues_count' => $this->vues_count,
+        ];
     }
 }
