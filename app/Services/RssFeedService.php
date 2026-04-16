@@ -9,6 +9,7 @@ class RssFeedService
 {
     /**
      * Récupère et parse un flux RSS 2.0.
+     *
      * @return array Liste d'items [{title, description, link, pubDate, guid, image_url}]
      */
     public function fetch(string $url): array

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->enum('vote', ['up', 'down']);
             $table->timestamps();
-            
+
             // Un user ne peut voter qu'une fois par post
             $table->unique(['post_id', 'user_id']);
             $table->index('post_id');
@@ -32,4 +32,3 @@ return new class extends Migration
         Schema::dropIfExists('post_votes');
     }
 };
-

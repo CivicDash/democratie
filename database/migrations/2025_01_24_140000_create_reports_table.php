@@ -21,7 +21,7 @@ return new class extends Migration
                 'misinformation',
                 'off_topic',
                 'inappropriate',
-                'other'
+                'other',
             ]);
             $table->text('description')->nullable();
             $table->enum('status', ['pending', 'reviewing', 'resolved', 'dismissed'])->default('pending');
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->text('moderator_notes')->nullable();
             $table->timestamp('resolved_at')->nullable();
             $table->timestamps();
-            
+
             $table->index('status');
             // Note: morphs() crée déjà un index sur reportable_type + reportable_id
             $table->index('reporter_id');
@@ -45,4 +45,3 @@ return new class extends Migration
         Schema::dropIfExists('reports');
     }
 };
-

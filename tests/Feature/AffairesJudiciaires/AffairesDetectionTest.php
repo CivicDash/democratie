@@ -1,8 +1,5 @@
 <?php
 
-use App\Console\Commands\DetectAffairesWikipedia;
-use Illuminate\Support\Str;
-
 test('patterns haute confiance détectent les condamnations', function () {
     $patterns = [
         '/condamn[ée]e?\s.{0,80}(tribunal|cour|justice)/iu',

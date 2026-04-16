@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('credits_cp', 18, 2)->nullable(); // Crédits de paiement
             $table->integer('nb_programmes')->default(0);
             $table->timestamps();
-            
+
             $table->unique(['code', 'annee', 'type_loi']);
         });
 
@@ -42,7 +42,7 @@ return new class extends Migration
             $table->decimal('credits_cp_prev', 18, 2)->nullable();
             $table->decimal('evolution_pct', 8, 2)->nullable(); // % évolution
             $table->timestamps();
-            
+
             $table->unique(['code', 'annee', 'type_loi']);
         });
 
@@ -60,7 +60,7 @@ return new class extends Migration
             $table->integer('nb_programmes')->default(0);
             $table->string('couleur', 7)->nullable(); // Pour les graphiques
             $table->timestamps();
-            
+
             $table->unique(['code', 'annee', 'type_loi']);
         });
 
@@ -89,7 +89,7 @@ return new class extends Migration
             $table->decimal('credits_ae', 18, 2)->nullable();
             $table->decimal('credits_cp', 18, 2)->nullable();
             $table->timestamps();
-            
+
             $table->index(['programme_id', 'annee']);
         });
     }

@@ -44,7 +44,7 @@ return new class extends Migration
             $table->decimal('exports_billions_euros', 12, 2)->nullable();
             $table->decimal('imports_billions_euros', 12, 2)->nullable();
             $table->timestamps();
-            
+
             $table->unique(['year', 'quarter']);
         });
 
@@ -62,7 +62,7 @@ return new class extends Migration
             $table->bigInteger('asylum_requests')->nullable(); // Demandes d'asile
             $table->bigInteger('asylum_granted')->nullable(); // Asiles accordés
             $table->timestamps();
-            
+
             $table->unique('year');
         });
 
@@ -73,7 +73,7 @@ return new class extends Migration
             $table->id();
             $table->integer('year');
             $table->decimal('total_billions_euros', 12, 2);
-            
+
             // Détail des recettes fiscales
             $table->decimal('tva_billions_euros', 12, 2)->nullable(); // TVA
             $table->decimal('income_tax_billions_euros', 12, 2)->nullable(); // Impôt sur le revenu
@@ -83,10 +83,10 @@ return new class extends Migration
             $table->decimal('fuel_tax_billions_euros', 12, 2)->nullable(); // TICPE (taxe carburants)
             $table->decimal('social_contributions_billions_euros', 12, 2)->nullable(); // Cotisations sociales
             $table->decimal('other_taxes_billions_euros', 12, 2)->nullable(); // Autres taxes
-            
+
             $table->json('detailed_breakdown')->nullable(); // Détails supplémentaires en JSON
             $table->timestamps();
-            
+
             $table->unique('year');
         });
 
@@ -97,7 +97,7 @@ return new class extends Migration
             $table->id();
             $table->integer('year');
             $table->decimal('total_billions_euros', 12, 2);
-            
+
             // Grandes catégories de dépenses
             $table->decimal('health_billions_euros', 12, 2)->nullable(); // Santé
             $table->decimal('education_billions_euros', 12, 2)->nullable(); // Éducation
@@ -112,10 +112,10 @@ return new class extends Migration
             $table->decimal('culture_billions_euros', 12, 2)->nullable(); // Culture
             $table->decimal('debt_interest_billions_euros', 12, 2)->nullable(); // Intérêts de la dette
             $table->decimal('other_spending_billions_euros', 12, 2)->nullable(); // Autres dépenses
-            
+
             $table->json('detailed_breakdown')->nullable();
             $table->timestamps();
-            
+
             $table->unique('year');
         });
 
@@ -125,25 +125,25 @@ return new class extends Migration
         Schema::create('france_lost_revenue', function (Blueprint $table) {
             $table->id();
             $table->integer('year');
-            
+
             // Fraude fiscale
             $table->decimal('vat_fraud_billions_euros', 12, 2)->nullable(); // Fraude à la TVA
             $table->decimal('income_tax_fraud_billions_euros', 12, 2)->nullable(); // Fraude impôt revenu
             $table->decimal('corporate_tax_fraud_billions_euros', 12, 2)->nullable(); // Fraude IS
             $table->decimal('social_fraud_billions_euros', 12, 2)->nullable(); // Fraude sociale
-            
+
             // Évasion et optimisation fiscale
             $table->decimal('tax_evasion_billions_euros', 12, 2)->nullable(); // Évasion fiscale
             $table->decimal('tax_optimization_billions_euros', 12, 2)->nullable(); // Optimisation fiscale
             $table->decimal('offshore_billions_euros', 12, 2)->nullable(); // Paradis fiscaux
-            
+
             // Total estimé
             $table->decimal('total_lost_billions_euros', 12, 2)->nullable();
-            
+
             $table->text('sources')->nullable(); // Sources des estimations
             $table->text('notes')->nullable(); // Notes méthodologiques
             $table->timestamps();
-            
+
             $table->unique('year');
         });
 
@@ -155,16 +155,16 @@ return new class extends Migration
             $table->integer('year');
             $table->string('region_code', 3); // Code INSEE région
             $table->string('region_name', 100);
-            
+
             $table->bigInteger('population')->nullable();
             $table->decimal('unemployment_rate', 5, 2)->nullable();
             $table->decimal('gdp_billions_euros', 12, 2)->nullable();
             $table->decimal('median_income_euros', 10, 2)->nullable(); // Revenu médian
             $table->decimal('poverty_rate', 5, 2)->nullable(); // Taux de pauvreté
-            
+
             $table->json('additional_data')->nullable(); // Données supplémentaires
             $table->timestamps();
-            
+
             $table->unique(['year', 'region_code']);
         });
 
@@ -177,15 +177,15 @@ return new class extends Migration
             $table->string('department_code', 3); // Code département (01, 02, ..., 2A, 2B)
             $table->string('department_name', 100);
             $table->string('region_code', 3);
-            
+
             $table->bigInteger('population')->nullable();
             $table->decimal('unemployment_rate', 5, 2)->nullable();
             $table->decimal('median_income_euros', 10, 2)->nullable();
             $table->decimal('poverty_rate', 5, 2)->nullable();
-            
+
             $table->json('additional_data')->nullable();
             $table->timestamps();
-            
+
             $table->unique(['year', 'department_code']);
         });
     }

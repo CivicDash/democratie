@@ -99,7 +99,7 @@ class ImportRssFranceInfo extends Command
                     }
                 }
 
-                $this->line("      ✅ ".count($items).' articles traités');
+                $this->line('      ✅ '.count($items).' articles traités');
             }
         }
 

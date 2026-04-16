@@ -77,6 +77,7 @@ class CommuneConsultation extends Model
         if ($this->ferme_at && $this->ferme_at->isPast()) {
             return false;
         }
+
         return true;
     }
 
@@ -94,6 +95,7 @@ class CommuneConsultation extends Model
         return collect($options)->map(function ($option) use ($votes, $totalVotes) {
             $key = $option['key'];
             $count = $votes[$key] ?? 0;
+
             return [
                 'key' => $key,
                 'label' => $option['label'],

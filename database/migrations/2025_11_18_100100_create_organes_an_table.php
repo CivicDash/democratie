@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('regime', 50)->nullable();
             $table->string('site_internet', 255)->nullable();
             $table->timestamps();
-            
+
             // Index composites
             $table->index(['code_type', 'legislature']);
             $table->index(['legislature', 'date_fin']); // Pour filtrer les organes actifs
@@ -37,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('organes_an');
     }
 };
-

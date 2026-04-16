@@ -24,14 +24,14 @@ return new class extends Migration
             $table->date('date_signature')->nullable();
             $table->date('date_publication')->index();
             $table->string('num_parution_jo', 20)->nullable(); // 0304
-            
+
             // Contenu (on stocke uniquement le résumé, pas tout le texte pour économiser)
             $table->text('visa')->nullable(); // Texte des visas
             $table->integer('nb_articles')->default(0);
-            
+
             // Lien vers nos tables existantes
             $table->string('loi_loicod')->nullable()->index(); // FK vers senat_dosleg_loi
-            
+
             $table->timestamps();
         });
 
@@ -56,4 +56,3 @@ return new class extends Migration
         Schema::dropIfExists('textes_jo');
     }
 };
-

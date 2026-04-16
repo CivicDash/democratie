@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('date_debut');
             $table->date('date_fin')->nullable();
             $table->timestamps();
-            
+
             $table->foreign('matricule')->references('matricule')->on('senateurs')->onDelete('cascade');
             $table->index(['matricule', 'date_debut']);
         });
@@ -27,4 +27,3 @@ return new class extends Migration
         Schema::dropIfExists('senateurs_historique_groupes');
     }
 };
-

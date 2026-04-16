@@ -10,11 +10,10 @@ test('un admin peut voir la file de modération', function () {
     $this->actingAs($admin)
         ->get(route('admin.affaires.index'))
         ->assertOk()
-        ->assertInertia(fn ($page) =>
-            $page->component('Admin/AffairesJudiciaires/Index')
-                ->has('affaires.data', 3)
-                ->has('counts')
-                ->has('health_metrics')
+        ->assertInertia(fn ($page) => $page->component('Admin/AffairesJudiciaires/Index')
+            ->has('affaires.data', 3)
+            ->has('counts')
+            ->has('health_metrics')
         );
 });
 
@@ -25,11 +24,10 @@ test('un admin peut voir le détail d\'une affaire', function () {
     $this->actingAs($admin)
         ->get(route('admin.affaires.show', $affaire))
         ->assertOk()
-        ->assertInertia(fn ($page) =>
-            $page->component('Admin/AffairesJudiciaires/Show')
-                ->has('affaire')
-                ->has('types_affaire')
-                ->has('categories')
+        ->assertInertia(fn ($page) => $page->component('Admin/AffairesJudiciaires/Show')
+            ->has('affaire')
+            ->has('types_affaire')
+            ->has('categories')
         );
 });
 

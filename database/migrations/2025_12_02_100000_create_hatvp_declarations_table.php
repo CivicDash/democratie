@@ -20,17 +20,17 @@ return new class extends Migration
             $table->string('origine', 20)->nullable(); // ADEL
             $table->boolean('complete')->default(true);
             $table->string('version', 20)->nullable();
-            
+
             // Lien vers le parlementaire
             $table->string('parlementaire_type', 20)->nullable(); // senateur, depute
             $table->string('parlementaire_id', 20)->nullable(); // matricule ou uid
-            
+
             // Infos déclarant
             $table->string('civilite', 10)->nullable();
             $table->string('nom', 100);
             $table->string('prenom', 100);
             $table->date('date_naissance')->nullable();
-            
+
             // Mandat
             $table->string('type_mandat', 50)->nullable();
             $table->string('code_categorie_mandat', 10)->nullable();
@@ -38,13 +38,13 @@ return new class extends Migration
             $table->string('label_organe', 200)->nullable();
             $table->date('date_debut_mandat')->nullable();
             $table->date('date_fin_mandat')->nullable();
-            
+
             // Observations
             $table->text('observations_interet')->nullable();
             $table->text('observations_patrimoine')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Index
             $table->index(['parlementaire_type', 'parlementaire_id'], 'idx_hatvp_parlementaire');
             $table->index(['nom', 'prenom'], 'idx_hatvp_nom');
@@ -61,4 +61,3 @@ return new class extends Migration
         Schema::dropIfExists('hatvp_declarations');
     }
 };
-

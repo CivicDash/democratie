@@ -50,7 +50,7 @@ class PublicSpendFactory extends Factory
     public function departmental(?TerritoryDepartment $department = null): static
     {
         $dept = $department ?? TerritoryDepartment::factory()->create();
-        
+
         return $this->state(fn (array $attributes) => [
             'scope' => 'dept',
             'region_id' => $dept->region_id,
@@ -58,4 +58,3 @@ class PublicSpendFactory extends Factory
         ]);
     }
 }
-

@@ -18,10 +18,10 @@ return new class extends Migration
             $table->string('encrypted_vote')->comment('Vote chiffré (Laravel Crypt)');
             $table->string('vote_hash', 64)->unique()->comment('Hash du vote pour unicité');
             $table->timestamp('cast_at')->useCurrent();
-            
+
             $table->index('topic_id');
             $table->index('cast_at');
-            
+
             // Note: Ce tableau ne contient AUCUNE référence à l'identité du votant
             // La liaison est supprimée après consommation du token
         });
@@ -35,4 +35,3 @@ return new class extends Migration
         Schema::dropIfExists('topic_ballots');
     }
 };
-

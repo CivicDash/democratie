@@ -132,6 +132,7 @@ class InseeApiService
 
     /**
      * Récupère plusieurs séries à la fois.
+     *
      * @param  array  $idBanks  Tableau d'identifiants de séries
      */
     public function getMultipleSeries(array $idBanks, ?int $startPeriod = null, ?int $endPeriod = null): ?array

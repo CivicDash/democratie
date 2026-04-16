@@ -62,7 +62,7 @@ class CommuneAssignAdmin extends Command
                 'verifiee_at' => now(),
                 'verification_niveau' => 'manuelle',
             ]);
-            $this->info("Page activee (statut -> active)");
+            $this->info('Page activee (statut -> active)');
         }
 
         return self::SUCCESS;

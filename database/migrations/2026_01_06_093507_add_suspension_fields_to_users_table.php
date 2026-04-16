@@ -25,37 +25,37 @@ return new class extends Migration
             $hasSuspensionReason, $hasSuspendedBy, $hasSuspensionCount, $hasDeletedAt
         ) {
             // Statut du compte
-            if (!$hasAccountStatus) {
+            if (! $hasAccountStatus) {
                 $table->string('account_status', 20)->default('active'); // active, suspended, banned, deleted
             }
-            
+
             // Suspension temporaire
-            if (!$hasSuspendedAt) {
+            if (! $hasSuspendedAt) {
                 $table->timestamp('suspended_at')->nullable();
             }
-            if (!$hasSuspendedUntil) {
+            if (! $hasSuspendedUntil) {
                 $table->timestamp('suspended_until')->nullable(); // null = permanent (banned)
             }
-            if (!$hasSuspensionReason) {
+            if (! $hasSuspensionReason) {
                 $table->text('suspension_reason')->nullable();
             }
-            if (!$hasSuspendedBy) {
+            if (! $hasSuspendedBy) {
                 $table->foreignId('suspended_by')->nullable()->constrained('users')->onDelete('set null');
             }
-            
+
             // Historique des sanctions (pour appel)
-            if (!$hasSuspensionCount) {
+            if (! $hasSuspensionCount) {
                 $table->integer('suspension_count')->default(0);
             }
-            
+
             // Soft delete pour suppression de compte
-            if (!$hasDeletedAt) {
+            if (! $hasDeletedAt) {
                 $table->softDeletes();
             }
         });
 
         // Table d'historique des sanctions
-        if (!Schema::hasTable('user_sanctions')) {
+        if (! Schema::hasTable('user_sanctions')) {
             Schema::create('user_sanctions', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained()->onDelete('cascade');
@@ -81,13 +81,13 @@ return new class extends Migration
     public function down(): void
     {
         $hasSuspendedBy = Schema::hasColumn('users', 'suspended_by');
-        
+
         Schema::table('users', function (Blueprint $table) use ($hasSuspendedBy) {
             if ($hasSuspendedBy) {
                 $table->dropForeign(['suspended_by']);
             }
         });
-        
+
         $columns = ['account_status', 'suspended_at', 'suspended_until', 'suspension_reason', 'suspended_by', 'suspension_count'];
         foreach ($columns as $col) {
             if (Schema::hasColumn('users', $col)) {
@@ -96,7 +96,7 @@ return new class extends Migration
                 });
             }
         }
-        
+
         if (Schema::hasColumn('users', 'deleted_at')) {
             Schema::table('users', function (Blueprint $table) {
                 $table->dropSoftDeletes();

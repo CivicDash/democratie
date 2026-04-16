@@ -31,7 +31,7 @@ class UserAllocationFactory extends Factory
         $allocations = [];
         $remaining = 100.0;
         $count = count($sectors);
-        
+
         foreach ($sectors as $index => $sector) {
             if ($index === $count - 1) {
                 // Dernière allocation = remaining
@@ -43,17 +43,16 @@ class UserAllocationFactory extends Factory
                 $percent = fake()->randomFloat(2, $minPercent, $maxPercent);
                 $percent = round($percent, 2);
             }
-            
+
             $allocations[] = UserAllocation::create([
                 'user_id' => $user->id,
                 'sector_id' => $sector->id,
                 'percent' => $percent,
             ]);
-            
+
             $remaining -= $percent;
         }
-        
+
         return $allocations;
     }
 }
-

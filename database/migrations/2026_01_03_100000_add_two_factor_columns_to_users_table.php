@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // 2FA Secret (encrypted)
             $table->text('two_factor_secret')->nullable()->after('password');
-            
+
             // Recovery codes (JSON array, encrypted)
             $table->text('two_factor_recovery_codes')->nullable()->after('two_factor_secret');
-            
+
             // 2FA confirmed at timestamp
             $table->timestamp('two_factor_confirmed_at')->nullable()->after('two_factor_recovery_codes');
-            
+
             // Whether 2FA is enabled
             $table->boolean('two_factor_enabled')->default(false)->after('two_factor_confirmed_at');
         });

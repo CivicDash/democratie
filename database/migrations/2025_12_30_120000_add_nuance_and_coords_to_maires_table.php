@@ -16,16 +16,16 @@ return new class extends Migration
     {
         Schema::table('maires', function (Blueprint $table) {
             // Ajout conditionnel pour éviter les erreurs si colonne existe déjà
-            if (!Schema::hasColumn('maires', 'nuance_politique')) {
+            if (! Schema::hasColumn('maires', 'nuance_politique')) {
                 $table->string('nuance_politique', 10)->nullable()->index()->after('population_commune');
             }
-            if (!Schema::hasColumn('maires', 'mandature')) {
+            if (! Schema::hasColumn('maires', 'mandature')) {
                 $table->string('mandature', 20)->nullable()->after('nuance_politique');
             }
-            if (!Schema::hasColumn('maires', 'latitude')) {
+            if (! Schema::hasColumn('maires', 'latitude')) {
                 $table->decimal('latitude', 10, 7)->nullable()->after('mandature');
             }
-            if (!Schema::hasColumn('maires', 'longitude')) {
+            if (! Schema::hasColumn('maires', 'longitude')) {
                 $table->decimal('longitude', 10, 7)->nullable()->after('latitude');
             }
         });

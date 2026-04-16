@@ -96,7 +96,7 @@ class DatabaseSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
         $citizen->assignRole('citizen');
-        
+
         // Créer le profil citoyen
         Profile::create([
             'user_id' => $citizen->id,
@@ -110,7 +110,7 @@ class DatabaseSeeder extends Seeder
         $this->command->newLine();
         $this->command->info('🎉 Database seeding completed successfully!');
         $this->command->newLine();
-        
+
         $this->command->table(
             ['Compte', 'Email', 'Password', 'Rôle'],
             [
@@ -121,7 +121,7 @@ class DatabaseSeeder extends Seeder
                 ['Citoyen', 'citizen@civicdash.fr', 'password', 'citizen'],
             ]
         );
-        
+
         $this->command->newLine();
         $this->command->warn('⚠️  N\'oubliez pas de configurer PEPPER dans .env !');
         $this->command->info('   Commande : make pepper');

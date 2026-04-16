@@ -18,11 +18,11 @@ class SanctionFactory extends Factory
     {
         $type = fake()->randomElement(['warning', 'mute', 'ban']);
         $startsAt = fake()->dateTimeBetween('-30 days', 'now');
-        
+
         // Warnings et mutes sont temporaires, bans peuvent être permanents
         $isPermanent = $type === 'ban' && fake()->boolean(30);
         $expiresAt = $isPermanent ? null : fake()->dateTimeBetween($startsAt, '+30 days');
-        
+
         return [
             'user_id' => User::factory(),
             'moderator_id' => User::factory(),
@@ -46,7 +46,7 @@ class SanctionFactory extends Factory
     public function mute(int $hours = 24): static
     {
         $startsAt = now();
-        
+
         return $this->state(fn (array $attributes) => [
             'type' => 'mute',
             'starts_at' => $startsAt,
@@ -57,7 +57,7 @@ class SanctionFactory extends Factory
     public function ban(?int $days = null): static
     {
         $startsAt = now();
-        
+
         return $this->state(fn (array $attributes) => [
             'type' => 'ban',
             'starts_at' => $startsAt,
@@ -75,7 +75,7 @@ class SanctionFactory extends Factory
     public function temporary(int $days = 7): static
     {
         $startsAt = now();
-        
+
         return $this->state(fn (array $attributes) => [
             'starts_at' => $startsAt,
             'expires_at' => $startsAt->copy()->addDays($days),
@@ -94,7 +94,7 @@ class SanctionFactory extends Factory
     public function expired(): static
     {
         $startsAt = fake()->dateTimeBetween('-60 days', '-30 days');
-        
+
         return $this->state(fn (array $attributes) => [
             'is_active' => true,
             'starts_at' => $startsAt,
@@ -109,4 +109,3 @@ class SanctionFactory extends Factory
         ]);
     }
 }
-

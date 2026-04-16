@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::table('topic_elus', function (Blueprint $table) {
             // Date de notification à l'élu
             $table->timestamp('notified_at')->nullable()->after('response_status');
-            
+
             // Email envoyé
             $table->timestamp('email_sent_at')->nullable()->after('notified_at');
-            
+
             // Date de première consultation par l'élu
             $table->timestamp('viewed_at')->nullable()->after('email_sent_at');
         });

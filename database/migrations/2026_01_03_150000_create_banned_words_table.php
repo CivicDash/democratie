@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
-            
+
             $table->index(['category', 'is_active']);
             $table->index('severity');
         });
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->string('category', 50)->default('general'); // compliment, emoji, nature, animal, nourriture
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->index(['category', 'is_active']);
         });
 
@@ -49,7 +49,7 @@ return new class extends Migration
             $table->text('context')->nullable(); // Phrase complète pour analyse
             $table->string('ip_address', 45)->nullable();
             $table->timestamps();
-            
+
             $table->index(['user_id', 'created_at']);
             $table->index(['action', 'created_at']);
         });

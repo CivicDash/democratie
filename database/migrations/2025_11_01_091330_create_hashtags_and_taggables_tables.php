@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Migration système hashtags (style Twitter)
- * 
+ *
  * Permet de taguer posts et topics avec #motclé
  * Navigation thématique organique + découverte de contenu
  */
@@ -29,7 +29,7 @@ return new class extends Migration
             $table->text('description')->nullable()->comment('Description si hashtag officiel');
             $table->timestamp('last_used_at')->nullable()->comment('Dernière utilisation');
             $table->timestamps();
-            
+
             $table->index('slug');
             $table->index(['is_trending', 'usage_count']);
             $table->index('last_used_at');
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->foreignId('hashtag_id')->constrained()->onDelete('cascade');
             $table->morphs('taggable', 'taggables_morph_index'); // Custom index name
             $table->timestamps();
-            
+
             // Un hashtag ne peut être ajouté qu'une fois par contenu
             $table->unique(['hashtag_id', 'taggable_type', 'taggable_id'], 'taggables_unique');
         });

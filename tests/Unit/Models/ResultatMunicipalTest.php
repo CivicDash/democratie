@@ -1,11 +1,9 @@
 <?php
 
 use App\Models\ResultatMunicipal;
-use App\Models\ResultatListeMunicipale;
-use App\Models\Ville;
 
 it('has correct casts', function () {
-    $model = new ResultatMunicipal();
+    $model = new ResultatMunicipal;
     $casts = $model->getCasts();
 
     expect($casts)->toHaveKeys([
@@ -29,7 +27,7 @@ it('formats participation correctly', function () {
 });
 
 it('has fillable fields', function () {
-    $model = new ResultatMunicipal();
+    $model = new ResultatMunicipal;
     expect($model->getFillable())->toContain('code_commune');
     expect($model->getFillable())->toContain('tour');
     expect($model->getFillable())->toContain('inscrits');

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('order')->default(0)->comment('Ordre d\'affichage');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->index(['is_active', 'order']);
         });
 
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->dropForeign(['category_id']);
             $table->dropColumn('category_id');
         });
-        
+
         Schema::dropIfExists('topic_categories');
     }
 };

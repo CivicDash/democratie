@@ -24,11 +24,11 @@ return new class extends Migration
             $table->integer('preseance')->nullable()->comment('Ordre de préséance');
             $table->boolean('nomination_principale')->default(false);
             $table->timestamps();
-            
+
             // Foreign keys
             $table->foreign('acteur_ref')->references('uid')->on('acteurs_an')->onDelete('cascade');
             $table->foreign('organe_ref')->references('uid')->on('organes_an')->onDelete('set null');
-            
+
             // Index composites
             $table->index(['acteur_ref', 'legislature']);
             $table->index(['organe_ref', 'legislature']);
@@ -44,4 +44,3 @@ return new class extends Migration
         Schema::dropIfExists('mandats_an');
     }
 };
-

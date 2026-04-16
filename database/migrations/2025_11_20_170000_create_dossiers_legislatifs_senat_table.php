@@ -27,11 +27,11 @@ return new class extends Migration
             $table->text('url_legifrance')->nullable();
             $table->string('numero_loi', 100)->nullable(); // Ex: "2024-123"
             $table->jsonb('donnees_source')->nullable(); // CSV original
-            
+
             // Lien vers dossier AN correspondant
             $table->string('dossier_an_uid', 30)->nullable();
             $table->foreign('dossier_an_uid')->references('uid')->on('dossiers_legislatifs_an')->onDelete('set null');
-            
+
             $table->timestamps();
 
             $table->index('legislature');
@@ -49,4 +49,3 @@ return new class extends Migration
         Schema::dropIfExists('dossiers_legislatifs_senat');
     }
 };
-

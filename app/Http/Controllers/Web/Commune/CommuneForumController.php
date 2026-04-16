@@ -65,7 +65,7 @@ class CommuneForumController extends Controller
             'epingles' => $epingles,
             'categories' => self::CATEGORIES_FORUM,
             'categorie_active' => $categorie,
-            'est_admin' => $page->estAdministrePar(auth()->user() ?? new \App\Models\User()),
+            'est_admin' => $page->estAdministrePar(auth()->user() ?? new \App\Models\User),
         ]);
     }
 
@@ -86,12 +86,12 @@ class CommuneForumController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string|max:10000',
-            'forum_categorie' => 'nullable|string|in:' . implode(',', array_keys(self::CATEGORIES_FORUM)),
+            'forum_categorie' => 'nullable|string|in:'.implode(',', array_keys(self::CATEGORIES_FORUM)),
         ]);
 
         $topic = Topic::create([
             'title' => $validated['title'],
-            'slug' => Str::slug($validated['title']) . '-' . Str::random(6),
+            'slug' => Str::slug($validated['title']).'-'.Str::random(6),
             'description' => $validated['description'],
             'user_id' => $request->user()->id,
             'commune_code_insee' => $codeInsee,

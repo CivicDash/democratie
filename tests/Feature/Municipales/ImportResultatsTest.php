@@ -1,8 +1,7 @@
 <?php
 
-use App\Models\ListeElectorale;
-use App\Models\ResultatMunicipal;
 use App\Models\ResultatListeMunicipale;
+use App\Models\ResultatMunicipal;
 
 it('imports resultats from csv file', function () {
     $candidaturesFile = base_path('tests/Fixtures/candidatures_t1_sample.csv');

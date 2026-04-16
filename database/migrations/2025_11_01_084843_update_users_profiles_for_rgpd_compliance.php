@@ -6,14 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Migration RGPD & FranceConnect+ Compliance
- * 
+ *
  * Objectifs :
  * 1. Anonymiser users.name → Utiliser display_name par défaut
  * 2. Chiffrer données sensibles FranceConnect+ dans profiles
  * 3. Ajouter champ franceconnect_sub dans users (identifiant unique FC+)
  * 4. Supprimer stockage JSON en clair des données FC+
  * 5. Ajouter flag is_public_figure pour distinguer anonymes/transparents
- * 
+ *
  * Conformité :
  * - RGPD Art. 5 (minimisation des données)
  * - RGPD Art. 32 (chiffrement données sensibles)
@@ -37,20 +37,20 @@ return new class extends Migration
             // Flag pour distinguer comptes publics (journaliste, personnalité) des citoyens anonymes
             $table->boolean('is_public_figure')->default(false)->after('is_verified')
                 ->comment('Compte public (nom réel visible) vs citoyen anonyme');
-            
+
             // Données FranceConnect+ chiffrées (si nécessaire pour admin/audit)
             // Note : En production, utiliser Laravel Encryption ou Vault
             $table->text('encrypted_fc_data')->nullable()->after('verified_at')
                 ->comment('Données FC+ chiffrées (birthdate, gender, etc.) pour audit uniquement');
-            
+
             // Nom réel chiffré (accessible uniquement admin avec clé déchiffrement)
             $table->text('encrypted_real_name')->nullable()->after('encrypted_fc_data')
                 ->comment('Nom réel chiffré (Prénom + Nom) - Admin uniquement');
-            
+
             // Email réel chiffré (backup si different de users.email)
             $table->text('encrypted_real_email')->nullable()->after('encrypted_real_name')
                 ->comment('Email réel chiffré - Admin uniquement');
-            
+
             // Supprimer les anciens champs non-chiffrés si ils existent
             // Note : given_name, family_name, franceconnect_data seront migrés vers encrypted_fc_data
             if (Schema::hasColumn('profiles', 'given_name')) {
@@ -81,7 +81,7 @@ return new class extends Migration
             $table->timestamp('granted_at')->nullable()->comment('Date consentement');
             $table->timestamp('revoked_at')->nullable()->comment('Date révocation');
             $table->timestamps();
-            
+
             $table->index(['user_id', 'consent_type']);
             $table->index(['consent_type', 'is_granted']);
         });
@@ -97,7 +97,7 @@ return new class extends Migration
             $table->boolean('is_current')->default(false)->comment('Version active');
             $table->timestamp('effective_at')->comment('Date entrée en vigueur');
             $table->timestamps();
-            
+
             $table->index(['policy_type', 'is_current']);
         });
     }

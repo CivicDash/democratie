@@ -17,6 +17,7 @@ class ImportEmailsMairies extends Command
     protected $description = 'Importe les emails et coordonnees des mairies via l\'API Annuaire service-public.fr';
 
     private const API_BASE = 'https://api-lannuaire.service-public.fr/api/explore/v2.1/catalog/datasets/api-lannuaire-administration/records';
+
     private const BATCH_SIZE = 100;
 
     public function handle(): int
@@ -54,6 +55,7 @@ class ImportEmailsMairies extends Command
                     $this->error("Erreur API (HTTP {$response->status()}) a l'offset {$offset}");
                     $errors++;
                     $offset += self::BATCH_SIZE;
+
                     continue;
                 }
 
@@ -80,8 +82,9 @@ class ImportEmailsMairies extends Command
                     }
 
                     if ($dryRun) {
-                        $this->line("  [{$codeInsee}] " . ($updates['email_mairie'] ?? 'pas d\'email'));
+                        $this->line("  [{$codeInsee}] ".($updates['email_mairie'] ?? 'pas d\'email'));
                         $updated++;
+
                         continue;
                     }
 

@@ -156,14 +156,14 @@ class LocalisationService
             ->whereNull('date_deces') // Sénateurs vivants
             ->get()
             ->map(fn ($s) => [
-            'matricule' => $s->matricule,
-            'nom' => $s->nom,
-            'prenom' => $s->prenom,
-            'nom_complet' => trim($s->prenom.' '.$s->nom),
-            'groupe' => $s->groupe_politique ?? $s->groupe_libelle,
-            'photo_url' => $s->photo_url,
-            'url' => "/representants/senateurs/{$s->matricule}",
-        ]);
+                'matricule' => $s->matricule,
+                'nom' => $s->nom,
+                'prenom' => $s->prenom,
+                'nom_complet' => trim($s->prenom.' '.$s->nom),
+                'groupe' => $s->groupe_politique ?? $s->groupe_libelle,
+                'photo_url' => $s->photo_url,
+                'url' => "/representants/senateurs/{$s->matricule}",
+            ]);
     }
 
     /**

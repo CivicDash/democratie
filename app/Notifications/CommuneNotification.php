@@ -40,7 +40,7 @@ class CommuneNotification extends Notification implements ShouldQueue
         return match ($this->type) {
             'nouvel_article' => (new MailMessage)
                 ->subject("Nouvelle actualite - {$communeNom}")
-                ->greeting("Bonjour,")
+                ->greeting('Bonjour,')
                 ->line("Une nouvelle actualite a ete publiee par la commune de {$communeNom}.")
                 ->line("**{$this->sujet->titre}**")
                 ->line($this->sujet->extrait_auto)
@@ -49,7 +49,7 @@ class CommuneNotification extends Notification implements ShouldQueue
 
             'nouvel_evenement' => (new MailMessage)
                 ->subject("Nouvel evenement - {$communeNom}")
-                ->greeting("Bonjour,")
+                ->greeting('Bonjour,')
                 ->line("Un nouvel evenement est prevu dans la commune de {$communeNom}.")
                 ->line("**{$this->sujet->titre}**")
                 ->line("Date : {$this->sujet->date_debut->format('d/m/Y a H:i')}")
@@ -59,17 +59,17 @@ class CommuneNotification extends Notification implements ShouldQueue
 
             'page_reclamee' => (new MailMessage)
                 ->subject("Verification de commune - {$communeNom}")
-                ->greeting("Bonjour,")
+                ->greeting('Bonjour,')
                 ->line("Votre demande de reclamation pour la commune de {$communeNom} a ete recue.")
                 ->line("Votre code de verification : **{$this->sujet}**")
-                ->line("Ce code est valable 24 heures.")
+                ->line('Ce code est valable 24 heures.')
                 ->salutation('L\'equipe CivicDash'),
 
             'page_activee' => (new MailMessage)
                 ->subject("Commune activee - {$communeNom}")
-                ->greeting("Felicitations !")
+                ->greeting('Felicitations !')
                 ->line("La page de la commune de {$communeNom} est maintenant active sur CivicDash.")
-                ->line("Vous pouvez desormais publier des actualites, creer des evenements et personnaliser votre page.")
+                ->line('Vous pouvez desormais publier des actualites, creer des evenements et personnaliser votre page.')
                 ->action('Gerer ma commune', url("/communes/{$this->communePage->code_insee}/admin"))
                 ->salutation('L\'equipe CivicDash'),
 

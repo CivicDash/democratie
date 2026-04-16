@@ -18,7 +18,7 @@ class TopicBallotFactory extends Factory
         $topic = Topic::factory()->withBallot()->create();
         $vote = $this->generateVote($topic);
         $nonce = bin2hex(random_bytes(16));
-        
+
         return [
             'topic_id' => $topic->id,
             'encrypted_vote' => TopicBallot::encryptVote($vote),
@@ -32,13 +32,14 @@ class TopicBallotFactory extends Factory
         if ($topic->ballot_type === 'yes_no') {
             return ['choice' => fake()->randomElement(['yes', 'no'])];
         }
-        
+
         if ($topic->ballot_type === 'multiple_choice' && $topic->ballot_options) {
             $options = $topic->ballot_options['options'] ?? [];
             $option = fake()->randomElement($options);
+
             return ['choice' => $option['id']];
         }
-        
+
         return ['choice' => 'yes']; // Fallback
     }
 
@@ -47,7 +48,7 @@ class TopicBallotFactory extends Factory
         return $this->state(function (array $attributes) {
             $vote = ['choice' => 'yes'];
             $nonce = bin2hex(random_bytes(16));
-            
+
             return [
                 'encrypted_vote' => TopicBallot::encryptVote($vote),
                 'vote_hash' => TopicBallot::hashVote($attributes['topic_id'], $vote, $nonce),
@@ -60,7 +61,7 @@ class TopicBallotFactory extends Factory
         return $this->state(function (array $attributes) {
             $vote = ['choice' => 'no'];
             $nonce = bin2hex(random_bytes(16));
-            
+
             return [
                 'encrypted_vote' => TopicBallot::encryptVote($vote),
                 'vote_hash' => TopicBallot::hashVote($attributes['topic_id'], $vote, $nonce),
@@ -68,4 +69,3 @@ class TopicBallotFactory extends Factory
         });
     }
 }
-

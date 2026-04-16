@@ -25,8 +25,7 @@ class ProfileFactory extends Factory
             'region_id' => null,
             'department_id' => null,
             'is_verified' => fake()->boolean(30), // 30% verified
-            'verified_at' => fn (array $attributes) => 
-                $attributes['is_verified'] ? fake()->dateTimeBetween('-1 year', 'now') : null,
+            'verified_at' => fn (array $attributes) => $attributes['is_verified'] ? fake()->dateTimeBetween('-1 year', 'now') : null,
         ];
     }
 
@@ -60,7 +59,7 @@ class ProfileFactory extends Factory
     public function departmental(?TerritoryDepartment $department = null): static
     {
         $dept = $department ?? TerritoryDepartment::factory()->create();
-        
+
         return $this->state(fn (array $attributes) => [
             'scope' => 'dept',
             'region_id' => $dept->region_id,
@@ -90,4 +89,3 @@ class ProfileFactory extends Factory
         ]);
     }
 }
-

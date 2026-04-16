@@ -7,7 +7,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Met à jour les contraintes CHECK pour utiliser les nouvelles valeurs
      * utilisées dans le système de participation citoyenne.
      */

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\ActeurAN;
 use App\Models\CommuneArticle;
 use App\Models\CommuneEvenement;
-use App\Models\CommunePage;
 use App\Models\Loi;
 use App\Models\Maire;
 use App\Models\PersonnePolitique;

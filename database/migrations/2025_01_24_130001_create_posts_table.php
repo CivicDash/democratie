@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('hidden_reason')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index('topic_id');
             $table->index('user_id');
             $table->index('parent_id');
@@ -43,4 +43,3 @@ return new class extends Migration
         Schema::dropIfExists('posts');
     }
 };
-
