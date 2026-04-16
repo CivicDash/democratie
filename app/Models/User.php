@@ -46,7 +46,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'profile_photo_moderated_by',
     ];
 
-
     /**
      * The attributes that should be hidden for serialization.
      *
