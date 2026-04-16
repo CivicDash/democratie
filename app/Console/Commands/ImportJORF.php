@@ -209,7 +209,9 @@ class ImportJORF extends Command
             return;
         }
 
-        $xml = @simplexml_load_string($content);
+        // Disable external entity loading to prevent XXE injection.
+        libxml_set_entity_loader(null);
+        $xml = @simplexml_load_string($content, null, LIBXML_NONET);
         if (! $xml) {
             $this->skipped++;
 

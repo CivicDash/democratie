@@ -24,20 +24,21 @@ echo ""
 echo "📋 2. Création de la base de données..."
 sudo -u postgres psql -c "DROP DATABASE IF EXISTS demoscratos_local;" 2>/dev/null
 sudo -u postgres psql -c "CREATE DATABASE demoscratos_local;"
-sudo -u postgres psql -c "CREATE USER demoscratos WITH PASSWORD 'demoscratos';" 2>/dev/null || echo "Utilisateur existe déjà"
+DB_LOCAL_PASSWORD="${DB_LOCAL_PASSWORD:-$(openssl rand -base64 16)}"
+sudo -u postgres psql -c "CREATE USER demoscratos WITH PASSWORD '${DB_LOCAL_PASSWORD}';" 2>/dev/null || echo "Utilisateur existe déjà"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE demoscratos_local TO demoscratos;"
 echo "✅ Base créée : demoscratos_local"
 echo ""
 
 # 3. Mettre à jour le .env.local
 echo "📋 3. Configuration .env.local..."
-cat > .env.local << 'EOF'
+cat > .env.local << EOF
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_DATABASE=demoscratos_local
 DB_USERNAME=demoscratos
-DB_PASSWORD=demoscratos
+DB_PASSWORD=${DB_LOCAL_PASSWORD}
 EOF
 echo "✅ Fichier .env.local créé"
 echo ""

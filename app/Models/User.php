@@ -28,11 +28,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'profile_photo_path',
         'franceconnect_sub',
-        'elu_type',
-        'elu_ref',
         'is_public_profile',
-        'is_verified_elu',
-        'verified_at',
         'elu_bio',
         'twitter_handle',
         'facebook_url',
@@ -41,14 +37,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
         'two_factor_enabled',
-        // Membre association Civis-Consilium
-        'is_association_member',
-        'association_member_since',
-        'association_member_id',
-        'member_type',
-        'member_since',
-        'member_until',
-        'member_number',
         'email_visible_to_admin',
         // Modération photo de profil
         'profile_photo_status',
@@ -56,13 +44,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'profile_photo_submitted_at',
         'profile_photo_moderated_at',
         'profile_photo_moderated_by',
-        // Suspension / Bannissement
-        'account_status',
-        'suspended_at',
-        'suspended_until',
-        'suspension_reason',
-        'suspended_by',
-        'suspension_count',
     ];
 
     /**

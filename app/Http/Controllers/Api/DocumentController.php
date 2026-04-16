@@ -72,6 +72,9 @@ class DocumentController extends Controller
             $documentableType = $request->documentable_type;
             $documentable = $documentableType::findOrFail($request->documentable_id);
 
+            // Ensure the authenticated user can view the target content before attaching a document.
+            $this->authorize('view', $documentable);
+
             $document = $this->documentService->uploadDocument(
                 $request->user(),
                 $request->file('file'),
@@ -226,7 +229,13 @@ class DocumentController extends Controller
     {
         $this->authorize('download', $document);
 
-        $path = storage_path('app/public/'.$document->file_path);
+        $base = realpath(storage_path('app/public/documents'));
+        $path = realpath(storage_path('app/public/'.$document->file_path));
+
+        // Guard against path traversal: resolved path must stay within the documents directory.
+        if (! $path || ! $base || ! str_starts_with($path, $base.DIRECTORY_SEPARATOR)) {
+            abort(403);
+        }
 
         if (! file_exists($path)) {
             return response()->json([

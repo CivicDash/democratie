@@ -47,8 +47,9 @@ class UserManagementController extends Controller
         }
 
         // Tri
-        $sortBy = $request->input('sort', 'created_at');
-        $sortOrder = $request->input('order', 'desc');
+        $allowedSorts = ['created_at', 'name', 'email', 'updated_at'];
+        $sortBy = in_array($request->input('sort'), $allowedSorts, true) ? $request->input('sort') : 'created_at';
+        $sortOrder = $request->input('order') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
         $users = $query->paginate(30)->withQueryString();
