@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('city_name', 150)->nullable()->after('department_id')->comment('Nom de la ville/commune');
             $table->string('postal_code', 10)->nullable()->after('city_name')->comment('Code postal');
             $table->string('circonscription', 20)->nullable()->after('postal_code')->comment('Circonscription législative (ex: 75-01)');
-            
+
             // Index pour recherche rapide
             $table->index(['department_id', 'circonscription'], 'idx_location');
             $table->index('postal_code', 'idx_postal_code');

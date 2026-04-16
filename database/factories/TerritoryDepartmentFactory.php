@@ -44,4 +44,3 @@ class TerritoryDepartmentFactory extends Factory
         ]);
     }
 }
-

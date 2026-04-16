@@ -31,7 +31,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -47,7 +47,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -62,7 +62,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -77,7 +77,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -92,7 +92,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -107,7 +107,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -126,7 +126,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -140,7 +140,7 @@ return new class extends Migration
             $table->decimal('montant_conjoint', 12, 2)->nullable();
             $table->string('brut_net', 10)->nullable();
             $table->timestamps();
-            
+
             $table->index(['declaration_id', 'annee']);
         });
     }
@@ -160,4 +160,3 @@ return new class extends Migration
         Schema::dropIfExists('hatvp_immeubles');
     }
 };
-

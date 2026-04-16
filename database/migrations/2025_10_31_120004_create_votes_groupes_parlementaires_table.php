@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('votes_groupes_parlementaires', function (Blueprint $table) {
             $table->id();
-            
+
             $table->foreignId('vote_legislatif_id')->constrained('votes_legislatifs')->onDelete('cascade');
             $table->foreignId('groupe_parlementaire_id')->constrained('groupes_parlementaires')->onDelete('cascade');
-            
+
             // Position du groupe
             $table->enum('position_groupe', ['pour', 'contre', 'abstention', 'mixte'])->default('mixte')->comment('Position majoritaire du groupe (OBLIGATOIRE, calculée automatiquement)');
-            
+
             // Détails des votes
             $table->integer('nombre_pour')->default(0);
             $table->integer('pour')->default(0)->comment('Alias pour nombre_pour');
@@ -29,16 +29,16 @@ return new class extends Migration
             $table->integer('abstention')->default(0)->comment('Alias pour nombre_abstention');
             $table->integer('nombre_absents')->default(0);
             $table->integer('non_votants')->default(0)->comment('Alias pour nombre_absents');
-            
+
             // Cohésion
             $table->decimal('pourcentage_discipline', 5, 2)->nullable()->comment('% de membres ayant voté avec la ligne du groupe');
-            
+
             // Métadonnées
             $table->text('commentaire_officiel')->nullable()->comment('Communiqué du groupe');
             $table->json('deputes_dissidents')->nullable()->comment('Liste des députés n\'ayant pas suivi la ligne');
-            
+
             $table->timestamps();
-            
+
             // Index
             $table->unique(['vote_legislatif_id', 'groupe_parlementaire_id'], 'unique_vote_groupe');
             $table->index(['groupe_parlementaire_id', 'position_groupe'], 'idx_groupe_position');
@@ -54,4 +54,3 @@ return new class extends Migration
         Schema::dropIfExists('votes_groupes_parlementaires');
     }
 };
-

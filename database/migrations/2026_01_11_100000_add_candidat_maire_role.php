@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         // Vérifier si le rôle existe déjà
-        if (!Role::where('name', 'candidat_maire')->exists()) {
+        if (! Role::where('name', 'candidat_maire')->exists()) {
             $candidatMaire = Role::create(['name' => 'candidat_maire']);
-            
+
             // Récupérer les permissions existantes
             $permissions = Permission::whereIn('name', [
                 'create_topics',
@@ -29,7 +29,7 @@ return new class extends Migration
                 'view_budget_data',
                 'upload_documents',
             ])->pluck('name')->toArray();
-            
+
             $candidatMaire->givePermissionTo($permissions);
         }
     }

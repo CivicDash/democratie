@@ -54,7 +54,7 @@ class CommuneBroadcastNotification extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject("{$icon} {$this->sujet} - {$communeNom}")
-            ->greeting("Bonjour,")
+            ->greeting('Bonjour,')
             ->line("Message de la commune de {$communeNom} :")
             ->line("**{$this->sujet}**")
             ->line($this->contenu)
@@ -65,7 +65,7 @@ class CommuneBroadcastNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'broadcast_' . $this->type,
+            'type' => 'broadcast_'.$this->type,
             'commune_code_insee' => $this->communePage->code_insee,
             'commune_nom' => $this->communePage->ville?->nom,
             'sujet' => $this->sujet,

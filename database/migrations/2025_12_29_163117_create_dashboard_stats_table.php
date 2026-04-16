@@ -17,7 +17,7 @@ return new class extends Migration
             $table->json('value'); // Données JSON
             $table->timestamp('calculated_at'); // Quand a été calculé
             $table->timestamps();
-            
+
             $table->index('key');
         });
     }
@@ -30,4 +30,3 @@ return new class extends Migration
         Schema::dropIfExists('dashboard_stats');
     }
 };
-

@@ -28,7 +28,7 @@ class VerificationFactory extends Factory
         ];
     }
 
-    public function verified(string $notes = null): static
+    public function verified(?string $notes = null): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'verified',
@@ -36,7 +36,7 @@ class VerificationFactory extends Factory
         ]);
     }
 
-    public function rejected(string $notes = null): static
+    public function rejected(?string $notes = null): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'rejected',
@@ -44,7 +44,7 @@ class VerificationFactory extends Factory
         ]);
     }
 
-    public function needsReview(string $notes = null): static
+    public function needsReview(?string $notes = null): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'needs_review',
@@ -52,4 +52,3 @@ class VerificationFactory extends Factory
         ]);
     }
 }
-

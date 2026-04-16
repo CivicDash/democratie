@@ -13,34 +13,34 @@ return new class extends Migration
     {
         // Ajouter les colonnes à topics si elles n'existent pas
         Schema::table('topics', function (Blueprint $table) {
-            if (!Schema::hasColumn('topics', 'poll_type')) {
+            if (! Schema::hasColumn('topics', 'poll_type')) {
                 $table->string('poll_type', 30)->nullable();
             }
-            
-            if (!Schema::hasColumn('topics', 'poll_max_choices')) {
+
+            if (! Schema::hasColumn('topics', 'poll_max_choices')) {
                 $table->tinyInteger('poll_max_choices')->nullable();
             }
-            
-            if (!Schema::hasColumn('topics', 'poll_show_results_before_vote')) {
+
+            if (! Schema::hasColumn('topics', 'poll_show_results_before_vote')) {
                 $table->boolean('poll_show_results_before_vote')->default(false);
             }
-            
-            if (!Schema::hasColumn('topics', 'poll_allow_change_vote')) {
+
+            if (! Schema::hasColumn('topics', 'poll_allow_change_vote')) {
                 $table->boolean('poll_allow_change_vote')->default(true);
             }
-            
-            if (!Schema::hasColumn('topics', 'poll_ends_at')) {
+
+            if (! Schema::hasColumn('topics', 'poll_ends_at')) {
                 $table->timestamp('poll_ends_at')->nullable();
             }
-            
-            if (!Schema::hasColumn('topics', 'debate_mode')) {
+
+            if (! Schema::hasColumn('topics', 'debate_mode')) {
                 $table->boolean('debate_mode')->default(false);
             }
         });
 
         // Ajouter la colonne à posts si elle n'existe pas
         Schema::table('posts', function (Blueprint $table) {
-            if (!Schema::hasColumn('posts', 'debate_position')) {
+            if (! Schema::hasColumn('posts', 'debate_position')) {
                 $table->string('debate_position', 20)->nullable();
             }
         });
@@ -49,8 +49,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('topics', function (Blueprint $table) {
-            $columns = ['poll_type', 'poll_max_choices', 'poll_show_results_before_vote', 
-                        'poll_allow_change_vote', 'poll_ends_at', 'debate_mode'];
+            $columns = ['poll_type', 'poll_max_choices', 'poll_show_results_before_vote',
+                'poll_allow_change_vote', 'poll_ends_at', 'debate_mode'];
             foreach ($columns as $col) {
                 if (Schema::hasColumn('topics', $col)) {
                     $table->dropColumn($col);

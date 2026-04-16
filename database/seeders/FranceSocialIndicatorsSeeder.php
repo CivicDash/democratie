@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\FranceEducation;
+use App\Models\FranceEmploymentDetailed;
+use App\Models\FranceEnvironment;
 use App\Models\FranceHealth;
 use App\Models\FranceHousing;
-use App\Models\FranceEnvironment;
-use App\Models\FranceSecurity;
-use App\Models\FranceEmploymentDetailed;
 use App\Models\FranceQualityOfLife;
+use App\Models\FranceSecurity;
+use Illuminate\Database\Seeder;
 
 class FranceSocialIndicatorsSeeder extends Seeder
 {

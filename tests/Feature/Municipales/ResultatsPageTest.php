@@ -1,9 +1,8 @@
 <?php
 
-use App\Models\User;
 use App\Models\ResultatMunicipal;
-use App\Models\ResultatListeMunicipale;
 use App\Models\StatsElectionMunicipale;
+use App\Models\User;
 
 it('renders resultats index page', function () {
     $user = User::factory()->create();

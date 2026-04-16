@@ -31,7 +31,7 @@ return new class extends Migration
             $table->integer('non_votants')->nullable();
             $table->json('ventilation_votes')->nullable()->comment('Votes par groupe (JSON complet)');
             $table->timestamps();
-            
+
             // Index composites
             $table->index(['legislature', 'date_scrutin']);
             $table->index(['legislature', 'resultat_code']);
@@ -49,4 +49,3 @@ return new class extends Migration
         Schema::dropIfExists('scrutins_an');
     }
 };
-

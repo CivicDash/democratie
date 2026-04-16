@@ -132,13 +132,13 @@ class SectorsSeeder extends Seeder
         }
 
         $this->command->info('✓ 10 secteurs budgétaires créés');
-        
+
         // Vérifier que la somme des min_percent <= 100%
         $totalMin = collect($sectors)->sum('min_percent');
         $totalMax = collect($sectors)->sum('max_percent');
-        
+
         $this->command->info("📊 Total min: {$totalMin}% | Total max: {$totalMax}%");
-        
+
         if ($totalMin > 100) {
             $this->command->warn("⚠️  ATTENTION: La somme des minimums ({$totalMin}%) > 100%");
         } else {
@@ -146,4 +146,3 @@ class SectorsSeeder extends Seeder
         }
     }
 }
-

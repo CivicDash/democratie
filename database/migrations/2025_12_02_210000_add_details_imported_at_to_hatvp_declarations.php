@@ -17,7 +17,7 @@ return new class extends Migration
         });
 
         // Créer la table de rémunérations polymorphique pour les mandats
-        if (!Schema::hasTable('hatvp_remunerations')) {
+        if (! Schema::hasTable('hatvp_remunerations')) {
             Schema::create('hatvp_remunerations', function (Blueprint $table) {
                 $table->id();
                 $table->string('remuneratable_type'); // HatvpMandatElectif, etc.
@@ -45,4 +45,3 @@ return new class extends Migration
         Schema::dropIfExists('hatvp_remunerations');
     }
 };
-

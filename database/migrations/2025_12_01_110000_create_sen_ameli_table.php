@@ -9,7 +9,7 @@ return new class extends Migration
     /**
      * Table de correspondance entre entid (ID numérique) et mat (matricule)
      * pour les sénateurs dans le système AMELI.
-     * 
+     *
      * Cette table est nécessaire pour faire le lien entre :
      * - senat_ameli_amdsen.senid (ID numérique)
      * - senat_senateurs_sen.senmat (matricule comme "20110Q")
@@ -39,4 +39,3 @@ return new class extends Migration
         Schema::dropIfExists('sen_ameli');
     }
 };
-

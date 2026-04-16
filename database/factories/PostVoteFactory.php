@@ -37,4 +37,3 @@ class PostVoteFactory extends Factory
         ]);
     }
 }
-

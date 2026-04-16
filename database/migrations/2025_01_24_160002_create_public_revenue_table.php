@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('amount', 15, 2)->comment('Montant en euros');
             $table->string('source', 255)->nullable()->comment('Source des données (ex: INSEE, DGFiP)');
             $table->timestamps();
-            
+
             $table->index(['year', 'scope']);
             $table->index(['region_id', 'department_id']);
             $table->index('category');
@@ -36,4 +36,3 @@ return new class extends Migration
         Schema::dropIfExists('public_revenue');
     }
 };
-

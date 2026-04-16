@@ -19,11 +19,11 @@ return new class extends Migration
             $table->string('raison', 255)->nullable();
             $table->json('details')->nullable();
             $table->timestamps();
-            
+
             // Foreign keys
             $table->foreign('acteur_ref')->references('uid')->on('acteurs_an')->onDelete('cascade');
             $table->foreign('scrutin_ref')->references('uid')->on('scrutins_an')->onDelete('set null');
-            
+
             // Index composites
             $table->index(['legislature', 'acteur_ref']);
         });
@@ -37,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('deports_an');
     }
 };
-

@@ -21,22 +21,22 @@ return new class extends Migration
             // Type de contribution
             $table->string('idea_type', 30)->default('debate')->after('type');
             // Types: proposal, question, debate, petition, interpellation
-            
+
             // Statistiques de votes (pré-calculées)
             $table->integer('votes_pour')->default(0)->after('ballot_options');
             $table->integer('votes_contre')->default(0)->after('votes_pour');
             $table->integer('score')->default(0)->after('votes_contre'); // Wilson score pour trending
             $table->integer('views_count')->default(0)->after('score');
-            
+
             // Slug pour URLs propres
             $table->string('slug', 300)->nullable()->after('title');
-            
+
             // Date de publication
             $table->timestamp('published_at')->nullable()->after('status');
-            
+
             // Raison de rejet si modéré
             $table->text('rejection_reason')->nullable()->after('published_at');
-            
+
             // Index pour performances
             $table->index('idea_type');
             $table->index('score');
@@ -51,24 +51,24 @@ return new class extends Migration
         Schema::create('topic_elus', function (Blueprint $table) {
             $table->id();
             $table->foreignId('topic_id')->constrained()->onDelete('cascade');
-            
+
             // Type d'élu
             $table->string('elu_type', 20); // depute, senateur, maire
             $table->string('elu_id', 50);   // uid AN, id sénateur, id maire
-            
+
             // Est-ce une interpellation directe ?
             $table->boolean('is_interpellation')->default(false);
-            
+
             // Statut de la réponse de l'élu
             $table->string('response_status', 20)->default('pending');
             // pending, viewed, answered, declined
-            
+
             $table->timestamp('viewed_at')->nullable();
             $table->timestamp('answered_at')->nullable();
             $table->text('response_content')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Index
             $table->index(['elu_type', 'elu_id']);
             $table->index('is_interpellation');
@@ -79,7 +79,7 @@ return new class extends Migration
         // =====================================================================
         // TABLE VOTES SUR TOPICS (si pas déjà existante)
         // =====================================================================
-        if (!Schema::hasTable('topic_votes')) {
+        if (! Schema::hasTable('topic_votes')) {
             Schema::create('topic_votes', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained()->onDelete('cascade');
@@ -95,7 +95,7 @@ return new class extends Migration
         // =====================================================================
         // TABLE TAGS MULTIPLES POUR TOPICS
         // =====================================================================
-        if (!Schema::hasTable('topic_tags')) {
+        if (! Schema::hasTable('topic_tags')) {
             Schema::create('topic_tags', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('topic_id')->constrained()->onDelete('cascade');
@@ -112,7 +112,7 @@ return new class extends Migration
         Schema::dropIfExists('topic_tags');
         Schema::dropIfExists('topic_votes');
         Schema::dropIfExists('topic_elus');
-        
+
         Schema::table('topics', function (Blueprint $table) {
             $table->dropIndex(['scope', 'idea_type', 'status']);
             $table->dropIndex(['idea_type', 'status']);

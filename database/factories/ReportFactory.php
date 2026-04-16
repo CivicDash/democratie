@@ -49,7 +49,7 @@ class ReportFactory extends Factory
         ]);
     }
 
-    public function resolved(string $notes = null): static
+    public function resolved(?string $notes = null): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'resolved',
@@ -59,7 +59,7 @@ class ReportFactory extends Factory
         ]);
     }
 
-    public function dismissed(string $notes = null): static
+    public function dismissed(?string $notes = null): static
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'dismissed',
@@ -83,4 +83,3 @@ class ReportFactory extends Factory
         ]);
     }
 }
-

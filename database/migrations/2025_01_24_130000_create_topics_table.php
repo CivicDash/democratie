@@ -23,7 +23,7 @@ return new class extends Migration
             $table->enum('status', ['draft', 'open', 'closed', 'archived'])->default('draft');
             $table->foreignId('author_id')->constrained('users')->onDelete('cascade')
                 ->comment('Auteur (rôle requis: legislator ou admin)');
-            
+
             // Scrutin
             $table->boolean('has_ballot')->default(false)->comment('Active le scrutin');
             $table->timestamp('voting_opens_at')->nullable()->comment('Ouverture du scrutin');
@@ -31,10 +31,10 @@ return new class extends Migration
             $table->enum('ballot_type', ['yes_no', 'multiple_choice', 'preferential'])->nullable()
                 ->comment('Type de scrutin');
             $table->json('ballot_options')->nullable()->comment('Options de vote (pour multiple_choice)');
-            
+
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['scope', 'status']);
             $table->index(['region_id', 'department_id']);
             $table->index('voting_deadline_at');
@@ -49,4 +49,3 @@ return new class extends Migration
         Schema::dropIfExists('topics');
     }
 };
-

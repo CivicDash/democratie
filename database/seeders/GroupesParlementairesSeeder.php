@@ -250,9 +250,8 @@ class GroupesParlementairesSeeder extends Seeder
             GroupeParlementaire::create($groupe);
         }
 
-        $this->command->info('✓ ' . count($groupes) . ' groupes parlementaires créés');
-        $this->command->info('  → ' . count(array_filter($groupes, fn($g) => $g['chambre'] === 'assemblee')) . ' groupes Assemblée Nationale');
-        $this->command->info('  → ' . count(array_filter($groupes, fn($g) => $g['chambre'] === 'senat')) . ' groupes Sénat');
+        $this->command->info('✓ '.count($groupes).' groupes parlementaires créés');
+        $this->command->info('  → '.count(array_filter($groupes, fn ($g) => $g['chambre'] === 'assemblee')).' groupes Assemblée Nationale');
+        $this->command->info('  → '.count(array_filter($groupes, fn ($g) => $g['chambre'] === 'senat')).' groupes Sénat');
     }
 }
-

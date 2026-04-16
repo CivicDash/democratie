@@ -17,13 +17,13 @@ class DocumentFactory extends Factory
 
     public function definition(): array
     {
-        $filename = fake()->word() . '.pdf';
-        
+        $filename = fake()->word().'.pdf';
+
         return [
             'title' => fake()->sentence(),
             'description' => fake()->optional()->sentence(),
             'filename' => $filename,
-            'path' => 'documents/' . fake()->uuid() . '/' . $filename,
+            'path' => 'documents/'.fake()->uuid().'/'.$filename,
             'mime_type' => 'application/pdf',
             'size' => fake()->numberBetween(10000, 5000000),
             'hash' => hash('sha256', fake()->unique()->uuid()),
@@ -38,7 +38,7 @@ class DocumentFactory extends Factory
     public function forTopic(?Topic $topic = null): static
     {
         $topic = $topic ?? Topic::factory()->create();
-        
+
         return $this->state(fn (array $attributes) => [
             'documentable_type' => Topic::class,
             'documentable_id' => $topic->id,
@@ -48,7 +48,7 @@ class DocumentFactory extends Factory
     public function forPost(?Post $post = null): static
     {
         $post = $post ?? Post::factory()->create();
-        
+
         return $this->state(fn (array $attributes) => [
             'documentable_type' => Post::class,
             'documentable_id' => $post->id,
@@ -92,12 +92,11 @@ class DocumentFactory extends Factory
 
     public function pdf(): static
     {
-        $filename = fake()->word() . '.pdf';
-        
+        $filename = fake()->word().'.pdf';
+
         return $this->state(fn (array $attributes) => [
             'filename' => $filename,
             'mime_type' => 'application/pdf',
         ]);
     }
 }
-

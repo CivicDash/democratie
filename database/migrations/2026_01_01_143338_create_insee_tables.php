@@ -19,32 +19,32 @@ return new class extends Migration
             $table->string('nom');
             $table->string('code_departement', 5)->index();
             $table->string('code_region', 5)->index();
-            
+
             // Population
             $table->integer('population')->nullable();
             $table->integer('population_annee')->nullable();
             $table->decimal('densite', 10, 2)->nullable(); // hab/km²
             $table->decimal('superficie', 10, 2)->nullable(); // km²
-            
+
             // Données économiques
             $table->decimal('revenu_median', 12, 2)->nullable();
             $table->decimal('taux_pauvrete', 5, 2)->nullable();
             $table->decimal('taux_chomage', 5, 2)->nullable();
-            
+
             // Données démographiques
             $table->decimal('part_moins_25', 5, 2)->nullable(); // %
             $table->decimal('part_plus_65', 5, 2)->nullable(); // %
             $table->decimal('taux_natalite', 5, 2)->nullable(); // ‰
             $table->decimal('taux_mortalite', 5, 2)->nullable(); // ‰
-            
+
             // Logement
             $table->decimal('taux_proprietaires', 5, 2)->nullable();
             $table->decimal('taux_logements_vacants', 5, 2)->nullable();
-            
+
             // Coordonnées
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
-            
+
             $table->timestamps();
         });
 
@@ -55,29 +55,29 @@ return new class extends Migration
             $table->string('nom');
             $table->string('code_region', 5)->index();
             $table->string('chef_lieu')->nullable();
-            
+
             // Population
             $table->integer('population')->nullable();
             $table->integer('population_annee')->nullable();
             $table->decimal('densite', 10, 2)->nullable();
             $table->decimal('superficie', 10, 2)->nullable();
             $table->integer('nb_communes')->nullable();
-            
+
             // Économie
             $table->decimal('revenu_median', 12, 2)->nullable();
             $table->decimal('taux_pauvrete', 5, 2)->nullable();
             $table->decimal('taux_chomage', 5, 2)->nullable();
             $table->decimal('pib_par_habitant', 12, 2)->nullable();
-            
+
             // Démographie
             $table->decimal('part_moins_25', 5, 2)->nullable();
             $table->decimal('part_plus_65', 5, 2)->nullable();
             $table->decimal('esperance_vie', 5, 2)->nullable();
-            
+
             // Politique
             $table->integer('nb_deputes')->nullable();
             $table->integer('nb_senateurs')->nullable();
-            
+
             $table->timestamps();
         });
 
@@ -87,7 +87,7 @@ return new class extends Migration
             $table->string('code', 5)->unique();
             $table->string('nom');
             $table->string('chef_lieu')->nullable();
-            
+
             // Population
             $table->integer('population')->nullable();
             $table->integer('population_annee')->nullable();
@@ -95,19 +95,19 @@ return new class extends Migration
             $table->decimal('superficie', 10, 2)->nullable();
             $table->integer('nb_departements')->nullable();
             $table->integer('nb_communes')->nullable();
-            
+
             // Économie
             $table->decimal('pib', 15, 2)->nullable(); // en millions €
             $table->decimal('pib_par_habitant', 12, 2)->nullable();
             $table->decimal('revenu_median', 12, 2)->nullable();
             $table->decimal('taux_chomage', 5, 2)->nullable();
             $table->decimal('taux_activite', 5, 2)->nullable();
-            
+
             // Démographie
             $table->decimal('part_moins_25', 5, 2)->nullable();
             $table->decimal('part_plus_65', 5, 2)->nullable();
             $table->decimal('solde_migratoire', 8, 2)->nullable();
-            
+
             $table->timestamps();
         });
 
@@ -121,7 +121,7 @@ return new class extends Migration
             $table->decimal('valeur', 15, 4);
             $table->string('unite', 20)->nullable();
             $table->timestamps();
-            
+
             $table->unique(['territoire_type', 'territoire_code', 'indicateur', 'annee'], 'insee_series_unique');
         });
     }

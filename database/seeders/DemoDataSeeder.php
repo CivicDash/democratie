@@ -2,45 +2,49 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Achievement;
+use App\Models\AgendaLegislatif;
+use App\Models\Amendement;
+use App\Models\Document;
+use App\Models\GroupeParlementaire;
+use App\Models\Hashtag;
+use App\Models\LegalReference;
+use App\Models\Notification;
+use App\Models\Post;
 use App\Models\Profile;
 use App\Models\PropositionLoi;
-use App\Models\Topic;
-use App\Models\Post;
-use App\Models\PostVote;
-use App\Models\VotePropositionLoi;
-use App\Models\GroupeParlementaire;
-use App\Models\ThematiqueLegislation;
-use App\Models\TerritoryRegion;
-use App\Models\TerritoryDepartment;
-use App\Models\AgendaLegislatif;
-use App\Models\LegalReference;
-use App\Models\Hashtag;
-use App\Models\VoteGroupeParlementaire;
-use App\Models\VoteLegislatif;
-use App\Models\Amendement;
-use App\Models\Sector;
-use App\Models\UserAllocation;
 use App\Models\PublicRevenue;
 use App\Models\PublicSpend;
 use App\Models\Report;
 use App\Models\Sanction;
-use App\Models\Document;
-use App\Models\Verification;
-use App\Models\Achievement;
+use App\Models\Sector;
+use App\Models\TerritoryDepartment;
+use App\Models\TerritoryRegion;
+use App\Models\ThematiqueLegislation;
+use App\Models\Topic;
+use App\Models\User;
 use App\Models\UserAchievement;
-use App\Models\Notification;
+use App\Models\UserAllocation;
+use App\Models\Verification;
+use App\Models\VoteGroupeParlementaire;
+use App\Models\VoteLegislatif;
+use App\Models\VotePropositionLoi;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
 
 class DemoDataSeeder extends Seeder
 {
     private array $citoyens = [];
+
     private array $deputes = [];
+
     private array $propositions = [];
+
     private array $topics = [];
+
     private array $groupes = [];
+
     private array $thematiques = [];
 
     /**
@@ -110,18 +114,18 @@ class DemoDataSeeder extends Seeder
     private function loadReferenceData(): void
     {
         $this->command->info('📚 Chargement des données de référence...');
-        
+
         // Charger les groupes parlementaires (ou les créer si absents)
         if (GroupeParlementaire::count() === 0) {
             $this->command->warn('⚠️  Aucun groupe parlementaire trouvé, création...');
             $this->call(GroupesParlementairesSeeder::class);
         }
-        
+
         $this->groupes = GroupeParlementaire::all()->keyBy('slug')->toArray();
         $this->thematiques = ThematiqueLegislation::all()->keyBy('slug')->toArray();
-        
-        $this->command->info('✓ ' . count($this->groupes) . ' groupes parlementaires chargés');
-        $this->command->info('✓ ' . count($this->thematiques) . ' thématiques chargées');
+
+        $this->command->info('✓ '.count($this->groupes).' groupes parlementaires chargés');
+        $this->command->info('✓ '.count($this->thematiques).' thématiques chargées');
     }
 
     private function createCitizens(): void
@@ -142,9 +146,9 @@ class DemoDataSeeder extends Seeder
 
             $region = $regions->random();
             $department = $departments->where('region_id', $region->id)->random();
-            
+
             $scope = ['national', 'region', 'dept'][array_rand(['national', 'region', 'dept'])];
-            
+
             // Définir region_id et department_id selon le scope
             $profileData = [
                 'user_id' => $user->id,
@@ -153,7 +157,7 @@ class DemoDataSeeder extends Seeder
                 'scope' => $scope,
                 'is_verified' => rand(0, 100) > 30, // 70% vérifiés
             ];
-            
+
             // Ajouter region_id/department_id selon le scope
             if ($scope === 'region') {
                 $profileData['region_id'] = $region->id;
@@ -191,7 +195,7 @@ class DemoDataSeeder extends Seeder
             ['nom' => 'Michel Petit', 'groupe' => 'renaissance', 'circonscription' => 'Nice 4e'],
             ['nom' => 'Nathalie Durand', 'groupe' => 'renaissance', 'circonscription' => 'Lille 1ère'],
             ['nom' => 'Laurent Leroy', 'groupe' => 'renaissance', 'circonscription' => 'Rennes 2e'],
-            
+
             // Rassemblement National (8 députés)
             ['nom' => 'Valérie Simon', 'groupe' => 'rassemblement-national', 'circonscription' => 'Pas-de-Calais 11e'],
             ['nom' => 'Thierry Martin', 'groupe' => 'rassemblement-national', 'circonscription' => 'Vaucluse 3e'],
@@ -201,7 +205,7 @@ class DemoDataSeeder extends Seeder
             ['nom' => 'Olivier Dupont', 'groupe' => 'rassemblement-national', 'circonscription' => 'Gard 6e'],
             ['nom' => 'Sylvie Blanc', 'groupe' => 'rassemblement-national', 'circonscription' => 'Somme 4e'],
             ['nom' => 'Nicolas Mercier', 'groupe' => 'rassemblement-national', 'circonscription' => 'Hérault 9e'],
-            
+
             // LFI-NFP (7 députés)
             ['nom' => 'Martine Garnier', 'groupe' => 'lfi-nfp', 'circonscription' => 'Seine-Saint-Denis 1ère'],
             ['nom' => 'Christophe Faure', 'groupe' => 'lfi-nfp', 'circonscription' => 'Bouches-du-Rhône 4e'],
@@ -210,41 +214,41 @@ class DemoDataSeeder extends Seeder
             ['nom' => 'Émilie Perrin', 'groupe' => 'lfi-nfp', 'circonscription' => 'Gironde 5e'],
             ['nom' => 'Thomas Leclerc', 'groupe' => 'lfi-nfp', 'circonscription' => 'Rhône 14e'],
             ['nom' => 'Caroline Morel', 'groupe' => 'lfi-nfp', 'circonscription' => 'Nord 20e'],
-            
+
             // Les Républicains (5 députés)
             ['nom' => 'Philippe Arnaud', 'groupe' => 'les-republicains', 'circonscription' => 'Hauts-de-Seine 6e'],
             ['nom' => 'Brigitte Lemoine', 'groupe' => 'les-republicains', 'circonscription' => 'Yvelines 12e'],
             ['nom' => 'Alain Bertrand', 'groupe' => 'les-republicains', 'circonscription' => 'Alpes-Maritimes 2e'],
             ['nom' => 'Véronique Dumas', 'groupe' => 'les-republicains', 'circonscription' => 'Loire 3e'],
             ['nom' => 'Gérard Fontaine', 'groupe' => 'les-republicains', 'circonscription' => 'Bas-Rhin 7e'],
-            
+
             // Socialistes (5 députés)
             ['nom' => 'Stéphanie Roux', 'groupe' => 'socialistes', 'circonscription' => 'Haute-Garonne 8e'],
             ['nom' => 'Marc Delorme', 'groupe' => 'socialistes', 'circonscription' => 'Finistère 6e'],
             ['nom' => 'Audrey Chevalier', 'groupe' => 'socialistes', 'circonscription' => 'Puy-de-Dôme 3e'],
             ['nom' => 'Julien Marchand', 'groupe' => 'socialistes', 'circonscription' => 'Meurthe-et-Moselle 4e'],
             ['nom' => 'Laetitia Giraud', 'groupe' => 'socialistes', 'circonscription' => 'Hérault 5e'],
-            
+
             // Horizons (3 députés)
             ['nom' => 'Antoine Dubois', 'groupe' => 'horizons', 'circonscription' => 'Havre 2e'],
             ['nom' => 'Claire Moreau', 'groupe' => 'horizons', 'circonscription' => 'Essonne 10e'],
             ['nom' => 'Sébastien Blanc', 'groupe' => 'horizons', 'circonscription' => 'Calvados 5e'],
-            
+
             // Écologistes (4 députés)
             ['nom' => 'Pauline Verdier', 'groupe' => 'ecologistes', 'circonscription' => 'Paris 11e'],
             ['nom' => 'Maxime Forestier', 'groupe' => 'ecologistes', 'circonscription' => 'Isère 4e'],
             ['nom' => 'Camille Dubois', 'groupe' => 'ecologistes', 'circonscription' => 'Ille-et-Vilaine 2e'],
             ['nom' => 'Lucas Bonnet', 'groupe' => 'ecologistes', 'circonscription' => 'Rhône 6e'],
-            
+
             // Démocrate (3 députés)
             ['nom' => 'Françoise Legrand', 'groupe' => 'democrate', 'circonscription' => 'Pyrénées-Atlantiques 3e'],
             ['nom' => 'Henri Dupuis', 'groupe' => 'democrate', 'circonscription' => 'Maine-et-Loire 7e'],
             ['nom' => 'Monique Fabre', 'groupe' => 'democrate', 'circonscription' => 'Vienne 4e'],
-            
+
             // LIOT (2 députés)
             ['nom' => 'Bernard Rousseau', 'groupe' => 'liot', 'circonscription' => 'Corse-du-Sud 1ère'],
             ['nom' => 'Sylvain Mercier', 'groupe' => 'liot', 'circonscription' => 'Guadeloupe 3e'],
-            
+
             // GDR (3 députés)
             ['nom' => 'Jacqueline Renard', 'groupe' => 'gdr', 'circonscription' => 'Allier 2e'],
             ['nom' => 'Robert Lemoine', 'groupe' => 'gdr', 'circonscription' => 'Puy-de-Dôme 5e'],
@@ -254,7 +258,7 @@ class DemoDataSeeder extends Seeder
         foreach ($nomsDeputes as $index => $data) {
             $user = User::create([
                 'name' => $data['nom'],
-                'email' => 'depute' . ($index + 1) . '@demo.assemblee-nationale.fr',
+                'email' => 'depute'.($index + 1).'@demo.assemblee-nationale.fr',
                 'password' => Hash::make('demo2025'),
                 'email_verified_at' => now(),
             ]);
@@ -277,14 +281,14 @@ class DemoDataSeeder extends Seeder
         }
 
         $this->command->info('✓ 50 députés créés');
-        
+
         // Afficher la répartition par groupe
         $repartition = [];
         foreach ($this->deputes as $depute) {
             $groupe = $this->groupes[$depute['groupe']]['sigle'];
             $repartition[$groupe] = ($repartition[$groupe] ?? 0) + 1;
         }
-        
+
         foreach ($repartition as $groupe => $count) {
             $this->command->info("  → $groupe: $count députés");
         }
@@ -362,7 +366,7 @@ class DemoDataSeeder extends Seeder
 
         foreach ($propositionsData as $data) {
             $depute = $this->deputes[array_rand($this->deputes)];
-            
+
             $proposition = PropositionLoi::create([
                 'source' => 'assemblee',
                 'legislature' => $legislature,
@@ -379,11 +383,11 @@ class DemoDataSeeder extends Seeder
                         'nom' => $depute['user']->name,
                         'groupe' => $depute['groupe'],
                         'qualite' => 'Auteur principal',
-                    ]
+                    ],
                 ],
                 'etapes' => $this->generateEtapes($data['statut']),
                 'votes_resultats' => $this->generateVotesResultats($data['statut']),
-                'url_externe' => 'https://www.assemblee-nationale.fr/dyn/17/textes/l17b' . $numero,
+                'url_externe' => 'https://www.assemblee-nationale.fr/dyn/17/textes/l17b'.$numero,
                 'fetched_at' => now(),
             ]);
 
@@ -405,7 +409,7 @@ class DemoDataSeeder extends Seeder
         for ($i = 0; $i < 20; $i++) {
             $depute = $this->deputes[array_rand($this->deputes)];
             $themeSlug = array_keys($this->thematiques)[array_rand(array_keys($this->thematiques))];
-            
+
             $proposition = PropositionLoi::create([
                 'source' => rand(0, 1) ? 'assemblee' : 'senat',
                 'legislature' => $legislature,
@@ -420,7 +424,7 @@ class DemoDataSeeder extends Seeder
                         'nom' => $depute['user']->name,
                         'groupe' => $depute['groupe'],
                         'qualite' => 'Auteur principal',
-                    ]
+                    ],
                 ],
                 'fetched_at' => now(),
             ]);
@@ -488,7 +492,7 @@ class DemoDataSeeder extends Seeder
 
         foreach ($topicsData as $data) {
             $author = $this->citoyens[array_rand($this->citoyens)];
-            
+
             $topic = Topic::create([
                 'title' => $data['title'],
                 'description' => $data['description'],
@@ -509,12 +513,12 @@ class DemoDataSeeder extends Seeder
         // Générer 20 topics supplémentaires
         $regions = TerritoryRegion::all();
         $departments = TerritoryDepartment::all();
-        
+
         for ($i = 0; $i < 20; $i++) {
             $author = $this->citoyens[array_rand($this->citoyens)];
             $type = ['debate', 'bill', 'referendum'][array_rand(['debate', 'bill', 'referendum'])];
             $scope = ['national', 'region', 'dept'][array_rand(['national', 'region', 'dept'])];
-            
+
             // Définir region_id et department_id selon le scope
             $topicData = [
                 'title' => $this->generateRandomTopicTitle(),
@@ -528,7 +532,7 @@ class DemoDataSeeder extends Seeder
                 'voting_deadline_at' => $type === 'referendum' ? Carbon::now()->addDays(rand(5, 30)) : null,
                 'ballot_type' => $type === 'referendum' ? 'yes_no' : null,
             ];
-            
+
             // Ajouter region_id/department_id selon le scope
             if ($scope === 'region') {
                 $topicData['region_id'] = $regions->random()->id;
@@ -542,7 +546,7 @@ class DemoDataSeeder extends Seeder
                 $topicData['region_id'] = null;
                 $topicData['department_id'] = null;
             }
-            
+
             $topic = Topic::create($topicData);
 
             $this->topics[] = $topic;
@@ -560,10 +564,10 @@ class DemoDataSeeder extends Seeder
         foreach ($this->topics as $topic) {
             // Créer 5-15 posts par topic
             $numPosts = rand(5, 15);
-            
+
             for ($i = 0; $i < $numPosts; $i++) {
                 $author = $this->citoyens[array_rand($this->citoyens)];
-                
+
                 $post = Post::create([
                     'topic_id' => $topic->id,
                     'user_id' => $author->id,
@@ -579,7 +583,7 @@ class DemoDataSeeder extends Seeder
                 $numReplies = rand(0, 5);
                 for ($j = 0; $j < $numReplies; $j++) {
                     $replyAuthor = $this->citoyens[array_rand($this->citoyens)];
-                    
+
                     Post::create([
                         'topic_id' => $topic->id,
                         'user_id' => $replyAuthor->id,
@@ -607,10 +611,10 @@ class DemoDataSeeder extends Seeder
         // Votes sur les propositions de loi
         foreach ($this->propositions as $proposition) {
             $numVotes = rand(20, 100);
-            
+
             for ($i = 0; $i < $numVotes; $i++) {
                 $citoyen = $this->citoyens[array_rand($this->citoyens)];
-                
+
                 try {
                     VotePropositionLoi::create([
                         'proposition_loi_id' => $proposition->id,
@@ -684,11 +688,11 @@ class DemoDataSeeder extends Seeder
         for ($i = 0; $i < 10; $i++) {
             $dateDebut = Carbon::now()->subDays(rand(1, 30))->setTime(15, 0);
             $dateFin = (clone $dateDebut)->setTime(19, 0);
-            
+
             AgendaLegislatif::create([
                 'source' => rand(0, 1) ? 'assemblee' : 'senat',
                 'date' => $dateDebut->toDateString(), // Extraire la date
-                'titre' => 'Séance publique du ' . $dateDebut->format('d/m/Y'),
+                'titre' => 'Séance publique du '.$dateDebut->format('d/m/Y'),
                 'description' => 'Ordre du jour : questions diverses et votes.',
                 'type' => 'seance',
                 'date_debut' => $dateDebut,
@@ -759,7 +763,7 @@ class DemoDataSeeder extends Seeder
 
         // Créer des votes pour les propositions adoptées ou rejetées
         foreach ($this->propositions as $proposition) {
-            if (!in_array($proposition->statut, ['adopte', 'rejete'])) {
+            if (! in_array($proposition->statut, ['adopte', 'rejete'])) {
                 continue;
             }
 
@@ -767,8 +771,8 @@ class DemoDataSeeder extends Seeder
             $voteLegislatif = VoteLegislatif::create([
                 'proposition_loi_id' => $proposition->id,
                 'source' => 'assemblee', // Remplir source
-                'numero_scrutin' => 'SCRUTIN-' . str_pad($votesCount + 1, 4, '0', STR_PAD_LEFT), // Générer numéro
-                'titre' => 'Vote solennel - ' . $proposition->titre,
+                'numero_scrutin' => 'SCRUTIN-'.str_pad($votesCount + 1, 4, '0', STR_PAD_LEFT), // Générer numéro
+                'titre' => 'Vote solennel - '.$proposition->titre,
                 'date_vote' => Carbon::now()->subDays(rand(1, 60)),
                 'type_vote' => 'solennel',
                 'resultat' => $proposition->statut === 'adopte' ? 'adopte' : 'rejete',
@@ -794,7 +798,7 @@ class DemoDataSeeder extends Seeder
                     $pourcentagePour = ($voteGroupe['pour'] / $total) * 100;
                     $pourcentageContre = ($voteGroupe['contre'] / $total) * 100;
                     $pourcentageAbstention = ($voteGroupe['abstention'] / $total) * 100;
-                    
+
                     if ($pourcentagePour > 50) {
                         $positionGroupe = 'pour';
                     } elseif ($pourcentageContre > 50) {
@@ -876,7 +880,7 @@ class DemoDataSeeder extends Seeder
 
         // Créer 3-8 amendements pour les propositions en discussion
         foreach ($this->propositions as $proposition) {
-            if (!in_array($proposition->statut, ['en_discussion', 'en_commission'])) {
+            if (! in_array($proposition->statut, ['en_discussion', 'en_commission'])) {
                 continue;
             }
 
@@ -926,7 +930,7 @@ class DemoDataSeeder extends Seeder
 
     private function generateAmendementDispositif(): string
     {
-        return "À l'alinéa " . rand(1, 10) . ", substituer aux mots : « ... » les mots : « ... ».";
+        return "À l'alinéa ".rand(1, 10).', substituer aux mots : « ... » les mots : « ... ».';
     }
 
     private function generateAmendementExpose(): string
@@ -977,12 +981,12 @@ class DemoDataSeeder extends Seeder
 
     private function generateTexteIntegral(string $titre): string
     {
-        return "PROPOSITION DE LOI\n\n" .
-               "Article 1er\n\n" .
-               "Les dispositions du présent article visent à...\n\n" .
-               "Article 2\n\n" .
-               "Le Gouvernement remet au Parlement, dans un délai de six mois...\n\n" .
-               "Article 3\n\n" .
+        return "PROPOSITION DE LOI\n\n".
+               "Article 1er\n\n".
+               "Les dispositions du présent article visent à...\n\n".
+               "Article 2\n\n".
+               "Le Gouvernement remet au Parlement, dans un délai de six mois...\n\n".
+               "Article 3\n\n".
                "Les modalités d'application du présent article sont fixées par décret.";
     }
 
@@ -1007,7 +1011,7 @@ class DemoDataSeeder extends Seeder
 
     private function generateVotesResultats(string $statut): ?array
     {
-        if (!in_array($statut, ['adopte', 'rejete'])) {
+        if (! in_array($statut, ['adopte', 'rejete'])) {
             return null;
         }
 
@@ -1029,6 +1033,7 @@ class DemoDataSeeder extends Seeder
     private function extractKeywords(string $text): array
     {
         $keywords = ['transparence', 'réforme', 'modernisation', 'amélioration', 'renforcement'];
+
         return array_slice($keywords, 0, rand(2, 4));
     }
 
@@ -1054,7 +1059,7 @@ class DemoDataSeeder extends Seeder
             'numerique' => 'la transformation numérique',
         ];
 
-        return $prefixes[array_rand($prefixes)] . ' ' . ($subjects[$theme] ?? 'la législation');
+        return $prefixes[array_rand($prefixes)].' '.($subjects[$theme] ?? 'la législation');
     }
 
     private function generateRandomTopicTitle(): string
@@ -1146,7 +1151,7 @@ class DemoDataSeeder extends Seeder
         $this->command->info('  → Création des recettes publiques...');
 
         $years = [2024, 2025];
-        
+
         foreach ($years as $year) {
             // Recettes nationales (budget de l'État français)
             $recettesNationales = [
@@ -1217,7 +1222,7 @@ class DemoDataSeeder extends Seeder
             }
         }
 
-        $this->command->info('    ✓ ' . PublicRevenue::count() . ' recettes publiques créées');
+        $this->command->info('    ✓ '.PublicRevenue::count().' recettes publiques créées');
     }
 
     private function createPublicSpend($sectors, $regions, $departments): void
@@ -1273,7 +1278,7 @@ class DemoDataSeeder extends Seeder
                         'scope' => 'national',
                         'sector_id' => $sector->id,
                         'amount' => $amount * (1 + ($year - 2024) * 0.025), // +2.5% par an
-                        'source' => 'Loi de finances ' . $year,
+                        'source' => 'Loi de finances '.$year,
                     ]);
                 }
             }
@@ -1337,7 +1342,7 @@ class DemoDataSeeder extends Seeder
             }
         }
 
-        $this->command->info('    ✓ ' . PublicSpend::count() . ' dépenses publiques créées');
+        $this->command->info('    ✓ '.PublicSpend::count().' dépenses publiques créées');
     }
 
     private function createUserAllocations($sectors): void
@@ -1364,7 +1369,7 @@ class DemoDataSeeder extends Seeder
             }
         }
 
-        $this->command->info('    ✓ ' . $allocationsCount . ' allocations citoyennes créées pour 30 citoyens');
+        $this->command->info('    ✓ '.$allocationsCount.' allocations citoyennes créées pour 30 citoyens');
     }
 
     private function generateRandomAllocation($sectors): array
@@ -1427,10 +1432,10 @@ class DemoDataSeeder extends Seeder
         foreach ($posts as $post) {
             if (rand(0, 100) > 30) { // 70% de chances de créer un signalement
                 $reporter = $this->citoyens[array_rand($this->citoyens)];
-                
+
                 $reasons = ['spam', 'harassment', 'misinformation', 'off_topic', 'inappropriate']; // Corriger 'hate_speech' → 'inappropriate'
                 $reason = $reasons[array_rand($reasons)];
-                
+
                 $statuses = ['pending', 'reviewing', 'resolved', 'dismissed']; // Corriger 'under_review' → 'reviewing'
                 $status = $statuses[array_rand($statuses)];
 
@@ -1510,7 +1515,7 @@ class DemoDataSeeder extends Seeder
     {
         $totalWeight = array_sum($weights);
         $random = rand(1, $totalWeight);
-        
+
         $currentWeight = 0;
         foreach ($values as $index => $value) {
             $currentWeight += $weights[$index];
@@ -1518,7 +1523,7 @@ class DemoDataSeeder extends Seeder
                 return $value;
             }
         }
-        
+
         return $values[0];
     }
 
@@ -1533,7 +1538,7 @@ class DemoDataSeeder extends Seeder
         // Créer 10-15 documents attachés aux propositions de loi
         foreach (array_slice($this->propositions, 0, 15) as $proposition) {
             $depute = $this->deputes[array_rand($this->deputes)];
-            
+
             $documentTypes = [
                 ['title' => 'Étude d\'impact', 'filename' => 'etude_impact.pdf'],
                 ['title' => 'Rapport de commission', 'filename' => 'rapport_commission.pdf'],
@@ -1543,15 +1548,15 @@ class DemoDataSeeder extends Seeder
             ];
 
             $docType = $documentTypes[array_rand($documentTypes)];
-            
+
             $statuses = ['pending', 'verified', 'rejected'];
             $status = $statuses[array_rand($statuses)];
 
             $document = Document::create([
-                'title' => $docType['title'] . ' - ' . mb_substr($proposition->titre, 0, 50, 'UTF-8'),
+                'title' => $docType['title'].' - '.mb_substr($proposition->titre, 0, 50, 'UTF-8'),
                 'description' => 'Document officiel relatif à la proposition de loi.',
                 'filename' => $docType['filename'],
-                'path' => 'documents/propositions/' . $proposition->id . '/' . $docType['filename'],
+                'path' => 'documents/propositions/'.$proposition->id.'/'.$docType['filename'],
                 'mime_type' => 'application/pdf',
                 'size' => rand(100000, 5000000), // 100KB - 5MB
                 'hash' => hash('sha256', uniqid()),
@@ -1587,12 +1592,12 @@ class DemoDataSeeder extends Seeder
         // Créer quelques documents sur des topics
         foreach (array_slice($this->topics, 0, 5) as $topic) {
             $author = User::find($topic->author_id);
-            
+
             $document = Document::create([
-                'title' => 'Pièce jointe - ' . mb_substr($topic->title, 0, 50, 'UTF-8'),
+                'title' => 'Pièce jointe - '.mb_substr($topic->title, 0, 50, 'UTF-8'),
                 'description' => 'Document complémentaire au débat.',
-                'filename' => 'document_' . uniqid() . '.pdf',
-                'path' => 'documents/topics/' . $topic->id . '/document.pdf',
+                'filename' => 'document_'.uniqid().'.pdf',
+                'path' => 'documents/topics/'.$topic->id.'/document.pdf',
                 'mime_type' => 'application/pdf',
                 'size' => rand(50000, 2000000),
                 'hash' => hash('sha256', uniqid()),
@@ -1627,7 +1632,7 @@ class DemoDataSeeder extends Seeder
 
         // Les achievements devraient déjà exister via AchievementSeeder
         $achievements = Achievement::all();
-        
+
         if ($achievements->isEmpty()) {
             $this->command->warn('⚠️  Aucun achievement trouvé, création...');
             $this->call(\Database\Seeders\AchievementSeeder::class);
@@ -1801,7 +1806,7 @@ class DemoDataSeeder extends Seeder
         $this->command->info('🏛️ Députés : depute1@demo.assemblee-nationale.fr à depute50@demo.assemblee-nationale.fr');
         $this->command->info('   Mot de passe : demo2025');
         $this->command->newLine();
-        
+
         // Afficher la répartition des groupes
         $this->command->info('📊 Répartition des groupes parlementaires :');
         $repartition = [];
@@ -1815,4 +1820,3 @@ class DemoDataSeeder extends Seeder
         }
     }
 }
-

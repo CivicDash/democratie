@@ -6,7 +6,6 @@ use App\Models\FranceDemographics;
 use App\Models\ImportLog;
 use App\Services\InseeApiService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Importe les données démographiques depuis l'API INSEE (BDM)

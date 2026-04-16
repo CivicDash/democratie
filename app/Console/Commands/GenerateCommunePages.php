@@ -135,7 +135,7 @@ class GenerateCommunePages extends Command
 
         if ($villes->isEmpty()) {
             $this->warn('Aucune des communes de l\'echantillon n\'est en base.');
-            $this->line('Codes recherches : ' . implode(', ', self::DEV_SAMPLE));
+            $this->line('Codes recherches : '.implode(', ', self::DEV_SAMPLE));
             $this->newLine();
 
             // Fallback : prendre les 12 plus grandes villes disponibles
@@ -150,6 +150,7 @@ class GenerateCommunePages extends Command
 
             if ($villes->isEmpty()) {
                 $this->error('Aucune ville en base.');
+
                 return self::FAILURE;
             }
         }

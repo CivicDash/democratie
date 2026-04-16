@@ -7,7 +7,6 @@ use App\Models\CommuneAdmin;
 use App\Models\CommunePage;
 use App\Notifications\CommuneNotification;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;

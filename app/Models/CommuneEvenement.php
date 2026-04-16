@@ -13,7 +13,7 @@ use Laravel\Scout\Searchable;
 
 class CommuneEvenement extends Model
 {
-    use HasUuids, SoftDeletes, Searchable;
+    use HasUuids, Searchable, SoftDeletes;
 
     protected $fillable = [
         'commune_page_id',

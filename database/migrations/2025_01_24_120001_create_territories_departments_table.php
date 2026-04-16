@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('name')->comment('Nom du département (ex: Paris)');
             $table->foreignId('region_id')->constrained('territories_regions')->onDelete('cascade');
             $table->timestamps();
-            
+
             $table->index('code');
             $table->index('region_id');
         });
@@ -31,4 +31,3 @@ return new class extends Migration
         Schema::dropIfExists('territories_departments');
     }
 };
-

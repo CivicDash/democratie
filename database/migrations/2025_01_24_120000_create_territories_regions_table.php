@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('code', 2)->unique()->comment('Code INSEE région (ex: 11, 93)');
             $table->string('name')->comment('Nom de la région (ex: Île-de-France)');
             $table->timestamps();
-            
+
             $table->index('code');
         });
     }
@@ -29,4 +29,3 @@ return new class extends Migration
         Schema::dropIfExists('territories_regions');
     }
 };
-

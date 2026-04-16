@@ -7,12 +7,12 @@ return new class extends Migration
 {
     /**
      * CORRECTION FINALE : Vue amendements_senat avec jointure via sen_ameli
-     * 
+     *
      * Problème identifié :
      * - senat_ameli_amdsen.senid = ID numérique (ex: 7577)
      * - senat_senateurs_sen.senmat = Matricule (ex: "20110Q")
      * - La table sen_ameli fait le lien : entid (ID numérique) → mat (matricule)
-     * 
+     *
      * Solution :
      * - Joindre via sen_ameli : amdsen.senid → sen_ameli.entid → sen_ameli.mat
      * - Fallback sur nom/prénom si sen_ameli n'existe pas
@@ -26,11 +26,11 @@ return new class extends Migration
             WHERE table_schema = 'public' 
             AND table_name IN ('senat_ameli_amd', 'senat_ameli_amdsen')
         ");
-        
+
         if ($tablesExist[0]->count < 2) {
             return; // Tables non importées, skip
         }
-        
+
         // Vérifier si sen_ameli existe
         $senAmeliExists = DB::select("
             SELECT COUNT(*) as count 
@@ -38,10 +38,10 @@ return new class extends Migration
             WHERE table_schema = 'public' 
             AND table_name = 'sen_ameli'
         ");
-        
+
         if ($senAmeliExists[0]->count > 0) {
             // Utiliser sen_ameli pour la jointure (méthode préférée)
-            DB::statement("
+            DB::statement('
                 CREATE OR REPLACE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
@@ -65,10 +65,10 @@ return new class extends Migration
                 LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
                 WHERE amdsen.senid IS NOT NULL
                 ORDER BY amd.datdep DESC NULLS LAST
-            ");
+            ');
         } else {
             // Fallback : jointure par nom/prénom
-            DB::statement("
+            DB::statement('
                 CREATE OR REPLACE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
@@ -94,14 +94,14 @@ return new class extends Migration
                 LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
                 WHERE amdsen.senid IS NOT NULL
                 ORDER BY amd.datdep DESC NULLS LAST
-            ");
+            ');
         }
     }
 
     public function down(): void
     {
         // Revenir à l'ancienne version (avec ID numérique)
-        DB::statement("
+        DB::statement('
             CREATE OR REPLACE VIEW amendements_senat AS
             SELECT 
                 amd.id AS id,
@@ -124,7 +124,6 @@ return new class extends Migration
             LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
             WHERE amdsen.senid IS NOT NULL
             ORDER BY amd.datdep DESC NULLS LAST
-        ");
+        ');
     }
 };
-

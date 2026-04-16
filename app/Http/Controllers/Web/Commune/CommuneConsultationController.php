@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Web\Commune;
 
 use App\Http\Controllers\Controller;
-use App\Models\CommuneConsultation;
 use App\Models\CommunePage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -222,6 +221,7 @@ class CommuneConsultationController extends Controller
         if (! $page->estAdministrePar(auth()->user()) && ! auth()->user()->hasRole('admin')) {
             abort(403);
         }
+
         return $page;
     }
 }

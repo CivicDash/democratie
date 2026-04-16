@@ -19,24 +19,24 @@ return new class extends Migration
             $table->string('titre')->comment('Titre de la proposition');
             $table->text('resume')->nullable()->comment('Résumé/exposé des motifs');
             $table->text('texte_integral')->nullable()->comment('Texte complet');
-            
+
             $table->string('statut', 50)->default('en_cours')->comment('Statut: en_cours, adoptee, rejetee, promulguee');
             $table->string('theme', 100)->nullable()->comment('Thème/catégorie');
-            
+
             $table->date('date_depot')->nullable()->comment('Date de dépôt');
             $table->date('date_adoption')->nullable()->comment('Date d\'adoption');
             $table->date('date_promulgation')->nullable()->comment('Date de promulgation');
-            
+
             $table->json('auteurs')->nullable()->comment('Liste des auteurs (députés/sénateurs)');
             $table->json('etapes')->nullable()->comment('Étapes du processus législatif');
             $table->json('votes_resultats')->nullable()->comment('Résultats des votes');
-            
+
             $table->string('url_externe')->nullable()->comment('URL sur le site officiel');
             $table->string('url_pdf')->nullable()->comment('URL du PDF');
-            
+
             $table->timestamp('fetched_at')->nullable()->comment('Date de récupération des données');
             $table->timestamps();
-            
+
             // Index
             $table->unique(['source', 'legislature', 'numero'], 'unique_proposition');
             $table->index(['source', 'statut'], 'idx_source_statut');
@@ -54,4 +54,3 @@ return new class extends Migration
         Schema::dropIfExists('propositions_loi');
     }
 };
-

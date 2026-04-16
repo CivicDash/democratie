@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->integer('usage_count')->default(0);
             $table->timestamps();
-            
+
             $table->index('slug');
         });
 
@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('dossier_legislatif_uid', 30);
             $table->foreignId('tag_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            
+
             $table->unique(['dossier_legislatif_uid', 'tag_id']);
             $table->foreign('dossier_legislatif_uid')
                 ->references('uid')
@@ -42,7 +42,7 @@ return new class extends Migration
             $table->string('scrutin_uid', 30);
             $table->foreignId('tag_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            
+
             $table->unique(['scrutin_uid', 'tag_id']);
             $table->foreign('scrutin_uid')
                 ->references('uid')
@@ -56,7 +56,7 @@ return new class extends Migration
             $table->foreignId('topic_id')->constrained()->onDelete('cascade');
             $table->foreignId('tag_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            
+
             $table->unique(['topic_id', 'tag_id']);
         });
     }
@@ -69,4 +69,3 @@ return new class extends Migration
         Schema::dropIfExists('tags');
     }
 };
-

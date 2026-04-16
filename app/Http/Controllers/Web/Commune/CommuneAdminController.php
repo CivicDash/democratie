@@ -248,7 +248,7 @@ class CommuneAdminController extends Controller
             envoyeurId: $request->user()->id,
         );
 
-        return back()->with('success', 'Notification en cours d\'envoi a ' . $page->abonnes_count . ' abonnes.');
+        return back()->with('success', 'Notification en cours d\'envoi a '.$page->abonnes_count.' abonnes.');
     }
 
     public function analytics(string $codeInsee): Response

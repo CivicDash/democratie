@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable()->comment('NULL = permanent');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+
             $table->index('user_id');
             $table->index(['user_id', 'is_active', 'expires_at']);
             $table->index('type');
@@ -38,4 +38,3 @@ return new class extends Migration
         Schema::dropIfExists('sanctions');
     }
 };
-

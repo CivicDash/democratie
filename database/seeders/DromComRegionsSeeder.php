@@ -34,4 +34,3 @@ class DromComRegionsSeeder extends Seeder
         $this->command->info('✅ 5 régions DROM-COM ajoutées');
     }
 }
-

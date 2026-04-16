@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('program', 255)->nullable()->comment('Programme spécifique');
             $table->string('source', 255)->nullable()->comment('Source des données');
             $table->timestamps();
-            
+
             $table->index(['year', 'scope']);
             $table->index(['region_id', 'department_id']);
             $table->index('sector_id');
@@ -37,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('public_spend');
     }
 };
-

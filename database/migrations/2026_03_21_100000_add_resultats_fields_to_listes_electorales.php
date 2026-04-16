@@ -22,7 +22,7 @@ return new class extends Migration
 
             $table->unsignedBigInteger('liste_t1_id')->nullable()->after('libelle_etendu');
             $table->foreign('liste_t1_id')
-                  ->references('id')->on('listes_electorales')->nullOnDelete();
+                ->references('id')->on('listes_electorales')->nullOnDelete();
 
             $table->unsignedBigInteger('liste_civicdash_id')->nullable()->after('liste_t1_id');
 
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->index('source');
         });
 
-        DB::statement("ALTER TABLE listes_electorales DROP CONSTRAINT IF EXISTS listes_electorales_statut_check");
+        DB::statement('ALTER TABLE listes_electorales DROP CONSTRAINT IF EXISTS listes_electorales_statut_check');
         DB::statement("ALTER TABLE listes_electorales ADD CONSTRAINT listes_electorales_statut_check CHECK (statut::text = ANY(ARRAY['brouillon','en_attente','documents_requis','en_verification','valide','rejete','suspendu','officiel']::text[]))");
     }
 
@@ -46,7 +46,7 @@ return new class extends Migration
             ]);
         });
 
-        DB::statement("ALTER TABLE listes_electorales DROP CONSTRAINT IF EXISTS listes_electorales_statut_check");
+        DB::statement('ALTER TABLE listes_electorales DROP CONSTRAINT IF EXISTS listes_electorales_statut_check');
         DB::statement("ALTER TABLE listes_electorales ADD CONSTRAINT listes_electorales_statut_check CHECK (statut::text = ANY(ARRAY['brouillon','en_attente','documents_requis','en_verification','valide','rejete','suspendu']::text[]))");
     }
 };

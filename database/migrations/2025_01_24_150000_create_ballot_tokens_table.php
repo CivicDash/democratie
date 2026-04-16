@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamp('consumed_at')->nullable();
             $table->timestamp('expires_at')->comment('Expiration = voting_deadline_at du topic');
             $table->timestamps();
-            
+
             // Un user = un jeton par topic
             $table->unique(['topic_id', 'user_id']);
             $table->index('token');
@@ -36,4 +36,3 @@ return new class extends Migration
         Schema::dropIfExists('ballot_tokens');
     }
 };
-

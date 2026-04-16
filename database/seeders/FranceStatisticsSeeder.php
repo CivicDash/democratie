@@ -2,15 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\FranceDemographics;
-use App\Models\FranceEconomy;
-use App\Models\FranceMigration;
 use App\Models\FranceBudgetRevenue;
 use App\Models\FranceBudgetSpending;
+use App\Models\FranceDemographics;
+use App\Models\FranceEconomy;
 use App\Models\FranceLostRevenue;
+use App\Models\FranceMigration;
 use App\Models\FranceRegionalData;
-use App\Models\FranceDepartmentalData;
+use Illuminate\Database\Seeder;
 
 class FranceStatisticsSeeder extends Seeder
 {
@@ -388,7 +387,7 @@ class FranceStatisticsSeeder extends Seeder
     }
 
     /**
-     * Recettes perdues - Sources: Syndicat Solidaires Finances Publiques, 
+     * Recettes perdues - Sources: Syndicat Solidaires Finances Publiques,
      * Cour des Comptes, Tax Justice Network, Gabriel Zucman
      */
     private function seedLostRevenue(): void

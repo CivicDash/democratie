@@ -30,14 +30,14 @@ class SyncCommuneStats extends Command
             return self::SUCCESS;
         }
 
-        $updated = DB::statement("
+        $updated = DB::statement('
             UPDATE commune_pages SET
                 abonnes_count = COALESCE((
                     SELECT COUNT(*) FROM commune_abonnements
                     WHERE commune_abonnements.commune_code_insee = commune_pages.code_insee
                 ), 0),
                 updated_at = NOW()
-        ");
+        ');
 
         $stats = DB::selectOne("
             SELECT

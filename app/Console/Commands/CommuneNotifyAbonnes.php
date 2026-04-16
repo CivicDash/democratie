@@ -39,7 +39,7 @@ class CommuneNotifyAbonnes extends Command
         }
 
         $this->newLine();
-        $this->info("Total notifications " . ($dryRun ? '(simulation)' : 'envoyees') . ": {$totalNotifs}");
+        $this->info('Total notifications '.($dryRun ? '(simulation)' : 'envoyees').": {$totalNotifs}");
 
         return self::SUCCESS;
     }

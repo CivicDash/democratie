@@ -23,7 +23,7 @@ return new class extends Migration
             // Index polymorphique
             $table->index(['followable_type', 'followable_id']);
             $table->index(['user_id', 'followable_type']);
-            
+
             // Empêcher les doublons
             $table->unique(['user_id', 'followable_type', 'followable_id']);
         });

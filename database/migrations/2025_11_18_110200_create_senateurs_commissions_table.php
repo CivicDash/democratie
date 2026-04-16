@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('date_fin')->nullable();
             $table->string('fonction', 50)->nullable()->comment('Président, Vice-président, Membre');
             $table->timestamps();
-            
+
             $table->foreign('matricule')->references('matricule')->on('senateurs')->onDelete('cascade');
             $table->index(['matricule', 'commission']);
         });
@@ -27,4 +27,3 @@ return new class extends Migration
         Schema::dropIfExists('senateurs_commissions');
     }
 };
-

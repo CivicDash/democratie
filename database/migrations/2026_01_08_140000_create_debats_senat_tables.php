@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Tables pour les débats en séance publique du Sénat
- * 
+ *
  * Source: https://data.senat.fr/data/debats/debats.zip
- * 
+ *
  * Structure:
  * - senat_debats: Séances de débat
  * - senat_sections_discussion: Sections de discussion (articles, amendements, etc.)
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->char('etat_video', 1)->nullable(); // C=CRI, A=Archive
             $table->bigInteger('cpterr')->default(0);
             $table->timestamps();
-            
+
             $table->index('numero');
         });
 
@@ -43,7 +43,7 @@ return new class extends Migration
         Schema::create('senat_lectures_debats', function (Blueprint $table) {
             $table->string('lecture_id', 15);
             $table->timestamp('date_seance');
-            
+
             $table->primary(['lecture_id', 'date_seance']);
             $table->index('date_seance');
         });
@@ -60,7 +60,7 @@ return new class extends Migration
             $table->bigInteger('ordre')->nullable();
             $table->bigInteger('parent_id')->nullable();
             $table->timestamps();
-            
+
             $table->index('lecture_id');
             $table->index('date_seance');
             $table->index('type_section');
@@ -77,7 +77,7 @@ return new class extends Migration
             $table->bigInteger('ordre')->nullable();
             $table->bigInteger('parent_id')->nullable();
             $table->timestamps();
-            
+
             $table->index('date_seance');
             $table->index('type_section');
         });
@@ -92,7 +92,7 @@ return new class extends Migration
             $table->string('url', 255)->nullable();
             $table->bigInteger('ordre')->nullable();
             $table->timestamps();
-            
+
             $table->index('auteur_code');
             $table->index('section_id');
         });
@@ -107,7 +107,7 @@ return new class extends Migration
             $table->string('url', 255)->nullable();
             $table->bigInteger('ordre')->nullable();
             $table->timestamps();
-            
+
             $table->index('auteur_code');
             $table->index('section_id');
         });

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('titre', 500)->nullable();
             $table->date('date_creation')->nullable();
             $table->timestamps();
-            
+
             // Index composites
             $table->index(['legislature', 'numero']);
         });
@@ -35,4 +35,3 @@ return new class extends Migration
         Schema::dropIfExists('dossiers_legislatifs_an');
     }
 };
-
