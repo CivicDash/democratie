@@ -55,6 +55,9 @@ class ImportLog extends Model
         'elysee' => ['label' => 'Élysée', 'color' => '#FFD700', 'icon' => '🟡'],
         'hatvp' => ['label' => 'HATVP', 'color' => '#4CAF50', 'icon' => '🟢'],
         'wikipedia' => ['label' => 'Wikipedia', 'color' => '#9E9E9E', 'icon' => '⚪'],
+        'insee' => ['label' => 'INSEE', 'color' => '#E63946', 'icon' => '📊'],
+        'france_travail' => ['label' => 'France Travail', 'color' => '#003399', 'icon' => '💼'],
+        'system' => ['label' => 'Système', 'color' => '#6B7280', 'icon' => '⚙️'],
     ];
 
     // Relations
@@ -218,6 +221,7 @@ class ImportLog extends Model
             'candidatures:',
             'senat:',
             'an:',
+            'data:',
         ];
 
         foreach ($allowedPrefixes as $prefix) {
@@ -232,6 +236,8 @@ class ImportLog extends Model
     public static function detectSource(string $command): string
     {
         return match (true) {
+            str_contains($command, 'insee') => 'insee',
+            str_contains($command, 'france-travail') => 'france_travail',
             str_contains($command, 'senat') => 'senat',
             str_contains($command, 'an') => 'an',
             str_contains($command, 'elysee') => 'elysee',

@@ -29,7 +29,8 @@ class FranceStatisticsController extends Controller
      */
     public function index(Request $request): Response
     {
-        $selectedYear = $request->input('year', 2024);
+        $latestYear = FranceDemographics::max('year') ?? date('Y');
+        $selectedYear = $request->input('year', $latestYear);
 
         // Récupérer toutes les données pour l'année sélectionnée
         $demographics = FranceDemographics::forYear($selectedYear)->first();
@@ -86,6 +87,11 @@ class FranceStatisticsController extends Controller
         $employmentDetailedHistory = FranceEmploymentDetailed::latestYears(5)->orderBy('year')->get();
         $qualityOfLifeHistory = FranceQualityOfLife::latestYears(5)->orderBy('year')->get();
 
+        // Données de l'année précédente pour calcul des tendances
+        $previousYear = $selectedYear - 1;
+        $previousDemographics = FranceDemographics::forYear($previousYear)->first();
+        $previousEconomy = FranceEconomy::forYear($previousYear)->annual()->first();
+
         return Inertia::render('Statistics/France/Index', [
             'selectedYear' => $selectedYear,
             'availableYears' => $availableYears,
@@ -109,6 +115,10 @@ class FranceStatisticsController extends Controller
             'security' => $security,
             'employmentDetailed' => $employmentDetailed,
 
+            // Données N-1 pour tendances
+            'previousDemographics' => $previousDemographics,
+            'previousEconomy' => $previousEconomy,
+
             // Historiques pour graphiques
             'demographicsHistory' => $demographicsHistory,
             'economyHistory' => $economyHistory,
@@ -130,7 +140,7 @@ class FranceStatisticsController extends Controller
      */
     public function getRegionData(Request $request, string $regionCode): array
     {
-        $year = $request->input('year', 2024);
+        $year = $request->input('year', FranceDemographics::max('year') ?? date('Y'));
 
         $data = FranceRegionalData::forYear($year)
             ->forRegion($regionCode)
@@ -148,7 +158,7 @@ class FranceStatisticsController extends Controller
      */
     public function getDepartmentData(Request $request, string $departmentCode): array
     {
-        $year = $request->input('year', 2024);
+        $year = $request->input('year', FranceDemographics::max('year') ?? date('Y'));
 
         $data = FranceDepartmentalData::forYear($year)
             ->forDepartment($departmentCode)

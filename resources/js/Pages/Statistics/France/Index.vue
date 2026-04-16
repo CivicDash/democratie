@@ -4,6 +4,8 @@ import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Badge from '@/Components/Badge.vue';
+import KpiCard from '@/Components/Statistics/KpiCard.vue';
+import KpiGrid from '@/Components/Statistics/KpiGrid.vue';
 import FranceMap from '@/Components/Statistics/FranceMap.vue';
 import FranceMapInteractive from '@/Components/Statistics/FranceMapInteractive.vue';
 import RegionDetailModal from '@/Components/Statistics/RegionDetailModal.vue';
@@ -67,6 +69,8 @@ const props = defineProps({
     securityHistory: Array,
     employmentDetailedHistory: Array,
     qualityOfLifeHistory: Array,
+    previousDemographics: Object,
+    previousEconomy: Object,
 });
 
 const selectedYear = ref(props.selectedYear);
@@ -383,29 +387,45 @@ const migrationFlowChartData = computed(() => {
     };
 });
 
-// Options des graphiques
-const chartOptions = {
+// Dark mode detection
+const isDark = computed(() => {
+    if (typeof window !== 'undefined') {
+        return document.documentElement.classList.contains('dark');
+    }
+    return false;
+});
+
+const textColor = computed(() => isDark.value ? '#E5E7EB' : '#374151');
+const gridColor = computed(() => isDark.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
+
+const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
         legend: {
             position: 'top',
+            labels: { color: textColor.value, font: { size: 12 } },
         },
     },
-};
-
-const chartOptionsWithPercentage = {
-    ...chartOptions,
     scales: {
+        x: { ticks: { color: textColor.value }, grid: { color: gridColor.value } },
+        y: { ticks: { color: textColor.value }, grid: { color: gridColor.value } },
+    },
+}));
+
+const chartOptionsWithPercentage = computed(() => ({
+    ...chartOptions.value,
+    scales: {
+        ...chartOptions.value.scales,
         y: {
+            ...chartOptions.value.scales.y,
             ticks: {
-                callback: function(value) {
-                    return value + '%';
-                }
-            }
-        }
-    }
-};
+                ...chartOptions.value.scales.y.ticks,
+                callback: (value) => value + '%',
+            },
+        },
+    },
+}));
 
 // ========================================
 // NOUVEAUX GRAPHIQUES - QUALITÉ DE VIE
@@ -892,59 +912,77 @@ const recyclingChartData = computed(() => {
             </div>
 
             <!-- Contenu principal - Full width avec padding responsive -->
-            <div class="px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+            <div class="px-4 py-6 sm:px-6 lg:px-8 space-y-6 animate-fade-in-up">
                 <!-- VUE D'ENSEMBLE -->
                 <div v-if="activeTab === 'overview'" class="space-y-6">
-                    <!-- KPIs principaux -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">👥</div>
-                                <div class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                    {{ (demographics?.population_total / 1000000).toFixed(2) }}M
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Population totale
-                                </div>
-                            </div>
-                        </Card>
+                    <!-- Hero KPIs avec tendances -->
+                    <KpiGrid :cols="4">
+                        <KpiCard
+                            label="Population"
+                            :value="demographics?.population_total"
+                            :previous-value="previousDemographics?.population_total"
+                            format="compact"
+                            icon="👥"
+                        />
+                        <KpiCard
+                            label="Croissance PIB"
+                            :value="economyAnnual?.gdp_growth_rate"
+                            :previous-value="previousEconomy?.gdp_growth_rate"
+                            format="percent"
+                            icon="📈"
+                        />
+                        <KpiCard
+                            label="Taux de chômage"
+                            :value="economyAnnual?.unemployment_rate"
+                            :previous-value="previousEconomy?.unemployment_rate"
+                            format="percent"
+                            :invert-trend="true"
+                            icon="💼"
+                        />
+                        <KpiCard
+                            label="Dette publique"
+                            :value="economyAnnual?.public_debt_gdp_percentage"
+                            :previous-value="previousEconomy?.public_debt_gdp_percentage"
+                            format="percent"
+                            :invert-trend="true"
+                            icon="📊"
+                        />
+                    </KpiGrid>
 
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">📈</div>
-                                <div class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                    {{ economyAnnual?.gdp_growth_rate }}%
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Croissance PIB
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">💼</div>
-                                <div class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                    {{ economyAnnual?.unemployment_rate }}%
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Taux de chômage
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">🚨</div>
-                                <div class="text-3xl font-bold text-red-600 dark:text-red-400">
-                                    {{ lostRevenue?.total_lost_billions_euros }}Md€
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Recettes perdues
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
+                    <!-- KPIs secondaires -->
+                    <KpiGrid :cols="4">
+                        <KpiCard
+                            label="PIB"
+                            :value="economyAnnual?.gdp_billions_euros"
+                            :previous-value="previousEconomy?.gdp_billions_euros"
+                            unit="Md€"
+                            icon="💰"
+                            compact
+                        />
+                        <KpiCard
+                            label="Inflation"
+                            :value="economyAnnual?.inflation_rate"
+                            :previous-value="previousEconomy?.inflation_rate"
+                            format="percent"
+                            :invert-trend="true"
+                            icon="🔥"
+                            compact
+                        />
+                        <KpiCard
+                            label="Espérance de vie H/F"
+                            :value="demographics ? `${demographics.life_expectancy_male} / ${demographics.life_expectancy_female}` : '—'"
+                            icon="❤️"
+                            compact
+                        />
+                        <KpiCard
+                            label="Taux de natalité"
+                            :value="demographics?.birth_rate"
+                            :previous-value="previousDemographics?.birth_rate"
+                            format="percent"
+                            icon="👶"
+                            compact
+                        />
+                    </KpiGrid>
 
                     <!-- Graphiques overview -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -952,7 +990,7 @@ const recyclingChartData = computed(() => {
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 👥 Évolution de la population
                             </h3>
-                            <div style="height: 300px;">
+                            <div class="h-48 sm:h-64 lg:h-72">
                                 <Line :data="populationChartData" :options="chartOptions" />
                             </div>
                         </Card>
@@ -961,7 +999,7 @@ const recyclingChartData = computed(() => {
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 📈 Croissance du PIB
                             </h3>
-                            <div style="height: 300px;">
+                            <div class="h-48 sm:h-64 lg:h-72">
                                 <Line :data="gdpGrowthChartData" :options="chartOptionsWithPercentage" />
                             </div>
                         </Card>
@@ -971,43 +1009,30 @@ const recyclingChartData = computed(() => {
                 <!-- ÉCONOMIE -->
                 <div v-if="activeTab === 'economy'" class="space-y-6">
                     <!-- KPIs économiques -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">💰</div>
-                                <div class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                    {{ economyAnnual?.gdp_billions_euros }}Md€
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    PIB annuel
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">🔥</div>
-                                <div class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                    {{ economyAnnual?.inflation_rate }}%
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Inflation
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">⚖️</div>
-                                <div class="text-3xl font-bold" :class="economyAnnual?.trade_balance_billions_euros < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">
-                                    {{ economyAnnual?.trade_balance_billions_euros }}Md€
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Balance commerciale
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
+                    <KpiGrid :cols="3">
+                        <KpiCard
+                            label="PIB annuel"
+                            :value="economyAnnual?.gdp_billions_euros"
+                            :previous-value="previousEconomy?.gdp_billions_euros"
+                            unit="Md€"
+                            icon="💰"
+                        />
+                        <KpiCard
+                            label="Inflation"
+                            :value="economyAnnual?.inflation_rate"
+                            :previous-value="previousEconomy?.inflation_rate"
+                            format="percent"
+                            :invert-trend="true"
+                            icon="🔥"
+                        />
+                        <KpiCard
+                            label="Balance commerciale"
+                            :value="economyAnnual?.trade_balance_billions_euros"
+                            :previous-value="previousEconomy?.trade_balance_billions_euros"
+                            unit="Md€"
+                            icon="⚖️"
+                        />
+                    </KpiGrid>
 
                     <!-- Graphiques économie -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -1015,7 +1040,7 @@ const recyclingChartData = computed(() => {
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 📊 PIB par trimestre {{ selectedYear }}
                             </h3>
-                            <div style="height: 300px;">
+                            <div class="h-48 sm:h-64 lg:h-72">
                                 <Bar :data="quarterlyGdpChartData" :options="chartOptions" />
                             </div>
                         </Card>
@@ -1024,7 +1049,7 @@ const recyclingChartData = computed(() => {
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 📉 Chômage & Inflation
                             </h3>
-                            <div style="height: 300px;">
+                            <div class="h-48 sm:h-64 lg:h-72">
                                 <Line :data="unemploymentInflationChartData" :options="chartOptionsWithPercentage" />
                             </div>
                         </Card>
@@ -1034,43 +1059,27 @@ const recyclingChartData = computed(() => {
                 <!-- BUDGET -->
                 <div v-if="activeTab === 'budget'" class="space-y-6">
                     <!-- KPIs budget -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">💶</div>
-                                <div class="text-3xl font-bold text-green-600 dark:text-green-400">
-                                    {{ revenue?.total_billions_euros }}Md€
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Recettes totales
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">💸</div>
-                                <div class="text-3xl font-bold text-red-600 dark:text-red-400">
-                                    {{ spending?.total_billions_euros }}Md€
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Dépenses totales
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card>
-                            <div class="text-center">
-                                <div class="text-4xl mb-2">⚠️</div>
-                                <div class="text-3xl font-bold text-red-600 dark:text-red-400">
-                                    {{ (spending?.total_billions_euros - revenue?.total_billions_euros).toFixed(1) }}Md€
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Déficit
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
+                    <KpiGrid :cols="3">
+                        <KpiCard
+                            label="Recettes totales"
+                            :value="revenue?.total_billions_euros"
+                            unit="Md€"
+                            icon="💶"
+                        />
+                        <KpiCard
+                            label="Dépenses totales"
+                            :value="spending?.total_billions_euros"
+                            unit="Md€"
+                            icon="💸"
+                        />
+                        <KpiCard
+                            label="Déficit"
+                            :value="spending && revenue ? (spending.total_billions_euros - revenue.total_billions_euros).toFixed(1) : '—'"
+                            unit="Md€"
+                            :invert-trend="true"
+                            icon="⚠️"
+                        />
+                    </KpiGrid>
 
                     <!-- Graphiques budget -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -1078,7 +1087,7 @@ const recyclingChartData = computed(() => {
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 💰 Répartition des recettes {{ selectedYear }}
                             </h3>
-                            <div style="height: 400px;">
+                            <div class="h-64 sm:h-80 lg:h-96">
                                 <Doughnut :data="revenueBreakdownChartData" :options="chartOptions" />
                             </div>
                         </Card>
@@ -1087,7 +1096,7 @@ const recyclingChartData = computed(() => {
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 💸 Répartition des dépenses {{ selectedYear }}
                             </h3>
-                            <div style="height: 400px;">
+                            <div class="h-64 sm:h-80 lg:h-96">
                                 <Doughnut :data="spendingBreakdownChartData" :options="chartOptions" />
                             </div>
                         </Card>
@@ -1097,7 +1106,7 @@ const recyclingChartData = computed(() => {
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                             ⚖️ Évolution Recettes vs Dépenses
                         </h3>
-                        <div style="height: 300px;">
+                        <div class="h-48 sm:h-64 lg:h-72">
                             <Bar :data="budgetBalanceChartData" :options="chartOptions" />
                         </div>
                     </Card>
@@ -1120,10 +1129,10 @@ const recyclingChartData = computed(() => {
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                            <div v-if="lostRevenueChartData" style="height: 350px;">
+                            <div v-if="lostRevenueChartData" class="h-48 sm:h-64 lg:h-80">
                                 <Bar :data="lostRevenueChartData" :options="chartOptions" />
                             </div>
-                            <div v-if="lostRevenueHistoryChartData" style="height: 350px;">
+                            <div v-if="lostRevenueHistoryChartData" class="h-48 sm:h-64 lg:h-80">
                                 <Line :data="lostRevenueHistoryChartData" :options="chartOptions" />
                             </div>
                         </div>
@@ -1188,7 +1197,7 @@ const recyclingChartData = computed(() => {
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                             🌍 Flux migratoires {{ selectedYear }}
                         </h3>
-                        <div style="height: 300px;">
+                        <div class="h-48 sm:h-64 lg:h-72">
                             <Bar :data="migrationFlowChartData" :options="chartOptions" />
                         </div>
                     </Card>
@@ -1359,7 +1368,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     📈 Évolution de l'IDH
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="idhChartData" :data="idhChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1368,7 +1377,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     😊 Évolution du BNB
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="bnbChartData" :data="bnbChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1409,7 +1418,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     🎓 Niveau d'éducation de la population
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Bar v-if="educationLevelChartData" :data="educationLevelChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1418,7 +1427,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     📉 Évolution du décrochage scolaire
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="dropoutChartData" :data="dropoutChartData" :options="chartOptionsWithPercentage" />
                                 </div>
                             </div>
@@ -1477,7 +1486,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     📊 Évolution de la criminalité
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="crimeChartData" :data="crimeChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1486,7 +1495,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     🚨 Féminicides par année
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Bar v-if="feminicidesChartData" :data="feminicidesChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1527,7 +1536,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     💰 Salaire médian par secteur ({{ selectedYear }})
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Bar v-if="salaryBySectorChartData" :data="salaryBySectorChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1536,7 +1545,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     📊 Évolution de l'écart salarial Hommes/Femmes
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="genderPayGapChartData" :data="genderPayGapChartData" :options="chartOptionsWithPercentage" />
                                 </div>
                             </div>
@@ -1577,7 +1586,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     👨‍⚕️ Évolution des médecins pour 100k habitants
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="doctorsChartData" :data="doctorsChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1586,7 +1595,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     💰 Évolution des dépenses de santé
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="healthSpendingChartData" :data="healthSpendingChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1627,7 +1636,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     💰 Prix moyen au m² ({{ selectedYear }})
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Bar v-if="housingPriceChartData" :data="housingPriceChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1636,7 +1645,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     🏘️ Répartition Propriétaires/Locataires
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Doughnut v-if="housingDistributionChartData" :data="housingDistributionChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1677,7 +1686,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     🏭 Évolution des émissions de CO2
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="co2ChartData" :data="co2ChartData" :options="chartOptions" />
                                 </div>
                             </div>
@@ -1686,7 +1695,7 @@ const recyclingChartData = computed(() => {
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                     ♻️ Évolution du taux de recyclage
                                 </h3>
-                                <div class="h-64">
+                                <div class="h-48 sm:h-64">
                                     <Line v-if="recyclingChartData" :data="recyclingChartData" :options="chartOptionsWithPercentage" />
                                 </div>
                             </div>

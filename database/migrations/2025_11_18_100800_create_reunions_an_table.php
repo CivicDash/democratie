@@ -19,10 +19,10 @@ return new class extends Migration
             $table->string('type_reunion', 50)->nullable();
             $table->json('details')->nullable()->comment('Ordre du jour, présences, etc.');
             $table->timestamps();
-            
+
             // Foreign keys
             $table->foreign('organe_ref')->references('uid')->on('organes_an')->onDelete('set null');
-            
+
             // Index composites
             $table->index(['legislature', 'date_reunion']);
             $table->index(['organe_ref', 'date_reunion']);
@@ -37,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('reunions_an');
     }
 };
-

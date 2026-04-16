@@ -115,7 +115,6 @@ class TopicCategoriesSeeder extends Seeder
             TopicCategory::create($category);
         }
 
-        $this->command->info('✅ ' . count($categories) . ' catégories de topics créées');
+        $this->command->info('✅ '.count($categories).' catégories de topics créées');
     }
 }
-

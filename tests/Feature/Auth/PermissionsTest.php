@@ -6,10 +6,9 @@ use Spatie\Permission\Models\Role;
 
 /**
  * TESTS POUR LE SYSTÈME DE PERMISSIONS (RBAC)
- * 
+ *
  * Rôles : citizen, moderator, journalist, ong, legislator, state, admin
  */
-
 test('roles are created correctly', function () {
     expect(Role::where('name', 'citizen')->exists())->toBeTrue()
         ->and(Role::where('name', 'moderator')->exists())->toBeTrue()
@@ -22,7 +21,7 @@ test('roles are created correctly', function () {
 
 test('citizen has basic permissions', function () {
     $citizen = User::factory()->citizen()->create();
-    
+
     expect($citizen->hasRole('citizen'))->toBeTrue()
         ->and($citizen->can('topics.view'))->toBeTrue()
         ->and($citizen->can('topics.create'))->toBeTrue()
@@ -35,14 +34,14 @@ test('citizen has basic permissions', function () {
 
 test('citizen cannot moderate', function () {
     $citizen = User::factory()->citizen()->create();
-    
+
     expect($citizen->can('reports.review'))->toBeFalse()
         ->and($citizen->can('sanctions.create'))->toBeFalse();
 });
 
 test('moderator can moderate content', function () {
     $moderator = User::factory()->moderator()->create();
-    
+
     expect($moderator->hasRole('moderator'))->toBeTrue()
         ->and($moderator->can('reports.review'))->toBeTrue()
         ->and($moderator->can('reports.resolve'))->toBeTrue()
@@ -53,14 +52,14 @@ test('moderator can moderate content', function () {
 
 test('moderator cannot manage users or system', function () {
     $moderator = User::factory()->moderator()->create();
-    
+
     expect($moderator->can('users.manage'))->toBeFalse()
         ->and($moderator->can('system.manage'))->toBeFalse();
 });
 
 test('journalist can verify documents', function () {
     $journalist = User::factory()->journalist()->create();
-    
+
     expect($journalist->hasRole('journalist'))->toBeTrue()
         ->and($journalist->can('documents.verify'))->toBeTrue()
         ->and($journalist->can('documents.upload'))->toBeTrue();
@@ -68,7 +67,7 @@ test('journalist can verify documents', function () {
 
 test('ong can verify documents', function () {
     $ong = User::factory()->ong()->create();
-    
+
     expect($ong->hasRole('ong'))->toBeTrue()
         ->and($ong->can('documents.verify'))->toBeTrue()
         ->and($ong->can('documents.upload'))->toBeTrue();
@@ -76,7 +75,7 @@ test('ong can verify documents', function () {
 
 test('legislator can create bills', function () {
     $legislator = User::factory()->legislator()->create();
-    
+
     expect($legislator->hasRole('legislator'))->toBeTrue()
         ->and($legislator->can('topics.create'))->toBeTrue()
         ->and($legislator->can('topics.bill'))->toBeTrue()
@@ -85,7 +84,7 @@ test('legislator can create bills', function () {
 
 test('state can publish budget data', function () {
     $state = User::factory()->state()->create();
-    
+
     expect($state->hasRole('state'))->toBeTrue()
         ->and($state->can('budget.publish'))->toBeTrue()
         ->and($state->can('revenue.publish'))->toBeTrue()
@@ -94,7 +93,7 @@ test('state can publish budget data', function () {
 
 test('admin has all permissions', function () {
     $admin = User::factory()->admin()->create();
-    
+
     expect($admin->hasRole('admin'))->toBeTrue()
         ->and($admin->can('users.manage'))->toBeTrue()
         ->and($admin->can('roles.manage'))->toBeTrue()
@@ -107,9 +106,9 @@ test('admin has all permissions', function () {
 
 test('user can have multiple roles', function () {
     $user = User::factory()->create();
-    
+
     $user->assignRole(['citizen', 'journalist']);
-    
+
     expect($user->hasRole('citizen'))->toBeTrue()
         ->and($user->hasRole('journalist'))->toBeTrue()
         ->and($user->getRoleNames())->toContain('citizen', 'journalist');
@@ -117,36 +116,36 @@ test('user can have multiple roles', function () {
 
 test('permission can be given directly to user', function () {
     $user = User::factory()->citizen()->create();
-    
+
     $user->givePermissionTo('topics.pin');
-    
+
     expect($user->can('topics.pin'))->toBeTrue();
 });
 
 test('permission can be revoked from user', function () {
     $user = User::factory()->citizen()->create();
-    
+
     $user->givePermissionTo('topics.pin');
     expect($user->can('topics.pin'))->toBeTrue();
-    
+
     $user->revokePermissionTo('topics.pin');
     expect($user->fresh()->can('topics.pin'))->toBeFalse();
 });
 
 test('role can be removed from user', function () {
     $user = User::factory()->moderator()->create();
-    
+
     expect($user->hasRole('moderator'))->toBeTrue();
-    
+
     $user->removeRole('moderator');
-    
+
     expect($user->fresh()->hasRole('moderator'))->toBeFalse()
         ->and($user->fresh()->can('reports.review'))->toBeFalse();
 });
 
 test('citizen cannot access admin routes', function () {
     $citizen = User::factory()->citizen()->create();
-    
+
     expect($citizen->can('admin.dashboard'))->toBeFalse()
         ->and($citizen->can('users.manage'))->toBeFalse()
         ->and($citizen->can('system.manage'))->toBeFalse();
@@ -154,14 +153,14 @@ test('citizen cannot access admin routes', function () {
 
 test('moderator can access moderation routes', function () {
     $moderator = User::factory()->moderator()->create();
-    
+
     expect($moderator->can('moderation.dashboard'))->toBeTrue()
         ->and($moderator->can('reports.index'))->toBeTrue();
 });
 
 test('permission middleware blocks unauthorized access', function () {
     $citizen = User::factory()->citizen()->create();
-    
+
     // Citizen tente d'accéder aux rapports
     actingAs($citizen)
         ->get('/moderation/reports')
@@ -170,7 +169,7 @@ test('permission middleware blocks unauthorized access', function () {
 
 test('permission middleware allows authorized access', function () {
     $moderator = User::factory()->moderator()->create();
-    
+
     // Moderator accède aux rapports
     actingAs($moderator)
         ->get('/moderation/reports')
@@ -179,7 +178,7 @@ test('permission middleware allows authorized access', function () {
 
 test('role middleware blocks incorrect role', function () {
     $citizen = User::factory()->citizen()->create();
-    
+
     actingAs($citizen)
         ->get('/admin/users')
         ->assertForbidden();
@@ -187,7 +186,7 @@ test('role middleware blocks incorrect role', function () {
 
 test('role middleware allows correct role', function () {
     $admin = User::factory()->admin()->create();
-    
+
     actingAs($admin)
         ->get('/admin/users')
         ->assertOk();
@@ -227,7 +226,7 @@ test('all permissions exist', function () {
         'admin.dashboard',
         'reports.index',
     ];
-    
+
     foreach ($expectedPermissions as $permission) {
         expect(Permission::where('name', $permission)->exists())
             ->toBeTrue("Permission '$permission' should exist");
@@ -238,24 +237,23 @@ test('citizen scope returns only citizens', function () {
     User::factory()->citizen()->count(3)->create();
     User::factory()->moderator()->count(2)->create();
     User::factory()->admin()->create();
-    
+
     $citizens = User::role('citizen')->get();
-    
+
     expect($citizens)->toHaveCount(3);
 });
 
 test('verified users have is_verified flag', function () {
     $journalist = User::factory()->journalist()->create();
     $journalist->profile->update(['is_verified' => true]);
-    
+
     expect($journalist->profile->is_verified)->toBeTrue();
 });
 
 test('unverified users cannot verify documents', function () {
     $journalist = User::factory()->journalist()->create();
     $journalist->profile->update(['is_verified' => false]);
-    
+
     // Même avec le rôle journalist, sans vérification pas de permission effective
     expect($journalist->profile->is_verified)->toBeFalse();
 });
-

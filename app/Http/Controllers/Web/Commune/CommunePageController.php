@@ -487,13 +487,13 @@ class CommunePageController extends Controller
                 ->where('id', '!=', $ville->id)
                 ->where('arrondissement_municipal', false)
                 ->whereNotNull('population')
-                ->selectRaw("*, (
+                ->selectRaw('*, (
                     6371 * acos(
                         cos(radians(?)) * cos(radians(latitude))
                         * cos(radians(longitude) - radians(?))
                         + sin(radians(?)) * sin(radians(latitude))
                     )
-                ) AS distance", [$ville->latitude, $ville->longitude, $ville->latitude])
+                ) AS distance', [$ville->latitude, $ville->longitude, $ville->latitude])
                 ->having('distance', '<', 30)
                 ->orderBy('distance')
                 ->limit($limit)

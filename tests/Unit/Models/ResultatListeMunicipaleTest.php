@@ -3,7 +3,7 @@
 use App\Models\ResultatListeMunicipale;
 
 it('has correct casts', function () {
-    $model = new ResultatListeMunicipale();
+    $model = new ResultatListeMunicipale;
     $casts = $model->getCasts();
 
     expect($casts)->toHaveKeys([
@@ -33,7 +33,7 @@ it('formats voix correctly', function () {
 });
 
 it('has fillable fields', function () {
-    $model = new ResultatListeMunicipale();
+    $model = new ResultatListeMunicipale;
     expect($model->getFillable())->toContain('voix');
     expect($model->getFillable())->toContain('pourcentage_exprimes');
     expect($model->getFillable())->toContain('elu');

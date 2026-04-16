@@ -10,6 +10,7 @@ use App\Models\FranceDemographics;
 use App\Models\FranceEconomy;
 use App\Models\GroupeParlementaire;
 use App\Models\Loi;
+use App\Models\PoliticalNews;
 use App\Models\PropositionLoi;
 use App\Models\Topic;
 use App\Models\TopicBallot;
@@ -364,6 +365,22 @@ class DashboardController extends Controller
             ];
         });
 
+        $politicalNews = Cache::remember('dashboard_political_news', 900, function () {
+            return PoliticalNews::recent(20)
+                ->get()
+                ->map(fn ($n) => [
+                    'id' => $n->id,
+                    'title' => $n->title,
+                    'description' => $n->description,
+                    'url' => $n->url,
+                    'image_url' => $n->image_url,
+                    'source_feed' => $n->source_feed,
+                    'source_label' => $n->source_label,
+                    'category' => $n->category,
+                    'published_at' => $n->published_at?->toIso8601String(),
+                ]);
+        });
+
         return Inertia::render('Dashboard', [
             'trendingTopics' => $trendingTopics,
             'propositionsLegislatives' => $propositionsLegislatives,
@@ -381,6 +398,7 @@ class DashboardController extends Controller
             'prochainesReunions' => $prochainesReunions,
             'platformStats' => $platformStats,
             'franceStats' => $franceStats,
+            'politicalNews' => $politicalNews,
             'isNewUser' => $user->created_at->diffInDays(now()) < 7,
         ]);
     }

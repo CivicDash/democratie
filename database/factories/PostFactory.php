@@ -26,8 +26,7 @@ class PostFactory extends Factory
             'downvotes' => fake()->numberBetween(0, 50),
             'is_pinned' => fake()->boolean(5), // 5% épinglés
             'is_hidden' => fake()->boolean(2), // 2% masqués
-            'hidden_reason' => fn (array $attributes) => 
-                $attributes['is_hidden'] ? fake()->sentence() : null,
+            'hidden_reason' => fn (array $attributes) => $attributes['is_hidden'] ? fake()->sentence() : null,
         ];
     }
 
@@ -92,4 +91,3 @@ class PostFactory extends Factory
         ]);
     }
 }
-

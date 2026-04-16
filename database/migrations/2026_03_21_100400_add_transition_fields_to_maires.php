@@ -15,14 +15,14 @@ return new class extends Migration
         Schema::table('maires', function (Blueprint $table) {
             $table->unsignedBigInteger('predecesseur_id')->nullable()->after('ville_id');
             $table->foreign('predecesseur_id')
-                  ->references('id')->on('maires')->nullOnDelete();
+                ->references('id')->on('maires')->nullOnDelete();
 
             $table->decimal('score_election_pct', 5, 2)->nullable()->after('predecesseur_id');
             $table->tinyInteger('tour_election')->nullable()->after('score_election_pct');
             $table->boolean('reelu')->nullable()->after('tour_election');
 
             $table->foreignId('liste_id')->nullable()
-                  ->constrained('listes_electorales')->nullOnDelete();
+                ->constrained('listes_electorales')->nullOnDelete();
 
             $table->index('reelu');
         });

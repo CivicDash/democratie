@@ -17,12 +17,12 @@ return new class extends Migration
             WHERE table_schema = 'public' 
             AND table_name = 'senat_dosleg_doc'
         ");
-        
+
         if ($tablesExist[0]->count < 1) {
             return; // Tables non importées, skip
         }
-        
-        DB::statement("
+
+        DB::statement('
             CREATE OR REPLACE VIEW dossiers_legislatifs_senat AS
             SELECT 
                 doc.docidt AS id,
@@ -40,12 +40,11 @@ return new class extends Migration
                 
             FROM senat_dosleg_doc doc
             ORDER BY doc.date_depot DESC NULLS LAST, doc.docnum DESC
-        ");
+        ');
     }
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS dossiers_legislatifs_senat");
+        DB::statement('DROP VIEW IF EXISTS dossiers_legislatifs_senat');
     }
 };
-

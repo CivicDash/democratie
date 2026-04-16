@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\ListeElectorale;
 use App\Models\CandidatMunicipal;
+use App\Models\ListeElectorale;
 
 it('imports candidatures from csv file', function () {
     $fixtureFile = base_path('tests/Fixtures/candidatures_t1_sample.csv');

@@ -13,7 +13,7 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
 
             $table->foreignId('personne_politique_id')->nullable()
-                  ->constrained('personnes_politiques')->nullOnDelete();
+                ->constrained('personnes_politiques')->nullOnDelete();
             $table->string('acteur_an_uid', 20)->nullable()->index();
             $table->string('senateur_matricule', 20)->nullable()->index();
 

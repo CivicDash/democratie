@@ -20,7 +20,7 @@ return new class extends Migration
             $table->boolean('is_read')->default(false);
             $table->timestamp('notified_at')->nullable(); // Email envoyé
             $table->timestamps();
-            
+
             // Index pour les requêtes fréquentes
             $table->index(['user_id', 'is_read']);
         });

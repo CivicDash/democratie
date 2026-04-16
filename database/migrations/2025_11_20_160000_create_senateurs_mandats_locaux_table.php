@@ -38,4 +38,3 @@ return new class extends Migration
         Schema::dropIfExists('senateurs_mandats_locaux');
     }
 };
-

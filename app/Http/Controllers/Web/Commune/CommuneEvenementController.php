@@ -151,6 +151,7 @@ class CommuneEvenementController extends Controller
                 ]),
             'reactions' => collect(CommuneReaction::TYPES)->mapWithKeys(function ($type) use ($evenement) {
                 $count = $evenement->reactions()->where('type', $type)->count();
+
                 return $count > 0 ? [$type => $count] : [];
             })->filter()->toArray(),
             'user_reaction' => auth()->user()

@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('statut_commune', 20)->nullable();
 
             $table->foreignId('ville_id')->nullable()
-                  ->constrained('villes')->nullOnDelete();
+                ->constrained('villes')->nullOnDelete();
 
             $table->timestamps();
 

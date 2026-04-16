@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('elu')->nullable()->after('sortant');
 
             $table->foreignId('maire_id')->nullable()
-                  ->constrained('maires')->nullOnDelete();
+                ->constrained('maires')->nullOnDelete();
 
             $table->index('elu');
             $table->index('sortant');

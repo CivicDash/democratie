@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('motif_fin', 50)->nullable();
             $table->integer('numero_mandat')->nullable();
             $table->timestamps();
-            
+
             $table->foreign('matricule')->references('matricule')->on('senateurs')->onDelete('cascade');
             $table->index(['matricule', 'type_mandat']);
             $table->index(['type_mandat', 'date_debut']);
@@ -30,4 +30,3 @@ return new class extends Migration
         Schema::dropIfExists('senateurs_mandats');
     }
 };
-

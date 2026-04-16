@@ -12,22 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         // votes_senat = alias de senateurs_votes
-        DB::statement("
+        DB::statement('
             CREATE OR REPLACE VIEW votes_senat AS
             SELECT * FROM senateurs_votes
-        ");
-        
+        ');
+
         // scrutins_senat = alias de senateurs_scrutins
-        DB::statement("
+        DB::statement('
             CREATE OR REPLACE VIEW scrutins_senat AS
             SELECT * FROM senateurs_scrutins
-        ");
+        ');
     }
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS votes_senat");
-        DB::statement("DROP VIEW IF EXISTS scrutins_senat");
+        DB::statement('DROP VIEW IF EXISTS votes_senat');
+        DB::statement('DROP VIEW IF EXISTS scrutins_senat');
     }
 };
-

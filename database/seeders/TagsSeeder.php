@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Tag;
+use Illuminate\Database\Seeder;
 
 class TagsSeeder extends Seeder
 {
@@ -26,13 +26,13 @@ class TagsSeeder extends Seeder
             ['slug' => 'culture', 'name' => 'Culture', 'color' => '#A855F7', 'icon' => '🎨', 'description' => 'Arts, patrimoine, médias'],
             ['slug' => 'international', 'name' => 'International', 'color' => '#0284C7', 'icon' => '🌍', 'description' => 'Relations extérieures, Europe, coopération'],
             ['slug' => 'immigration', 'name' => 'Immigration', 'color' => '#F97316', 'icon' => '✈️', 'description' => 'Asile, intégration, frontières'],
-            
+
             // Types de textes
             ['slug' => 'loi', 'name' => 'Loi', 'color' => '#1E40AF', 'icon' => '📜', 'description' => 'Projets et propositions de loi'],
             ['slug' => 'budget', 'name' => 'Budget', 'color' => '#B91C1C', 'icon' => '💰', 'description' => 'Lois de finances'],
             ['slug' => 'constitution', 'name' => 'Constitution', 'color' => '#7C2D12', 'icon' => '⚖️', 'description' => 'Révisions constitutionnelles'],
             ['slug' => 'referendum', 'name' => 'Référendum', 'color' => '#BE123C', 'icon' => '🗳️', 'description' => 'Consultations populaires'],
-            
+
             // Urgence/Importance
             ['slug' => 'urgent', 'name' => 'Urgent', 'color' => '#DC2626', 'icon' => '🚨', 'description' => 'Textes en procédure accélérée'],
             ['slug' => 'important', 'name' => 'Important', 'color' => '#EA580C', 'icon' => '⭐', 'description' => 'Textes majeurs'],
@@ -46,7 +46,6 @@ class TagsSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ ' . count($tags) . ' tags créés avec succès !');
+        $this->command->info('✅ '.count($tags).' tags créés avec succès !');
     }
 }
-

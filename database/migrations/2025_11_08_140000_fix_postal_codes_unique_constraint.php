@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -13,14 +13,14 @@ return new class extends Migration
     public function up(): void
     {
         // Vérifier si la table existe
-        if (!Schema::hasTable('french_postal_codes')) {
+        if (! Schema::hasTable('french_postal_codes')) {
             // La table n'existe pas, elle sera créée par la migration principale
             return;
         }
 
         // Vérifier si les colonnes nécessaires existent
-        if (!Schema::hasColumn('french_postal_codes', 'postal_code') || 
-            !Schema::hasColumn('french_postal_codes', 'city_name')) {
+        if (! Schema::hasColumn('french_postal_codes', 'postal_code') ||
+            ! Schema::hasColumn('french_postal_codes', 'city_name')) {
             // Les colonnes n'existent pas, on ne peut pas créer la contrainte
             return;
         }
@@ -33,7 +33,7 @@ return new class extends Migration
             AND constraint_name = 'unique_postal_city_insee'
         ");
 
-        if (!empty($constraintExists)) {
+        if (! empty($constraintExists)) {
             Schema::table('french_postal_codes', function (Blueprint $table) {
                 $table->dropUnique('unique_postal_city_insee');
             });
@@ -60,7 +60,7 @@ return new class extends Migration
     public function down(): void
     {
         // Vérifier si la table existe
-        if (!Schema::hasTable('french_postal_codes')) {
+        if (! Schema::hasTable('french_postal_codes')) {
             return;
         }
 
@@ -72,17 +72,17 @@ return new class extends Migration
             AND constraint_name = 'unique_postal_city'
         ");
 
-        if (!empty($constraintExists)) {
+        if (! empty($constraintExists)) {
             Schema::table('french_postal_codes', function (Blueprint $table) {
                 $table->dropUnique('unique_postal_city');
             });
         }
 
         // Recréer l'ancienne contrainte si elle n'existe pas et si les colonnes existent
-        if (Schema::hasColumn('french_postal_codes', 'postal_code') && 
+        if (Schema::hasColumn('french_postal_codes', 'postal_code') &&
             Schema::hasColumn('french_postal_codes', 'city_name') &&
             Schema::hasColumn('french_postal_codes', 'insee_code')) {
-            
+
             $oldConstraintExists = DB::select("
                 SELECT constraint_name 
                 FROM information_schema.table_constraints 
@@ -98,4 +98,3 @@ return new class extends Migration
         }
     }
 };
-

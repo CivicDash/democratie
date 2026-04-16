@@ -16,35 +16,35 @@ return new class extends Migration
             $table->integer('legislature')->nullable();
             $table->string('session')->nullable();      // S2024, S2025
             $table->string('type_reunion')->nullable(); // Commission, Séance, Délégation...
-            
+
             // Timing
             $table->dateTime('date_debut')->nullable();
             $table->dateTime('date_fin')->nullable();
-            
+
             // Lieu
             $table->string('lieu_ref')->nullable();
             $table->string('lieu_libelle')->nullable();
-            
+
             // Cycle de vie
             $table->string('etat')->nullable();         // Confirmé, Annulé, Terminé
             $table->date('date_creation')->nullable();
             $table->date('date_cloture')->nullable();
-            
+
             // Liens
             $table->string('organe_ref')->nullable();   // FK vers organes_an
             $table->string('compte_rendu_ref')->nullable();
             $table->string('session_ref')->nullable();
             $table->string('demandeur')->nullable();
-            
+
             // Ordre du jour
             $table->json('odj_convocation')->nullable(); // Items ODJ
             $table->json('odj_resume')->nullable();
             $table->json('points_odj')->nullable();
-            
+
             // Participants
             $table->json('participants_internes')->nullable();    // UIDs députés
             $table->json('personnes_auditionnees')->nullable();   // Noms/fonctions
-            
+
             // Métadonnées
             $table->string('format_reunion')->nullable(); // Ordinaire, Extraordinaire
             $table->boolean('visio_conference')->default(false);
@@ -52,9 +52,9 @@ return new class extends Migration
             $table->boolean('captation_video')->default(false);
             $table->boolean('reunion_internationale')->default(false);
             $table->json('pays_reunion_internationale')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Index pour les requêtes fréquentes
             $table->index('date_debut');
             $table->index('organe_ref');
@@ -72,4 +72,3 @@ return new class extends Migration
         Schema::dropIfExists('reunions_an');
     }
 };
-

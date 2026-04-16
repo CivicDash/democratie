@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamp('read_at')->nullable();
             $table->string('priority')->default('normal'); // low, normal, high, urgent
             $table->timestamps();
-            
+
             // Index pour performances
             $table->index(['user_id', 'read_at']);
             $table->index(['user_id', 'created_at']);

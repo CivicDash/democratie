@@ -20,7 +20,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -49,7 +49,7 @@ return new class extends Migration
             $table->string('nombre_parts', 50)->nullable();
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -62,7 +62,7 @@ return new class extends Migration
             $table->text('description_activite')->nullable();
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -77,7 +77,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
 
@@ -92,7 +92,7 @@ return new class extends Migration
             $table->boolean('conservee')->default(true);
             $table->text('commentaire')->nullable();
             $table->timestamps();
-            
+
             $table->index('declaration_id');
         });
     }
@@ -110,4 +110,3 @@ return new class extends Migration
         Schema::dropIfExists('hatvp_fonctions_benevoles');
     }
 };
-

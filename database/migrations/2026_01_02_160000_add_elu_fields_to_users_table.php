@@ -15,18 +15,18 @@ return new class extends Migration
             // Liaison avec un élu (député, sénateur, maire)
             $table->string('elu_type', 20)->nullable()->after('password');
             $table->string('elu_ref', 50)->nullable()->after('elu_type');
-            
+
             // Vérification élu
             $table->boolean('is_verified_elu')->default(false)->after('elu_ref');
             $table->timestamp('verified_at')->nullable()->after('is_verified_elu');
-            
+
             // Profil public élu
             $table->boolean('is_public_profile')->default(false)->after('verified_at');
             $table->text('elu_bio')->nullable()->after('is_public_profile');
             $table->string('twitter_handle', 100)->nullable()->after('elu_bio');
             $table->string('facebook_url', 500)->nullable()->after('twitter_handle');
             $table->string('website_url', 500)->nullable()->after('facebook_url');
-            
+
             // Index pour recherche
             $table->index(['elu_type', 'elu_ref']);
             $table->index('is_verified_elu');
@@ -41,7 +41,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropIndex(['elu_type', 'elu_ref']);
             $table->dropIndex(['is_verified_elu']);
-            
+
             $table->dropColumn([
                 'elu_type',
                 'elu_ref',

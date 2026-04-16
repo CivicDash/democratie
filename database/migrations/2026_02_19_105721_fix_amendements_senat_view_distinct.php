@@ -17,10 +17,10 @@ return new class extends Migration
         $hasSenAmeli = Schema::hasTable('sen_ameli');
         $hasSenatSenateursSen = Schema::hasTable('senat_senateurs_sen');
 
-        DB::statement("DROP VIEW IF EXISTS amendements_senat CASCADE");
+        DB::statement('DROP VIEW IF EXISTS amendements_senat CASCADE');
 
         if ($hasSenatAmeliAmd && $hasSenatAmeliAmdsen && $hasSenAmeli) {
-            DB::statement("
+            DB::statement('
                 CREATE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
@@ -43,12 +43,13 @@ return new class extends Migration
                 LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
                 WHERE amdsen.senid IS NOT NULL AND TRIM(sen_ameli.mat) IS NOT NULL
                 ORDER BY amd.datdep DESC NULLS LAST
-            ");
+            ');
+
             return;
         }
 
         if ($hasSenatAmeliAmd && $hasSenatAmeliAmdsen && $hasSenatSenateursSen) {
-            DB::statement("
+            DB::statement('
                 CREATE VIEW amendements_senat AS
                 SELECT DISTINCT ON (amd.id, TRIM(sen.senmat))
                     amd.id AS id,
@@ -74,7 +75,8 @@ return new class extends Migration
                 )
                 WHERE amdsen.senid IS NOT NULL
                 ORDER BY amd.id, TRIM(sen.senmat), amd.datdep DESC NULLS LAST
-            ");
+            ');
+
             return;
         }
 
@@ -101,6 +103,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS amendements_senat CASCADE");
+        DB::statement('DROP VIEW IF EXISTS amendements_senat CASCADE');
     }
 };

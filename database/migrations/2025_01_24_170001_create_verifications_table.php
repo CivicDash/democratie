@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('notes')->nullable()->comment('Commentaires du vérificateur');
             $table->json('metadata')->nullable()->comment('Données supplémentaires (sources, etc.)');
             $table->timestamps();
-            
+
             $table->index('document_id');
             $table->index('verifier_id');
             $table->index('status');
@@ -35,4 +35,3 @@ return new class extends Migration
         Schema::dropIfExists('verifications');
     }
 };
-

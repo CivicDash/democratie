@@ -7,12 +7,12 @@ return new class extends Migration
 {
     /**
      * CORRECTION FINALE : Vue amendements_senat avec jointure via sen_ameli
-     * 
+     *
      * Problème identifié :
      * - senat_ameli_amdsen.senid = ID numérique (ex: 7496)
      * - senat_senateurs_sen.senmat = Matricule string (ex: "19954N")
      * - Pas de correspondance directe
-     * 
+     *
      * Solution :
      * - Joindre via sen_ameli : amdsen.senid → sen_ameli.entid → sen_ameli.mat
      */
@@ -25,12 +25,12 @@ return new class extends Migration
             WHERE table_schema = 'public' 
             AND table_name IN ('senat_ameli_amd', 'senat_ameli_amdsen', 'sen_ameli')
         ");
-        
+
         if ($tablesExist[0]->count < 3) {
             return; // Tables non importées, skip
         }
-        
-        DB::statement("
+
+        DB::statement('
             CREATE OR REPLACE VIEW amendements_senat AS
             SELECT 
                 amd.id AS id,
@@ -54,13 +54,13 @@ return new class extends Migration
             LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
             WHERE amdsen.senid IS NOT NULL AND sen.mat IS NOT NULL
             ORDER BY amd.datdep DESC NULLS LAST
-        ");
+        ');
     }
 
     public function down(): void
     {
         // Revenir à l'ancienne version (incorrecte)
-        DB::statement("
+        DB::statement('
             CREATE OR REPLACE VIEW amendements_senat AS
             SELECT 
                 amd.id AS id,
@@ -83,7 +83,6 @@ return new class extends Migration
             LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
             WHERE amdsen.senid IS NOT NULL
             ORDER BY amd.datdep DESC NULLS LAST
-        ");
+        ');
     }
 };
-

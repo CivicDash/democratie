@@ -16,7 +16,7 @@ class TerritoriesSeeder extends Seeder
         $this->command->info('🇫🇷 Seeding French territories...');
 
         // ==================== RÉGIONS ====================
-        
+
         $regions = [
             ['code' => '84', 'name' => 'Auvergne-Rhône-Alpes'],
             ['code' => '27', 'name' => 'Bourgogne-Franche-Comté'],
@@ -40,7 +40,7 @@ class TerritoriesSeeder extends Seeder
         $this->command->info('✓ 13 régions créées');
 
         // ==================== DÉPARTEMENTS ====================
-        
+
         $departments = [
             // Auvergne-Rhône-Alpes (84)
             ['code' => '01', 'name' => 'Ain', 'region_code' => '84'],
@@ -167,7 +167,7 @@ class TerritoriesSeeder extends Seeder
 
         foreach ($departments as $deptData) {
             $region = TerritoryRegion::where('code', $deptData['region_code'])->first();
-            
+
             if ($region) {
                 TerritoryDepartment::create([
                     'code' => $deptData['code'],
@@ -181,4 +181,3 @@ class TerritoriesSeeder extends Seeder
         $this->command->info('🎉 Territoires français complets !');
     }
 }
-

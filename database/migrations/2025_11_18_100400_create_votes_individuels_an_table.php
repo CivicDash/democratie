@@ -23,15 +23,15 @@ return new class extends Migration
             $table->boolean('par_delegation')->default(false);
             $table->string('cause_non_vote', 50)->nullable()->comment('PAN, PSE, etc.');
             $table->timestamps();
-            
+
             // Foreign keys
             $table->foreign('scrutin_ref')->references('uid')->on('scrutins_an')->onDelete('cascade');
             $table->foreign('acteur_ref')->references('uid')->on('acteurs_an')->onDelete('cascade');
             $table->foreign('groupe_ref')->references('uid')->on('organes_an')->onDelete('set null');
-            
+
             // Unique constraint
             $table->unique(['scrutin_ref', 'acteur_ref']);
-            
+
             // Index pour les analyses
             $table->index(['acteur_ref', 'position']);
             $table->index(['groupe_ref', 'position']);
@@ -47,4 +47,3 @@ return new class extends Migration
         Schema::dropIfExists('votes_individuels_an');
     }
 };
-

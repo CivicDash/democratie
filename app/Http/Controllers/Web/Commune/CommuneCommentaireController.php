@@ -66,7 +66,7 @@ class CommuneCommentaireController extends Controller
     public function react(Request $request, string $codeInsee, string $type, string $id)
     {
         $validated = $request->validate([
-            'type' => 'required|string|in:' . implode(',', CommuneReaction::TYPES),
+            'type' => 'required|string|in:'.implode(',', CommuneReaction::TYPES),
         ]);
 
         $reactable = $this->resolveCommentable($type, $id);
@@ -79,6 +79,7 @@ class CommuneCommentaireController extends Controller
 
         if ($existing) {
             $existing->delete();
+
             return back();
         }
 

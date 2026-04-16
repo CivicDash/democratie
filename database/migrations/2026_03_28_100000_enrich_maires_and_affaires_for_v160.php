@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::table('maires', function (Blueprint $table) {
             $table->foreignId('personne_politique_id')->nullable()
-                  ->after('liste_id')
-                  ->constrained('personnes_politiques')->nullOnDelete();
+                ->after('liste_id')
+                ->constrained('personnes_politiques')->nullOnDelete();
 
             $table->string('hatvp_type_mandat', 50)->nullable()->after('adresse_mairie');
             $table->string('url_hatvp')->nullable()->after('hatvp_type_mandat');

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('montant', 12, 2)->nullable();
             $table->string('brut_net', 10)->nullable();
             $table->timestamps();
-            
+
             $table->index(['activite_id', 'annee']);
         });
 
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->decimal('montant', 12, 2)->nullable();
             $table->string('brut_net', 10)->nullable();
             $table->timestamps();
-            
+
             $table->index(['activite_id', 'annee']);
         });
 
@@ -47,7 +47,7 @@ return new class extends Migration
             $table->decimal('montant', 12, 2)->nullable();
             $table->string('brut_net', 10)->nullable();
             $table->timestamps();
-            
+
             $table->index(['participation_id', 'annee']);
         });
 
@@ -65,10 +65,9 @@ return new class extends Migration
         Schema::table('hatvp_participations_financieres', function (Blueprint $table) {
             $table->dropColumn('remuneration');
         });
-        
+
         Schema::dropIfExists('hatvp_remunerations_dirigeant');
         Schema::dropIfExists('hatvp_remunerations_consultant');
         Schema::dropIfExists('hatvp_remunerations_activites_pro');
     }
 };
-

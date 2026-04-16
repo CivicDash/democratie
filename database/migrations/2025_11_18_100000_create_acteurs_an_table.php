@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('url_hatvp', 255)->nullable();
             $table->json('adresses')->nullable()->comment('Adresses (circonscription, email, etc.)');
             $table->timestamps();
-            
+
             // Index
             $table->index(['nom', 'prenom']);
         });
@@ -43,4 +43,3 @@ return new class extends Migration
         Schema::dropIfExists('acteurs_an');
     }
 };
-

@@ -16,9 +16,9 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('resultat_commune_id')
-                  ->constrained('resultats_municipaux')->cascadeOnDelete();
+                ->constrained('resultats_municipaux')->cascadeOnDelete();
             $table->foreignId('liste_id')->nullable()
-                  ->constrained('listes_electorales')->nullOnDelete();
+                ->constrained('listes_electorales')->nullOnDelete();
 
             $table->integer('numero_panneau')->nullable();
             $table->string('nom_liste')->nullable();

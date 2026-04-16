@@ -7,6 +7,7 @@ import { useNavigation } from '@/composables/useNavigation';
 const { bottomTabs, mobileSheetSections } = useNavigation();
 
 const activeSheet = ref(null);
+const showMobileSearch = ref(false);
 
 function onTabClick(tab) {
     if (tab.href) {
@@ -23,6 +24,14 @@ function closeSheet() {
     activeSheet.value = null;
 }
 
+function openSearch() {
+    showMobileSearch.value = true;
+}
+
+function closeMobileSearch() {
+    showMobileSearch.value = false;
+}
+
 const sheetTitles = {
     comprendre: 'Comprendre',
     institutions: 'Institutions',
@@ -30,7 +39,7 @@ const sheetTitles = {
     plus: 'Menu',
 };
 
-router.on('navigate', () => { activeSheet.value = null; });
+router.on('navigate', () => { activeSheet.value = null; showMobileSearch.value = false; });
 </script>
 
 <template>
@@ -85,6 +94,45 @@ router.on('navigate', () => { activeSheet.value = null; });
                 </button>
             </div>
         </nav>
+
+        <!-- Floating search button -->
+        <button
+            @click="openSearch"
+            class="fixed right-4 bottom-20 z-50 w-12 h-12 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all"
+            aria-label="Rechercher"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+        </button>
+
+        <!-- Mobile search overlay -->
+        <Teleport to="body">
+            <div v-if="showMobileSearch" class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" @click="closeMobileSearch">
+                <div class="pt-safe-top px-4 pt-4" @click.stop>
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1 relative">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input
+                                    type="search"
+                                    ref="mobileSearchInput"
+                                    placeholder="Rechercher élus, lois, communes..."
+                                    class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500"
+                                    @keyup.enter="$event.target.value && router.get(route('search', { q: $event.target.value })); closeMobileSearch();"
+                                    autofocus
+                                />
+                            </div>
+                            <button @click="closeMobileSearch" class="text-gray-500 dark:text-gray-400 p-2">
+                                Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <NavSheet
             v-for="sheetKey in ['comprendre', 'institutions', 'agir', 'plus']"

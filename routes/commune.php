@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Controllers\Web\Commune\CommunePageController;
+use App\Http\Controllers\Web\Commune\CommuneAdminController;
 use App\Http\Controllers\Web\Commune\CommuneArticleController;
 use App\Http\Controllers\Web\Commune\CommuneCommentaireController;
 use App\Http\Controllers\Web\Commune\CommuneConsultationController;
 use App\Http\Controllers\Web\Commune\CommuneEvenementController;
 use App\Http\Controllers\Web\Commune\CommuneForumController;
-use App\Http\Controllers\Web\Commune\CommuneAdminController;
+use App\Http\Controllers\Web\Commune\CommunePageController;
 use App\Http\Controllers\Web\Commune\CommuneReclamationController;
 use Illuminate\Support\Facades\Route;
 

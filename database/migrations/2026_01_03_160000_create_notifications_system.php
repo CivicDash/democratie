@@ -14,23 +14,23 @@ return new class extends Migration
         // Ajouter les colonnes manquantes à la table notifications existante
         if (Schema::hasTable('notifications')) {
             Schema::table('notifications', function (Blueprint $table) {
-                if (!Schema::hasColumn('notifications', 'acknowledged_at')) {
+                if (! Schema::hasColumn('notifications', 'acknowledged_at')) {
                     $table->timestamp('acknowledged_at')->nullable()->after('read_at');
                 }
-                if (!Schema::hasColumn('notifications', 'actioned_at')) {
+                if (! Schema::hasColumn('notifications', 'actioned_at')) {
                     $table->timestamp('actioned_at')->nullable()->after('acknowledged_at');
                 }
-                if (!Schema::hasColumn('notifications', 'action_type')) {
+                if (! Schema::hasColumn('notifications', 'action_type')) {
                     $table->string('action_type')->nullable()->after('actioned_at');
                 }
-                if (!Schema::hasColumn('notifications', 'category')) {
+                if (! Schema::hasColumn('notifications', 'category')) {
                     $table->string('category', 50)->nullable()->after('type');
                 }
             });
         }
 
         // Préférences de notification utilisateur
-        if (!Schema::hasTable('notification_preferences')) {
+        if (! Schema::hasTable('notification_preferences')) {
             Schema::create('notification_preferences', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained()->onDelete('cascade');
@@ -44,7 +44,7 @@ return new class extends Migration
         }
 
         // Historique des emails envoyés (pour éviter spam)
-        if (!Schema::hasTable('notification_emails')) {
+        if (! Schema::hasTable('notification_emails')) {
             Schema::create('notification_emails', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained()->onDelete('cascade');
@@ -67,7 +67,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('notification_emails');
         Schema::dropIfExists('notification_preferences');
-        
+
         // Retirer les colonnes ajoutées
         if (Schema::hasTable('notifications')) {
             Schema::table('notifications', function (Blueprint $table) {

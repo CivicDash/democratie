@@ -17,8 +17,7 @@ test('la page transparence est accessible publiquement', function () {
     $this->actingAs($user)
         ->get(route('transparence.affaires'))
         ->assertOk()
-        ->assertInertia(fn ($page) =>
-            $page->component('Transparence/AffairesJudiciaires')
+        ->assertInertia(fn ($page) => $page->component('Transparence/AffairesJudiciaires')
         );
 });
 
@@ -28,9 +27,8 @@ test('la page notre démarche est accessible publiquement', function () {
     $this->actingAs($user)
         ->get(route('transparence.demarche'))
         ->assertOk()
-        ->assertInertia(fn ($page) =>
-            $page->component('Transparence/NotreDemarche')
-                ->has('stats')
+        ->assertInertia(fn ($page) => $page->component('Transparence/NotreDemarche')
+            ->has('stats')
         );
 });
 
@@ -44,10 +42,9 @@ test('seules les affaires publiques comptent dans les stats', function () {
     $this->actingAs($user)
         ->get(route('transparence.demarche'))
         ->assertOk()
-        ->assertInertia(fn ($page) =>
-            $page->component('Transparence/NotreDemarche')
-                ->where('stats.total_validees', 2)
-                ->where('stats.total_rejetees', 3)
+        ->assertInertia(fn ($page) => $page->component('Transparence/NotreDemarche')
+            ->where('stats.total_validees', 2)
+            ->where('stats.total_rejetees', 3)
         );
 });
 

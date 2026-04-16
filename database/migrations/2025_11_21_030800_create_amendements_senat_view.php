@@ -17,12 +17,12 @@ return new class extends Migration
             WHERE table_schema = 'public' 
             AND table_name IN ('senat_ameli_amd', 'senat_ameli_amdsen')
         ");
-        
+
         if ($tablesExist[0]->count < 2) {
             return; // Tables non importées, skip
         }
-        
-        DB::statement("
+
+        DB::statement('
             CREATE OR REPLACE VIEW amendements_senat AS
             SELECT 
                 amd.id AS id,
@@ -45,12 +45,11 @@ return new class extends Migration
             LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
             WHERE amdsen.senid IS NOT NULL
             ORDER BY amd.datdep DESC NULLS LAST
-        ");
+        ');
     }
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS amendements_senat");
+        DB::statement('DROP VIEW IF EXISTS amendements_senat');
     }
 };
-

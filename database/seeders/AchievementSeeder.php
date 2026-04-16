@@ -354,7 +354,7 @@ class AchievementSeeder extends Seeder
             // ═══════════════════════════════════════════════════════════════
             // NOUVEAUX BADGES - Janvier 2026
             // ═══════════════════════════════════════════════════════════════
-            
+
             // Participation avancée
             [
                 'code' => 'idea_viral',
@@ -395,7 +395,7 @@ class AchievementSeeder extends Seeder
                 'required_value' => 100,
                 'order' => 27,
             ],
-            
+
             // Législatif avancé
             [
                 'code' => 'legislative_master',
@@ -436,7 +436,7 @@ class AchievementSeeder extends Seeder
                 'required_value' => 50,
                 'order' => 30,
             ],
-            
+
             // Engagement extrême
             [
                 'code' => 'streak_14',
@@ -465,7 +465,7 @@ class AchievementSeeder extends Seeder
                 'order' => 32,
                 'is_secret' => true,
             ],
-            
+
             // Votes massifs
             [
                 'code' => 'vote_legend',
@@ -480,7 +480,7 @@ class AchievementSeeder extends Seeder
                 'required_value' => 500,
                 'order' => 33,
             ],
-            
+
             // Social avancé
             [
                 'code' => 'community_star',
@@ -508,7 +508,7 @@ class AchievementSeeder extends Seeder
                 'required_value' => 50,
                 'order' => 35,
             ],
-            
+
             // Niveaux intermédiaires
             [
                 'code' => 'level_15',
@@ -536,7 +536,7 @@ class AchievementSeeder extends Seeder
                 'required_value' => 20,
                 'order' => 37,
             ],
-            
+
             // Budget
             [
                 'code' => 'budget_strategist',
@@ -560,6 +560,6 @@ class AchievementSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ ' . count($achievements) . ' achievements créés avec succès !');
+        $this->command->info('✅ '.count($achievements).' achievements créés avec succès !');
     }
 }

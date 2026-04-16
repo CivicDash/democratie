@@ -18,7 +18,7 @@ class TopicFactory extends Factory
     public function definition(): array
     {
         $hasBallot = fake()->boolean(40); // 40% des topics ont un scrutin
-        
+
         return [
             'title' => fake()->sentence(),
             'description' => fake()->paragraphs(3, true),
@@ -45,10 +45,10 @@ class TopicFactory extends Factory
                     ['id' => 1, 'label' => fake()->sentence(3)],
                     ['id' => 2, 'label' => fake()->sentence(3)],
                     ['id' => 3, 'label' => fake()->sentence(3)],
-                ]
+                ],
             ];
         }
-        
+
         return null; // yes_no n'a pas besoin d'options
     }
 
@@ -91,7 +91,7 @@ class TopicFactory extends Factory
     {
         $opensAt = fake()->dateTimeBetween('-7 days', 'now');
         $deadlineAt = fake()->dateTimeBetween('now', '+30 days');
-        
+
         return $this->state(fn (array $attributes) => [
             'has_ballot' => true,
             'voting_opens_at' => $opensAt,
@@ -133,7 +133,7 @@ class TopicFactory extends Factory
     public function departmental(?TerritoryDepartment $department = null): static
     {
         $dept = $department ?? TerritoryDepartment::factory()->create();
-        
+
         return $this->state(fn (array $attributes) => [
             'scope' => 'dept',
             'region_id' => $dept->region_id,
@@ -141,4 +141,3 @@ class TopicFactory extends Factory
         ]);
     }
 }
-

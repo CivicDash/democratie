@@ -20,10 +20,10 @@ return new class extends Migration
             $table->string('titre', 500)->nullable();
             $table->date('date_depot')->nullable();
             $table->timestamps();
-            
+
             // Foreign keys
             $table->foreign('dossier_ref')->references('uid')->on('dossiers_legislatifs_an')->onDelete('set null');
-            
+
             // Index composites
             $table->index(['legislature', 'type_texte']);
             $table->index(['legislature', 'date_depot']);
@@ -41,4 +41,3 @@ return new class extends Migration
         Schema::dropIfExists('textes_legislatifs_an');
     }
 };
-

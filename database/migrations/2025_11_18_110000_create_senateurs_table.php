@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('categorie_socio_pro')->nullable();
             $table->string('description_profession')->nullable();
             $table->timestamps();
-            
+
             $table->index(['nom_usuel', 'prenom_usuel']);
         });
 
@@ -38,4 +38,3 @@ return new class extends Migration
         Schema::dropIfExists('senateurs');
     }
 };
-

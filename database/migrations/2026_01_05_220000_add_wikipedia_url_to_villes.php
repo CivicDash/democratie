@@ -12,19 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('villes', function (Blueprint $table) {
-            if (!Schema::hasColumn('villes', 'wikipedia_url')) {
+            if (! Schema::hasColumn('villes', 'wikipedia_url')) {
                 $table->string('wikipedia_url', 255)->nullable();
             }
-            if (!Schema::hasColumn('villes', 'site_officiel')) {
+            if (! Schema::hasColumn('villes', 'site_officiel')) {
                 $table->string('site_officiel', 255)->nullable();
             }
-            if (!Schema::hasColumn('villes', 'blason_url')) {
+            if (! Schema::hasColumn('villes', 'blason_url')) {
                 $table->string('blason_url', 255)->nullable();
             }
-            if (!Schema::hasColumn('villes', 'altitude_min')) {
+            if (! Schema::hasColumn('villes', 'altitude_min')) {
                 $table->integer('altitude_min')->nullable();
             }
-            if (!Schema::hasColumn('villes', 'altitude_max')) {
+            if (! Schema::hasColumn('villes', 'altitude_max')) {
                 $table->integer('altitude_max')->nullable();
             }
         });

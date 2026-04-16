@@ -26,7 +26,7 @@ return new class extends Migration
             $table->text('contexte')->nullable(); // Contexte politique
             $table->json('metadata')->nullable();
             $table->timestamps();
-            
+
             $table->index('actif');
         });
 
@@ -43,7 +43,7 @@ return new class extends Migration
             $table->string('icone', 10)->nullable();
             $table->boolean('actif')->default(true);
             $table->timestamps();
-            
+
             $table->index('gouvernement_id');
         });
 
@@ -52,17 +52,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ministere_id')->nullable()->constrained('ministeres')->nullOnDelete();
             $table->foreignId('gouvernement_id')->constrained('gouvernements')->cascadeOnDelete();
-            
+
             $table->string('civilite', 10)->nullable(); // M., Mme
             $table->string('prenom');
             $table->string('nom');
             $table->string('fonction'); // Titre officiel
             $table->string('type_fonction', 30)->default('ministre'); // ministre, secretaire_etat, ministre_delegue
-            
+
             $table->date('date_debut');
             $table->date('date_fin')->nullable();
             $table->boolean('actif')->default(true);
-            
+
             // Infos complémentaires
             $table->date('date_naissance')->nullable();
             $table->string('lieu_naissance')->nullable();
@@ -71,13 +71,13 @@ return new class extends Migration
             $table->string('photo_url')->nullable();
             $table->string('twitter')->nullable();
             $table->string('wikipedia_url')->nullable();
-            
+
             // JORF
             $table->string('decret_nomination')->nullable();
             $table->date('date_decret')->nullable();
-            
+
             $table->timestamps();
-            
+
             $table->index(['gouvernement_id', 'actif']);
         });
 

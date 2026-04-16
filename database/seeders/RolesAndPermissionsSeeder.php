@@ -27,31 +27,31 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete_own_posts',
             'vote_on_posts',
             'pin_posts',
-            
+
             // Scrutins
             'create_ballots',
             'vote_in_ballots',
             'view_ballot_results',
             'manage_ballots',
-            
+
             // Modération
             'view_reports',
             'handle_reports',
             'create_sanctions',
             'revoke_sanctions',
             'hide_posts',
-            
+
             // Budget
             'budget.allocate',
             'submit_budget_allocation',
             'view_budget_data',
             'import_budget_data',
-            
+
             // Documents
             'upload_documents',
             'verify_documents',
             'view_pending_documents',
-            
+
             // Administration
             'manage_users',
             'manage_roles',
@@ -197,7 +197,7 @@ class RolesAndPermissionsSeeder extends Seeder
          * 8. PUBLIC_FIGURE (Personnalité publique)
          * Citoyen avec identité publique (nom réel visible)
          * Exemple : Élu local, personnalité médiatique, militant connu
-         * 
+         *
          * RGPD : is_public_figure = true → display_name = nom réel
          */
         $publicFigure = Role::create(['name' => 'public_figure']);
@@ -236,11 +236,10 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         $this->command->info('✓ 9 rôles créés : citizen, moderator, journalist, ong, legislator, state, admin, public_figure, candidat_maire (+ maire_admin, commune_delegue via migration)');
-        $this->command->info('✓ ' . count($permissions) . ' permissions créées');
+        $this->command->info('✓ '.count($permissions).' permissions créées');
         $this->command->info('');
         $this->command->info('📋 RGPD - Rôles et anonymat :');
         $this->command->info('  • citizen, moderator : ANONYME (display_name = Citoyen1234)');
         $this->command->info('  • journalist, ong, legislator, state, admin, public_figure, candidat_maire : PUBLIC (display_name = nom réel)');
     }
 }
-

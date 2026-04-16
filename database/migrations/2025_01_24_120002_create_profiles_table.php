@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamp('verified_at')->nullable();
             $table->text('bio')->nullable()->comment('Biographie (pour députés, personnalités publiques)');
             $table->timestamps();
-            
+
             $table->index('user_id');
             $table->index('citizen_ref_hash');
             $table->index(['scope', 'region_id', 'department_id']);
@@ -39,4 +39,3 @@ return new class extends Migration
         Schema::dropIfExists('profiles');
     }
 };
-

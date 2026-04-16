@@ -17,7 +17,7 @@ class BallotTokenFactory extends Factory
     public function definition(): array
     {
         $topic = Topic::factory()->withBallot()->create();
-        
+
         return [
             'topic_id' => $topic->id,
             'user_id' => User::factory(),
@@ -54,4 +54,3 @@ class BallotTokenFactory extends Factory
         ]);
     }
 }
-

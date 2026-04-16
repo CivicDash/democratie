@@ -374,7 +374,7 @@ function sectionActiveClass(section) {
                             <NotificationBell data-tour="notifications" />
 
                             <!-- User Dropdown -->
-                            <Dropdown align="right" width="48" data-tour="user-menu" class="hidden lg:block">
+                            <Dropdown align="right" width="48" data-tour="user-menu" class="hidden md:block">
                                 <template #trigger>
                                     <button
                                         type="button"

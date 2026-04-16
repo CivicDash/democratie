@@ -1,9 +1,6 @@
 <?php
 
 use App\Models\Maire;
-use App\Models\MaireMandat;
-use App\Models\ResultatMunicipal;
-use App\Models\ResultatListeMunicipale;
 
 it('creates new maires from election results', function () {
     $candidaturesFile = base_path('tests/Fixtures/candidatures_t1_sample.csv');

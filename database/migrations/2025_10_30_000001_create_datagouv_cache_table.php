@@ -22,7 +22,7 @@ return new class extends Migration
             $table->json('metadata')->nullable()->comment('Métadonnées supplémentaires');
             $table->timestamp('fetched_at')->comment('Date de récupération depuis data.gouv.fr');
             $table->timestamps();
-            
+
             // Index composés pour optimiser les requêtes fréquentes
             $table->index(['dataset_id', 'code_insee', 'annee'], 'idx_dataset_commune_annee');
             $table->index(['data_type', 'code_insee', 'annee'], 'idx_datatype_commune_annee');
@@ -37,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('datagouv_cache');
     }
 };
-

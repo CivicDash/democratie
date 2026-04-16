@@ -24,11 +24,11 @@ return new class extends Migration
             '$hasSenatAmeliAmd', '$hasSenatAmeliAmdsen', '$hasSenAmeli', '$hasSenatSenateursSen'; END $$;");
 
         // Supprimer la vue si elle existe
-        DB::statement("DROP VIEW IF EXISTS amendements_senat CASCADE");
+        DB::statement('DROP VIEW IF EXISTS amendements_senat CASCADE');
 
         // Cas 1: On a sen_ameli (table de correspondance ID -> matricule)
         if ($hasSenatAmeliAmd && $hasSenatAmeliAmdsen && $hasSenAmeli) {
-            DB::statement("
+            DB::statement('
                 CREATE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
@@ -51,13 +51,14 @@ return new class extends Migration
                 LEFT JOIN senat_ameli_sor sor ON amd.sorid = sor.id
                 WHERE amdsen.senid IS NOT NULL AND TRIM(sen_ameli.mat) IS NOT NULL
                 ORDER BY amd.datdep DESC NULLS LAST
-            ");
+            ');
+
             return;
         }
 
         // Cas 2: On a les tables AMELI mais pas sen_ameli, on fait une correspondance par nom
         if ($hasSenatAmeliAmd && $hasSenatAmeliAmdsen && $hasSenatSenateursSen) {
-            DB::statement("
+            DB::statement('
                 CREATE VIEW amendements_senat AS
                 SELECT 
                     amd.id AS id,
@@ -83,7 +84,8 @@ return new class extends Migration
                 )
                 WHERE amdsen.senid IS NOT NULL
                 ORDER BY amd.datdep DESC NULLS LAST
-            ");
+            ');
+
             return;
         }
 
@@ -111,7 +113,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("DROP VIEW IF EXISTS amendements_senat CASCADE");
+        DB::statement('DROP VIEW IF EXISTS amendements_senat CASCADE');
     }
 };
-

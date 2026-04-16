@@ -82,4 +82,34 @@ return [
         'timeout' => env('DOLIBARR_API_TIMEOUT', 5),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | INSEE API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | API INSEE pour les données démographiques et économiques.
+    | Inscription gratuite : https://api.insee.fr/catalogue/
+    | Produits : Séries BDM, Données locales
+    |
+    */
+    'insee' => [
+        'client_id' => env('INSEE_CLIENT_ID'),
+        'client_secret' => env('INSEE_CLIENT_SECRET'),
+        'api_key' => env('INSEE_API_KEY'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | France Travail API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | API France Travail (ex-Pôle Emploi) pour les données emploi.
+    | Inscription : https://francetravail.io/data/
+    |
+    */
+    'france_travail' => [
+        'client_id' => env('FRANCE_TRAVAIL_CLIENT_ID'),
+        'client_secret' => env('FRANCE_TRAVAIL_CLIENT_SECRET'),
+    ],
+
 ];

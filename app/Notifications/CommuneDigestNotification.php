@@ -29,21 +29,21 @@ class CommuneDigestNotification extends Notification implements ShouldQueue
         $mail = (new MailMessage)
             ->subject("Votre digest hebdomadaire CivicDash - {$communeCount} commune(s)")
             ->greeting("Bonjour {$notifiable->name},")
-            ->line("Voici votre recapitulatif de la semaine pour vos communes suivies.");
+            ->line('Voici votre recapitulatif de la semaine pour vos communes suivies.');
 
         foreach ($this->digestData as $data) {
-            $mail->line("---");
+            $mail->line('---');
             $mail->line("**{$data['commune_nom']}**");
 
             if (! empty($data['articles'])) {
-                $mail->line(count($data['articles'])." nouvel(s) article(s) :");
+                $mail->line(count($data['articles']).' nouvel(s) article(s) :');
                 foreach ($data['articles'] as $article) {
                     $mail->line("- [{$article['titre']}]({$article['url']})");
                 }
             }
 
             if (! empty($data['evenements'])) {
-                $mail->line(count($data['evenements'])." evenement(s) a venir :");
+                $mail->line(count($data['evenements']).' evenement(s) a venir :');
                 foreach ($data['evenements'] as $event) {
                     $lieu = $event['lieu'] ? " - {$event['lieu']}" : '';
                     $mail->line("- {$event['date']}{$lieu} : [{$event['titre']}]({$event['url']})");
@@ -55,7 +55,7 @@ class CommuneDigestNotification extends Notification implements ShouldQueue
             }
         }
 
-        $mail->line("---");
+        $mail->line('---');
         $mail->action('Voir mes communes', url('/'));
         $mail->salutation("L'equipe CivicDash");
 
