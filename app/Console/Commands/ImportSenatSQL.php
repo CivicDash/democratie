@@ -245,10 +245,10 @@ class ImportSenatSQL extends Command
             $username = $dbConfig['username'];
             $password = $dbConfig['password'];
 
-            // Construire la commande psql
+            // Construire la commande psql — PGPASSWORD est passé via putenv() pour éviter
+            // son exposition dans la liste des processus (ps aux).
             $command = sprintf(
-                'PGPASSWORD=%s psql -h %s -p %s -U %s -d %s -f %s 2>&1',
-                escapeshellarg($password),
+                'psql -h %s -p %s -U %s -d %s -f %s 2>&1',
                 escapeshellarg($host),
                 escapeshellarg($port),
                 escapeshellarg($username),
@@ -261,7 +261,10 @@ class ImportSenatSQL extends Command
             // Exécuter la commande
             $output = [];
             $returnVar = 0;
+            $previousPassword = getenv('PGPASSWORD');
+            putenv("PGPASSWORD={$password}");
             exec($command, $output, $returnVar);
+            putenv($previousPassword !== false ? "PGPASSWORD={$previousPassword}" : 'PGPASSWORD');
 
             // Nettoyer le fichier temporaire
             @unlink($transformedSqlFile);
