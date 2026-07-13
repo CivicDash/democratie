@@ -4,11 +4,13 @@ namespace App\Services\Presidentielle;
 
 use App\Exceptions\ModerationException;
 use App\Models\Argument;
+use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
 use App\Models\PresidentielleModerationLog;
 use App\Models\ProgrammeMesure;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * Moteur du back-office de modération présidentielle (plan §5).
@@ -99,6 +101,56 @@ class ModerationService
         $this->log($entite, 'depublication', 'valide', $entite->statut_validation, $user, $motif);
 
         return $entite;
+    }
+
+    /**
+     * Crée une mesure (statut `detecte`, non publiée) à partir d'une proposition
+     * d'ingestion validée, et rattache la proposition à cette mesure.
+     * La citation verbatim et le timestamp sont conservés pour la vérification humaine.
+     *
+     * @throws ModerationException si la proposition n'a pas de candidat/thème résolu
+     */
+    public function creerMesureDepuisProposition(IngestionProposition $p, User $user): ProgrammeMesure
+    {
+        if (! $p->candidat_id || ! $p->theme_id) {
+            throw new ModerationException('Proposition sans candidat ou thème résolu — à compléter avant rattachement.');
+        }
+
+        $mesure = ProgrammeMesure::create([
+            'candidat_id' => $p->candidat_id,
+            'theme_id' => $p->theme_id,
+            'titre' => Str::limit($p->resume_propose, 295, ''),
+            'resume' => Str::limit($p->resume_propose, 295, ''),
+            'source_officielle_url' => $p->source_url,
+            'statut_mesure' => $p->type === 'revirement' ? 'modifiee' : 'annoncee',
+            'statut_validation' => 'detecte',
+            'affiche_publiquement' => false,
+            'source_detection' => 'ingestion',
+            'detection_confidence' => $p->confiance,
+            'detection_raw_data' => [
+                'proposition_uuid' => $p->uuid,
+                'citation_verbatim' => $p->citation_verbatim,
+                'timestamp' => $p->timestamp_ou_paragraphe,
+                'type_origine' => $p->type,
+            ],
+        ]);
+
+        $p->update(['statut' => 'rattachee', 'mesure_id' => $mesure->id, 'valide_par' => $user->id, 'valide_at' => now()]);
+
+        $this->log($mesure, 'creation_depuis_proposition', null, 'detecte', $user);
+        $this->log($p, 'rattachement', $p->getOriginal('statut'), 'rattachee', $user);
+
+        return $mesure;
+    }
+
+    /** Rejette une proposition d'ingestion (statut `rejetee`), avec motif journalisé. */
+    public function rejeterProposition(IngestionProposition $p, User $user, ?string $motif = null): IngestionProposition
+    {
+        $ancien = $p->statut;
+        $p->update(['statut' => 'rejetee', 'valide_par' => $user->id, 'valide_at' => now()]);
+        $this->log($p, 'rejet', $ancien, 'rejetee', $user, $motif);
+
+        return $p;
     }
 
     /** Raisons bloquant la publication (vide = publiable). */

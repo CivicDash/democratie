@@ -47,6 +47,61 @@ class PresidentielleModerationController extends Controller
         ]);
     }
 
+    /** File d'ingestion : propositions en attente de validation. */
+    public function propositions(Request $request)
+    {
+        $propositions = IngestionProposition::with(['candidat.personnePolitique', 'theme', 'document'])
+            ->when($request->query('statut', 'detecte') !== 'tous', fn ($q) => $q->where('statut', $request->query('statut', 'detecte')))
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        return Inertia::render('Admin/Presidentielle/Propositions', [
+            'propositions' => $propositions,
+            'statut' => $request->query('statut', 'detecte'),
+        ]);
+    }
+
+    /** File des mesures par statut de validation. */
+    public function mesures(Request $request)
+    {
+        $mesures = ProgrammeMesure::with(['candidat.personnePolitique', 'theme'])
+            ->withCount(['arguments as pour_count' => fn ($q) => $q->where('sens', 'pour')->publie()])
+            ->withCount(['arguments as contre_count' => fn ($q) => $q->where('sens', 'contre')->publie()])
+            ->when($request->query('statut', 'detecte') !== 'tous', fn ($q) => $q->where('statut_validation', $request->query('statut', 'detecte')))
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        return Inertia::render('Admin/Presidentielle/Mesures', [
+            'mesures' => $mesures,
+            'statut' => $request->query('statut', 'detecte'),
+        ]);
+    }
+
+    /** Valide (crée une mesure) ou rejette une proposition d'ingestion. */
+    public function propositionAction(Request $request, ModerationService $service)
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer'],
+            'action' => ['required', 'in:valider,rejeter'],
+            'commentaire' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $proposition = IngestionProposition::findOrFail($data['id']);
+        try {
+            if ($data['action'] === 'valider') {
+                $service->creerMesureDepuisProposition($proposition, $request->user());
+            } else {
+                $service->rejeterProposition($proposition, $request->user(), $data['commentaire'] ?? null);
+            }
+        } catch (ModerationException $e) {
+            throw ValidationException::withMessages(['action' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Proposition '.($data['action'] === 'valider' ? 'rattachée à une nouvelle mesure' : 'rejetée').'.');
+    }
+
     /** Applique une action de modération à une entité. */
     public function action(Request $request, ModerationService $service)
     {

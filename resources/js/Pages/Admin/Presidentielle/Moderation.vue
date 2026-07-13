@@ -1,5 +1,5 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
@@ -20,7 +20,13 @@ function total(file) {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold">Modération — Présidentielle 2027</h2>
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold">Modération — Présidentielle 2027</h2>
+                <nav class="text-sm space-x-3">
+                    <Link :href="route('admin.presidentielle.propositions')" class="text-blue-600 hover:underline">File d'ingestion</Link>
+                    <Link :href="route('admin.presidentielle.mesures')" class="text-blue-600 hover:underline">Mesures</Link>
+                </nav>
+            </div>
         </template>
 
         <div class="max-w-5xl mx-auto p-6 space-y-6">

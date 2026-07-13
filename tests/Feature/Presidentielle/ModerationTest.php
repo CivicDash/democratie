@@ -4,12 +4,33 @@ use App\Exceptions\ModerationException;
 use App\Models\Argument;
 use App\Models\ArgumentSource;
 use App\Models\CandidatPresidentielle;
+use App\Models\IngestionDocument;
+use App\Models\IngestionProposition;
 use App\Models\PresidentielleModerationLog;
 use App\Models\ProgrammeMesure;
 use App\Models\ProgrammeTheme;
 use App\Models\User;
 use App\Services\Presidentielle\ModerationService;
 use Spatie\Permission\Models\Permission;
+
+/** Crée une proposition d'ingestion (avec candidat/thème résolus par défaut). */
+function propositionIngestion(array $overrides = []): IngestionProposition
+{
+    $doc = IngestionDocument::create(['type' => 'video', 'titre' => 'Meeting test', 'statut' => 'extrait']);
+    $candidat = CandidatPresidentielle::factory()->create();
+    $theme = ProgrammeTheme::factory()->create();
+
+    return IngestionProposition::create(array_merge([
+        'document_id' => $doc->id,
+        'candidat_id' => $candidat->id,
+        'theme_id' => $theme->id,
+        'type' => 'mesure',
+        'resume_propose' => 'Instaurer la mesure X dès le début du mandat.',
+        'citation_verbatim' => 'je ferai la mesure X',
+        'statut' => 'detecte',
+        'confiance' => 0.9,
+    ], $overrides));
+}
 
 function moderateur(): User
 {
@@ -123,4 +144,37 @@ it('applique une action via l’endpoint HTTP et bloque une publication non conf
         'type' => 'mesure', 'id' => $incomplete->id, 'action' => 'publier',
     ])->assertSessionHasErrors('action');
     expect($incomplete->fresh()->affiche_publiquement)->toBeFalse();
+});
+
+it('valide une proposition en créant une mesure rattachée en statut detecte', function () {
+    $mod = moderateur();
+    $prop = propositionIngestion();
+
+    $mesure = app(ModerationService::class)->creerMesureDepuisProposition($prop->fresh(), $mod);
+
+    expect($mesure->statut_validation)->toBe('detecte')
+        ->and($mesure->affiche_publiquement)->toBeFalse()
+        ->and($mesure->candidat_id)->toBe($prop->candidat_id)
+        ->and($mesure->detection_raw_data['citation_verbatim'])->toBe('je ferai la mesure X');
+
+    expect($prop->fresh()->statut)->toBe('rattachee')
+        ->and($prop->fresh()->mesure_id)->toBe($mesure->id);
+});
+
+it('refuse le rattachement si candidat ou thème non résolu', function () {
+    $prop = propositionIngestion(['candidat_id' => null]);
+
+    expect(fn () => app(ModerationService::class)->creerMesureDepuisProposition($prop, moderateur()))
+        ->toThrow(ModerationException::class);
+});
+
+it('rejette une proposition via l’endpoint HTTP', function () {
+    $mod = moderateur();
+    $prop = propositionIngestion();
+
+    $this->actingAs($mod)->post(route('admin.presidentielle.propositions.action'), [
+        'id' => $prop->id, 'action' => 'rejeter', 'commentaire' => 'hors périmètre',
+    ])->assertSessionHasNoErrors();
+
+    expect($prop->fresh()->statut)->toBe('rejetee');
 });

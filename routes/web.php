@@ -963,6 +963,9 @@ Route::prefix('admin/presidentielle')
         $c = App\Http\Controllers\Web\Admin\PresidentielleModerationController::class;
         Route::get('/moderation', [$c, 'index'])->name('moderation');
         Route::post('/moderation/action', [$c, 'action'])->name('moderation.action');
+        Route::get('/propositions', [$c, 'propositions'])->name('propositions');
+        Route::post('/propositions/action', [$c, 'propositionAction'])->name('propositions.action');
+        Route::get('/mesures', [$c, 'mesures'])->name('mesures');
     });
 
 /*
