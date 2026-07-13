@@ -958,7 +958,7 @@ Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'ind
 */
 Route::prefix('admin/presidentielle')
     ->name('admin.presidentielle.')
-    ->middleware(['auth', 'can:moderer_presidentielle'])
+    ->middleware(['auth', 'two-factor', 'can:moderer_presidentielle'])
     ->group(function () {
         $c = App\Http\Controllers\Web\Admin\PresidentielleModerationController::class;
         Route::get('/moderation', [$c, 'index'])->name('moderation');
