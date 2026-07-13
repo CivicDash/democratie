@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict M4zoDOcHVQeVuY7zrsf57OSm9jEqheh153Zj0wyheOmZiSGaWp96MziLOdpxCB0
+\restrict b6gzJ5gAojdUz8QQbgI08lhpnfpuCB6Jph2k844np6yoKrOca8LMBPg80lRVkFb
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -18046,6 +18046,43 @@ CREATE TABLE public.presencesrevisionentity (
 
 
 --
+-- Name: presidentielle_moderation_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.presidentielle_moderation_logs (
+    id bigint NOT NULL,
+    entite_type character varying(255) NOT NULL,
+    entite_id bigint NOT NULL,
+    action character varying(40) NOT NULL,
+    ancien_statut character varying(30),
+    nouveau_statut character varying(30),
+    commentaire text,
+    metadata jsonb,
+    moderator_id bigint,
+    created_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: presidentielle_moderation_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.presidentielle_moderation_logs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: presidentielle_moderation_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.presidentielle_moderation_logs_id_seq OWNED BY public.presidentielle_moderation_logs.id;
+
+
+--
 -- Name: profil_applicatif; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -34274,6 +34311,13 @@ ALTER TABLE ONLY public.posts ALTER COLUMN id SET DEFAULT nextval('public.posts_
 
 
 --
+-- Name: presidentielle_moderation_logs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.presidentielle_moderation_logs ALTER COLUMN id SET DEFAULT nextval('public.presidentielle_moderation_logs_id_seq'::regclass);
+
+
+--
 -- Name: profile_photo_moderations id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -37808,6 +37852,14 @@ ALTER TABLE ONLY public.presences_scrutin_surcharge
 
 ALTER TABLE ONLY public.presencesrevisionentity
     ADD CONSTRAINT presencesrevisionentity_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: presidentielle_moderation_logs presidentielle_moderation_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.presidentielle_moderation_logs
+    ADD CONSTRAINT presidentielle_moderation_logs_pkey PRIMARY KEY (id);
 
 
 --
@@ -45849,6 +45901,27 @@ CREATE INDEX posts_user_id_index ON public.posts USING btree (user_id);
 
 
 --
+-- Name: presidentielle_moderation_logs_action_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX presidentielle_moderation_logs_action_index ON public.presidentielle_moderation_logs USING btree (action);
+
+
+--
+-- Name: presidentielle_moderation_logs_entite_type_entite_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX presidentielle_moderation_logs_entite_type_entite_id_index ON public.presidentielle_moderation_logs USING btree (entite_type, entite_id);
+
+
+--
+-- Name: presidentielle_moderation_logs_moderator_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX presidentielle_moderation_logs_moderator_id_index ON public.presidentielle_moderation_logs USING btree (moderator_id);
+
+
+--
 -- Name: profile_photo_moderations_user_id_created_at_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -50642,6 +50715,14 @@ ALTER TABLE ONLY public.posts
 
 
 --
+-- Name: presidentielle_moderation_logs presidentielle_moderation_logs_moderator_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.presidentielle_moderation_logs
+    ADD CONSTRAINT presidentielle_moderation_logs_moderator_id_foreign FOREIGN KEY (moderator_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: profile_photo_moderations profile_photo_moderations_moderator_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -51333,13 +51414,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict M4zoDOcHVQeVuY7zrsf57OSm9jEqheh153Zj0wyheOmZiSGaWp96MziLOdpxCB0
+\unrestrict b6gzJ5gAojdUz8QQbgI08lhpnfpuCB6Jph2k844np6yoKrOca8LMBPg80lRVkFb
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict 4IfupBNLMbTsdf4VSazS0XphfZzQyvcnmvQdNO39sCSgydaZHulvQpjjKd2BKHP
+\restrict qwK8H0UngCKQUaoDVhNYGXdrlU76gLv2W7ETYctsOr5ohPIIPu8vWculSeXV4au
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51570,6 +51651,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 256	2026_07_13_100400_create_parcours_evenements_table	97
 257	2026_07_13_100500_create_mesure_scrutin_liens_table	97
 258	2026_07_13_100600_create_ingestion_tables	97
+259	2026_07_13_100700_create_presidentielle_moderation_logs_table	98
 \.
 
 
@@ -51577,12 +51659,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 258, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 259, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4IfupBNLMbTsdf4VSazS0XphfZzQyvcnmvQdNO39sCSgydaZHulvQpjjKd2BKHP
+\unrestrict qwK8H0UngCKQUaoDVhNYGXdrlU76gLv2W7ETYctsOr5ohPIIPu8vWculSeXV4au
 

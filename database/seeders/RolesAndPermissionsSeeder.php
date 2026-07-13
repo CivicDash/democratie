@@ -56,6 +56,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage_users',
             'manage_roles',
             'view_admin_panel',
+
+            // Présidentielle 2027
+            'moderer_presidentielle',
         ];
 
         foreach ($permissions as $permission) {
@@ -103,6 +106,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'create_sanctions',
             'revoke_sanctions',
             'hide_posts',
+            'moderer_presidentielle',
         ]);
 
         /**

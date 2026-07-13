@@ -953,6 +953,20 @@ Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'ind
 
 /*
 |--------------------------------------------------------------------------
+| Back-office présidentielle 2027 (plan §5) — permission moderer_presidentielle
+|--------------------------------------------------------------------------
+*/
+Route::prefix('admin/presidentielle')
+    ->name('admin.presidentielle.')
+    ->middleware(['auth', 'can:moderer_presidentielle'])
+    ->group(function () {
+        $c = App\Http\Controllers\Web\Admin\PresidentielleModerationController::class;
+        Route::get('/moderation', [$c, 'index'])->name('moderation');
+        Route::post('/moderation/action', [$c, 'action'])->name('moderation.action');
+    });
+
+/*
+|--------------------------------------------------------------------------
 | Authentication Routes
 |--------------------------------------------------------------------------
 */
