@@ -94,6 +94,8 @@ class IntegriteChecker
 
         if (blank($mesure->source_officielle_url)) {
             $violations[] = ['type' => 'mesure_sans_source', 'message' => "{$ref} : aucune source officielle."];
+        } elseif (! $this->estUrlValide($mesure->source_officielle_url)) {
+            $violations[] = ['type' => 'mesure_source_invalide', 'message' => "{$ref} : URL de source invalide ou placeholder (A_COMPLETER)."];
         }
 
         $pour = $mesure->arguments->where('sens', 'pour')->filter(fn ($a) => $this->argumentAvecSourceFiable($a));
@@ -115,6 +117,14 @@ class IntegriteChecker
 
     private function argumentAvecSourceFiable($argument): bool
     {
-        return $argument->sources->contains(fn ($s) => in_array($s->fiabilite, ['haute', 'moyenne'], true));
+        return $argument->sources->contains(
+            fn ($s) => in_array($s->fiabilite, ['haute', 'moyenne'], true) && $this->estUrlValide($s->url)
+        );
+    }
+
+    /** URL publique valide : absolue http(s) et sans placeholder. */
+    private function estUrlValide(?string $u): bool
+    {
+        return $u && ! str_contains($u, 'A_COMPLETER') && (bool) preg_match('#^https?://#i', $u);
     }
 }

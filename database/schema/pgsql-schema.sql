@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict b6gzJ5gAojdUz8QQbgI08lhpnfpuCB6Jph2k844np6yoKrOca8LMBPg80lRVkFb
+\restrict 3rZb91YkEi56O0b6EBn78ITwrNonR3JiculSeOEfoTphbXwYp8JBAnFjqfsCmOq
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -3190,7 +3190,8 @@ CREATE TABLE public.candidats_presidentielle (
     commentaire_validation text,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    deleted_at timestamp(0) without time zone
+    deleted_at timestamp(0) without time zone,
+    slogan character varying(200)
 );
 
 
@@ -51414,13 +51415,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict b6gzJ5gAojdUz8QQbgI08lhpnfpuCB6Jph2k844np6yoKrOca8LMBPg80lRVkFb
+\unrestrict 3rZb91YkEi56O0b6EBn78ITwrNonR3JiculSeOEfoTphbXwYp8JBAnFjqfsCmOq
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict qwK8H0UngCKQUaoDVhNYGXdrlU76gLv2W7ETYctsOr5ohPIIPu8vWculSeXV4au
+\restrict r7VQHXtOOW1tH5wxhKvoNXCePBmCoplqyjgYuAtPQ5bALf5NIvLwl4Roi7KU5Bb
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51652,6 +51653,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 257	2026_07_13_100500_create_mesure_scrutin_liens_table	97
 258	2026_07_13_100600_create_ingestion_tables	97
 259	2026_07_13_100700_create_presidentielle_moderation_logs_table	98
+260	2026_07_13_100800_add_slogan_to_candidats_presidentielle	99
 \.
 
 
@@ -51659,12 +51661,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 259, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 260, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict qwK8H0UngCKQUaoDVhNYGXdrlU76gLv2W7ETYctsOr5ohPIIPu8vWculSeXV4au
+\unrestrict r7VQHXtOOW1tH5wxhKvoNXCePBmCoplqyjgYuAtPQ5bALf5NIvLwl4Roi7KU5Bb
 
