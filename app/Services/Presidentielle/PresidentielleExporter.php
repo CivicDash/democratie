@@ -1,0 +1,239 @@
+<?php
+
+namespace App\Services\Presidentielle;
+
+use App\Models\CandidatPresidentielle;
+use App\Models\ProgrammeTheme;
+use Illuminate\Support\Facades\File;
+
+/**
+ * Génère l'export JSON statique consommé par le front Astro (plan §6).
+ * NE SORT QUE le contenu `statut_validation = valide AND affiche_publiquement = true`.
+ * `build()` produit la structure (testable) ; `write()` l'écrit sur disque.
+ * Le hash de contenu (`meta.content_hash`) est déterministe (indépendant de la date).
+ */
+class PresidentielleExporter
+{
+    public function __construct(private IntegriteChecker $integrite) {}
+
+    /** @return array<string,mixed> */
+    public function build(string $election = '2027'): array
+    {
+        $themes = ProgrammeTheme::actif()->ordonne()->get();
+        $themesExport = $themes->map(fn ($t) => [
+            'slug' => $t->slug,
+            'nom' => $t->nom,
+            'icone' => $t->icone,
+            'description' => $t->description,
+            'ordre' => $t->ordre,
+        ])->values()->all();
+
+        $candidats = CandidatPresidentielle::publie()
+            ->where('election', $election)
+            ->with([
+                'personnePolitique',
+                'mesures' => fn ($q) => $q->publie()->orderBy('ordre')->with([
+                    'theme',
+                    'arguments' => fn ($a) => $a->publie()->orderBy('ordre')->with('sources'),
+                    'scrutinLiens' => fn ($l) => $l->publie(),
+                ]),
+                'propositions' => fn ($p) => $p->whereIn('statut', ['detecte', 'validee', 'rattachee'])->with('theme'),
+            ])
+            ->orderBy('ordre_affichage')
+            ->get();
+
+        $candidatsExport = [];
+        foreach ($candidats as $candidat) {
+            $slug = $candidat->personnePolitique?->slug ?? $candidat->uuid;
+            $candidatsExport[$slug] = $this->exportCandidat($candidat, $themesExport);
+        }
+
+        $comparateur = $this->buildComparateur($candidatsExport, $themesExport);
+
+        $contenu = [
+            'election' => $election,
+            'themes' => $themesExport,
+            'candidats' => $candidatsExport,
+            'comparateur' => $comparateur,
+        ];
+
+        return $contenu + [
+            'meta' => [
+                'election' => $election,
+                'nb_candidats' => count($candidatsExport),
+                'nb_themes' => count($themesExport),
+                'content_hash' => $this->hash($contenu),
+            ],
+        ];
+    }
+
+    private function exportCandidat(CandidatPresidentielle $candidat, array $themes): array
+    {
+        $mesuresParTheme = [];
+        foreach ($candidat->mesures as $mesure) {
+            $themeSlug = $mesure->theme?->slug ?? 'autre';
+            $mesuresParTheme[$themeSlug][] = [
+                'titre' => $mesure->titre,
+                'resume' => $mesure->resume,
+                'chiffrage' => $mesure->chiffrage_annonce,
+                'source_url' => $mesure->source_officielle_url,
+                'statut' => $mesure->statut_mesure,
+                'date_annonce' => optional($mesure->date_annonce)->toDateString(),
+                'mise_en_avant' => (bool) $mesure->est_mise_en_avant,
+                'arguments' => [
+                    'pour' => $this->exportArguments($mesure->arguments->where('sens', 'pour')),
+                    'contre' => $this->exportArguments($mesure->arguments->where('sens', 'contre')),
+                ],
+                'en_pratique' => $mesure->scrutinLiens->map(fn ($l) => [
+                    'sens' => $l->sens_lien,
+                    'niveau' => $l->niveau,
+                    'explication' => $l->explication,
+                    'scrutin_date' => optional($l->scrutin_date)->toDateString(),
+                    'scrutin_intitule' => $l->scrutin_intitule,
+                    'scrutin_resultat' => $l->scrutin_resultat,
+                    'url' => $l->scrutin_url,
+                ])->values()->all(),
+            ];
+        }
+
+        // Signaux « en traitement » : propositions rattachées à un thème mais pas encore publiées.
+        $enTraitement = [];
+        foreach ($candidat->propositions as $p) {
+            $slug = $p->theme?->slug;
+            if (! $slug) {
+                continue;
+            }
+            $enTraitement[$slug] ??= ['count' => 0, 'source_url' => null];
+            $enTraitement[$slug]['count']++;
+            $enTraitement[$slug]['source_url'] ??= $p->source_url;
+        }
+
+        // État honnête par thème sur TOUT le référentiel (design spec §1.3).
+        $etatsParTheme = [];
+        foreach ($themes as $t) {
+            $slug = $t['slug'];
+            if (! empty($mesuresParTheme[$slug])) {
+                $etatsParTheme[$slug] = ['etat' => 'publie', 'nb_mesures' => count($mesuresParTheme[$slug])];
+            } elseif (! empty($enTraitement[$slug])) {
+                $etatsParTheme[$slug] = [
+                    'etat' => 'en_traitement',
+                    'nb_signaux' => $enTraitement[$slug]['count'],
+                    'source_url' => $enTraitement[$slug]['source_url'],
+                ];
+            } else {
+                $etatsParTheme[$slug] = ['etat' => 'non_exprime'];
+            }
+        }
+
+        $themesPublies = count(array_filter($etatsParTheme, fn ($e) => $e['etat'] === 'publie'));
+        $themesExprimes = count(array_filter($etatsParTheme, fn ($e) => $e['etat'] !== 'non_exprime'));
+
+        return [
+            'slug' => $candidat->personnePolitique?->slug,
+            'nom_complet' => $candidat->personnePolitique?->nom_complet,
+            'parti_soutien' => $candidat->parti_soutien,
+            'nuance' => $candidat->nuance_politique,
+            'couleur_hex' => $candidat->couleur_hex,
+            'statut_candidature' => $candidat->statut_candidature,
+            'date_declaration' => optional($candidat->date_declaration)->toDateString(),
+            'site_campagne_url' => $candidat->site_campagne_url,
+            'programme_url_officiel' => $candidat->programme_url_officiel,
+            'couverture' => [
+                'themes_publies' => $themesPublies,
+                'themes_exprimes' => $themesExprimes,
+                'themes_total' => count($themes),
+            ],
+            'etats_par_theme' => $etatsParTheme,
+            'parcours' => $candidat->personnePolitique
+                ? $candidat->personnePolitique->parcoursEvenements()->publie()->chronologique()->get()->map(fn ($e) => [
+                    'type' => $e->type,
+                    'titre' => $e->titre,
+                    'organisation' => $e->organisation,
+                    'date_debut' => optional($e->date_debut)->toDateString(),
+                    'date_fin' => optional($e->date_fin)->toDateString(),
+                    'source_url' => $e->source_url,
+                ])->values()->all()
+                : [],
+            'mesures_par_theme' => $mesuresParTheme,
+        ];
+    }
+
+    private function exportArguments($arguments): array
+    {
+        return $arguments->map(fn ($a) => [
+            'titre' => $a->titre,
+            'contenu' => $a->contenu,
+            'type' => $a->type_argument,
+            'sources' => $a->sources->map(fn ($s) => [
+                'type' => $s->type_source,
+                'titre' => $s->titre,
+                'url' => $s->url,
+                'media' => $s->media,
+                'archive_url' => $s->archive_url,
+                'fiabilite' => $s->fiabilite,
+            ])->values()->all(),
+        ])->values()->all();
+    }
+
+    /** Matrice thème → candidat → mesures mises en avant, pour le comparateur. */
+    private function buildComparateur(array $candidatsExport, array $themes): array
+    {
+        $matrice = [];
+        foreach ($themes as $theme) {
+            $ligne = [];
+            foreach ($candidatsExport as $slug => $data) {
+                $mesures = $data['mesures_par_theme'][$theme['slug']] ?? [];
+                $ligne[$slug] = array_values(array_filter($mesures, fn ($m) => $m['mise_en_avant'])) ?: $mesures;
+            }
+            $matrice[$theme['slug']] = $ligne;
+        }
+
+        return $matrice;
+    }
+
+    private function hash(array $contenu): string
+    {
+        return hash('sha256', json_encode($contenu, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    /**
+     * Écrit l'export sur disque : un fichier par candidat + themes.json +
+     * comparateur.json + meta.json. Retourne la liste des chemins écrits.
+     *
+     * @return array<int,string>
+     */
+    public function write(array $data, string $dir): array
+    {
+        File::ensureDirectoryExists($dir.'/candidats');
+        $ecrits = [];
+
+        $ecrits[] = $this->put("{$dir}/themes.json", $data['themes']);
+        $ecrits[] = $this->put("{$dir}/comparateur.json", $data['comparateur']);
+        $ecrits[] = $this->put("{$dir}/meta.json", $data['meta']);
+
+        foreach ($data['candidats'] as $slug => $candidat) {
+            $ecrits[] = $this->put("{$dir}/candidats/{$slug}.json", $candidat);
+        }
+
+        // Index des candidats (léger) pour la grille /candidats
+        $index = array_map(fn ($c) => [
+            'slug' => $c['slug'],
+            'nom_complet' => $c['nom_complet'],
+            'parti_soutien' => $c['parti_soutien'],
+            'nuance' => $c['nuance'],
+            'couleur_hex' => $c['couleur_hex'],
+            'statut_candidature' => $c['statut_candidature'],
+            'couverture' => $c['couverture'],
+        ], array_values($data['candidats']));
+        $ecrits[] = $this->put("{$dir}/candidats.json", $index);
+
+        return $ecrits;
+    }
+
+    private function put(string $path, mixed $content): string
+    {
+        File::put($path, json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        return $path;
+    }
+}

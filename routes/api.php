@@ -600,6 +600,24 @@ Route::prefix('calendar')->name('calendar.')->group(function () {
     Route::get('/feeds', [App\Http\Controllers\Api\CalendarExportController::class, 'availableFeeds'])->name('feeds');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Présidentielle 2027 — API publique read-only (plan §6)
+| Aucune auth, aucun cookie ; ne renvoie que le contenu publié ; cache + ETag.
+|--------------------------------------------------------------------------
+*/
+Route::prefix('v1/presidentielle')
+    ->name('api.v1.presidentielle.')
+    ->middleware('throttle:120,1')
+    ->group(function () {
+        $c = App\Http\Controllers\Api\Presidentielle\PresidentielleController::class;
+        Route::get('/candidats', [$c, 'candidats'])->name('candidats');
+        Route::get('/candidats/{slug}', [$c, 'candidat'])->name('candidat');
+        Route::get('/themes', [$c, 'themes'])->name('themes');
+        Route::get('/themes/{slug}/mesures', [$c, 'themeMesures'])->name('theme.mesures');
+        Route::get('/comparateur', [$c, 'comparateur'])->name('comparateur');
+    });
+
 Route::fallback(function () {
     return response()->json([
         'message' => 'Endpoint introuvable. Vérifiez l\'URL et la méthode HTTP.',

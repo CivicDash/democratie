@@ -48,3 +48,35 @@ function something()
 {
     // ..
 }
+
+/*
+|--------------------------------------------------------------------------
+| Helpers — domaine présidentielle
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Crée un candidat PUBLIÉ complet et conforme (mesure sourcée + argument « pour »
+ * ET « contre » validés et sourcés). Retourne [candidat, theme, mesure].
+ */
+function candidatPubliePublic(array $overrides = []): array
+{
+    $theme = \App\Models\ProgrammeTheme::factory()->create(['slug' => 'theme-'.uniqid(), 'actif' => true]);
+    $personne = \App\Models\PersonnePolitique::factory()->create(['slug' => 'cand-'.uniqid()]);
+    $candidat = \App\Models\CandidatPresidentielle::factory()->publie()
+        ->create(['personne_politique_id' => $personne->id] + $overrides);
+
+    $mesure = \App\Models\ProgrammeMesure::factory()->publie()->create([
+        'candidat_id' => $candidat->id,
+        'theme_id' => $theme->id,
+        'source_officielle_url' => 'https://exemple.fr/programme#m1',
+        'est_mise_en_avant' => true,
+    ]);
+
+    foreach (['pour', 'contre'] as $sens) {
+        $arg = \App\Models\Argument::factory()->publie()->create(['mesure_id' => $mesure->id, 'sens' => $sens]);
+        \App\Models\ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
+    }
+
+    return [$candidat, $theme, $mesure];
+}
