@@ -44,6 +44,11 @@ class IntegriteChecker
 
         foreach ($candidats as $candidat) {
             $label = $candidat->personnePolitique?->nom_complet ?? "candidat #{$candidat->id}";
+
+            if ($candidat->photo_url && (blank($candidat->photo_credit) || blank($candidat->photo_licence))) {
+                $violations[] = ['type' => 'photo_sans_credit', 'message' => "[{$label}] photo publiée sans crédit et/ou licence."];
+            }
+
             $volumesParCandidat[$candidat->id] = $candidat->mesures->count();
             $themesParCandidat[$candidat->id] = $candidat->mesures->pluck('theme_id')->unique()->all();
 

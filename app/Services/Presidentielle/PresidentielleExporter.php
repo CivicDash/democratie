@@ -146,6 +146,11 @@ class PresidentielleExporter
             'parti_soutien' => $candidat->parti_soutien,
             'nuance' => $candidat->nuance_politique,
             'couleur_hex' => $candidat->couleur_hex,
+            'photo' => ($candidat->photo_url && $candidat->photo_credit && $candidat->photo_licence) ? [
+                'url' => $this->url($candidat->photo_url),
+                'credit' => $candidat->photo_credit,
+                'licence' => $candidat->photo_licence,
+            ] : null,
             'statut_candidature' => $candidat->statut_candidature,
             'date_declaration' => optional($candidat->date_declaration)->toDateString(),
             'site_campagne_url' => $this->url($candidat->site_campagne_url),
