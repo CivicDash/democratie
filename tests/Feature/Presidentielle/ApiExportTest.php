@@ -6,8 +6,11 @@ use App\Models\CandidatPresidentielle;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeMesure;
 use App\Models\ProgrammeTheme;
+use App\Models\IngestionDocument;
+use App\Models\IngestionProposition;
 use App\Services\Presidentielle\IntegriteChecker;
 use App\Services\Presidentielle\PresidentielleExporter;
+use Database\Seeders\ProgrammeThemesSeeder;
 use Illuminate\Support\Facades\Artisan;
 
 // helper candidatPubliePublic() défini dans tests/Pest.php
@@ -81,4 +84,23 @@ it('la commande export refuse en cas de violation, sauf --force', function () {
 
     expect(Artisan::call('presidentielle:export', ['--path' => $dir, '--force' => true]))->toBe(0)
         ->and(file_exists("$dir/meta.json"))->toBeTrue();
+});
+
+it('calcule les états par thème : publie / en_traitement / non_exprime', function () {
+    [$candidat, $themePublie] = candidatPubliePublic();
+    (new ProgrammeThemesSeeder())->run();
+
+    // Signal "en traitement" : une proposition sur l'éducation, sans mesure publiée.
+    $edu = \App\Models\ProgrammeTheme::where('slug', 'education')->first();
+    $doc = IngestionDocument::create(['type' => 'video', 'titre' => 'M', 'statut' => 'extrait']);
+    IngestionProposition::create([
+        'document_id' => $doc->id, 'candidat_id' => $candidat->id, 'theme_id' => $edu->id,
+        'type' => 'mesure', 'resume_propose' => 'x', 'citation_verbatim' => 'y', 'statut' => 'detecte',
+    ]);
+
+    $etats = app(PresidentielleExporter::class)->build('2027')['candidats'][$candidat->personnePolitique->slug]['etats_par_theme'];
+
+    expect($etats[$themePublie->slug]['etat'])->toBe('publie')
+        ->and($etats['education']['etat'])->toBe('en_traitement')
+        ->and($etats['sante']['etat'])->toBe('non_exprime');
 });

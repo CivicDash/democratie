@@ -37,6 +37,7 @@ class PresidentielleExporter
                     'arguments' => fn ($a) => $a->publie()->orderBy('ordre')->with('sources'),
                     'scrutinLiens' => fn ($l) => $l->publie(),
                 ]),
+                'propositions' => fn ($p) => $p->whereIn('statut', ['detecte', 'validee', 'rattachee'])->with('theme'),
             ])
             ->orderBy('ordre_affichage')
             ->get();
@@ -44,7 +45,7 @@ class PresidentielleExporter
         $candidatsExport = [];
         foreach ($candidats as $candidat) {
             $slug = $candidat->personnePolitique?->slug ?? $candidat->uuid;
-            $candidatsExport[$slug] = $this->exportCandidat($candidat, count($themesExport));
+            $candidatsExport[$slug] = $this->exportCandidat($candidat, $themesExport);
         }
 
         $comparateur = $this->buildComparateur($candidatsExport, $themesExport);
@@ -66,7 +67,7 @@ class PresidentielleExporter
         ];
     }
 
-    private function exportCandidat(CandidatPresidentielle $candidat, int $nbThemes): array
+    private function exportCandidat(CandidatPresidentielle $candidat, array $themes): array
     {
         $mesuresParTheme = [];
         foreach ($candidat->mesures as $mesure) {
@@ -95,7 +96,37 @@ class PresidentielleExporter
             ];
         }
 
-        $themesCouverts = count($mesuresParTheme);
+        // Signaux « en traitement » : propositions rattachées à un thème mais pas encore publiées.
+        $enTraitement = [];
+        foreach ($candidat->propositions as $p) {
+            $slug = $p->theme?->slug;
+            if (! $slug) {
+                continue;
+            }
+            $enTraitement[$slug] ??= ['count' => 0, 'source_url' => null];
+            $enTraitement[$slug]['count']++;
+            $enTraitement[$slug]['source_url'] ??= $p->source_url;
+        }
+
+        // État honnête par thème sur TOUT le référentiel (design spec §1.3).
+        $etatsParTheme = [];
+        foreach ($themes as $t) {
+            $slug = $t['slug'];
+            if (! empty($mesuresParTheme[$slug])) {
+                $etatsParTheme[$slug] = ['etat' => 'publie', 'nb_mesures' => count($mesuresParTheme[$slug])];
+            } elseif (! empty($enTraitement[$slug])) {
+                $etatsParTheme[$slug] = [
+                    'etat' => 'en_traitement',
+                    'nb_signaux' => $enTraitement[$slug]['count'],
+                    'source_url' => $enTraitement[$slug]['source_url'],
+                ];
+            } else {
+                $etatsParTheme[$slug] = ['etat' => 'non_exprime'];
+            }
+        }
+
+        $themesPublies = count(array_filter($etatsParTheme, fn ($e) => $e['etat'] === 'publie'));
+        $themesExprimes = count(array_filter($etatsParTheme, fn ($e) => $e['etat'] !== 'non_exprime'));
 
         return [
             'slug' => $candidat->personnePolitique?->slug,
@@ -107,7 +138,12 @@ class PresidentielleExporter
             'date_declaration' => optional($candidat->date_declaration)->toDateString(),
             'site_campagne_url' => $candidat->site_campagne_url,
             'programme_url_officiel' => $candidat->programme_url_officiel,
-            'couverture' => ['themes_couverts' => $themesCouverts, 'themes_total' => $nbThemes],
+            'couverture' => [
+                'themes_publies' => $themesPublies,
+                'themes_exprimes' => $themesExprimes,
+                'themes_total' => count($themes),
+            ],
+            'etats_par_theme' => $etatsParTheme,
             'parcours' => $candidat->personnePolitique
                 ? $candidat->personnePolitique->parcoursEvenements()->publie()->chronologique()->get()->map(fn ($e) => [
                     'type' => $e->type,

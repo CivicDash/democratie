@@ -60,6 +60,11 @@ class CandidatPresidentielle extends Model
         return $this->hasMany(ProgrammeMesure::class, 'candidat_id');
     }
 
+    public function propositions(): HasMany
+    {
+        return $this->hasMany(IngestionProposition::class, 'candidat_id');
+    }
+
     public function valideur(): BelongsTo
     {
         return $this->belongsTo(User::class, 'valide_par');
