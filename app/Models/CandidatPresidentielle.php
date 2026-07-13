@@ -25,7 +25,7 @@ class CandidatPresidentielle extends Model
 
     protected $fillable = [
         'uuid', 'personne_politique_id', 'election', 'statut_candidature',
-        'date_declaration', 'parti_soutien', 'nuance_politique', 'condition',
+        'date_declaration', 'parti_soutien', 'slogan', 'nuance_politique', 'condition',
         'site_campagne_url', 'programme_url_officiel', 'couleur_hex',
         'statut_validation', 'affiche_publiquement', 'ordre_affichage',
         'source_detection', 'detecte_at', 'detection_confidence', 'detection_raw_data',

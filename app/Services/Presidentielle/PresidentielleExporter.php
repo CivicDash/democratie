@@ -63,8 +63,19 @@ class PresidentielleExporter
                 'nb_candidats' => count($candidatsExport),
                 'nb_themes' => count($themesExport),
                 'content_hash' => $this->hash($contenu),
+                'genere_le' => now()->toDateString(),
             ],
         ];
+    }
+
+    /** Ne renvoie une URL que si elle est publique et valide (jamais de placeholder). */
+    private function url(?string $u): ?string
+    {
+        if (! $u || str_contains($u, 'A_COMPLETER')) {
+            return null;
+        }
+
+        return preg_match('#^https?://#i', $u) ? $u : null;
     }
 
     private function exportCandidat(CandidatPresidentielle $candidat, array $themes): array
@@ -76,7 +87,7 @@ class PresidentielleExporter
                 'titre' => $mesure->titre,
                 'resume' => $mesure->resume,
                 'chiffrage' => $mesure->chiffrage_annonce,
-                'source_url' => $mesure->source_officielle_url,
+                'source_url' => $this->url($mesure->source_officielle_url),
                 'statut' => $mesure->statut_mesure,
                 'date_annonce' => optional($mesure->date_annonce)->toDateString(),
                 'mise_en_avant' => (bool) $mesure->est_mise_en_avant,
@@ -91,7 +102,7 @@ class PresidentielleExporter
                     'scrutin_date' => optional($l->scrutin_date)->toDateString(),
                     'scrutin_intitule' => $l->scrutin_intitule,
                     'scrutin_resultat' => $l->scrutin_resultat,
-                    'url' => $l->scrutin_url,
+                    'url' => $this->url($l->scrutin_url),
                 ])->values()->all(),
             ];
         }
@@ -118,7 +129,7 @@ class PresidentielleExporter
                 $etatsParTheme[$slug] = [
                     'etat' => 'en_traitement',
                     'nb_signaux' => $enTraitement[$slug]['count'],
-                    'source_url' => $enTraitement[$slug]['source_url'],
+                    'source_url' => $this->url($enTraitement[$slug]['source_url']),
                 ];
             } else {
                 $etatsParTheme[$slug] = ['etat' => 'non_exprime'];
@@ -131,13 +142,14 @@ class PresidentielleExporter
         return [
             'slug' => $candidat->personnePolitique?->slug,
             'nom_complet' => $candidat->personnePolitique?->nom_complet,
+            'slogan' => $candidat->slogan,
             'parti_soutien' => $candidat->parti_soutien,
             'nuance' => $candidat->nuance_politique,
             'couleur_hex' => $candidat->couleur_hex,
             'statut_candidature' => $candidat->statut_candidature,
             'date_declaration' => optional($candidat->date_declaration)->toDateString(),
-            'site_campagne_url' => $candidat->site_campagne_url,
-            'programme_url_officiel' => $candidat->programme_url_officiel,
+            'site_campagne_url' => $this->url($candidat->site_campagne_url),
+            'programme_url_officiel' => $this->url($candidat->programme_url_officiel),
             'couverture' => [
                 'themes_publies' => $themesPublies,
                 'themes_exprimes' => $themesExprimes,
@@ -151,7 +163,7 @@ class PresidentielleExporter
                     'organisation' => $e->organisation,
                     'date_debut' => optional($e->date_debut)->toDateString(),
                     'date_fin' => optional($e->date_fin)->toDateString(),
-                    'source_url' => $e->source_url,
+                    'source_url' => $this->url($e->source_url),
                 ])->values()->all()
                 : [],
             'mesures_par_theme' => $mesuresParTheme,
@@ -167,9 +179,9 @@ class PresidentielleExporter
             'sources' => $a->sources->map(fn ($s) => [
                 'type' => $s->type_source,
                 'titre' => $s->titre,
-                'url' => $s->url,
+                'url' => $this->url($s->url),
                 'media' => $s->media,
-                'archive_url' => $s->archive_url,
+                'archive_url' => $this->url($s->archive_url),
                 'fiabilite' => $s->fiabilite,
             ])->values()->all(),
         ])->values()->all();

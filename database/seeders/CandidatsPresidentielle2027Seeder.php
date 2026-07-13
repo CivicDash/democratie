@@ -21,17 +21,17 @@ class CandidatsPresidentielle2027Seeder extends Seeder
             [
                 'slug' => 'edouard-philippe', 'civilite' => 'M.', 'prenom' => 'Édouard', 'nom' => 'Philippe',
                 'parti' => 'Horizons', 'nuance' => 'CEN', 'date' => '2024-09-01',
-                'couleur' => '#2563eb', 'site' => 'https://edouardphilippe.fr',
+                'couleur' => '#2563eb', 'site' => 'https://edouardphilippe.fr', 'slogan' => 'Croire en nous',
             ],
             [
                 'slug' => 'gabriel-attal', 'civilite' => 'M.', 'prenom' => 'Gabriel', 'nom' => 'Attal',
                 'parti' => 'Renaissance', 'nuance' => 'CEN', 'date' => '2026-05-22',
-                'couleur' => '#f59e0b', 'site' => 'https://attalpresident.fr',
+                'couleur' => '#f59e0b', 'site' => 'https://attalpresident.fr', 'slogan' => "La force d'agir",
             ],
             [
                 'slug' => 'jean-luc-melenchon', 'civilite' => 'M.', 'prenom' => 'Jean-Luc', 'nom' => 'Mélenchon',
                 'parti' => 'La France insoumise', 'nuance' => 'GAU', 'date' => '2026-05-03',
-                'couleur' => '#c0392b', 'site' => 'https://melenchon2027.fr',
+                'couleur' => '#c0392b', 'site' => 'https://melenchon2027.fr', 'slogan' => null,
             ],
         ];
 
@@ -54,6 +54,7 @@ class CandidatsPresidentielle2027Seeder extends Seeder
                     'statut_candidature' => 'declare',
                     'date_declaration' => $c['date'],
                     'parti_soutien' => $c['parti'],
+                    'slogan' => $c['slogan'],
                     'nuance_politique' => $c['nuance'],
                     'site_campagne_url' => $c['site'],
                     'couleur_hex' => $c['couleur'],
