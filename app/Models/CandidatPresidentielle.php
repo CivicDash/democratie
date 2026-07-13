@@ -27,6 +27,7 @@ class CandidatPresidentielle extends Model
         'uuid', 'personne_politique_id', 'election', 'statut_candidature',
         'date_declaration', 'parti_soutien', 'slogan', 'nuance_politique', 'condition',
         'site_campagne_url', 'programme_url_officiel', 'couleur_hex',
+        'photo_url', 'photo_credit', 'photo_licence',
         'statut_validation', 'affiche_publiquement', 'ordre_affichage',
         'source_detection', 'detecte_at', 'detection_confidence', 'detection_raw_data',
         'valide_par', 'valide_at', 'commentaire_validation',

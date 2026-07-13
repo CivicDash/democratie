@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3rZb91YkEi56O0b6EBn78ITwrNonR3JiculSeOEfoTphbXwYp8JBAnFjqfsCmOq
+\restrict eB6Rknj2UMDIctofn3Wv7Rj0twwUBvZQacvobN4w93JRUVuDgL8avKdUg2C8vHb
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -3191,7 +3191,10 @@ CREATE TABLE public.candidats_presidentielle (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     deleted_at timestamp(0) without time zone,
-    slogan character varying(200)
+    slogan character varying(200),
+    photo_url character varying(500),
+    photo_credit character varying(255),
+    photo_licence character varying(120)
 );
 
 
@@ -51415,13 +51418,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3rZb91YkEi56O0b6EBn78ITwrNonR3JiculSeOEfoTphbXwYp8JBAnFjqfsCmOq
+\unrestrict eB6Rknj2UMDIctofn3Wv7Rj0twwUBvZQacvobN4w93JRUVuDgL8avKdUg2C8vHb
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict r7VQHXtOOW1tH5wxhKvoNXCePBmCoplqyjgYuAtPQ5bALf5NIvLwl4Roi7KU5Bb
+\restrict saCNxizGxe4yEwXC36EgGNEARDHe8S8HTPPpOkm8JMYfHHOLp2NIOQ2wR7QwgQ0
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51654,6 +51657,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 258	2026_07_13_100600_create_ingestion_tables	97
 259	2026_07_13_100700_create_presidentielle_moderation_logs_table	98
 260	2026_07_13_100800_add_slogan_to_candidats_presidentielle	99
+261	2026_07_13_100900_add_photo_to_candidats_presidentielle	100
 \.
 
 
@@ -51661,12 +51665,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 260, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 261, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict r7VQHXtOOW1tH5wxhKvoNXCePBmCoplqyjgYuAtPQ5bALf5NIvLwl4Roi7KU5Bb
+\unrestrict saCNxizGxe4yEwXC36EgGNEARDHe8S8HTPPpOkm8JMYfHHOLp2NIOQ2wR7QwgQ0
 
