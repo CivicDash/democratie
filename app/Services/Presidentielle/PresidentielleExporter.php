@@ -37,7 +37,7 @@ class PresidentielleExporter
                     'arguments' => fn ($a) => $a->publie()->orderBy('ordre')->with('sources'),
                     'scrutinLiens' => fn ($l) => $l->publie(),
                 ]),
-                'propositions' => fn ($p) => $p->whereIn('statut', ['detecte', 'validee', 'rattachee'])->with('theme'),
+                'propositions' => fn ($p) => $p->whereIn('statut', ['detecte', 'validee', 'rattachee'])->with(['theme', 'document']),
             ])
             ->orderBy('ordre_affichage')
             ->get();
@@ -167,7 +167,79 @@ class PresidentielleExporter
                 ])->values()->all()
                 : [],
             'mesures_par_theme' => $mesuresParTheme,
+            'prises_de_parole' => $this->exportPrisesDeParole($candidat),
         ];
+    }
+
+    /**
+     * Chronologie des prises de parole (documents d'ingestion) + citations verbatim
+     * avec timecode vérifiable (deep-link vidéo &t=Ns). Le différenciateur du site :
+     * chaque citation est vérifiable à la source en un clic.
+     */
+    private function exportPrisesDeParole(CandidatPresidentielle $candidat): array
+    {
+        $parDocument = [];
+        foreach ($candidat->propositions as $p) {
+            $doc = $p->document;
+            if (! $doc) {
+                continue;
+            }
+            $parDocument[$doc->id] ??= [
+                'titre' => $doc->titre,
+                'type' => $doc->type,
+                'date' => optional($doc->date_publication)->toDateString(),
+                'url' => $this->url($doc->url),
+                'nb' => 0,
+                'citations' => [],
+            ];
+            $secondes = $this->timecodeEnSecondes($p->timestamp_ou_paragraphe);
+            $urlSource = $this->url($p->source_url) ?? $this->url($doc->url);
+            $parDocument[$doc->id]['nb']++;
+            $parDocument[$doc->id]['citations'][] = [
+                'theme' => $p->theme?->slug,
+                'resume' => $p->resume_propose,
+                'citation' => $this->tronqueMots((string) $p->citation_verbatim, 15),
+                'timecode' => $p->timestamp_ou_paragraphe,
+                'timestamp_s' => $secondes,
+                'verifier_url' => $this->deeplinkVideo($urlSource, $secondes),
+                'statut' => $p->statut,
+            ];
+        }
+
+        return array_values($parDocument);
+    }
+
+    /** "01:10" (h:m) ou "01:10:30" (h:m:s) -> secondes. Null si non parsable. */
+    private function timecodeEnSecondes(?string $tc): ?int
+    {
+        if (! $tc || ! preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', trim($tc))) {
+            return null;
+        }
+        $parts = array_map('intval', explode(':', trim($tc)));
+
+        return count($parts) === 3
+            ? $parts[0] * 3600 + $parts[1] * 60 + $parts[2]
+            : $parts[0] * 3600 + $parts[1] * 60; // format meeting h:mm (discours > 40 min)
+    }
+
+    /** Deep-link vidéo avec timecode ; sinon renvoie l'URL telle quelle. */
+    private function deeplinkVideo(?string $url, ?int $secondes): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+        if ($secondes !== null && preg_match('#youtube\.com/watch\?v=|youtu\.be/#', $url)) {
+            return $url.(str_contains($url, '?') ? '&' : '?').'t='.$secondes.'s';
+        }
+
+        return $url;
+    }
+
+    private function tronqueMots(string $txt, int $max): string
+    {
+        $mots = preg_split('/\s+/', trim($txt));
+
+        return count($mots) <= $max ? $txt : implode(' ', array_slice($mots, 0, $max)).' …';
     }
 
     private function exportArguments($arguments): array
