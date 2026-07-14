@@ -33,7 +33,8 @@ class PresidentielleExporter
             ->where('election', $election)
             ->with([
                 'personnePolitique',
-                'mesures' => fn ($q) => $q->publie()->orderBy('ordre')->with([
+                // Publiées (comparateur, plein contenu) ET validées non publiées (« relevées »)
+                'mesures' => fn ($q) => $q->where('statut_validation', 'valide')->orderBy('ordre')->with([
                     'theme',
                     'arguments' => fn ($a) => $a->publie()->orderBy('ordre')->with('sources'),
                     'scrutinLiens' => fn ($l) => $l->publie(),
@@ -82,8 +83,20 @@ class PresidentielleExporter
     private function exportCandidat(CandidatPresidentielle $candidat, array $themes): array
     {
         $mesuresParTheme = [];
+        $mesuresRelevees = [];   // validées mais argumentaire pour/contre pas encore publié
         foreach ($candidat->mesures as $mesure) {
             $themeSlug = $mesure->theme?->slug ?? 'autre';
+            if (! $mesure->affiche_publiquement) {
+                // « Relevée » : fait vérifié, affiché a minima (titre + source), sans argumentaire
+                $mesuresRelevees[$themeSlug][] = [
+                    'titre' => $mesure->titre,
+                    'source_url' => $this->url($mesure->source_officielle_url),
+                    'date_annonce' => optional($mesure->date_annonce)->toDateString(),
+                    'statut' => $mesure->statut_mesure,
+                ];
+
+                continue;
+            }
             $mesuresParTheme[$themeSlug][] = [
                 'titre' => $mesure->titre,
                 'resume' => $mesure->resume,
@@ -120,12 +133,14 @@ class PresidentielleExporter
             $enTraitement[$slug]['source_url'] ??= $p->source_url;
         }
 
-        // État honnête par thème sur TOUT le référentiel (design spec §1.3).
+        // État honnête par thème sur TOUT le référentiel (design spec §1.3 + état « relevée »).
         $etatsParTheme = [];
         foreach ($themes as $t) {
             $slug = $t['slug'];
             if (! empty($mesuresParTheme[$slug])) {
                 $etatsParTheme[$slug] = ['etat' => 'publie', 'nb_mesures' => count($mesuresParTheme[$slug])];
+            } elseif (! empty($mesuresRelevees[$slug])) {
+                $etatsParTheme[$slug] = ['etat' => 'relevee', 'nb_mesures' => count($mesuresRelevees[$slug])];
             } elseif (! empty($enTraitement[$slug])) {
                 $etatsParTheme[$slug] = [
                     'etat' => 'en_traitement',
@@ -189,6 +204,7 @@ class PresidentielleExporter
                     ])->values()->all()
                 : [],
             'mesures_par_theme' => $mesuresParTheme,
+            'mesures_relevees_par_theme' => $mesuresRelevees,
             'prises_de_parole' => $this->exportPrisesDeParole($candidat),
             'affaires' => $this->exportAffaires($candidat->personnePolitique),
         ];

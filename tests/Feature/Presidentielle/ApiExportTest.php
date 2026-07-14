@@ -104,3 +104,22 @@ it('calcule les états par thème : publie / en_traitement / non_exprime', funct
         ->and($etats['education']['etat'])->toBe('en_traitement')
         ->and($etats['sante']['etat'])->toBe('non_exprime');
 });
+
+it('expose l état « relevée » pour une mesure validée sans argumentaire publié', function () {
+    [$candidat, $themePublie] = candidatPubliePublic();
+    // mesure validée NON publiée sur un autre thème -> relevée
+    $autre = \App\Models\ProgrammeTheme::factory()->create(['slug' => 'releve-'.uniqid(), 'actif' => true]);
+    \App\Models\ProgrammeMesure::factory()->create([
+        'candidat_id' => $candidat->id, 'theme_id' => $autre->id,
+        'statut_validation' => 'valide', 'affiche_publiquement' => false,
+        'source_officielle_url' => 'https://exemple.fr/#r',
+    ]);
+
+    $data = app(PresidentielleExporter::class)->build('2027');
+    $c = $data['candidats'][$candidat->personnePolitique->slug];
+
+    expect($c['etats_par_theme'][$autre->slug]['etat'])->toBe('relevee')
+        ->and($c['mesures_relevees_par_theme'][$autre->slug])->toHaveCount(1)
+        // le comparateur reste strict : uniquement les publiées
+        ->and($data['comparateur'][$autre->slug][$candidat->personnePolitique->slug] ?? [])->toHaveCount(0);
+});
