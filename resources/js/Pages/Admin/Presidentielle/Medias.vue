@@ -1,7 +1,8 @@
 <script setup>
 import { reactive } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
 const props = defineProps({ candidats: Array });
 
@@ -17,11 +18,9 @@ function enregistrer(id) {
     <Head title="Médias candidats — présidentielle" />
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold">Médias des candidats (portrait & bannière)</h2>
-                <nav class="text-sm space-x-3">
-                    <Link :href="route('admin.presidentielle.moderation')" class="text-blue-600 hover:underline">Tableau de bord</Link>
-                </nav>
+            <div class="space-y-3">
+                <h2 class="text-xl font-semibold">Médias des candidats (portrait, bannière & couleur)</h2>
+                <PresidentielleNav />
             </div>
         </template>
 
@@ -32,10 +31,16 @@ function enregistrer(id) {
             </p>
 
             <div v-for="c in candidats" :key="c.id" class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                <div class="flex items-center gap-3 mb-3">
+                <div class="flex items-center gap-3 mb-3 flex-wrap">
                     <img v-if="etat[c.id].photo_url" :src="etat[c.id].photo_url" alt="" class="w-12 h-12 rounded-full object-cover" />
-                    <span v-else class="w-12 h-12 rounded-full grid place-items-center text-white text-sm" :style="{ background: c.couleur_hex || '#64748b' }">{{ (c.nom||'').split(' ').map(w=>w[0]).slice(0,2).join('') }}</span>
+                    <span v-else class="w-12 h-12 rounded-full grid place-items-center text-white text-sm" :style="{ background: etat[c.id].couleur_hex || '#64748b' }">{{ (c.nom||'').split(' ').map(w=>w[0]).slice(0,2).join('') }}</span>
                     <h3 class="font-semibold">{{ c.nom }}</h3>
+                    <label class="ml-auto inline-flex items-center gap-2 text-xs text-gray-500">
+                        Couleur (miniatures, pastilles, hero)
+                        <input v-model="etat[c.id].couleur_hex" type="color" class="h-8 w-12 rounded border border-gray-300 cursor-pointer p-0.5" />
+                        <input v-model="etat[c.id].couleur_hex" type="text" pattern="#[0-9a-fA-F]{6}" placeholder="#2563eb"
+                               class="w-24 rounded border-gray-300 dark:bg-gray-800 text-xs" />
+                    </label>
                 </div>
 
                 <div class="grid md:grid-cols-2 gap-4 text-sm">

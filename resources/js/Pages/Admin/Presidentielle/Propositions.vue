@@ -1,11 +1,32 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
 const props = defineProps({
     propositions: Object, // paginator
     statut: String,
 });
+
+const fichierJson = ref(null);
+const fichierSource = ref(null);
+const envoiEnCours = ref(false);
+
+function importer() {
+    if (!fichierJson.value) return;
+    envoiEnCours.value = true;
+    router.post(route('admin.presidentielle.propositions.import'),
+        { fichier: fichierJson.value, source: fichierSource.value },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            onFinish: () => { envoiEnCours.value = false; fichierJson.value = null; fichierSource.value = null; },
+        });
+}
+
+const flash = () => usePage().props.flash ?? {};
+const erreurs = () => usePage().props.errors ?? {};
 
 const filtres = ['detecte', 'validee', 'rattachee', 'rejetee', 'tous'];
 
@@ -30,16 +51,46 @@ function nomCandidat(p) {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
+            <div class="space-y-3">
                 <h2 class="text-xl font-semibold">File d'ingestion — propositions</h2>
-                <nav class="text-sm space-x-3">
-                    <Link :href="route('admin.presidentielle.moderation')" class="text-blue-600 hover:underline">Tableau de bord</Link>
-                    <Link :href="route('admin.presidentielle.mesures')" class="text-blue-600 hover:underline">Mesures</Link>
-                </nav>
+                <PresidentielleNav />
             </div>
         </template>
 
         <div class="max-w-6xl mx-auto p-6 space-y-4">
+            <!-- Chargement d'un discours (contrat JSON §11) sans terminal -->
+            <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <summary class="cursor-pointer font-semibold text-sm">📥 Charger un discours (JSON de propositions)</summary>
+                <p class="text-xs text-gray-500 mt-2">
+                    Fichier JSON au contrat d'ingestion v1.0 (généré via Claude à partir de la transcription).
+                    Joindre la <strong>transcription source</strong> (txt/srt) pour la vérification automatique des
+                    citations verbatim — sans elle, les citations devront être vérifiées à la main.
+                    Tout entre en file de modération (<code>detecte</code>).
+                </p>
+                <form @submit.prevent="importer" class="mt-3 grid md:grid-cols-2 gap-3 text-sm">
+                    <label class="block">
+                        <span class="text-xs font-medium">JSON de propositions *</span>
+                        <input type="file" accept=".json,application/json" required
+                               @change="fichierJson = $event.target.files[0]"
+                               class="mt-1 block w-full text-xs" />
+                    </label>
+                    <label class="block">
+                        <span class="text-xs font-medium">Transcription source (recommandé)</span>
+                        <input type="file" accept=".txt,.srt,.vtt,text/plain"
+                               @change="fichierSource = $event.target.files[0]"
+                               class="mt-1 block w-full text-xs" />
+                    </label>
+                    <div class="md:col-span-2 flex items-center justify-between gap-3">
+                        <p v-if="erreurs().fichier" class="text-xs text-red-600">{{ erreurs().fichier }}</p>
+                        <p v-else-if="flash().success" class="text-xs text-green-600">{{ flash().success }}</p>
+                        <button type="submit" :disabled="envoiEnCours || !fichierJson"
+                                class="ml-auto px-4 py-2 rounded bg-blue-600 text-white text-sm disabled:opacity-50">
+                            {{ envoiEnCours ? 'Import…' : 'Importer' }}
+                        </button>
+                    </div>
+                </form>
+            </details>
+
             <div class="flex gap-2 flex-wrap">
                 <button v-for="s in filtres" :key="s" @click="filtrer(s)"
                     class="px-3 py-1 rounded-full text-sm border"

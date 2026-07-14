@@ -1,6 +1,7 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
 const props = defineProps({
     files: Object,
@@ -20,14 +21,9 @@ function total(file) {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
+            <div class="space-y-3">
                 <h2 class="text-xl font-semibold">Modération — Présidentielle 2027</h2>
-                <nav class="text-sm space-x-3">
-                    <Link :href="route('admin.presidentielle.candidats')" class="text-blue-600 hover:underline">Candidats</Link>
-                    <Link :href="route('admin.presidentielle.propositions')" class="text-blue-600 hover:underline">File d'ingestion</Link>
-                    <Link :href="route('admin.presidentielle.mesures')" class="text-blue-600 hover:underline">Mesures</Link>
-                    <Link :href="route('admin.presidentielle.medias')" class="text-blue-600 hover:underline">Médias</Link>
-                </nav>
+                <PresidentielleNav />
             </div>
         </template>
 

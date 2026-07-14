@@ -2,6 +2,7 @@
 import { reactive } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
 const props = defineProps({
     candidats: Object, // paginator
@@ -36,6 +37,10 @@ function agir(candidat, action) {
         { preserveScroll: true });
 }
 
+function syncParcours(candidat) {
+    router.post(route('admin.presidentielle.candidats.sync-parcours', candidat.id), {}, { preserveScroll: true });
+}
+
 function nom(c) {
     return c.personne_politique ? `${c.personne_politique.prenom} ${c.personne_politique.nom}` : '—';
 }
@@ -46,12 +51,9 @@ function nom(c) {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
+            <div class="space-y-3">
                 <h2 class="text-xl font-semibold">Candidats 2027</h2>
-                <nav class="text-sm space-x-3">
-                    <Link :href="route('admin.presidentielle.moderation')" class="text-blue-600 hover:underline">Tableau de bord</Link>
-                    <Link :href="route('admin.presidentielle.medias')" class="text-blue-600 hover:underline">Médias</Link>
-                </nav>
+                <PresidentielleNav />
             </div>
         </template>
 
@@ -126,8 +128,10 @@ function nom(c) {
                                 <span :class="c.affiche_publiquement ? 'text-green-600' : 'text-gray-400'">{{ c.affiche_publiquement ? '✓' : '—' }}</span>
                             </td>
                             <td class="p-3 text-right whitespace-nowrap">
+                                <button @click="syncParcours(c)" title="Importer le parcours depuis les données CivicDash (postes ministériels, mandats)"
+                                    class="px-2 py-1 text-xs rounded border border-gray-300 text-gray-600 hover:border-blue-400">⟳ Parcours</button>
                                 <button v-if="c.statut_validation !== 'valide'" @click="agir(c, 'valider')"
-                                    class="px-2 py-1 text-xs rounded bg-blue-600 text-white">Valider</button>
+                                    class="px-2 py-1 text-xs rounded bg-blue-600 text-white ml-1">Valider</button>
                                 <button v-if="c.statut_validation === 'valide' && !c.affiche_publiquement" @click="agir(c, 'publier')"
                                     class="px-2 py-1 text-xs rounded bg-green-600 text-white ml-1">Publier</button>
                                 <button v-if="c.affiche_publiquement" @click="agir(c, 'depublier')"

@@ -5,14 +5,18 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Exceptions\ModerationException;
 use App\Http\Controllers\Controller;
 use App\Models\Argument;
+use App\Models\ArgumentSource;
 use App\Models\CandidatPresidentielle;
 use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
+use App\Models\ParcoursEvenement;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeMesure;
 use App\Services\Presidentielle\IntegriteChecker;
 use App\Services\Presidentielle\ModerationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -29,6 +33,7 @@ class PresidentielleModerationController extends Controller
         'mesure' => ProgrammeMesure::class,
         'argument' => Argument::class,
         'lien' => MesureScrutinLien::class,
+        'parcours' => ParcoursEvenement::class,
     ];
 
     /** File de modération : compteurs par statut + propositions en attente. */
@@ -152,6 +157,38 @@ class PresidentielleModerationController extends Controller
         return back()->with('success', 'Candidat ajouté en file de modération (statut detecte).');
     }
 
+    /**
+     * Synchronise le parcours d'un candidat depuis les données CivicDash
+     * (postes ministériels, mandats). Les événements entrent en `detecte`.
+     */
+    public function syncParcours(CandidatPresidentielle $candidat)
+    {
+        $slug = $candidat->personnePolitique?->slug;
+        if (! $slug) {
+            throw ValidationException::withMessages(['candidat' => 'Personne politique introuvable pour ce candidat.']);
+        }
+
+        Artisan::call('presidentielle:import-parcours', ['--candidat' => $slug]);
+        $sortie = trim(preg_replace('/\s+/', ' ', Artisan::output()));
+
+        return back()->with('success', 'Sync parcours — '.Str::limit($sortie, 300));
+    }
+
+    /** File des événements de parcours (validation avant publication). */
+    public function parcours(Request $request)
+    {
+        $evenements = ParcoursEvenement::with('personnePolitique')
+            ->when($request->query('statut', 'detecte') !== 'tous', fn ($q) => $q->where('statut_validation', $request->query('statut', 'detecte')))
+            ->orderByDesc('id')
+            ->paginate(30)
+            ->withQueryString();
+
+        return Inertia::render('Admin/Presidentielle/Parcours', [
+            'evenements' => $evenements,
+            'statut' => $request->query('statut', 'detecte'),
+        ]);
+    }
+
     /** Gestion des médias (portrait + bannière) par candidat. */
     public function medias()
     {
@@ -160,7 +197,7 @@ class PresidentielleModerationController extends Controller
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'nom' => $c->personnePolitique?->nom_complet,
-                'couleur_hex' => $c->couleur_hex,
+                'couleur_hex' => $c->couleur_hex ?? '#64748b',
                 'photo_url' => $c->photo_url, 'photo_credit' => $c->photo_credit, 'photo_licence' => $c->photo_licence,
                 'hero_banner_url' => $c->hero_banner_url, 'hero_credit' => $c->hero_credit, 'hero_licence' => $c->hero_licence,
             ]);
@@ -173,6 +210,7 @@ class PresidentielleModerationController extends Controller
     {
         $data = $request->validate([
             'id' => ['required', 'integer'],
+            'couleur_hex' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'photo_url' => ['nullable', 'url', 'max:500'],
             'photo_credit' => ['nullable', 'string', 'max:255', 'required_with:photo_url'],
             'photo_licence' => ['nullable', 'string', 'max:120', 'required_with:photo_url'],
@@ -190,6 +228,115 @@ class PresidentielleModerationController extends Controller
         $candidat->update(collect($data)->except('id')->all());
 
         return back()->with('success', 'Médias enregistrés.');
+    }
+
+    /**
+     * Upload de propositions depuis le BO (contrat JSON §11 + transcription optionnelle).
+     * Réutilise la commande d'import (vérification verbatim incluse) : les modérateurs
+     * chargent les discours sans passer par le terminal. Fichiers archivés pour trace.
+     */
+    public function propositionsImport(Request $request)
+    {
+        $request->validate([
+            'fichier' => ['required', 'file', 'max:10240'],   // JSON de propositions (≤10 Mo)
+            'source' => ['nullable', 'file', 'max:20480'],    // transcription txt/srt/vtt (≤20 Mo)
+        ], [
+            'fichier.required' => 'Le fichier JSON de propositions est requis.',
+        ]);
+
+        $dir = storage_path('app/ingestion/uploads');
+        File::ensureDirectoryExists($dir);
+        $stamp = now()->format('Ymd_His').'_'.Str::random(5);
+
+        $jsonPath = $dir.'/'.$stamp.'_propositions.json';
+        $request->file('fichier')->move($dir, basename($jsonPath));
+
+        $args = ['fichier' => $jsonPath];
+        if ($request->file('source')) {
+            $srcPath = $dir.'/'.$stamp.'_transcription.txt';
+            $request->file('source')->move($dir, basename($srcPath));
+            $args['--source'] = $srcPath;
+        }
+
+        $code = Artisan::call('presidentielle:import-propositions', $args);
+        $sortie = trim(preg_replace('/\s+/', ' ', Artisan::output()));
+
+        if ($code !== 0) {
+            throw ValidationException::withMessages(['fichier' => 'Import refusé : '.Str::limit($sortie, 400)]);
+        }
+
+        return back()->with('success', Str::limit($sortie, 400));
+    }
+
+    /** Fiche « arguments » d'une mesure : pour/contre + sources + publiabilité. */
+    public function arguments(ProgrammeMesure $mesure, ModerationService $service)
+    {
+        $mesure->load(['candidat.personnePolitique', 'theme', 'arguments' => fn ($q) => $q->orderBy('sens')->orderBy('ordre'), 'arguments.sources']);
+
+        return Inertia::render('Admin/Presidentielle/Arguments', [
+            'mesure' => [
+                'id' => $mesure->id,
+                'titre' => $mesure->titre,
+                'resume' => $mesure->resume,
+                'candidat' => $mesure->candidat?->personnePolitique?->nom_complet,
+                'theme' => $mesure->theme?->nom,
+                'statut_validation' => $mesure->statut_validation,
+                'affiche_publiquement' => $mesure->affiche_publiquement,
+                'source_officielle_url' => $mesure->source_officielle_url,
+            ],
+            'arguments' => $mesure->arguments->map(fn ($a) => [
+                'id' => $a->id, 'sens' => $a->sens, 'titre' => $a->titre, 'contenu' => $a->contenu,
+                'type_argument' => $a->type_argument, 'statut_validation' => $a->statut_validation,
+                'affiche_publiquement' => $a->affiche_publiquement,
+                'valide_par' => $a->valide_par, 'double_valide_par' => $a->double_valide_par,
+                'sources' => $a->sources->map(fn ($s) => [
+                    'id' => $s->id, 'type_source' => $s->type_source, 'titre' => $s->titre,
+                    'url' => $s->url, 'media' => $s->media, 'fiabilite' => $s->fiabilite,
+                    'archive_url' => $s->archive_url,
+                ]),
+            ]),
+            'types_argument' => Argument::TYPES,
+            'types_source' => ArgumentSource::TYPES_SOURCE,
+            'raisons_non_publiable' => $service->raisonsNonPubliable($mesure),
+        ]);
+    }
+
+    /** Crée un argument (detecte) pour une mesure. */
+    public function argumentStore(Request $request)
+    {
+        $data = $request->validate([
+            'mesure_id' => ['required', 'integer', 'exists:programme_mesures,id'],
+            'sens' => ['required', 'in:pour,contre'],
+            'titre' => ['required', 'string', 'max:255'],
+            'contenu' => ['required', 'string', 'max:500'],
+            'type_argument' => ['required', 'in:'.implode(',', Argument::TYPES)],
+        ], [
+            'contenu.max' => 'Contenu limité à 500 caractères (factuel, sans adjectif militant).',
+        ]);
+
+        Argument::create($data + ['statut_validation' => 'detecte', 'affiche_publiquement' => false]);
+
+        return back()->with('success', 'Argument « '.$data['sens'].' » ajouté (detecte). Ajouter au moins une source fiable avant validation.');
+    }
+
+    /** Ajoute une source à un argument (URL obligatoire — l'intégrité l'exige). */
+    public function argumentSourceStore(Request $request)
+    {
+        $data = $request->validate([
+            'argument_id' => ['required', 'integer', 'exists:arguments,id'],
+            'type_source' => ['required', 'in:'.implode(',', ArgumentSource::TYPES_SOURCE)],
+            'titre' => ['nullable', 'string', 'max:500'],
+            'url' => ['required', 'url', 'max:1000'],
+            'media' => ['nullable', 'string', 'max:200'],
+            'date_publication' => ['nullable', 'date'],
+            'extrait' => ['nullable', 'string', 'max:1000'],
+            'archive_url' => ['nullable', 'url', 'max:1000'],
+            'fiabilite' => ['required', 'in:haute,moyenne,basse'],
+        ]);
+
+        ArgumentSource::create($data + ['verifie_par' => $request->user()->id, 'verifie_at' => now()]);
+
+        return back()->with('success', 'Source ajoutée.');
     }
 
     /** Valide (crée une mesure) ou rejette une proposition d'ingestion. */
