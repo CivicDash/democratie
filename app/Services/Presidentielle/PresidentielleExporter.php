@@ -168,14 +168,25 @@ class PresidentielleExporter
             ],
             'etats_par_theme' => $etatsParTheme,
             'parcours' => $candidat->personnePolitique
-                ? $candidat->personnePolitique->parcoursEvenements()->publie()->chronologique()->get()->map(fn ($e) => [
-                    'type' => $e->type,
-                    'titre' => $e->titre,
-                    'organisation' => $e->organisation,
-                    'date_debut' => optional($e->date_debut)->toDateString(),
-                    'date_fin' => optional($e->date_fin)->toDateString(),
-                    'source_url' => $this->url($e->source_url),
-                ])->values()->all()
+                ? $candidat->personnePolitique->parcoursEvenements()->publie()->chronologique()
+                    ->with(['actions' => fn ($q) => $q->publie()->orderBy('date_action')])
+                    ->get()->map(fn ($e) => [
+                        'type' => $e->type,
+                        'titre' => $e->titre,
+                        'organisation' => $e->organisation,
+                        'date_debut' => optional($e->date_debut)->toDateString(),
+                        'date_fin' => optional($e->date_fin)->toDateString(),
+                        'source_url' => $this->url($e->source_url),
+                        // « Actions durant cette fonction » — données CivicDash, critère mécanique
+                        'actions' => $e->actions->map(fn ($a) => [
+                            'type' => $a->type,
+                            'titre' => $a->titre_court,
+                            'date' => optional($a->date_action)->toDateString(),
+                            'explication' => $a->explication,
+                            'critere' => $a->critere,
+                            'source_url' => $this->url($a->source_url),
+                        ])->values()->all(),
+                    ])->values()->all()
                 : [],
             'mesures_par_theme' => $mesuresParTheme,
             'prises_de_parole' => $this->exportPrisesDeParole($candidat),

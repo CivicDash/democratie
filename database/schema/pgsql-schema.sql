@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Oae186MYfknZlMkoam1DbSMiSRtpk2EM4fiyHnvRY4jcxmqydY6HvIz05tWgQ36
+\restrict i9boIrTNoRWAHyMzi4KMGF43UPN76dKYgxThSDqH3pvpTwtj6JQs77sWLebOCUa
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -16661,6 +16661,53 @@ CREATE TABLE public.pairie_elusenpair (
     CONSTRAINT pairie_has_code_excel_unique CHECK ((code_excel IS NOT NULL)),
     CONSTRAINT pairie_has_order CHECK ((ordre IS NOT NULL))
 );
+
+
+--
+-- Name: parcours_actions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.parcours_actions (
+    id bigint NOT NULL,
+    uuid uuid NOT NULL,
+    parcours_evenement_id bigint NOT NULL,
+    type character varying(30) NOT NULL,
+    reference_type character varying(60),
+    reference_id character varying(100),
+    titre_court character varying(300) NOT NULL,
+    explication text,
+    date_action date,
+    source_url character varying(500),
+    source_detection character varying(30) DEFAULT 'mecanique'::character varying NOT NULL,
+    critere character varying(200),
+    statut_validation character varying(20) DEFAULT 'detecte'::character varying NOT NULL,
+    affiche_publiquement boolean DEFAULT false NOT NULL,
+    ordre integer DEFAULT 0 NOT NULL,
+    valide_par bigint,
+    valide_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    deleted_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: parcours_actions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.parcours_actions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: parcours_actions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.parcours_actions_id_seq OWNED BY public.parcours_actions.id;
 
 
 --
@@ -34248,6 +34295,13 @@ ALTER TABLE ONLY public.organes_parlementaires ALTER COLUMN id SET DEFAULT nextv
 
 
 --
+-- Name: parcours_actions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.parcours_actions ALTER COLUMN id SET DEFAULT nextval('public.parcours_actions_id_seq'::regclass);
+
+
+--
 -- Name: parcours_evenements id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -37531,6 +37585,30 @@ ALTER TABLE ONLY public.pairie_elusenpair
 
 ALTER TABLE ONLY public.pairie_elusenpair
     ADD CONSTRAINT pairie_elusenpair_pkey PRIMARY KEY (code);
+
+
+--
+-- Name: parcours_actions parcours_actions_dedup; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.parcours_actions
+    ADD CONSTRAINT parcours_actions_dedup UNIQUE (parcours_evenement_id, type, reference_id);
+
+
+--
+-- Name: parcours_actions parcours_actions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.parcours_actions
+    ADD CONSTRAINT parcours_actions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: parcours_actions parcours_actions_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.parcours_actions
+    ADD CONSTRAINT parcours_actions_uuid_unique UNIQUE (uuid);
 
 
 --
@@ -45691,6 +45769,27 @@ CREATE INDEX par_fk ON public.senat_debats_intpjl USING btree (autcod);
 
 
 --
+-- Name: parcours_actions_affiche_publiquement_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX parcours_actions_affiche_publiquement_index ON public.parcours_actions USING btree (affiche_publiquement);
+
+
+--
+-- Name: parcours_actions_parcours_evenement_id_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX parcours_actions_parcours_evenement_id_type_index ON public.parcours_actions USING btree (parcours_evenement_id, type);
+
+
+--
+-- Name: parcours_actions_statut_validation_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX parcours_actions_statut_validation_index ON public.parcours_actions USING btree (statut_validation);
+
+
+--
 -- Name: parcours_evenements_affiche_publiquement_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -50634,6 +50733,22 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+-- Name: parcours_actions parcours_actions_parcours_evenement_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.parcours_actions
+    ADD CONSTRAINT parcours_actions_parcours_evenement_id_foreign FOREIGN KEY (parcours_evenement_id) REFERENCES public.parcours_evenements(id) ON DELETE CASCADE;
+
+
+--
+-- Name: parcours_actions parcours_actions_valide_par_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.parcours_actions
+    ADD CONSTRAINT parcours_actions_valide_par_foreign FOREIGN KEY (valide_par) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: parcours_evenements parcours_evenements_personne_politique_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -51421,13 +51536,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Oae186MYfknZlMkoam1DbSMiSRtpk2EM4fiyHnvRY4jcxmqydY6HvIz05tWgQ36
+\unrestrict i9boIrTNoRWAHyMzi4KMGF43UPN76dKYgxThSDqH3pvpTwtj6JQs77sWLebOCUa
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict QRhrcCK219fewTLzU97nVpxAPnywpL1KUiAkXWvRbSe8RIzf7ae8N4La7JKwHiG
+\restrict CarZ42ewUcHFy1P3ilDMXpnFpfqQQWApL30ennlJwkGxZn8YCBfvyGQVcFJrM4y
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51662,6 +51777,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 260	2026_07_13_100800_add_slogan_to_candidats_presidentielle	99
 261	2026_07_13_100900_add_photo_to_candidats_presidentielle	100
 262	2026_07_14_100000_add_hero_banner_to_candidats_presidentielle	101
+263	2026_07_14_110000_create_parcours_actions_table	102
 \.
 
 
@@ -51669,12 +51785,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 262, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 263, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QRhrcCK219fewTLzU97nVpxAPnywpL1KUiAkXWvRbSe8RIzf7ae8N4La7JKwHiG
+\unrestrict CarZ42ewUcHFy1P3ilDMXpnFpfqQQWApL30ennlJwkGxZn8YCBfvyGQVcFJrM4y
 
