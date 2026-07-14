@@ -79,6 +79,21 @@ class PresidentielleModerationController extends Controller
         ]);
     }
 
+    /** File des candidats par statut de validation. */
+    public function candidats(Request $request)
+    {
+        $candidats = CandidatPresidentielle::with('personnePolitique')
+            ->when($request->query('statut', 'tous') !== 'tous', fn ($q) => $q->where('statut_validation', $request->query('statut')))
+            ->orderBy('ordre_affichage')->orderBy('id')
+            ->paginate(30)
+            ->withQueryString();
+
+        return Inertia::render('Admin/Presidentielle/Candidats', [
+            'candidats' => $candidats,
+            'statut' => $request->query('statut', 'tous'),
+        ]);
+    }
+
     /** Gestion des médias (portrait + bannière) par candidat. */
     public function medias()
     {
