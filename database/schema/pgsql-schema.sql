@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict i9boIrTNoRWAHyMzi4KMGF43UPN76dKYgxThSDqH3pvpTwtj6JQs77sWLebOCUa
+\restrict GZhKdWK1Svh0H7Lgn8FLl4NhiQkoQkn262C9ZcA6dw4F7q7wuLcbkKiICFuSIDj
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -3197,7 +3197,8 @@ CREATE TABLE public.candidats_presidentielle (
     photo_licence character varying(120),
     hero_banner_url character varying(500),
     hero_credit character varying(255),
-    hero_licence character varying(120)
+    hero_licence character varying(120),
+    revue_judiciaire_at date
 );
 
 
@@ -51536,13 +51537,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict i9boIrTNoRWAHyMzi4KMGF43UPN76dKYgxThSDqH3pvpTwtj6JQs77sWLebOCUa
+\unrestrict GZhKdWK1Svh0H7Lgn8FLl4NhiQkoQkn262C9ZcA6dw4F7q7wuLcbkKiICFuSIDj
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict CarZ42ewUcHFy1P3ilDMXpnFpfqQQWApL30ennlJwkGxZn8YCBfvyGQVcFJrM4y
+\restrict UWupE4ucvu5eYNdmM1fXKtgttpCXgbWCHHMeWjrVTSwQhMpOiRRmu3umfq9mTRO
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51778,6 +51779,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 261	2026_07_13_100900_add_photo_to_candidats_presidentielle	100
 262	2026_07_14_100000_add_hero_banner_to_candidats_presidentielle	101
 263	2026_07_14_110000_create_parcours_actions_table	102
+264	2026_07_14_120000_add_revue_judiciaire_at_to_candidats	103
 \.
 
 
@@ -51785,12 +51787,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 263, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 264, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict CarZ42ewUcHFy1P3ilDMXpnFpfqQQWApL30ennlJwkGxZn8YCBfvyGQVcFJrM4y
+\unrestrict UWupE4ucvu5eYNdmM1fXKtgttpCXgbWCHHMeWjrVTSwQhMpOiRRmu3umfq9mTRO
 

@@ -206,7 +206,7 @@ class PresidentielleExporter
             'mesures_par_theme' => $mesuresParTheme,
             'mesures_relevees_par_theme' => $mesuresRelevees,
             'prises_de_parole' => $this->exportPrisesDeParole($candidat),
-            'affaires' => $this->exportAffaires($candidat->personnePolitique),
+            'affaires' => $this->exportAffaires($candidat),
         ];
     }
 
@@ -226,10 +226,12 @@ class PresidentielleExporter
      * la condamnation n'est pas définitive. `en_verification` : une affaire est dans le
      * circuit de modération mais pas publiée → le front n'affiche PAS « aucune affaire ».
      */
-    private function exportAffaires(?PersonnePolitique $personne): array
+    private function exportAffaires(CandidatPresidentielle $candidat): array
     {
+        $personne = $candidat->personnePolitique;
+        $verif = optional($candidat->revue_judiciaire_at)->toDateString();
         if (! $personne) {
-            return ['publiees' => [], 'en_verification' => false];
+            return ['publiees' => [], 'en_verification' => false, 'derniere_verification' => $verif];
         }
 
         $publiees = $personne->affairesJudiciaires()
@@ -263,7 +265,7 @@ class PresidentielleExporter
             ->whereIn('statut_validation', ['detecte', 'en_review', 'a_completer'])
             ->exists();
 
-        return ['publiees' => $publiees, 'en_verification' => $enVerification];
+        return ['publiees' => $publiees, 'en_verification' => $enVerification, 'derniere_verification' => $verif];
     }
 
     /**
