@@ -61,6 +61,12 @@ const reseaux = [
                     </label>
                 </div>
 
+                <label class="block mb-3 text-sm">
+                    <span class="text-[11px] font-medium text-gray-500">Slogan de campagne (officiel, affiché en italique)</span>
+                    <input v-model="etat[c.id].slogan" maxlength="200" placeholder="ex. « La vie meilleure »"
+                           class="mt-0.5 w-full rounded border-gray-300 dark:bg-gray-800 text-sm" />
+                </label>
+
                 <div class="grid md:grid-cols-2 gap-4 text-sm">
                     <fieldset class="space-y-2">
                         <legend class="font-medium">Portrait</legend>
