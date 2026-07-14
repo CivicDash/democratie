@@ -270,3 +270,18 @@ it('refuse de retraiter une proposition déjà rattachée (anti double-clic)', f
         ->toThrow(ModerationException::class);
     expect(ProgrammeMesure::count())->toBe(1);
 });
+
+it('marque et retire une mesure « phare » via l endpoint (comparateur + quiz)', function () {
+    $mod = moderateur();
+    $mesure = mesureConforme();
+
+    $this->actingAs($mod)->post('/admin/presidentielle/moderation/action', [
+        'type' => 'mesure', 'id' => $mesure->id, 'action' => 'mettre_en_avant',
+    ])->assertSessionHasNoErrors();
+    expect($mesure->fresh()->est_mise_en_avant)->toBeTrue();
+
+    $this->actingAs($mod)->post('/admin/presidentielle/moderation/action', [
+        'type' => 'mesure', 'id' => $mesure->id, 'action' => 'retirer_en_avant',
+    ])->assertSessionHasNoErrors();
+    expect($mesure->fresh()->est_mise_en_avant)->toBeFalse();
+});
