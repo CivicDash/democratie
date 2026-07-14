@@ -285,3 +285,21 @@ it('marque et retire une mesure « phare » via l endpoint (comparateur + quiz)'
     ])->assertSessionHasNoErrors();
     expect($mesure->fresh()->est_mise_en_avant)->toBeFalse();
 });
+
+it('supprime une prise de parole et ses propositions, refuse si rattachée', function () {
+    $mod = moderateur();
+    $prop = propositionIngestion();
+    $docId = $prop->document_id;
+
+    // suppression OK (detecte)
+    $this->actingAs($mod)->delete(route('admin.presidentielle.documents.destroy', $docId))
+        ->assertSessionHasNoErrors();
+    expect(\App\Models\IngestionDocument::find($docId))->toBeNull()
+        ->and(\App\Models\IngestionProposition::find($prop->id))->toBeNull();
+
+    // refus si une proposition est rattachée
+    $prop2 = propositionIngestion(['statut' => 'rattachee']);
+    $this->actingAs($mod)->delete(route('admin.presidentielle.documents.destroy', $prop2->document_id))
+        ->assertSessionHasErrors('document');
+    expect(\App\Models\IngestionDocument::find($prop2->document_id))->not->toBeNull();
+});
