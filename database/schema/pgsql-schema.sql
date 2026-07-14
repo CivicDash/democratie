@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict wMkVBNobHax1nz3wuV65EBfXSKcqjC9ckNmEWvidmwP6b58V8Gl5wt3Y5mTLSoN
+\restrict GdQlLbUYx29KPJYUUTQ4lnirDc4gKCkDpDO44qhkNfEsMOjYdHQSMqdSgSowE5P
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -17538,7 +17538,8 @@ CREATE TABLE public.personnes_politiques (
     hatvp_type_mandat character varying(50),
     mastodon_url character varying(500),
     bluesky_url character varying(500),
-    youtube_url character varying(500)
+    youtube_url character varying(500),
+    tiktok_url character varying(500)
 );
 
 
@@ -51540,13 +51541,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wMkVBNobHax1nz3wuV65EBfXSKcqjC9ckNmEWvidmwP6b58V8Gl5wt3Y5mTLSoN
+\unrestrict GdQlLbUYx29KPJYUUTQ4lnirDc4gKCkDpDO44qhkNfEsMOjYdHQSMqdSgSowE5P
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict D0xdingxkgOUNmIlE3U0gX4gXUOgdPqKa3Z0uDUtzdjgqbsiGVJJIS0m9ziI6VB
+\restrict B7WE5mCq6RIZd8rzQ7d5a6MRCxGeWy1gBZvuJBLgK20SqMLMxJpBhhKVR6JWcRk
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51784,6 +51785,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 263	2026_07_14_110000_create_parcours_actions_table	102
 264	2026_07_14_120000_add_revue_judiciaire_at_to_candidats	103
 265	2026_07_14_130000_add_social_links_to_personnes_politiques	104
+266	2026_07_14_140000_add_tiktok_to_personnes_politiques	105
 \.
 
 
@@ -51791,12 +51793,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 265, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 266, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict D0xdingxkgOUNmIlE3U0gX4gXUOgdPqKa3Z0uDUtzdjgqbsiGVJJIS0m9ziI6VB
+\unrestrict B7WE5mCq6RIZd8rzQ7d5a6MRCxGeWy1gBZvuJBLgK20SqMLMxJpBhhKVR6JWcRk
 

@@ -185,6 +185,7 @@ class PresidentielleExporter
                 'bluesky' => $this->url($candidat->personnePolitique?->bluesky_url),
                 'linkedin' => $this->url($candidat->personnePolitique?->linkedin_url),
                 'youtube' => $this->url($candidat->personnePolitique?->youtube_url),
+                'tiktok' => $this->url($candidat->personnePolitique?->tiktok_url),
             ]),
             'couverture' => [
                 'themes_publies' => $themesPublies,

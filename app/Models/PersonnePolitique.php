@@ -37,6 +37,7 @@ class PersonnePolitique extends Model
         'mastodon_url',
         'bluesky_url',
         'youtube_url',
+        'tiktok_url',
         'site_web',
         'url_hatvp',
         'hatvp_type_mandat',

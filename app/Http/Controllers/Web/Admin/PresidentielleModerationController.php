@@ -209,6 +209,7 @@ class PresidentielleModerationController extends Controller
                 'bluesky_url' => $c->personnePolitique?->bluesky_url,
                 'linkedin_url' => $c->personnePolitique?->linkedin_url,
                 'youtube_url' => $c->personnePolitique?->youtube_url,
+                'tiktok_url' => $c->personnePolitique?->tiktok_url,
             ]);
 
         return Inertia::render('Admin/Presidentielle/Medias', ['candidats' => $candidats]);
@@ -235,6 +236,7 @@ class PresidentielleModerationController extends Controller
             'bluesky_url' => ['nullable', 'url', 'max:500'],
             'linkedin_url' => ['nullable', 'url', 'max:500'],
             'youtube_url' => ['nullable', 'url', 'max:500'],
+            'tiktok_url' => ['nullable', 'url', 'max:500'],
         ], [
             'photo_url.url' => 'Le portrait doit être une URL directe d\'image (https://…).',
             'photo_credit.required_with' => 'Le crédit du portrait est obligatoire.',
@@ -251,7 +253,7 @@ class PresidentielleModerationController extends Controller
 
         $candidat->personnePolitique?->update(collect($data)->only([
             'site_web', 'twitter_url', 'instagram_url', 'facebook_url',
-            'mastodon_url', 'bluesky_url', 'linkedin_url', 'youtube_url',
+            'mastodon_url', 'bluesky_url', 'linkedin_url', 'youtube_url', 'tiktok_url',
         ])->all());
 
         return back()->with('success', 'Médias et liens enregistrés pour '.$candidat->personnePolitique?->nom_complet.'.');
