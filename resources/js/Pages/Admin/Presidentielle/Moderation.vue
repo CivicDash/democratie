@@ -23,6 +23,7 @@ function total(file) {
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold">Modération — Présidentielle 2027</h2>
                 <nav class="text-sm space-x-3">
+                    <Link :href="route('admin.presidentielle.candidats')" class="text-blue-600 hover:underline">Candidats</Link>
                     <Link :href="route('admin.presidentielle.propositions')" class="text-blue-600 hover:underline">File d'ingestion</Link>
                     <Link :href="route('admin.presidentielle.mesures')" class="text-blue-600 hover:underline">Mesures</Link>
                     <Link :href="route('admin.presidentielle.medias')" class="text-blue-600 hover:underline">Médias</Link>
