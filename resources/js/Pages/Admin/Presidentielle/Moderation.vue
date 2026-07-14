@@ -25,6 +25,7 @@ function total(file) {
                 <nav class="text-sm space-x-3">
                     <Link :href="route('admin.presidentielle.propositions')" class="text-blue-600 hover:underline">File d'ingestion</Link>
                     <Link :href="route('admin.presidentielle.mesures')" class="text-blue-600 hover:underline">Mesures</Link>
+                    <Link :href="route('admin.presidentielle.medias')" class="text-blue-600 hover:underline">Médias</Link>
                 </nav>
             </div>
         </template>

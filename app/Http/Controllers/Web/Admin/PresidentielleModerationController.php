@@ -79,6 +79,46 @@ class PresidentielleModerationController extends Controller
         ]);
     }
 
+    /** Gestion des médias (portrait + bannière) par candidat. */
+    public function medias()
+    {
+        $candidats = CandidatPresidentielle::with('personnePolitique')
+            ->orderBy('ordre_affichage')->get()
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'nom' => $c->personnePolitique?->nom_complet,
+                'couleur_hex' => $c->couleur_hex,
+                'photo_url' => $c->photo_url, 'photo_credit' => $c->photo_credit, 'photo_licence' => $c->photo_licence,
+                'hero_banner_url' => $c->hero_banner_url, 'hero_credit' => $c->hero_credit, 'hero_licence' => $c->hero_licence,
+            ]);
+
+        return Inertia::render('Admin/Presidentielle/Medias', ['candidats' => $candidats]);
+    }
+
+    /** Enregistre les URLs d'images + crédits/licences (obligatoires si URL fournie). */
+    public function updateMedias(Request $request)
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer'],
+            'photo_url' => ['nullable', 'url', 'max:500'],
+            'photo_credit' => ['nullable', 'string', 'max:255', 'required_with:photo_url'],
+            'photo_licence' => ['nullable', 'string', 'max:120', 'required_with:photo_url'],
+            'hero_banner_url' => ['nullable', 'url', 'max:500'],
+            'hero_credit' => ['nullable', 'string', 'max:255', 'required_with:hero_banner_url'],
+            'hero_licence' => ['nullable', 'string', 'max:120', 'required_with:hero_banner_url'],
+        ], [
+            'photo_credit.required_with' => 'Le crédit du portrait est obligatoire.',
+            'photo_licence.required_with' => 'La licence du portrait est obligatoire.',
+            'hero_credit.required_with' => 'Le crédit de la bannière est obligatoire.',
+            'hero_licence.required_with' => 'La licence de la bannière est obligatoire.',
+        ]);
+
+        $candidat = CandidatPresidentielle::findOrFail($data['id']);
+        $candidat->update(collect($data)->except('id')->all());
+
+        return back()->with('success', 'Médias enregistrés.');
+    }
+
     /** Valide (crée une mesure) ou rejette une proposition d'ingestion. */
     public function propositionAction(Request $request, ModerationService $service)
     {

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict eB6Rknj2UMDIctofn3Wv7Rj0twwUBvZQacvobN4w93JRUVuDgL8avKdUg2C8vHb
+\restrict Oae186MYfknZlMkoam1DbSMiSRtpk2EM4fiyHnvRY4jcxmqydY6HvIz05tWgQ36
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -3194,7 +3194,10 @@ CREATE TABLE public.candidats_presidentielle (
     slogan character varying(200),
     photo_url character varying(500),
     photo_credit character varying(255),
-    photo_licence character varying(120)
+    photo_licence character varying(120),
+    hero_banner_url character varying(500),
+    hero_credit character varying(255),
+    hero_licence character varying(120)
 );
 
 
@@ -51418,13 +51421,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict eB6Rknj2UMDIctofn3Wv7Rj0twwUBvZQacvobN4w93JRUVuDgL8avKdUg2C8vHb
+\unrestrict Oae186MYfknZlMkoam1DbSMiSRtpk2EM4fiyHnvRY4jcxmqydY6HvIz05tWgQ36
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict saCNxizGxe4yEwXC36EgGNEARDHe8S8HTPPpOkm8JMYfHHOLp2NIOQ2wR7QwgQ0
+\restrict QRhrcCK219fewTLzU97nVpxAPnywpL1KUiAkXWvRbSe8RIzf7ae8N4La7JKwHiG
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51658,6 +51661,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 259	2026_07_13_100700_create_presidentielle_moderation_logs_table	98
 260	2026_07_13_100800_add_slogan_to_candidats_presidentielle	99
 261	2026_07_13_100900_add_photo_to_candidats_presidentielle	100
+262	2026_07_14_100000_add_hero_banner_to_candidats_presidentielle	101
 \.
 
 
@@ -51665,12 +51669,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 261, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 262, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict saCNxizGxe4yEwXC36EgGNEARDHe8S8HTPPpOkm8JMYfHHOLp2NIOQ2wR7QwgQ0
+\unrestrict QRhrcCK219fewTLzU97nVpxAPnywpL1KUiAkXWvRbSe8RIzf7ae8N4La7JKwHiG
 
