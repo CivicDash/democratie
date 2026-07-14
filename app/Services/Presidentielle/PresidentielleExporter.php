@@ -3,6 +3,7 @@
 namespace App\Services\Presidentielle;
 
 use App\Models\CandidatPresidentielle;
+use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
 use Illuminate\Support\Facades\File;
 
@@ -178,7 +179,64 @@ class PresidentielleExporter
                 : [],
             'mesures_par_theme' => $mesuresParTheme,
             'prises_de_parole' => $this->exportPrisesDeParole($candidat),
+            'affaires' => $this->exportAffaires($candidat->personnePolitique),
         ];
+    }
+
+    private const STATUT_JUDICIAIRE_LABEL = [
+        'en_cours' => 'Procédure en cours',
+        'mis_en_examen' => 'Mise en examen',
+        'condamne_premiere_instance' => 'Condamnation en première instance — appel possible',
+        'condamne_appel' => 'Condamnation en appel — pourvoi en cours',
+        'condamne_definitif' => 'Condamnation définitive',
+        'relaxe' => 'Relaxe', 'acquitte' => 'Acquittement',
+        'non_lieu' => 'Non-lieu', 'prescrit' => 'Prescrit', 'amnistie' => 'Amnistie',
+    ];
+
+    /**
+     * Volet affaires judiciaires (composant le plus sensible).
+     * `publiees` : affaires valides + affichées, avec présomption d'innocence tant que
+     * la condamnation n'est pas définitive. `en_verification` : une affaire est dans le
+     * circuit de modération mais pas publiée → le front n'affiche PAS « aucune affaire ».
+     */
+    private function exportAffaires(?PersonnePolitique $personne): array
+    {
+        if (! $personne) {
+            return ['publiees' => [], 'en_verification' => false];
+        }
+
+        $publiees = $personne->affairesJudiciaires()
+            ->where('statut_validation', 'valide')->where('affiche_publiquement', true)
+            ->with('sources')->orderBy('ordre_affichage')->get()
+            ->map(function ($a) {
+                $raw = $a->detection_raw_data ?? [];
+
+                return [
+                    'titre' => $a->titre,
+                    'statut_judiciaire' => $a->statut_judiciaire,
+                    'statut_label' => self::STATUT_JUDICIAIRE_LABEL[$a->statut_judiciaire] ?? $a->statut_judiciaire,
+                    'presomption_innocence' => $a->statut_judiciaire !== 'condamne_definitif',
+                    'aucune_mise_en_examen' => $a->statut_judiciaire === 'en_cours',
+                    'description' => $a->description,
+                    'autorite' => $a->juridiction,
+                    'qualifications' => $raw['qualifications_parquet'] ?? [],
+                    'position_interesse' => $raw['position_interesse'] ?? null,
+                    'sources' => $a->sources->map(fn ($s) => [
+                        'media' => $s->media,
+                        'url' => $this->url($s->url),
+                        'archive_url' => $this->url($s->archive_url),
+                        'date' => optional($s->date_publication)->toDateString(),
+                        'fiabilite' => $s->fiabilite,
+                    ])->values()->all(),
+                ];
+            })->values()->all();
+
+        $enVerification = $personne->affairesJudiciaires()
+            ->where('affiche_publiquement', false)
+            ->whereIn('statut_validation', ['detecte', 'en_review', 'a_completer'])
+            ->exists();
+
+        return ['publiees' => $publiees, 'en_verification' => $enVerification];
     }
 
     /**
