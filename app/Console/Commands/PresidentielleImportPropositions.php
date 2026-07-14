@@ -59,7 +59,7 @@ class PresidentielleImportPropositions extends Command
         $election = (string) $this->option('election');
         $dryRun = (bool) $this->option('dry-run');
 
-        $stats = ['insere' => 0, 'rejete_verbatim' => 0, 'candidat_inconnu' => 0, 'theme_inconnu' => 0];
+        $stats = ['insere' => 0, 'a_verifier' => 0, 'rejete_verbatim' => 0, 'candidat_inconnu' => 0, 'theme_inconnu' => 0];
 
         DB::beginTransaction();
         try {
@@ -80,15 +80,32 @@ class PresidentielleImportPropositions extends Command
             foreach ($data['propositions'] as $i => $p) {
                 $citation = (string) ($p['citation_verbatim'] ?? '');
 
-                // Garde-fou anti-hallucination : rejet si la citation n'est pas dans la source
+                // Garde-fou anti-hallucination. Correspondance EXACTE d'abord ; sinon
+                // score de similarité par mots (tolère la ponctuation et les micro-écarts
+                // des sous-titres automatiques). Trois issues :
+                //   - exact ou score ≥ 0.85 -> vérifié (verbatim_verifie = true)
+                //   - 0.55 ≤ score < 0.85    -> inséré mais À VÉRIFIER par un humain (false)
+                //   - score < 0.55           -> rejet (citation probablement hallucinée)
                 $verbatimOk = false;
+                $aVerifier = false;
                 if ($sourceNorm !== null) {
-                    $verbatimOk = $citation !== '' && str_contains($sourceNorm, $this->normalize($citation));
-                    if (! $verbatimOk) {
-                        $stats['rejete_verbatim']++;
-                        $this->line("  <fg=red>✗</> [{$i}] citation absente de la source : \"".mb_substr($citation, 0, 60).'…"');
+                    $citationNorm = $this->normalize($citation);
+                    if ($citation !== '' && str_contains($sourceNorm, $citationNorm)) {
+                        $verbatimOk = true;
+                    } else {
+                        $score = $citationNorm === '' ? 0.0 : $this->similariteMots($citationNorm, $sourceNorm);
+                        if ($score >= 0.85) {
+                            $verbatimOk = true;
+                            $this->line("  <fg=yellow>≈</> [{$i}] citation approchée (".round($score * 100)."% — sous-titres auto) : \"".mb_substr($citation, 0, 50).'…"');
+                        } elseif ($score >= 0.55) {
+                            $aVerifier = true;
+                            $this->line("  <fg=yellow>?</> [{$i}] à vérifier (".round($score * 100).'%) — insérée non vérifiée');
+                        } else {
+                            $stats['rejete_verbatim']++;
+                            $this->line("  <fg=red>✗</> [{$i}] citation absente de la source (".round($score * 100)."%) : \"".mb_substr($citation, 0, 50).'…"');
 
-                        continue;
+                            continue;
+                        }
                     }
                 }
 
@@ -121,6 +138,9 @@ class PresidentielleImportPropositions extends Command
                     ]);
                 }
                 $stats['insere']++;
+                if ($aVerifier) {
+                    $stats['a_verifier']++;
+                }
             }
 
             if ($dryRun) {
@@ -138,6 +158,7 @@ class PresidentielleImportPropositions extends Command
 
         $this->newLine();
         $this->info("Propositions insérées (detecte) : {$stats['insere']}");
+        $this->line("  dont à vérifier manuellement (verbatim non confirmé) : {$stats['a_verifier']}");
         $this->line("  Rejetées (verbatim absent) : {$stats['rejete_verbatim']}");
         $this->line("  Candidat non résolu : {$stats['candidat_inconnu']} · Thème non résolu : {$stats['theme_inconnu']}");
 
@@ -187,5 +208,52 @@ class PresidentielleImportPropositions extends Command
         $s = preg_replace('/\s+/u', ' ', $s);
 
         return trim((string) $s);
+    }
+
+    /**
+     * Similarité d'une citation (déjà normalisée) vis-à-vis de la source normalisée.
+     * Cherche la meilleure fenêtre de mots dans la source et renvoie la proportion
+     * des mots de la citation qu'elle contient (multiset). Robuste aux micro-écarts
+     * des sous-titres automatiques (ponctuation, un mot manquant çà et là).
+     * Renvoie un score dans [0, 1].
+     */
+    private function similariteMots(string $citation, string $source): float
+    {
+        $motsCitation = array_values(array_filter(explode(' ', $citation)));
+        $motsSource = array_values(array_filter(explode(' ', $source)));
+        $m = count($motsCitation);
+        $n = count($motsSource);
+        if ($m === 0 || $n < $m) {
+            return 0.0;
+        }
+
+        // Fenêtre un peu plus large que la citation pour absorber les mots intercalés.
+        $fenetre = (int) ceil($m * 1.4);
+        $besoin = [];
+        foreach ($motsCitation as $mot) {
+            $besoin[$mot] = ($besoin[$mot] ?? 0) + 1;
+        }
+
+        $meilleur = 0;
+        for ($debut = 0; $debut <= $n - $m; $debut++) {
+            $dispo = [];
+            $fin = min($n, $debut + $fenetre);
+            for ($k = $debut; $k < $fin; $k++) {
+                $mot = $motsSource[$k];
+                $dispo[$mot] = ($dispo[$mot] ?? 0) + 1;
+            }
+            $couverts = 0;
+            foreach ($besoin as $mot => $nb) {
+                $couverts += min($nb, $dispo[$mot] ?? 0);
+            }
+            if ($couverts > $meilleur) {
+                $meilleur = $couverts;
+                if ($meilleur === $m) {
+                    break;
+                }
+            }
+        }
+
+        return $meilleur / $m;
     }
 }
