@@ -178,3 +178,23 @@ it('rejette une proposition via l’endpoint HTTP', function () {
 
     expect($prop->fresh()->statut)->toBe('rejetee');
 });
+
+it('ajoute manuellement un candidat en statut detecte via le BO', function () {
+    $mod = moderateur();
+
+    $this->actingAs($mod)->post(route('admin.presidentielle.candidats.store'), [
+        'prenom' => 'Test', 'nom' => 'Candidat', 'parti' => 'Parti Test',
+        'nuance' => 'DIV', 'statut_candidature' => 'declare',
+        'date_declaration' => '2026-07-14', 'source_url' => 'https://exemple.fr/declaration',
+    ])->assertSessionHasNoErrors();
+
+    $c = \App\Models\CandidatPresidentielle::whereHas('personnePolitique', fn ($q) => $q->where('slug', 'test-candidat'))->first();
+    expect($c)->not->toBeNull()
+        ->and($c->statut_validation)->toBe('detecte')
+        ->and($c->affiche_publiquement)->toBeFalse();
+
+    // doublon refusé
+    $this->actingAs($mod)->post(route('admin.presidentielle.candidats.store'), [
+        'prenom' => 'Test', 'nom' => 'Candidat', 'statut_candidature' => 'declare',
+    ])->assertSessionHasErrors('nom');
+});

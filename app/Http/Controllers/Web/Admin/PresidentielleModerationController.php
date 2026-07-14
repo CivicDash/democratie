@@ -8,10 +8,12 @@ use App\Models\Argument;
 use App\Models\CandidatPresidentielle;
 use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
+use App\Models\PersonnePolitique;
 use App\Models\ProgrammeMesure;
 use App\Services\Presidentielle\IntegriteChecker;
 use App\Services\Presidentielle\ModerationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -92,6 +94,62 @@ class PresidentielleModerationController extends Controller
             'candidats' => $candidats,
             'statut' => $request->query('statut', 'tous'),
         ]);
+    }
+
+    /**
+     * Ajout manuel d'un candidat (ex. nouvelle déclaration de candidature).
+     * Entre TOUJOURS en statut detecte / non publié : le circuit de validation
+     * s'applique ensuite comme pour les imports. Réutilise la personne politique
+     * existante si elle est déjà en base (slug prénom-nom).
+     */
+    public function candidatStore(Request $request)
+    {
+        $data = $request->validate([
+            'prenom' => ['required', 'string', 'max:100'],
+            'nom' => ['required', 'string', 'max:100'],
+            'parti' => ['nullable', 'string', 'max:150'],
+            'nuance' => ['nullable', 'string', 'max:10'],
+            'statut_candidature' => ['required', 'in:'.implode(',', CandidatPresidentielle::STATUTS_CANDIDATURE)],
+            'date_declaration' => ['nullable', 'date'],
+            'source_url' => ['nullable', 'url', 'max:500'],
+            'site_campagne_url' => ['nullable', 'url', 'max:500'],
+            'slogan' => ['nullable', 'string', 'max:200'],
+            'couleur_hex' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ], [
+            'couleur_hex.regex' => 'Couleur au format #rrggbb.',
+        ]);
+
+        $slug = Str::slug($data['prenom'].' '.$data['nom']);
+        $personne = PersonnePolitique::firstOrCreate(
+            ['slug' => $slug],
+            [
+                'prenom' => $data['prenom'], 'nom' => $data['nom'],
+                'parti_politique' => $data['parti'] ?? null,
+                'nuance_politique' => $data['nuance'] ?? null,
+            ]
+        );
+
+        if (CandidatPresidentielle::where('personne_politique_id', $personne->id)->where('election', '2027')->exists()) {
+            throw ValidationException::withMessages(['nom' => 'Ce candidat existe déjà pour 2027 (voir la liste).']);
+        }
+
+        CandidatPresidentielle::create([
+            'personne_politique_id' => $personne->id,
+            'election' => '2027',
+            'statut_candidature' => $data['statut_candidature'],
+            'date_declaration' => $data['date_declaration'] ?? null,
+            'parti_soutien' => $data['parti'] ?? null,
+            'nuance_politique' => $data['nuance'] ?? null,
+            'slogan' => $data['slogan'] ?? null,
+            'site_campagne_url' => $data['site_campagne_url'] ?? null,
+            'couleur_hex' => $data['couleur_hex'] ?? null,
+            'detection_raw_data' => ['source_declaration_url' => $data['source_url'] ?? null],
+            'source_detection' => 'manuel',
+            'statut_validation' => 'detecte',
+            'affiche_publiquement' => false,
+        ]);
+
+        return back()->with('success', 'Candidat ajouté en file de modération (statut detecte).');
     }
 
     /** Gestion des médias (portrait + bannière) par candidat. */
