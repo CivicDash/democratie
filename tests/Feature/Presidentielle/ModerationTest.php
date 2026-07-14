@@ -198,3 +198,63 @@ it('ajoute manuellement un candidat en statut detecte via le BO', function () {
         'prenom' => 'Test', 'nom' => 'Candidat', 'statut_candidature' => 'declare',
     ])->assertSessionHasErrors('nom');
 });
+
+it('charge un JSON de propositions depuis le BO (upload)', function () {
+    $mod = moderateur();
+    (new \Database\Seeders\ProgrammeThemesSeeder())->run();
+    $candidat = CandidatPresidentielle::factory()->create();
+    $slug = $candidat->personnePolitique->slug;
+
+    $json = \Illuminate\Http\UploadedFile::fake()->createWithContent('props.json', json_encode([
+        'contrat_version' => '1.0',
+        'document_source' => ['type' => 'video', 'titre' => 'Meeting test upload'],
+        'propositions' => [[
+            'candidat_slug' => $slug, 'theme_slug' => 'education', 'type' => 'mesure',
+            'resume_propose' => 'Mesure test', 'citation_verbatim' => 'je propose la mesure test',
+        ]],
+    ]));
+
+    $this->actingAs($mod)->post(route('admin.presidentielle.propositions.import'), [
+        'fichier' => $json,
+    ])->assertSessionHasNoErrors();
+
+    expect(IngestionProposition::where('candidat_slug', $slug)->where('statut', 'detecte')->count())->toBe(1);
+});
+
+it('gère les arguments sourcés depuis le BO jusqu à la publication de la mesure', function () {
+    $mod1 = moderateur();
+    $mod2 = moderateur();
+    $candidat = CandidatPresidentielle::factory()->publie()->create();
+    $mesure = ProgrammeMesure::factory()->create([
+        'candidat_id' => $candidat->id, 'theme_id' => ProgrammeTheme::factory()->create()->id,
+        'statut_validation' => 'valide', 'source_officielle_url' => 'https://exemple.fr/#m',
+    ]);
+
+    foreach (['pour', 'contre'] as $sens) {
+        $this->actingAs($mod1)->post(route('admin.presidentielle.arguments.store'), [
+            'mesure_id' => $mesure->id, 'sens' => $sens, 'titre' => "Argument {$sens}",
+            'contenu' => 'Contenu factuel appuyé sur une étude.', 'type_argument' => 'chiffrage',
+        ])->assertSessionHasNoErrors();
+    }
+    $pour = $mesure->arguments()->where('sens', 'pour')->first();
+    $contre = $mesure->arguments()->where('sens', 'contre')->first();
+
+    foreach ([$pour, $contre] as $a) {
+        $this->actingAs($mod1)->post(route('admin.presidentielle.arguments.sources.store'), [
+            'argument_id' => $a->id, 'type_source' => 'insee', 'url' => 'https://insee.fr/etude', 'fiabilite' => 'haute',
+        ])->assertSessionHasNoErrors();
+    }
+
+    $svc = app(ModerationService::class);
+    $svc->valider($pour, $mod1);
+    $svc->publier($pour->fresh(), $mod1);
+    $svc->valider($contre, $mod1);
+    $svc->doubleValider($contre->fresh(), $mod2);
+    $svc->publier($contre->fresh(), $mod1);
+
+    // la mesure devient publiable via l'endpoint
+    $this->actingAs($mod1)->post('/admin/presidentielle/moderation/action', [
+        'type' => 'mesure', 'id' => $mesure->id, 'action' => 'publier',
+    ])->assertSessionHasNoErrors();
+    expect($mesure->fresh()->affiche_publiquement)->toBeTrue();
+});

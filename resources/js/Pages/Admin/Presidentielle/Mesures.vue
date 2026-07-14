@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
 const props = defineProps({
     mesures: Object, // paginator
@@ -31,12 +32,9 @@ function nomCandidat(m) {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
+            <div class="space-y-3">
                 <h2 class="text-xl font-semibold">Mesures de programme</h2>
-                <nav class="text-sm space-x-3">
-                    <Link :href="route('admin.presidentielle.moderation')" class="text-blue-600 hover:underline">Tableau de bord</Link>
-                    <Link :href="route('admin.presidentielle.propositions')" class="text-blue-600 hover:underline">Propositions</Link>
-                </nav>
+                <PresidentielleNav />
             </div>
         </template>
 
@@ -68,8 +66,10 @@ function nomCandidat(m) {
                             <td class="p-3 whitespace-nowrap">{{ m.theme?.nom ?? '—' }}</td>
                             <td class="p-3 max-w-md">{{ m.titre }}</td>
                             <td class="p-3 whitespace-nowrap">
-                                <span :class="m.pour_count ? 'text-green-600' : 'text-gray-400'">{{ m.pour_count }} pour</span> /
-                                <span :class="m.contre_count ? 'text-green-600' : 'text-red-500'">{{ m.contre_count }} contre</span>
+                                <Link :href="route('admin.presidentielle.mesures.arguments', m.id)" class="text-blue-600 hover:underline">
+                                    <span :class="m.pour_count ? 'text-green-600' : 'text-gray-400'">{{ m.pour_count }} pour</span> /
+                                    <span :class="m.contre_count ? 'text-green-600' : 'text-red-500'">{{ m.contre_count }} contre</span> ✎
+                                </Link>
                             </td>
                             <td class="p-3"><span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs">{{ m.statut_validation }}</span></td>
                             <td class="p-3">
