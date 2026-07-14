@@ -115,6 +115,10 @@ class ModerationService
         if (! $p->candidat_id || ! $p->theme_id) {
             throw new ModerationException('Proposition sans candidat ou thème résolu — à compléter avant rattachement.');
         }
+        // Garde anti-rejeu (double-clic) : une proposition déjà traitée ne recrée pas de mesure.
+        if ($p->statut !== 'detecte') {
+            throw new ModerationException('Proposition déjà traitée (statut : '.$p->statut.').');
+        }
 
         $mesure = ProgrammeMesure::create([
             'candidat_id' => $p->candidat_id,

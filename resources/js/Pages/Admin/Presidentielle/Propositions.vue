@@ -34,9 +34,16 @@ function filtrer(s) {
     router.get(route('admin.presidentielle.propositions'), { statut: s }, { preserveState: true, replace: true });
 }
 
+const enTraitement = ref(new Set());
+
 function agir(proposition, action) {
     if (action === 'rejeter' && !confirm('Rejeter cette proposition ?')) return;
-    router.post(route('admin.presidentielle.propositions.action'), { id: proposition.id, action }, { preserveScroll: true });
+    if (enTraitement.value.has(proposition.id)) return; // anti double-clic
+    enTraitement.value.add(proposition.id);
+    router.post(route('admin.presidentielle.propositions.action'), { id: proposition.id, action }, {
+        preserveScroll: true,
+        onFinish: () => enTraitement.value.delete(proposition.id),
+    });
 }
 
 function nomCandidat(p) {
@@ -129,8 +136,10 @@ function nomCandidat(p) {
                             </td>
                             <td class="p-3 text-right whitespace-nowrap">
                                 <template v-if="p.statut === 'detecte'">
-                                    <button @click="agir(p, 'valider')" class="px-2 py-1 text-xs rounded bg-green-600 text-white">Valider → mesure</button>
-                                    <button @click="agir(p, 'rejeter')" class="px-2 py-1 text-xs rounded bg-red-100 text-red-700 ml-1">Rejeter</button>
+                                    <button @click="agir(p, 'valider')" :disabled="enTraitement.has(p.id)"
+                                        class="px-2 py-1 text-xs rounded bg-green-600 text-white disabled:opacity-50">Valider → mesure</button>
+                                    <button @click="agir(p, 'rejeter')" :disabled="enTraitement.has(p.id)"
+                                        class="px-2 py-1 text-xs rounded bg-red-100 text-red-700 ml-1 disabled:opacity-50">Rejeter</button>
                                 </template>
                                 <span v-else class="text-xs text-gray-400">{{ p.statut }}</span>
                             </td>

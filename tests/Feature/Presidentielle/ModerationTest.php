@@ -258,3 +258,15 @@ it('gère les arguments sourcés depuis le BO jusqu à la publication de la mesu
     ])->assertSessionHasNoErrors();
     expect($mesure->fresh()->affiche_publiquement)->toBeTrue();
 });
+
+it('refuse de retraiter une proposition déjà rattachée (anti double-clic)', function () {
+    $mod = moderateur();
+    $prop = propositionIngestion();
+    $svc = app(ModerationService::class);
+
+    $svc->creerMesureDepuisProposition($prop->fresh(), $mod);
+
+    expect(fn () => $svc->creerMesureDepuisProposition($prop->fresh(), $mod))
+        ->toThrow(ModerationException::class);
+    expect(ProgrammeMesure::count())->toBe(1);
+});
