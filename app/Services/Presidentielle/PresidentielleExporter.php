@@ -40,6 +40,7 @@ class PresidentielleExporter
                     'scrutinLiens' => fn ($l) => $l->publie(),
                 ]),
                 'propositions' => fn ($p) => $p->whereIn('statut', ['detecte', 'validee', 'rattachee'])->with(['theme', 'document']),
+                'programmeDocuments' => fn ($d) => $d->publie()->with('items'),
             ])
             ->orderBy('ordre_affichage')
             ->get();
@@ -216,6 +217,7 @@ class PresidentielleExporter
                 : [],
             'mesures_par_theme' => $mesuresParTheme,
             'mesures_relevees_par_theme' => $mesuresRelevees,
+            'programme_complet' => $this->exportProgrammeComplet($candidat),
             'prises_de_parole' => $this->exportPrisesDeParole($candidat),
             'affaires' => $this->exportAffaires($candidat),
         ];
@@ -284,6 +286,39 @@ class PresidentielleExporter
      * avec timecode vérifiable (deep-link vidéo &t=Ns). Le différenciateur du site :
      * chaque citation est vérifiable à la source en un clic.
      */
+    /**
+     * Bandeau « programme complet — consulter » (plan §11.5) : référentiel officiel
+     * validé/publié, rendu en chapitres + liens d'ancre vers le texte officiel.
+     */
+    private function exportProgrammeComplet(CandidatPresidentielle $candidat): ?array
+    {
+        $doc = $candidat->programmeDocuments->first();
+        if (! $doc) {
+            return null;
+        }
+
+        $chapitres = collect($doc->structure ?? [])->map(function ($ch) use ($doc) {
+            $numero = $ch['numero'] ?? null;
+
+            return [
+                'numero' => $numero,
+                'titre' => $ch['titre'] ?? '',
+                'sous_pages' => $doc->items->where('chapitre_numero', $numero)->map(fn ($i) => [
+                    'titre' => $i->titre,
+                    'url' => $this->url($i->url_ancre),
+                ])->values()->all(),
+            ];
+        })->values()->all();
+
+        return [
+            'titre' => $doc->titre,
+            'url' => $this->url($doc->url),
+            'nb_chapitres' => count($chapitres),
+            'nb_entrees' => $doc->items->count(),
+            'chapitres' => $chapitres,
+        ];
+    }
+
     private function exportPrisesDeParole(CandidatPresidentielle $candidat): array
     {
         $parDocument = [];

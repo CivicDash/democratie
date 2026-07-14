@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict GdQlLbUYx29KPJYUUTQ4lnirDc4gKCkDpDO44qhkNfEsMOjYdHQSMqdSgSowE5P
+\restrict eE8dzQl5LdhqAdTgQwNsoUchtQ3dHKChcjWRZqC4sjgmuHKdV4qFAPZABRk1duS
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -18336,6 +18336,88 @@ ALTER SEQUENCE public.profiles_id_seq OWNED BY public.profiles.id;
 
 
 --
+-- Name: programme_document_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.programme_document_items (
+    id bigint NOT NULL,
+    document_id bigint NOT NULL,
+    chapitre_numero integer,
+    chapitre_titre character varying(300),
+    type character varying(30) DEFAULT 'sous_page'::character varying NOT NULL,
+    numero character varying(20),
+    titre character varying(500) NOT NULL,
+    texte_court character varying(300),
+    url_ancre character varying(500),
+    ordre integer DEFAULT 0 NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: programme_document_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.programme_document_items_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: programme_document_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.programme_document_items_id_seq OWNED BY public.programme_document_items.id;
+
+
+--
+-- Name: programme_documents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.programme_documents (
+    id bigint NOT NULL,
+    uuid uuid NOT NULL,
+    candidat_id bigint NOT NULL,
+    titre character varying(300) NOT NULL,
+    version character varying(60),
+    url character varying(500) NOT NULL,
+    archive_url character varying(500),
+    hash_contenu character varying(64),
+    structure jsonb,
+    statut_validation character varying(20) DEFAULT 'detecte'::character varying NOT NULL,
+    affiche_publiquement boolean DEFAULT false NOT NULL,
+    valide_par bigint,
+    valide_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    deleted_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: programme_documents_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.programme_documents_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: programme_documents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.programme_documents_id_seq OWNED BY public.programme_documents.id;
+
+
+--
 -- Name: programme_mesures; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -34398,6 +34480,20 @@ ALTER TABLE ONLY public.profiles ALTER COLUMN id SET DEFAULT nextval('public.pro
 
 
 --
+-- Name: programme_document_items id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_document_items ALTER COLUMN id SET DEFAULT nextval('public.programme_document_items_id_seq'::regclass);
+
+
+--
+-- Name: programme_documents id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_documents ALTER COLUMN id SET DEFAULT nextval('public.programme_documents_id_seq'::regclass);
+
+
+--
 -- Name: programme_mesures id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -37982,6 +38078,38 @@ ALTER TABLE ONLY public.profiles
 
 ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: programme_document_items programme_document_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_document_items
+    ADD CONSTRAINT programme_document_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: programme_documents programme_documents_candidat_id_url_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_documents
+    ADD CONSTRAINT programme_documents_candidat_id_url_unique UNIQUE (candidat_id, url);
+
+
+--
+-- Name: programme_documents programme_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_documents
+    ADD CONSTRAINT programme_documents_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: programme_documents programme_documents_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_documents
+    ADD CONSTRAINT programme_documents_uuid_unique UNIQUE (uuid);
 
 
 --
@@ -46068,6 +46196,20 @@ CREATE INDEX profiles_user_id_index ON public.profiles USING btree (user_id);
 
 
 --
+-- Name: programme_document_items_document_id_chapitre_numero_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX programme_document_items_document_id_chapitre_numero_index ON public.programme_document_items USING btree (document_id, chapitre_numero);
+
+
+--
+-- Name: programme_documents_affiche_publiquement_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX programme_documents_affiche_publiquement_index ON public.programme_documents USING btree (affiche_publiquement);
+
+
+--
 -- Name: programme_mesures_affiche_publiquement_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -50890,6 +51032,30 @@ ALTER TABLE ONLY public.profiles
 
 
 --
+-- Name: programme_document_items programme_document_items_document_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_document_items
+    ADD CONSTRAINT programme_document_items_document_id_foreign FOREIGN KEY (document_id) REFERENCES public.programme_documents(id) ON DELETE CASCADE;
+
+
+--
+-- Name: programme_documents programme_documents_candidat_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_documents
+    ADD CONSTRAINT programme_documents_candidat_id_foreign FOREIGN KEY (candidat_id) REFERENCES public.candidats_presidentielle(id) ON DELETE CASCADE;
+
+
+--
+-- Name: programme_documents programme_documents_valide_par_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.programme_documents
+    ADD CONSTRAINT programme_documents_valide_par_foreign FOREIGN KEY (valide_par) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: programme_mesures programme_mesures_candidat_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -51541,13 +51707,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict GdQlLbUYx29KPJYUUTQ4lnirDc4gKCkDpDO44qhkNfEsMOjYdHQSMqdSgSowE5P
+\unrestrict eE8dzQl5LdhqAdTgQwNsoUchtQ3dHKChcjWRZqC4sjgmuHKdV4qFAPZABRk1duS
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict B7WE5mCq6RIZd8rzQ7d5a6MRCxGeWy1gBZvuJBLgK20SqMLMxJpBhhKVR6JWcRk
+\restrict k7dfMDHfD3NJpZGqNR8Zica525rszWqLMaCuWJVT9q8mbwo1VLlDBv4kdixHetL
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51786,6 +51952,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 264	2026_07_14_120000_add_revue_judiciaire_at_to_candidats	103
 265	2026_07_14_130000_add_social_links_to_personnes_politiques	104
 266	2026_07_14_140000_add_tiktok_to_personnes_politiques	105
+267	2026_07_14_150000_create_programme_documents_tables	106
 \.
 
 
@@ -51793,12 +51960,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 266, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 267, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict B7WE5mCq6RIZd8rzQ7d5a6MRCxGeWy1gBZvuJBLgK20SqMLMxJpBhhKVR6JWcRk
+\unrestrict k7dfMDHfD3NJpZGqNR8Zica525rszWqLMaCuWJVT9q8mbwo1VLlDBv4kdixHetL
 

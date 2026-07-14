@@ -11,6 +11,7 @@ use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
 use App\Models\ParcoursEvenement;
 use App\Models\PersonnePolitique;
+use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeMesure;
 use App\Services\Presidentielle\IntegriteChecker;
 use App\Services\Presidentielle\ModerationService;
@@ -34,6 +35,7 @@ class PresidentielleModerationController extends Controller
         'argument' => Argument::class,
         'lien' => MesureScrutinLien::class,
         'parcours' => ParcoursEvenement::class,
+        'programme_document' => ProgrammeDocument::class,
     ];
 
     /** File de modération : compteurs par statut + propositions en attente. */
@@ -50,6 +52,14 @@ class PresidentielleModerationController extends Controller
                 'arguments' => $parStatut(Argument::class),
             ],
             'propositions_en_attente' => IngestionProposition::enAttente()->count(),
+            'referentiels' => ProgrammeDocument::with('candidat.personnePolitique')->withCount('items')->get()
+                ->map(fn ($d) => [
+                    'id' => $d->id, 'titre' => $d->titre, 'url' => $d->url,
+                    'candidat' => $d->candidat?->personnePolitique?->nom_complet,
+                    'nb_items' => $d->items_count,
+                    'statut_validation' => $d->statut_validation,
+                    'affiche_publiquement' => $d->affiche_publiquement,
+                ]),
             'integrite' => $integrite->analyser('2027'),
         ]);
     }
