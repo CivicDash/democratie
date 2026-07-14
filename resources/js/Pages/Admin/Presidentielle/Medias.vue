@@ -1,6 +1,6 @@
 <script setup>
-import { reactive } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { reactive, ref } from 'vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
@@ -8,10 +8,27 @@ const props = defineProps({ candidats: Array });
 
 // copie éditable locale
 const etat = reactive(Object.fromEntries(props.candidats.map((c) => [c.id, { ...c }])));
+const dernierEnregistre = ref(null);
 
 function enregistrer(id) {
+    dernierEnregistre.value = id;
     router.post(route('admin.presidentielle.medias.update'), etat[id], { preserveScroll: true });
 }
+
+const erreurs = () => usePage().props.errors ?? {};
+const flash = () => usePage().props.flash ?? {};
+
+const reseaux = [
+    ['site_campagne_url', 'Site de campagne'],
+    ['site_web', 'Site officiel / parti'],
+    ['twitter_url', 'X (Twitter)'],
+    ['instagram_url', 'Instagram'],
+    ['facebook_url', 'Facebook'],
+    ['mastodon_url', 'Mastodon'],
+    ['bluesky_url', 'Bluesky'],
+    ['linkedin_url', 'LinkedIn'],
+    ['youtube_url', 'YouTube'],
+];
 </script>
 
 <template>
@@ -58,8 +75,24 @@ function enregistrer(id) {
                     </fieldset>
                 </div>
 
-                <div class="mt-3 text-right">
-                    <button type="button" @click="enregistrer(c.id)" class="px-4 py-2 text-sm rounded bg-blue-600 text-white">Enregistrer</button>
+                <!-- Site officiel & réseaux sociaux -->
+                <details class="mt-4">
+                    <summary class="cursor-pointer text-sm font-medium">🔗 Site officiel & réseaux sociaux</summary>
+                    <div class="mt-3 grid md:grid-cols-3 gap-2 text-xs">
+                        <label v-for="[champ, libelle] in reseaux" :key="champ" class="block">
+                            <span class="text-[11px] font-medium text-gray-500">{{ libelle }}</span>
+                            <input v-model="etat[c.id][champ]" type="url" :placeholder="'https://…'"
+                                   class="mt-0.5 w-full rounded border-gray-300 dark:bg-gray-800 text-xs" />
+                        </label>
+                    </div>
+                </details>
+
+                <div class="mt-3 flex items-center justify-between gap-3">
+                    <p v-if="dernierEnregistre === c.id && Object.keys(erreurs()).length" class="text-xs text-red-600">
+                        ⚠ {{ Object.values(erreurs())[0] }}
+                    </p>
+                    <p v-else-if="dernierEnregistre === c.id && flash().success" class="text-xs text-green-600">✓ {{ flash().success }}</p>
+                    <button type="button" @click="enregistrer(c.id)" class="ml-auto px-4 py-2 text-sm rounded bg-blue-600 text-white">Enregistrer</button>
                 </div>
             </div>
         </div>

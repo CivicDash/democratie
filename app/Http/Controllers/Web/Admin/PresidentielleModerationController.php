@@ -189,7 +189,7 @@ class PresidentielleModerationController extends Controller
         ]);
     }
 
-    /** Gestion des médias (portrait + bannière) par candidat. */
+    /** Gestion des médias (portrait + bannière + couleur) et des liens par candidat. */
     public function medias()
     {
         $candidats = CandidatPresidentielle::with('personnePolitique')
@@ -200,6 +200,15 @@ class PresidentielleModerationController extends Controller
                 'couleur_hex' => $c->couleur_hex ?? '#64748b',
                 'photo_url' => $c->photo_url, 'photo_credit' => $c->photo_credit, 'photo_licence' => $c->photo_licence,
                 'hero_banner_url' => $c->hero_banner_url, 'hero_credit' => $c->hero_credit, 'hero_licence' => $c->hero_licence,
+                'site_campagne_url' => $c->site_campagne_url,
+                'site_web' => $c->personnePolitique?->site_web,
+                'twitter_url' => $c->personnePolitique?->twitter_url,
+                'instagram_url' => $c->personnePolitique?->instagram_url,
+                'facebook_url' => $c->personnePolitique?->facebook_url,
+                'mastodon_url' => $c->personnePolitique?->mastodon_url,
+                'bluesky_url' => $c->personnePolitique?->bluesky_url,
+                'linkedin_url' => $c->personnePolitique?->linkedin_url,
+                'youtube_url' => $c->personnePolitique?->youtube_url,
             ]);
 
         return Inertia::render('Admin/Presidentielle/Medias', ['candidats' => $candidats]);
@@ -217,17 +226,35 @@ class PresidentielleModerationController extends Controller
             'hero_banner_url' => ['nullable', 'url', 'max:500'],
             'hero_credit' => ['nullable', 'string', 'max:255', 'required_with:hero_banner_url'],
             'hero_licence' => ['nullable', 'string', 'max:120', 'required_with:hero_banner_url'],
+            'site_campagne_url' => ['nullable', 'url', 'max:500'],
+            'site_web' => ['nullable', 'url', 'max:500'],
+            'twitter_url' => ['nullable', 'url', 'max:500'],
+            'instagram_url' => ['nullable', 'url', 'max:500'],
+            'facebook_url' => ['nullable', 'url', 'max:500'],
+            'mastodon_url' => ['nullable', 'url', 'max:500'],
+            'bluesky_url' => ['nullable', 'url', 'max:500'],
+            'linkedin_url' => ['nullable', 'url', 'max:500'],
+            'youtube_url' => ['nullable', 'url', 'max:500'],
         ], [
+            'photo_url.url' => 'Le portrait doit être une URL directe d\'image (https://…).',
             'photo_credit.required_with' => 'Le crédit du portrait est obligatoire.',
             'photo_licence.required_with' => 'La licence du portrait est obligatoire.',
             'hero_credit.required_with' => 'Le crédit de la bannière est obligatoire.',
             'hero_licence.required_with' => 'La licence de la bannière est obligatoire.',
         ]);
 
-        $candidat = CandidatPresidentielle::findOrFail($data['id']);
-        $candidat->update(collect($data)->except('id')->all());
+        $candidat = CandidatPresidentielle::with('personnePolitique')->findOrFail($data['id']);
 
-        return back()->with('success', 'Médias enregistrés.');
+        $champsCandidat = ['couleur_hex', 'photo_url', 'photo_credit', 'photo_licence',
+            'hero_banner_url', 'hero_credit', 'hero_licence', 'site_campagne_url'];
+        $candidat->update(collect($data)->only($champsCandidat)->all());
+
+        $candidat->personnePolitique?->update(collect($data)->only([
+            'site_web', 'twitter_url', 'instagram_url', 'facebook_url',
+            'mastodon_url', 'bluesky_url', 'linkedin_url', 'youtube_url',
+        ])->all());
+
+        return back()->with('success', 'Médias et liens enregistrés pour '.$candidat->personnePolitique?->nom_complet.'.');
     }
 
     /**

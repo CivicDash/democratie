@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict GZhKdWK1Svh0H7Lgn8FLl4NhiQkoQkn262C9ZcA6dw4F7q7wuLcbkKiICFuSIDj
+\restrict wMkVBNobHax1nz3wuV65EBfXSKcqjC9ckNmEWvidmwP6b58V8Gl5wt3Y5mTLSoN
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -17535,7 +17535,10 @@ CREATE TABLE public.personnes_politiques (
     wikidata_id character varying(20),
     wikipedia_last_sync timestamp(0) without time zone,
     url_hatvp character varying(255),
-    hatvp_type_mandat character varying(50)
+    hatvp_type_mandat character varying(50),
+    mastodon_url character varying(500),
+    bluesky_url character varying(500),
+    youtube_url character varying(500)
 );
 
 
@@ -51537,13 +51540,13 @@ ALTER TABLE ONLY questions.tam_reponses
 -- PostgreSQL database dump complete
 --
 
-\unrestrict GZhKdWK1Svh0H7Lgn8FLl4NhiQkoQkn262C9ZcA6dw4F7q7wuLcbkKiICFuSIDj
+\unrestrict wMkVBNobHax1nz3wuV65EBfXSKcqjC9ckNmEWvidmwP6b58V8Gl5wt3Y5mTLSoN
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict UWupE4ucvu5eYNdmM1fXKtgttpCXgbWCHHMeWjrVTSwQhMpOiRRmu3umfq9mTRO
+\restrict D0xdingxkgOUNmIlE3U0gX4gXUOgdPqKa3Z0uDUtzdjgqbsiGVJJIS0m9ziI6VB
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.16 (Debian 15.16-0+deb12u1)
@@ -51780,6 +51783,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 262	2026_07_14_100000_add_hero_banner_to_candidats_presidentielle	101
 263	2026_07_14_110000_create_parcours_actions_table	102
 264	2026_07_14_120000_add_revue_judiciaire_at_to_candidats	103
+265	2026_07_14_130000_add_social_links_to_personnes_politiques	104
 \.
 
 
@@ -51787,12 +51791,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 264, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 265, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict UWupE4ucvu5eYNdmM1fXKtgttpCXgbWCHHMeWjrVTSwQhMpOiRRmu3umfq9mTRO
+\unrestrict D0xdingxkgOUNmIlE3U0gX4gXUOgdPqKa3Z0uDUtzdjgqbsiGVJJIS0m9ziI6VB
 
