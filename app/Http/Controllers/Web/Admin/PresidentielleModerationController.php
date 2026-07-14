@@ -408,7 +408,7 @@ class PresidentielleModerationController extends Controller
         $data = $request->validate([
             'type' => ['required', 'string', 'in:'.implode(',', array_keys(self::MODELS))],
             'id' => ['required', 'integer'],
-            'action' => ['required', 'string', 'in:prendre_en_charge,demander_complement,valider,double_valider,publier,depublier'],
+            'action' => ['required', 'string', 'in:prendre_en_charge,demander_complement,valider,double_valider,publier,depublier,mettre_en_avant,retirer_en_avant'],
             'commentaire' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -416,6 +416,17 @@ class PresidentielleModerationController extends Controller
         $entite = $model::findOrFail($data['id']);
         $user = $request->user();
         $commentaire = $data['commentaire'] ?? null;
+
+        // Mesure « phare » : alimente le comparateur (priorité) ET le quiz d'affinité.
+        // Réservé aux mesures ; sans effet public tant que la mesure n'est pas publiée.
+        if (in_array($data['action'], ['mettre_en_avant', 'retirer_en_avant'], true)) {
+            if (! $entite instanceof ProgrammeMesure) {
+                throw ValidationException::withMessages(['action' => 'La mise en avant ne concerne que les mesures.']);
+            }
+            $entite->update(['est_mise_en_avant' => $data['action'] === 'mettre_en_avant']);
+
+            return back()->with('success', $data['action'] === 'mettre_en_avant' ? 'Mesure marquée « phare » (comparateur + quiz).' : 'Mesure retirée des phares.');
+        }
 
         try {
             match ($data['action']) {
