@@ -967,6 +967,7 @@ Route::prefix('admin/presidentielle')
         Route::post('/propositions/action', [$c, 'propositionAction'])->name('propositions.action');
         Route::get('/mesures', [$c, 'mesures'])->name('mesures');
         Route::get('/candidats', [$c, 'candidats'])->name('candidats');
+        Route::post('/candidats', [$c, 'candidatStore'])->name('candidats.store');
         Route::get('/medias', [$c, 'medias'])->name('medias');
         Route::post('/medias', [$c, 'updateMedias'])->name('medias.update');
     });

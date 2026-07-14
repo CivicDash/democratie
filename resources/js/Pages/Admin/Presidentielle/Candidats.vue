@@ -1,5 +1,6 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { reactive } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
@@ -8,6 +9,22 @@ const props = defineProps({
 });
 
 const filtres = ['tous', 'detecte', 'en_review', 'a_completer', 'valide'];
+const statutsCandidature = ['declare', 'pressenti', 'investi', 'parrainages_valides', 'retire', 'elimine_t1'];
+const nuances = ['EXG', 'GAU', 'ECO', 'DVG', 'CEN', 'DVD', 'DR', 'EXD', 'DIV', 'REG'];
+
+const nouveau = reactive({
+    prenom: '', nom: '', parti: '', nuance: '', statut_candidature: 'declare',
+    date_declaration: '', source_url: '', site_campagne_url: '', slogan: '', couleur_hex: '',
+});
+
+function ajouter() {
+    router.post(route('admin.presidentielle.candidats.store'), { ...nouveau, couleur_hex: nouveau.couleur_hex || null }, {
+        preserveScroll: true,
+        onSuccess: () => Object.keys(nouveau).forEach((k) => (nouveau[k] = k === 'statut_candidature' ? 'declare' : '')),
+    });
+}
+
+const erreurs = () => usePage().props.errors ?? {};
 
 function filtrer(s) {
     router.get(route('admin.presidentielle.candidats'), { statut: s }, { preserveState: true, replace: true });
@@ -51,6 +68,36 @@ function nom(c) {
                     {{ s }}
                 </button>
             </div>
+
+            <!-- Ajout manuel (ex. nouvelle déclaration de candidature) -->
+            <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <summary class="cursor-pointer font-semibold text-sm">➕ Ajouter un candidat manuellement</summary>
+                <p class="text-xs text-gray-500 mt-2">
+                    Entre en file de modération (statut <code>detecte</code>, non publié). Fournir la source de la
+                    déclaration : elle sera exigée à la validation.
+                </p>
+                <form @submit.prevent="ajouter" class="mt-3 grid md:grid-cols-3 gap-3 text-sm">
+                    <input v-model="nouveau.prenom" required placeholder="Prénom *" class="rounded border-gray-300 dark:bg-gray-800" />
+                    <input v-model="nouveau.nom" required placeholder="Nom *" class="rounded border-gray-300 dark:bg-gray-800" />
+                    <input v-model="nouveau.parti" placeholder="Parti / soutien" class="rounded border-gray-300 dark:bg-gray-800" />
+                    <select v-model="nouveau.nuance" class="rounded border-gray-300 dark:bg-gray-800">
+                        <option value="">Nuance…</option>
+                        <option v-for="n in nuances" :key="n" :value="n">{{ n }}</option>
+                    </select>
+                    <select v-model="nouveau.statut_candidature" class="rounded border-gray-300 dark:bg-gray-800">
+                        <option v-for="s in statutsCandidature" :key="s" :value="s">{{ s }}</option>
+                    </select>
+                    <input v-model="nouveau.date_declaration" type="date" class="rounded border-gray-300 dark:bg-gray-800" />
+                    <input v-model="nouveau.source_url" type="url" placeholder="Source de la déclaration (URL)" class="rounded border-gray-300 dark:bg-gray-800 md:col-span-2" />
+                    <input v-model="nouveau.site_campagne_url" type="url" placeholder="Site de campagne (URL)" class="rounded border-gray-300 dark:bg-gray-800" />
+                    <input v-model="nouveau.slogan" placeholder="Slogan (officiel)" class="rounded border-gray-300 dark:bg-gray-800 md:col-span-2" />
+                    <input v-model="nouveau.couleur_hex" placeholder="#2563eb" pattern="#[0-9a-fA-F]{6}" class="rounded border-gray-300 dark:bg-gray-800" />
+                    <div class="md:col-span-3 flex items-center justify-between">
+                        <p v-if="Object.keys(erreurs()).length" class="text-xs text-red-600">{{ Object.values(erreurs())[0] }}</p>
+                        <button type="submit" class="ml-auto px-4 py-2 rounded bg-blue-600 text-white text-sm">Ajouter (detecte)</button>
+                    </div>
+                </form>
+            </details>
 
             <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
                 <table class="min-w-full text-sm">
