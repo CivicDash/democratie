@@ -953,6 +953,33 @@ Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'ind
 
 /*
 |--------------------------------------------------------------------------
+| Back-office présidentielle 2027 (plan §5) — permission moderer_presidentielle
+|--------------------------------------------------------------------------
+*/
+Route::prefix('admin/presidentielle')
+    ->name('admin.presidentielle.')
+    ->middleware(['auth', 'two-factor', 'can:moderer_presidentielle'])
+    ->group(function () {
+        $c = App\Http\Controllers\Web\Admin\PresidentielleModerationController::class;
+        Route::get('/moderation', [$c, 'index'])->name('moderation');
+        Route::post('/moderation/action', [$c, 'action'])->name('moderation.action');
+        Route::get('/propositions', [$c, 'propositions'])->name('propositions');
+        Route::post('/propositions/action', [$c, 'propositionAction'])->name('propositions.action');
+        Route::post('/propositions/import', [$c, 'propositionsImport'])->name('propositions.import');
+        Route::get('/mesures', [$c, 'mesures'])->name('mesures');
+        Route::get('/mesures/{mesure}/arguments', [$c, 'arguments'])->name('mesures.arguments');
+        Route::post('/arguments', [$c, 'argumentStore'])->name('arguments.store');
+        Route::post('/arguments/sources', [$c, 'argumentSourceStore'])->name('arguments.sources.store');
+        Route::get('/candidats', [$c, 'candidats'])->name('candidats');
+        Route::post('/candidats', [$c, 'candidatStore'])->name('candidats.store');
+        Route::post('/candidats/{candidat}/sync-parcours', [$c, 'syncParcours'])->name('candidats.sync-parcours');
+        Route::get('/parcours', [$c, 'parcours'])->name('parcours');
+        Route::get('/medias', [$c, 'medias'])->name('medias');
+        Route::post('/medias', [$c, 'updateMedias'])->name('medias.update');
+    });
+
+/*
+|--------------------------------------------------------------------------
 | Authentication Routes
 |--------------------------------------------------------------------------
 */

@@ -109,6 +109,18 @@ class PersonnePolitique extends Model
         return $this->hasMany(AffaireJudiciaire::class, 'personne_politique_id');
     }
 
+    /** Candidatures présidentielle (une par élection). */
+    public function candidaturesPresidentielle(): HasMany
+    {
+        return $this->hasMany(CandidatPresidentielle::class, 'personne_politique_id');
+    }
+
+    /** Événements de parcours (mandats, fonctions, postes, engagements). */
+    public function parcoursEvenements(): HasMany
+    {
+        return $this->hasMany(ParcoursEvenement::class, 'personne_politique_id');
+    }
+
     public function affairesPubliques(): HasMany
     {
         return $this->affairesJudiciaires()->publiques();
