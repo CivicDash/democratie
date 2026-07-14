@@ -198,6 +198,7 @@ class PresidentielleModerationController extends Controller
                 'id' => $c->id,
                 'nom' => $c->personnePolitique?->nom_complet,
                 'couleur_hex' => $c->couleur_hex ?? '#64748b',
+                'slogan' => $c->slogan,
                 'photo_url' => $c->photo_url, 'photo_credit' => $c->photo_credit, 'photo_licence' => $c->photo_licence,
                 'hero_banner_url' => $c->hero_banner_url, 'hero_credit' => $c->hero_credit, 'hero_licence' => $c->hero_licence,
                 'site_campagne_url' => $c->site_campagne_url,
@@ -247,7 +248,7 @@ class PresidentielleModerationController extends Controller
 
         $candidat = CandidatPresidentielle::with('personnePolitique')->findOrFail($data['id']);
 
-        $champsCandidat = ['couleur_hex', 'photo_url', 'photo_credit', 'photo_licence',
+        $champsCandidat = ['couleur_hex', 'slogan', 'photo_url', 'photo_credit', 'photo_licence',
             'hero_banner_url', 'hero_credit', 'hero_licence', 'site_campagne_url'];
         $candidat->update(collect($data)->only($champsCandidat)->all());
 
