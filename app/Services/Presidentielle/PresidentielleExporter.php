@@ -176,6 +176,16 @@ class PresidentielleExporter
             'date_declaration' => optional($candidat->date_declaration)->toDateString(),
             'site_campagne_url' => $this->url($candidat->site_campagne_url),
             'programme_url_officiel' => $this->url($candidat->programme_url_officiel),
+            'reseaux' => array_filter([
+                'site' => $this->url($candidat->personnePolitique?->site_web),
+                'x' => $this->url($candidat->personnePolitique?->twitter_url),
+                'instagram' => $this->url($candidat->personnePolitique?->instagram_url),
+                'facebook' => $this->url($candidat->personnePolitique?->facebook_url),
+                'mastodon' => $this->url($candidat->personnePolitique?->mastodon_url),
+                'bluesky' => $this->url($candidat->personnePolitique?->bluesky_url),
+                'linkedin' => $this->url($candidat->personnePolitique?->linkedin_url),
+                'youtube' => $this->url($candidat->personnePolitique?->youtube_url),
+            ]),
             'couverture' => [
                 'themes_publies' => $themesPublies,
                 'themes_exprimes' => $themesExprimes,
