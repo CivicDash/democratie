@@ -402,6 +402,9 @@ function sectionActiveClass(section) {
                                         <DropdownLink :href="route('moderation.dashboard')">
                                             🛡️ Moderation
                                         </DropdownLink>
+                                        <DropdownLink :href="route('admin.presidentielle.moderation')">
+                                            🗳️ Présidentielle 2027
+                                        </DropdownLink>
                                     </template>
 
                                     <DropdownLink

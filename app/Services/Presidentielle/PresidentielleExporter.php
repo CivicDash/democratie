@@ -151,6 +151,11 @@ class PresidentielleExporter
                 'credit' => $candidat->photo_credit,
                 'licence' => $candidat->photo_licence,
             ] : null,
+            'hero_banner' => ($candidat->hero_banner_url && $candidat->hero_credit && $candidat->hero_licence) ? [
+                'url' => $this->url($candidat->hero_banner_url),
+                'credit' => $candidat->hero_credit,
+                'licence' => $candidat->hero_licence,
+            ] : null,
             'statut_candidature' => $candidat->statut_candidature,
             'date_declaration' => optional($candidat->date_declaration)->toDateString(),
             'site_campagne_url' => $this->url($candidat->site_campagne_url),
