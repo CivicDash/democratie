@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Argument;
 use App\Models\ArgumentSource;
 use App\Models\CandidatPresidentielle;
+use App\Models\IngestionDocument;
 use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
 use App\Models\ParcoursEvenement;
@@ -73,10 +74,41 @@ class PresidentielleModerationController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        // Prises de parole (documents d'ingestion) pour permettre la suppression d'un import erroné.
+        $documents = IngestionDocument::withCount('propositions')
+            ->withCount(['propositions as rattachees_count' => fn ($q) => $q->where('statut', 'rattachee')])
+            ->orderByDesc('id')->limit(30)->get()
+            ->map(fn ($d) => [
+                'id' => $d->id, 'titre' => $d->titre, 'type' => $d->type,
+                'nb_propositions' => $d->propositions_count,
+                'nb_rattachees' => $d->rattachees_count,
+            ]);
+
         return Inertia::render('Admin/Presidentielle/Propositions', [
             'propositions' => $propositions,
+            'documents' => $documents,
             'statut' => $request->query('statut', 'detecte'),
         ]);
+    }
+
+    /**
+     * Supprime une prise de parole (document d'ingestion) et ses propositions.
+     * Refuse si des propositions ont déjà été rattachées à des mesures : il faut
+     * d'abord traiter ces mesures (éviter de casser du contenu validé/publié).
+     */
+    public function documentDestroy(IngestionDocument $document)
+    {
+        if ($document->propositions()->where('statut', 'rattachee')->exists()) {
+            throw ValidationException::withMessages([
+                'document' => 'Suppression refusée : des propositions ont été rattachées à des mesures. Supprimez/dépubliez ces mesures d’abord.',
+            ]);
+        }
+
+        $titre = $document->titre;
+        $document->propositions()->delete();
+        $document->delete();
+
+        return back()->with('success', "Prise de parole supprimée : « {$titre} » (et ses propositions).");
     }
 
     /** File des mesures par statut de validation. */
