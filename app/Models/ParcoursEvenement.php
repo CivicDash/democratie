@@ -48,6 +48,11 @@ class ParcoursEvenement extends Model
         return $this->belongsTo(PersonnePolitique::class, 'personne_politique_id');
     }
 
+    public function actions()
+    {
+        return $this->hasMany(ParcoursAction::class, 'parcours_evenement_id');
+    }
+
     public function scopePublie($query)
     {
         return $query->where('statut_validation', 'valide')->where('affiche_publiquement', true);
