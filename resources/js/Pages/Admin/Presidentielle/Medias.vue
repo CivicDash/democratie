@@ -28,6 +28,7 @@ const reseaux = [
     ['bluesky_url', 'Bluesky'],
     ['linkedin_url', 'LinkedIn'],
     ['youtube_url', 'YouTube'],
+    ['tiktok_url', 'TikTok'],
 ];
 </script>
 
