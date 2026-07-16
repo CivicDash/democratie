@@ -1,11 +1,12 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
 const props = defineProps({
     files: Object,
     propositions_en_attente: Number,
+    signalements_en_attente: Number,
     referentiels: Array,
     integrite: Object,
 });
@@ -51,6 +52,15 @@ function total(file) {
             <div class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-4">
                 <strong>{{ propositions_en_attente }}</strong> proposition(s) d'ingestion en attente de validation.
             </div>
+
+            <!-- Signalements citoyens -->
+            <Link :href="route('admin.presidentielle.signalements')"
+                class="block rounded-xl border p-4 transition"
+                :class="signalements_en_attente > 0
+                    ? 'border-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100'
+                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'">
+                🚩 <strong>{{ signalements_en_attente }}</strong> signalement(s) citoyen(s) à traiter.
+            </Link>
 
             <!-- Référentiels de programme (plan §11.5) -->
             <div v-if="referentiels?.length" class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">

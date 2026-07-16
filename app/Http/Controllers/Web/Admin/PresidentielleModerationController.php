@@ -14,6 +14,8 @@ use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
 use App\Models\ParcoursEvenement;
 use App\Models\PersonnePolitique;
+use App\Models\PresidentielleModerationLog;
+use App\Models\PresidentielleSignalement;
 use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeMesure;
 use App\Services\Presidentielle\IntegriteChecker;
@@ -57,6 +59,7 @@ class PresidentielleModerationController extends Controller
                 'arguments' => $parStatut(Argument::class),
             ],
             'propositions_en_attente' => IngestionProposition::enAttente()->count(),
+            'signalements_en_attente' => PresidentielleSignalement::enAttente()->count(),
             'referentiels' => ProgrammeDocument::with('candidat.personnePolitique')->withCount('items')->get()
                 ->map(fn ($d) => [
                     'id' => $d->id, 'titre' => $d->titre, 'url' => $d->url,
@@ -558,6 +561,80 @@ class PresidentielleModerationController extends Controller
         ]);
 
         return back()->with('success', 'Controverse créée (detecte).');
+    }
+
+    /** File des signalements citoyens (« Signaler une erreur »). */
+    public function signalements(Request $request)
+    {
+        $statut = $request->query('statut', 'nouveau');
+
+        $signalements = PresidentielleSignalement::with('moderator')
+            ->parStatut($statut)
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString()
+            ->through(fn ($s) => [
+                'id' => $s->id,
+                'type_incident' => $s->type_incident,
+                'type_libelle' => PresidentielleSignalement::TYPES_INCIDENT[$s->type_incident] ?? $s->type_incident,
+                'description' => $s->description,
+                'email' => $s->email,
+                'candidat_slug' => $s->candidat_slug,
+                'theme_slug' => $s->theme_slug,
+                'contexte_url' => $s->contexte_url,
+                'statut' => $s->statut,
+                'moderator' => $s->moderator?->name,
+                'resolution_note' => $s->resolution_note,
+                'resolved_at' => optional($s->resolved_at)->toDateTimeString(),
+                'created_at' => optional($s->created_at)->toDateTimeString(),
+            ]);
+
+        return Inertia::render('Admin/Presidentielle/Signalements', [
+            'signalements' => $signalements,
+            'types_incident' => PresidentielleSignalement::TYPES_INCIDENT,
+            'statut' => $statut,
+        ]);
+    }
+
+    /** Traite un signalement : prise en charge, résolution ou rejet (journalisé). */
+    public function signalementAction(Request $request)
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer', 'exists:presidentielle_signalements,id'],
+            'action' => ['required', 'in:prendre_en_charge,resoudre,rejeter'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $signalement = PresidentielleSignalement::findOrFail($data['id']);
+        $ancien = $signalement->statut;
+        $user = $request->user();
+
+        [$statut, $resolu] = match ($data['action']) {
+            'prendre_en_charge' => ['en_cours', false],
+            'resoudre' => ['resolu', true],
+            'rejeter' => ['rejete', true],
+        };
+
+        $signalement->update([
+            'statut' => $statut,
+            'moderator_id' => $user->id,
+            'resolution_note' => $data['note'] ?? $signalement->resolution_note,
+            'resolved_at' => $resolu ? now() : $signalement->resolved_at,
+        ]);
+
+        // Journalisation dans le log de modération présidentielle (traçabilité).
+        PresidentielleModerationLog::create([
+            'entite_type' => $signalement->getMorphClass(),
+            'entite_id' => $signalement->id,
+            'action' => $data['action'],
+            'ancien_statut' => $ancien,
+            'nouveau_statut' => $statut,
+            'commentaire' => $data['note'] ?? null,
+            'moderator_id' => $user->id,
+            'created_at' => now(),
+        ]);
+
+        return back()->with('success', 'Signalement mis à jour ('.$statut.').');
     }
 
     /**

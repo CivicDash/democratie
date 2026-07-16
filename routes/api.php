@@ -616,6 +616,10 @@ Route::prefix('v1/presidentielle')
         Route::get('/themes', [$c, 'themes'])->name('themes');
         Route::get('/themes/{slug}/mesures', [$c, 'themeMesures'])->name('theme.mesures');
         Route::get('/comparateur', [$c, 'comparateur'])->name('comparateur');
+
+        // Signalement citoyen (« Signaler une erreur ») — écriture publique anonyme.
+        // Throttle strict empilé (clé IP, éphémère en cache) ; aucune IP persistée.
+        Route::post('/signalements', [$c, 'signalements'])->name('signalements')->middleware('throttle:5,1');
     });
 
 Route::fallback(function () {

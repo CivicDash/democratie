@@ -976,6 +976,8 @@ Route::prefix('admin/presidentielle')
         Route::post('/arguments/liens/resolve', [$c, 'lienResolve'])->name('arguments.liens.resolve');
         Route::get('/controverses', [$c, 'controverses'])->name('controverses');
         Route::post('/controverses', [$c, 'controverseStore'])->name('controverses.store');
+        Route::get('/signalements', [$c, 'signalements'])->name('signalements');
+        Route::post('/signalements/action', [$c, 'signalementAction'])->name('signalements.action');
         Route::get('/candidats', [$c, 'candidats'])->name('candidats');
         Route::post('/candidats', [$c, 'candidatStore'])->name('candidats.store');
         Route::post('/candidats/{candidat}/sync-parcours', [$c, 'syncParcours'])->name('candidats.sync-parcours');

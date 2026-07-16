@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Presidentielle;
 
 use App\Http\Controllers\Controller;
+use App\Models\PresidentielleSignalement;
 use App\Services\Presidentielle\PresidentielleExporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,39 @@ class PresidentielleController extends Controller
         $etag = $data['meta']['content_hash'].'cmp'.implode(',', $candidatsFiltre).implode(',', $themesFiltre);
 
         return $this->cached($request, ['comparateur' => $comparateur], $etag);
+    }
+
+    /**
+     * Réception d'un signalement citoyen (« Signaler une erreur »).
+     * Écriture publique anonyme → ticket en file de modération (statut `nouveau`).
+     * Zéro donnée passive : aucune IP ni user-agent stocké ; email facultatif.
+     * Anti-spam : honeypot (`site_web`) + throttle sur la route.
+     */
+    public function signalements(Request $request): JsonResponse
+    {
+        // Honeypot : un champ leurre invisible ; s'il est rempli, c'est un bot.
+        // On répond « merci » sans rien écrire (ne pas révéler le mécanisme).
+        if (filled($request->input('site_web'))) {
+            return response()->json(['ok' => true], 201);
+        }
+
+        $data = $request->validate([
+            'type_incident' => ['required', 'in:'.implode(',', array_keys(PresidentielleSignalement::TYPES_INCIDENT))],
+            'description' => ['required', 'string', 'min:10', 'max:2000'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'candidat_slug' => ['nullable', 'string', 'max:160'],
+            'theme_slug' => ['nullable', 'string', 'max:160'],
+            'argument_ref' => ['nullable', 'string', 'max:64'],
+            'contexte_url' => ['nullable', 'url', 'max:1000'],
+            'content_hash' => ['nullable', 'string', 'max:128'],
+        ], [
+            'description.required' => 'Merci de décrire l’erreur constatée.',
+            'description.min' => 'Décrivez l’erreur en quelques mots (10 caractères minimum).',
+        ]);
+
+        PresidentielleSignalement::create($data + ['statut' => 'nouveau']);
+
+        return response()->json(['ok' => true, 'message' => 'Merci, votre signalement a bien été transmis.'], 201);
     }
 
     private function build(Request $request): array
