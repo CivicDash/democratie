@@ -539,7 +539,7 @@ class SyncHatvpDataCommand extends Command
         ];
 
         // Transaction pour l'intégrité
-        DB::transaction(function () use ($declaration, $data, &$stats) {
+        DB::transaction(function () use ($declaration, $data, &$stats, $diaOnly) {
             // 1. Importer les mandats électifs avec rémunérations
             if (! empty($data['mandats_electifs']['items'])) {
                 foreach ($data['mandats_electifs']['items'] as $mandat) {
