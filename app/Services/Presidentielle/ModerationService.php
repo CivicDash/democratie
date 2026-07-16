@@ -4,6 +4,7 @@ namespace App\Services\Presidentielle;
 
 use App\Exceptions\ModerationException;
 use App\Models\Argument;
+use App\Models\ArgumentMesureLien;
 use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
 use App\Models\PresidentielleModerationLog;
@@ -48,26 +49,27 @@ class ModerationService
     }
 
     /**
-     * Double validation d'un argument « contre » (règle §5).
+     * Double validation d'une liaison « contre » (règle §5). Le sens vit désormais sur la
+     * liaison : c'est l'emploi d'un fait CONTRE une mesure qu'on soumet à double contrôle.
      * Le second validateur doit être différent du premier.
      */
-    public function doubleValider(Argument $argument, User $user): Argument
+    public function doubleValider(ArgumentMesureLien $lien, User $user): ArgumentMesureLien
     {
-        if ($argument->sens !== 'contre') {
-            throw new ModerationException('La double validation ne concerne que les arguments « contre ».');
+        if ($lien->sens !== 'contre') {
+            throw new ModerationException('La double validation ne concerne que les liaisons « contre ».');
         }
-        if ($argument->statut_validation !== 'valide' || ! $argument->valide_par) {
-            throw new ModerationException('L\'argument doit d\'abord être validé une première fois.');
+        if ($lien->statut_validation !== 'valide' || ! $lien->valide_par) {
+            throw new ModerationException('La liaison doit d\'abord être validée une première fois.');
         }
-        if ((int) $argument->valide_par === $user->id) {
+        if ((int) $lien->valide_par === $user->id) {
             throw new ModerationException('La seconde validation doit être faite par un autre modérateur.');
         }
-        $argument->double_valide_par = $user->id;
-        $argument->double_valide_at = now();
-        $argument->save();
-        $this->log($argument, 'double_validation', 'valide', 'valide', $user);
+        $lien->double_valide_par = $user->id;
+        $lien->double_valide_at = now();
+        $lien->save();
+        $this->log($lien, 'double_validation', 'valide', 'valide', $user);
 
-        return $argument;
+        return $lien;
     }
 
     /**
@@ -192,19 +194,36 @@ class ModerationService
             if (blank($entite->source_officielle_url)) {
                 $raisons[] = 'aucune source officielle';
             }
-            $args = $entite->arguments()->publie()->with('sources')->get();
-            $pour = $args->where('sens', 'pour')->first(fn ($a) => $this->aSourceFiable($a));
-            $contre = $args->where('sens', 'contre')->first(fn ($a) => $this->aSourceFiable($a));
-            if (! $pour) {
+            // Symétrie via les liaisons publiées (sens porté par la liaison, fiabilité par l'argument).
+            $liens = $entite->liens()->publie()->with('argument.sources')->get()
+                ->filter(fn ($l) => $l->argument && $l->argument->affiche_publiquement
+                    && filled($l->note_contextuelle) && $l->argument->aSourceFiable());
+            if ($liens->where('sens', 'pour')->isEmpty()) {
                 $raisons[] = 'aucun argument « pour » publié et sourcé';
             }
-            if (! $contre) {
+            if ($liens->where('sens', 'contre')->isEmpty()) {
                 $raisons[] = 'aucun argument « contre » publié et sourcé (symétrie obligatoire)';
             }
         }
 
-        if ($entite instanceof Argument && $entite->sens === 'contre' && ! $entite->double_valide_par) {
-            $raisons[] = 'argument « contre » non doublement validé';
+        if ($entite instanceof Argument && ! $entite->aSourceFiable()) {
+            $raisons[] = 'aucune source fiable (haute/moyenne)';
+        }
+
+        if ($entite instanceof ArgumentMesureLien) {
+            if ($entite->mesure_id === null) {
+                $raisons[] = 'liaison non reliée à une mesure (à résoudre)';
+            }
+            if (blank($entite->note_contextuelle)) {
+                $raisons[] = 'note contextuelle manquante';
+            }
+            $entite->loadMissing('argument');
+            if (! $entite->argument || ! $entite->argument->affiche_publiquement) {
+                $raisons[] = 'argument non publié';
+            }
+            if ($entite->sens === 'contre' && ! $entite->double_valide_par) {
+                $raisons[] = 'liaison « contre » non doublement validée';
+            }
         }
 
         if ($entite instanceof MesureScrutinLien && blank($entite->explication)) {
@@ -212,11 +231,6 @@ class ModerationService
         }
 
         return $raisons;
-    }
-
-    private function aSourceFiable(Argument $argument): bool
-    {
-        return $argument->sources->contains(fn ($s) => in_array($s->fiabilite, ['haute', 'moyenne'], true));
     }
 
     private function transitionStatut(Model $entite, string $nouveau, string $action, User $user, ?string $commentaire = null): Model

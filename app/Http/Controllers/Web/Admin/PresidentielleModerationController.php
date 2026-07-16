@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Exceptions\ModerationException;
 use App\Http\Controllers\Controller;
 use App\Models\Argument;
+use App\Models\ArgumentMesureLien;
 use App\Models\ArgumentSource;
 use App\Models\CandidatPresidentielle;
+use App\Models\Controverse;
 use App\Models\IngestionDocument;
 use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
@@ -34,7 +36,9 @@ class PresidentielleModerationController extends Controller
         'candidat' => CandidatPresidentielle::class,
         'mesure' => ProgrammeMesure::class,
         'argument' => Argument::class,
-        'lien' => MesureScrutinLien::class,
+        'argument_lien' => ArgumentMesureLien::class,   // liaison argument↔mesure (porte le sens)
+        'controverse' => Controverse::class,
+        'lien' => MesureScrutinLien::class,              // lien mesure↔scrutin (module cohérence)
         'parcours' => ParcoursEvenement::class,
         'programme_document' => ProgrammeDocument::class,
     ];
@@ -118,8 +122,8 @@ class PresidentielleModerationController extends Controller
         $statut = $request->query('statut', 'detecte');
 
         $mesures = ProgrammeMesure::with(['candidat.personnePolitique', 'theme'])
-            ->withCount(['arguments as pour_count' => fn ($q) => $q->where('sens', 'pour')->publie()])
-            ->withCount(['arguments as contre_count' => fn ($q) => $q->where('sens', 'contre')->publie()])
+            ->withCount(['liens as pour_count' => fn ($q) => $q->where('sens', 'pour')->publie()])
+            ->withCount(['liens as contre_count' => fn ($q) => $q->where('sens', 'contre')->publie()])
             ->when($statut === 'publie', fn ($q) => $q->where('affiche_publiquement', true))
             ->when(! in_array($statut, ['tous', 'publie'], true), fn ($q) => $q->where('statut_validation', $statut))
             ->orderByDesc('id')
@@ -344,10 +348,14 @@ class PresidentielleModerationController extends Controller
         return back()->with('success', Str::limit($sortie, 400));
     }
 
-    /** Fiche « arguments » d'une mesure : pour/contre + sources + publiabilité. */
+    /** Fiche « argumentaire » d'une mesure : liaisons pour/contre vers des faits sourcés + publiabilité. */
     public function arguments(ProgrammeMesure $mesure, ModerationService $service)
     {
-        $mesure->load(['candidat.personnePolitique', 'theme', 'arguments' => fn ($q) => $q->orderBy('sens')->orderBy('ordre'), 'arguments.sources']);
+        $mesure->load([
+            'candidat.personnePolitique', 'theme',
+            'liens' => fn ($q) => $q->orderBy('sens')->orderByDesc('id'),
+            'liens.argument.sources', 'liens.argument.controverse',
+        ]);
 
         return Inertia::render('Admin/Presidentielle/Arguments', [
             'mesure' => [
@@ -360,16 +368,33 @@ class PresidentielleModerationController extends Controller
                 'affiche_publiquement' => $mesure->affiche_publiquement,
                 'source_officielle_url' => $mesure->source_officielle_url,
             ],
-            'arguments' => $mesure->arguments->map(fn ($a) => [
-                'id' => $a->id, 'sens' => $a->sens, 'titre' => $a->titre, 'contenu' => $a->contenu,
-                'type_argument' => $a->type_argument, 'statut_validation' => $a->statut_validation,
-                'affiche_publiquement' => $a->affiche_publiquement,
-                'valide_par' => $a->valide_par, 'double_valide_par' => $a->double_valide_par,
-                'sources' => $a->sources->map(fn ($s) => [
-                    'id' => $s->id, 'type_source' => $s->type_source, 'titre' => $s->titre,
-                    'url' => $s->url, 'media' => $s->media, 'fiabilite' => $s->fiabilite,
-                    'archive_url' => $s->archive_url,
-                ]),
+            // Une liaison = l'emploi d'un fait (argument) dans un sens pour CETTE mesure.
+            'liens' => $mesure->liens->map(fn ($l) => [
+                'id' => $l->id,
+                'sens' => $l->sens,
+                'note_contextuelle' => $l->note_contextuelle,
+                'statut_validation' => $l->statut_validation,
+                'affiche_publiquement' => $l->affiche_publiquement,
+                'valide_par' => $l->valide_par,
+                'double_valide_par' => $l->double_valide_par,
+                'source_detection' => $l->source_detection,
+                'detection_confidence' => $l->detection_confidence,
+                'raisons_non_publiable' => $service->raisonsNonPubliable($l),
+                'argument' => [
+                    'id' => $l->argument->id,
+                    'titre' => $l->argument->titre,
+                    'contenu' => $l->argument->contenu,
+                    'type_argument' => $l->argument->type_argument,
+                    'statut_validation' => $l->argument->statut_validation,
+                    'affiche_publiquement' => $l->argument->affiche_publiquement,
+                    'controverse' => $l->argument->controverse?->titre,
+                    'nb_autres_liens' => $l->argument->liens()->where('id', '!=', $l->id)->count(),
+                    'sources' => $l->argument->sources->map(fn ($s) => [
+                        'id' => $s->id, 'type_source' => $s->type_source, 'titre' => $s->titre,
+                        'url' => $s->url, 'media' => $s->media, 'fiabilite' => $s->fiabilite,
+                        'archive_url' => $s->archive_url,
+                    ]),
+                ],
             ]),
             'types_argument' => Argument::TYPES,
             'types_source' => ArgumentSource::TYPES_SOURCE,
@@ -377,7 +402,10 @@ class PresidentielleModerationController extends Controller
         ]);
     }
 
-    /** Crée un argument (detecte) pour une mesure. */
+    /**
+     * Crée un fait (argument autonome) ET sa liaison à une mesure (detecte).
+     * Le sens et la note contextuelle sont portés par la liaison.
+     */
     public function argumentStore(Request $request)
     {
         $data = $request->validate([
@@ -386,13 +414,72 @@ class PresidentielleModerationController extends Controller
             'titre' => ['required', 'string', 'max:255'],
             'contenu' => ['required', 'string', 'max:500'],
             'type_argument' => ['required', 'in:'.implode(',', Argument::TYPES)],
+            'note_contextuelle' => ['required', 'string', 'max:2000'],
+            'controverse_id' => ['nullable', 'integer', 'exists:controverses,id'],
         ], [
             'contenu.max' => 'Contenu limité à 500 caractères (factuel, sans adjectif militant).',
+            'note_contextuelle.required' => 'La note contextuelle (pourquoi ce fait joue dans ce sens pour cette mesure) est obligatoire.',
         ]);
 
-        Argument::create($data + ['statut_validation' => 'detecte', 'affiche_publiquement' => false]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+            $argument = Argument::create([
+                'controverse_id' => $data['controverse_id'] ?? null,
+                'titre' => $data['titre'],
+                'contenu' => $data['contenu'],
+                'type_argument' => $data['type_argument'],
+                'statut_validation' => 'detecte',
+                'affiche_publiquement' => false,
+            ]);
+            ArgumentMesureLien::create([
+                'argument_id' => $argument->id,
+                'mesure_id' => $data['mesure_id'],
+                'sens' => $data['sens'],
+                'note_contextuelle' => $data['note_contextuelle'],
+                'source_detection' => 'manuel',
+                'statut_validation' => 'detecte',
+                'affiche_publiquement' => false,
+            ]);
+        });
 
-        return back()->with('success', 'Argument « '.$data['sens'].' » ajouté (detecte). Ajouter au moins une source fiable avant validation.');
+        return back()->with('success', 'Fait « '.$data['sens'].' » ajouté (detecte). Ajoutez au moins une source fiable avant validation.');
+    }
+
+    /** Relie un fait EXISTANT à une (autre) mesure — réutilisation d'un argument sourcé. */
+    public function lienStore(Request $request)
+    {
+        $data = $request->validate([
+            'argument_id' => ['required', 'integer', 'exists:arguments,id'],
+            'mesure_id' => ['required', 'integer', 'exists:programme_mesures,id'],
+            'sens' => ['required', 'in:pour,contre'],
+            'note_contextuelle' => ['required', 'string', 'max:2000'],
+        ]);
+
+        try {
+            ArgumentMesureLien::create($data + [
+                'source_detection' => 'manuel', 'statut_validation' => 'detecte', 'affiche_publiquement' => false,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            throw ValidationException::withMessages(['argument_id' => 'Cette liaison (argument + mesure + sens) existe déjà.']);
+        }
+
+        return back()->with('success', 'Fait relié à la mesure ('.$data['sens'].').');
+    }
+
+    /** Résout une liaison auto-détectée « à résoudre » en lui affectant une mesure. */
+    public function lienResolve(Request $request)
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer', 'exists:argument_mesure_liens,id'],
+            'mesure_id' => ['required', 'integer', 'exists:programme_mesures,id'],
+        ]);
+
+        ArgumentMesureLien::findOrFail($data['id'])->update([
+            'mesure_id' => $data['mesure_id'],
+            'candidat_slug_propose' => null,
+            'mesure_proposee' => null,
+        ]);
+
+        return back()->with('success', 'Liaison reliée à la mesure.');
     }
 
     /** Ajoute une source à un argument (URL obligatoire — l'intégrité l'exige). */
@@ -413,6 +500,81 @@ class PresidentielleModerationController extends Controller
         ArgumentSource::create($data + ['verifie_par' => $request->user()->id, 'verifie_at' => now()]);
 
         return back()->with('success', 'Source ajoutée.');
+    }
+
+    /** File des controverses (regroupements d'arguments) + liaisons à résoudre. */
+    public function controverses(Request $request)
+    {
+        $controverses = Controverse::with('theme')->withCount('arguments')
+            ->when($request->query('statut', 'tous') !== 'tous', fn ($q) => $q->where('statut_validation', $request->query('statut')))
+            ->orderByDesc('id')->paginate(25)->withQueryString();
+
+        // Liaisons auto-détectées non encore reliées à une mesure (à résoudre).
+        $liensAResoudre = ArgumentMesureLien::whereNull('mesure_id')->with('argument')
+            ->orderByDesc('id')->limit(50)->get()
+            ->map(fn ($l) => [
+                'id' => $l->id, 'sens' => $l->sens,
+                'argument_titre' => $l->argument?->titre,
+                'candidat_slug_propose' => $l->candidat_slug_propose,
+                'mesure_proposee' => $l->mesure_proposee,
+                'detection_confidence' => $l->detection_confidence,
+            ]);
+
+        return Inertia::render('Admin/Presidentielle/Controverses', [
+            'controverses' => $controverses,
+            'liens_a_resoudre' => $liensAResoudre,
+            'themes' => \App\Models\ProgrammeTheme::orderBy('ordre')->get(['id', 'nom']),
+            'statut' => $request->query('statut', 'tous'),
+        ]);
+    }
+
+    /** Crée une controverse (detecte). */
+    public function controverseStore(Request $request)
+    {
+        $data = $request->validate([
+            'titre' => ['required', 'string', 'max:255'],
+            'theme_id' => ['nullable', 'integer', 'exists:programme_themes,id'],
+            'note_methodologique' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        Controverse::create([
+            'slug' => Str::slug($data['titre']).'-'.Str::lower(Str::random(4)),
+            'titre' => $data['titre'],
+            'theme_id' => $data['theme_id'] ?? null,
+            'note_methodologique' => $data['note_methodologique'] ?? null,
+            'statut_validation' => 'detecte',
+            'affiche_publiquement' => false,
+        ]);
+
+        return back()->with('success', 'Controverse créée (detecte).');
+    }
+
+    /**
+     * Import d'arguments depuis le BO (contrats §4 v1.1 « arguments » et v1.2
+     * « arguments_controverse »). Réutilise la commande d'import ; tout atterrit en detecte.
+     */
+    public function argumentsImport(Request $request)
+    {
+        $request->validate([
+            'fichier' => ['required', 'file', 'max:10240'],
+        ], [
+            'fichier.required' => 'Le fichier JSON d\'arguments est requis.',
+        ]);
+
+        $dir = storage_path('app/ingestion/uploads');
+        File::ensureDirectoryExists($dir);
+        $stamp = now()->format('Ymd_His').'_'.Str::random(5);
+        $jsonPath = $dir.'/'.$stamp.'_arguments.json';
+        $request->file('fichier')->move($dir, basename($jsonPath));
+
+        $code = Artisan::call('presidentielle:import-arguments', ['fichier' => $jsonPath]);
+        $sortie = trim(preg_replace('/\s+/', ' ', Artisan::output()));
+
+        if ($code !== 0) {
+            throw ValidationException::withMessages(['fichier' => 'Import refusé : '.Str::limit($sortie, 400)]);
+        }
+
+        return back()->with('success', Str::limit($sortie, 400));
     }
 
     /** Valide (crée une mesure) ou rejette une proposition d'ingestion. */
@@ -484,7 +646,9 @@ class PresidentielleModerationController extends Controller
                 'prendre_en_charge' => $service->prendreEnCharge($entite, $user),
                 'demander_complement' => $service->demanderComplement($entite, $user, $commentaire ?? 'complément requis'),
                 'valider' => $service->valider($entite, $user, $commentaire),
-                'double_valider' => $service->doubleValider($entite, $user),
+                'double_valider' => $entite instanceof ArgumentMesureLien
+                    ? $service->doubleValider($entite, $user)
+                    : throw new ModerationException('La double validation ne concerne que les liaisons argument↔mesure « contre ».'),
                 'publier' => $service->publier($entite, $user),
                 'depublier' => $service->depublier($entite, $user, $commentaire),
             };

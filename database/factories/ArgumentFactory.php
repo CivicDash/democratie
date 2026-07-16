@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Argument;
-use App\Models\ProgrammeMesure;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -15,8 +14,7 @@ class ArgumentFactory extends Factory
     {
         return [
             'uuid' => Str::uuid(),
-            'mesure_id' => ProgrammeMesure::factory(),
-            'sens' => $this->faker->randomElement(Argument::SENS),
+            'controverse_id' => null,
             'titre' => $this->faker->sentence(5),
             'contenu' => $this->faker->text(300),
             'type_argument' => $this->faker->randomElement(Argument::TYPES),
@@ -26,20 +24,21 @@ class ArgumentFactory extends Factory
         ];
     }
 
-    public function pour(): static
+    public function valide(): static
     {
-        return $this->state(fn () => ['sens' => 'pour']);
-    }
-
-    public function contre(): static
-    {
-        return $this->state(fn () => ['sens' => 'contre']);
+        return $this->state(fn () => [
+            'statut_validation' => 'valide',
+            'valide_par' => \App\Models\User::factory(),
+            'valide_at' => now(),
+        ]);
     }
 
     public function publie(): static
     {
         return $this->state(fn () => [
             'statut_validation' => 'valide',
+            'valide_par' => \App\Models\User::factory(),
+            'valide_at' => now(),
             'affiche_publiquement' => true,
         ]);
     }

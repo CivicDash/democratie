@@ -74,9 +74,23 @@ function candidatPubliePublic(array $overrides = []): array
     ]);
 
     foreach (['pour', 'contre'] as $sens) {
-        $arg = \App\Models\Argument::factory()->publie()->create(['mesure_id' => $mesure->id, 'sens' => $sens]);
-        \App\Models\ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
+        lierArgumentPublie($mesure, $sens);
     }
 
     return [$candidat, $theme, $mesure];
+}
+
+/**
+ * Crée un fait (argument) publié + une source fiable, et le relie à la mesure par une
+ * liaison publiée dans le sens donné (une liaison « contre » est doublement validée).
+ */
+function lierArgumentPublie(\App\Models\ProgrammeMesure $mesure, string $sens): \App\Models\ArgumentMesureLien
+{
+    $arg = \App\Models\Argument::factory()->publie()->create();
+    \App\Models\ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
+
+    return \App\Models\ArgumentMesureLien::factory()->{$sens}()->publie()->create([
+        'argument_id' => $arg->id,
+        'mesure_id' => $mesure->id,
+    ]);
 }

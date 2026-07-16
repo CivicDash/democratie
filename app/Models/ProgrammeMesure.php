@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -54,19 +55,39 @@ class ProgrammeMesure extends Model
         return $this->belongsTo(ProgrammeTheme::class, 'theme_id');
     }
 
-    public function arguments(): HasMany
+    /** Liaisons argument↔mesure (relation autoritaire : porte le sens et l'état de validation). */
+    public function liens(): HasMany
     {
-        return $this->hasMany(Argument::class, 'mesure_id');
+        return $this->hasMany(ArgumentMesureLien::class, 'mesure_id');
     }
 
-    public function argumentsPour(): HasMany
+    public function liensPour(): HasMany
     {
-        return $this->arguments()->where('sens', 'pour');
+        return $this->liens()->where('sens', 'pour');
     }
 
-    public function argumentsContre(): HasMany
+    public function liensContre(): HasMany
     {
-        return $this->arguments()->where('sens', 'contre');
+        return $this->liens()->where('sens', 'contre');
+    }
+
+    /** Arguments (faits) reliés à cette mesure, via le pivot (sens exposé dans le pivot). */
+    public function arguments(): BelongsToMany
+    {
+        return $this->belongsToMany(Argument::class, 'argument_mesure_liens', 'mesure_id', 'argument_id')
+            ->withPivot(['id', 'sens', 'note_contextuelle', 'statut_validation', 'affiche_publiquement'])
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
+    }
+
+    public function argumentsPour(): BelongsToMany
+    {
+        return $this->arguments()->wherePivot('sens', 'pour');
+    }
+
+    public function argumentsContre(): BelongsToMany
+    {
+        return $this->arguments()->wherePivot('sens', 'contre');
     }
 
     public function scrutinLiens(): HasMany

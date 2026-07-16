@@ -3,6 +3,7 @@
 namespace App\Services\Presidentielle;
 
 use App\Models\CandidatPresidentielle;
+use App\Models\Controverse;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
 use Illuminate\Support\Facades\File;
@@ -36,7 +37,11 @@ class PresidentielleExporter
                 // Publiées (comparateur, plein contenu) ET validées non publiées (« relevées »)
                 'mesures' => fn ($q) => $q->where('statut_validation', 'valide')->orderBy('ordre')->with([
                     'theme',
-                    'arguments' => fn ($a) => $a->publie()->orderBy('ordre')->with('sources'),
+                    // Argumentaire via les liaisons publiées ; le sens est porté par la liaison,
+                    // le fait (+ sources + controverse) par l'argument publié.
+                    'liens' => fn ($l) => $l->publie()->with([
+                        'argument' => fn ($a) => $a->publie()->with(['sources', 'controverse']),
+                    ]),
                     'scrutinLiens' => fn ($l) => $l->publie(),
                 ]),
                 'propositions' => fn ($p) => $p->whereIn('statut', ['detecte', 'validee', 'rattachee'])->with(['theme', 'document']),
@@ -53,11 +58,21 @@ class PresidentielleExporter
 
         $comparateur = $this->buildComparateur($candidatsExport, $themesExport);
 
+        // Controverses publiées : note méthodologique affichée en tête du dépliant pour/contre
+        // (les arguments référencent leur controverse par slug dans chaque mesure).
+        $controverses = Controverse::publie()->with('theme')->orderBy('ordre')->get()
+            ->mapWithKeys(fn ($c) => [$c->slug => [
+                'titre' => $c->titre,
+                'theme' => $c->theme?->slug,
+                'note_methodologique' => $c->note_methodologique,
+            ]])->all();
+
         $contenu = [
             'election' => $election,
             'themes' => $themesExport,
             'candidats' => $candidatsExport,
             'comparateur' => $comparateur,
+            'controverses' => $controverses,
         ];
 
         return $contenu + [
@@ -107,8 +122,8 @@ class PresidentielleExporter
                 'date_annonce' => optional($mesure->date_annonce)->toDateString(),
                 'mise_en_avant' => (bool) $mesure->est_mise_en_avant,
                 'arguments' => [
-                    'pour' => $this->exportArguments($mesure->arguments->where('sens', 'pour')),
-                    'contre' => $this->exportArguments($mesure->arguments->where('sens', 'contre')),
+                    'pour' => $this->exportArguments($mesure->liens->where('sens', 'pour')),
+                    'contre' => $this->exportArguments($mesure->liens->where('sens', 'contre')),
                 ],
                 'en_pratique' => $mesure->scrutinLiens->map(fn ($l) => [
                     'sens' => $l->sens_lien,
@@ -385,21 +400,30 @@ class PresidentielleExporter
         return count($mots) <= $max ? $txt : implode(' ', array_slice($mots, 0, $max)).' …';
     }
 
-    private function exportArguments($arguments): array
+    /**
+     * @param  \Illuminate\Support\Collection  $liens  liaisons publiées d'un même sens
+     */
+    private function exportArguments($liens): array
     {
-        return $arguments->map(fn ($a) => [
-            'titre' => $a->titre,
-            'contenu' => $a->contenu,
-            'type' => $a->type_argument,
-            'sources' => $a->sources->map(fn ($s) => [
-                'type' => $s->type_source,
-                'titre' => $s->titre,
-                'url' => $this->url($s->url),
-                'media' => $s->media,
-                'archive_url' => $this->url($s->archive_url),
-                'fiabilite' => $s->fiabilite,
-            ])->values()->all(),
-        ])->values()->all();
+        return $liens
+            ->filter(fn ($l) => $l->argument && $l->argument->affiche_publiquement)
+            ->map(fn ($l) => [
+                'ref' => $l->argument->uuid,                 // même ref = même fait partagé entre mesures
+                'titre' => $l->argument->titre,
+                'contenu' => $l->argument->contenu,
+                'type' => $l->argument->type_argument,
+                'note_contextuelle' => $l->note_contextuelle, // pourquoi ce fait joue dans ce sens ICI
+                'controverse' => $l->argument->controverse && $l->argument->controverse->affiche_publiquement
+                    ? $l->argument->controverse->slug : null,
+                'sources' => $l->argument->sources->map(fn ($s) => [
+                    'type' => $s->type_source,
+                    'titre' => $s->titre,
+                    'url' => $this->url($s->url),
+                    'media' => $s->media,
+                    'archive_url' => $this->url($s->archive_url),
+                    'fiabilite' => $s->fiabilite,
+                ])->values()->all(),
+            ])->values()->all();
     }
 
     /** Matrice thème → candidat → mesures mises en avant, pour le comparateur. */
