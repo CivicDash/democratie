@@ -100,7 +100,8 @@ class PresidentielleModerationController extends Controller
     {
         if ($document->propositions()->where('statut', 'rattachee')->exists()) {
             throw ValidationException::withMessages([
-                'document' => 'Suppression refusée : des propositions ont été rattachées à des mesures. Supprimez/dépubliez ces mesures d’abord.',
+                'document' => 'Suppression refusée : des propositions sont rattachées à des mesures. '
+                    .'Dans « Mesures », dépubliez puis supprimez ces mesures (leur proposition revient en file) avant de supprimer ce discours.',
             ]);
         }
 
@@ -111,20 +112,23 @@ class PresidentielleModerationController extends Controller
         return back()->with('success', "Prise de parole supprimée : « {$titre} » (et ses propositions).");
     }
 
-    /** File des mesures par statut de validation. */
+    /** File des mesures par statut de validation (ou « publie » = affichées publiquement). */
     public function mesures(Request $request)
     {
+        $statut = $request->query('statut', 'detecte');
+
         $mesures = ProgrammeMesure::with(['candidat.personnePolitique', 'theme'])
             ->withCount(['arguments as pour_count' => fn ($q) => $q->where('sens', 'pour')->publie()])
             ->withCount(['arguments as contre_count' => fn ($q) => $q->where('sens', 'contre')->publie()])
-            ->when($request->query('statut', 'detecte') !== 'tous', fn ($q) => $q->where('statut_validation', $request->query('statut', 'detecte')))
+            ->when($statut === 'publie', fn ($q) => $q->where('affiche_publiquement', true))
+            ->when(! in_array($statut, ['tous', 'publie'], true), fn ($q) => $q->where('statut_validation', $statut))
             ->orderByDesc('id')
             ->paginate(25)
             ->withQueryString();
 
         return Inertia::render('Admin/Presidentielle/Mesures', [
             'mesures' => $mesures,
-            'statut' => $request->query('statut', 'detecte'),
+            'statut' => $statut,
         ]);
     }
 
@@ -440,7 +444,7 @@ class PresidentielleModerationController extends Controller
         $data = $request->validate([
             'type' => ['required', 'string', 'in:'.implode(',', array_keys(self::MODELS))],
             'id' => ['required', 'integer'],
-            'action' => ['required', 'string', 'in:prendre_en_charge,demander_complement,valider,double_valider,publier,depublier,mettre_en_avant,retirer_en_avant'],
+            'action' => ['required', 'string', 'in:prendre_en_charge,demander_complement,valider,double_valider,publier,depublier,supprimer,mettre_en_avant,retirer_en_avant'],
             'commentaire' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -448,6 +452,21 @@ class PresidentielleModerationController extends Controller
         $entite = $model::findOrFail($data['id']);
         $user = $request->user();
         $commentaire = $data['commentaire'] ?? null;
+
+        // Suppression d'une mesure (soft-delete) + détachement de sa proposition d'ingestion :
+        // débloque la suppression du discours d'origine. Réservé aux mesures.
+        if ($data['action'] === 'supprimer') {
+            if (! $entite instanceof ProgrammeMesure) {
+                throw ValidationException::withMessages(['action' => 'La suppression ne concerne que les mesures.']);
+            }
+            try {
+                $service->supprimerMesure($entite, $user, $commentaire);
+            } catch (ModerationException $e) {
+                throw ValidationException::withMessages(['action' => $e->getMessage()]);
+            }
+
+            return back()->with('success', 'Mesure supprimée ; sa proposition est revenue en file de tri.');
+        }
 
         // Mesure « phare » : alimente le comparateur (priorité) ET le quiz d'affinité.
         // Réservé aux mesures ; sans effet public tant que la mesure n'est pas publiée.

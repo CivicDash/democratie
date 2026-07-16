@@ -104,6 +104,32 @@ class ModerationService
     }
 
     /**
+     * Supprime une mesure (soft-delete, réversible) et détache sa (ses) proposition(s)
+     * d'ingestion en la (les) renvoyant en file de tri (`detecte`, `mesure_id = null`).
+     * Ce détachement est indispensable : sans lui, la prise de parole d'origine reste
+     * bloquée à la suppression (documentDestroy refuse tant qu'une proposition est `rattachee`).
+     * Refuse une mesure encore publiée : dépublier d'abord (protection du contenu public).
+     *
+     * @throws ModerationException si la mesure est encore affichée publiquement
+     */
+    public function supprimerMesure(ProgrammeMesure $mesure, User $user, ?string $motif = null): void
+    {
+        if ($mesure->affiche_publiquement) {
+            throw new ModerationException('Dépubliez la mesure avant de la supprimer.');
+        }
+
+        IngestionProposition::where('mesure_id', $mesure->id)->update([
+            'statut' => 'detecte',
+            'mesure_id' => null,
+            'valide_par' => null,
+            'valide_at' => null,
+        ]);
+
+        $this->log($mesure, 'suppression', $mesure->statut_validation, null, $user, $motif);
+        $mesure->delete();
+    }
+
+    /**
      * Crée une mesure (statut `detecte`, non publiée) à partir d'une proposition
      * d'ingestion validée, et rattache la proposition à cette mesure.
      * La citation verbatim et le timestamp sont conservés pour la vérification humaine.
