@@ -29,6 +29,7 @@ class CandidatPresidentielle extends Model
         'site_campagne_url', 'programme_url_officiel', 'couleur_hex',
         'photo_url', 'photo_credit', 'photo_licence',
         'hero_banner_url', 'hero_credit', 'hero_licence',
+        'revue_judiciaire_at', 'hatvp_statut',
         'statut_validation', 'affiche_publiquement', 'ordre_affichage',
         'source_detection', 'detecte_at', 'detection_confidence', 'detection_raw_data',
         'valide_par', 'valide_at', 'commentaire_validation',
@@ -36,6 +37,7 @@ class CandidatPresidentielle extends Model
 
     protected $casts = [
         'date_declaration' => 'date',
+        'revue_judiciaire_at' => 'date',
         'affiche_publiquement' => 'boolean',
         'detecte_at' => 'datetime',
         'valide_at' => 'datetime',
@@ -60,6 +62,11 @@ class CandidatPresidentielle extends Model
     public function mesures(): HasMany
     {
         return $this->hasMany(ProgrammeMesure::class, 'candidat_id');
+    }
+
+    public function programmeDocuments(): HasMany
+    {
+        return $this->hasMany(ProgrammeDocument::class, 'candidat_id');
     }
 
     public function propositions(): HasMany

@@ -618,6 +618,15 @@ Route::prefix('v1/presidentielle')
         Route::get('/comparateur', [$c, 'comparateur'])->name('comparateur');
     });
 
+// Signalement citoyen (« Signaler une erreur ») — écriture publique anonyme.
+// Hors du groupe ci-dessus pour n'appliquer QU'UNE couche de throttle : deux throttles
+// numériques empilés partagent la même clé d'empreinte et double-comptent les requêtes.
+// 8/min par IP (clé éphémère en cache, aucune IP persistée).
+Route::post('v1/presidentielle/signalements',
+    [App\Http\Controllers\Api\Presidentielle\PresidentielleController::class, 'signalements'])
+    ->middleware('throttle:8,1')
+    ->name('api.v1.presidentielle.signalements');
+
 Route::fallback(function () {
     return response()->json([
         'message' => 'Endpoint introuvable. Vérifiez l\'URL et la méthode HTTP.',

@@ -8,7 +8,7 @@ const props = defineProps({
     statut: String,
 });
 
-const filtres = ['detecte', 'en_review', 'a_completer', 'valide', 'tous'];
+const filtres = ['detecte', 'en_review', 'a_completer', 'valide', 'publie', 'tous'];
 
 function filtrer(s) {
     router.get(route('admin.presidentielle.mesures'), { statut: s }, { preserveState: true, replace: true });
@@ -18,6 +18,11 @@ function agir(mesure, action) {
     router.post(route('admin.presidentielle.moderation.action'),
         { type: 'mesure', id: mesure.id, action },
         { preserveScroll: true });
+}
+
+function supprimer(mesure) {
+    if (!confirm('Supprimer cette mesure ?\n\nSa proposition d’origine reviendra en file de tri, ce qui permet ensuite de supprimer le discours. La mesure est archivée (soft-delete, réversible).')) return;
+    agir(mesure, 'supprimer');
 }
 
 function nomCandidat(m) {
@@ -64,7 +69,10 @@ function nomCandidat(m) {
                         <tr v-for="m in mesures.data" :key="m.id" class="border-t border-gray-100 dark:border-gray-800 align-top">
                             <td class="p-3 whitespace-nowrap">{{ nomCandidat(m) }}</td>
                             <td class="p-3 whitespace-nowrap">{{ m.theme?.nom ?? '—' }}</td>
-                            <td class="p-3 max-w-md">{{ m.titre }}</td>
+                            <td class="p-3 max-w-md">
+                                {{ m.titre }}
+                                <span v-if="m.est_mise_en_avant" title="Mesure phare (comparateur + quiz)" class="ml-1">⭐</span>
+                            </td>
                             <td class="p-3 whitespace-nowrap">
                                 <Link :href="route('admin.presidentielle.mesures.arguments', m.id)" class="text-blue-600 hover:underline">
                                     <span :class="m.pour_count ? 'text-green-600' : 'text-gray-400'">{{ m.pour_count }} pour</span> /
@@ -84,6 +92,15 @@ function nomCandidat(m) {
                                     class="px-2 py-1 text-xs rounded bg-green-600 text-white ml-1">Publier</button>
                                 <button v-if="m.affiche_publiquement" @click="agir(m, 'depublier')"
                                     class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 ml-1">Dépublier</button>
+                                <button @click="agir(m, m.est_mise_en_avant ? 'retirer_en_avant' : 'mettre_en_avant')"
+                                    :title="'Mesure phare : priorité au comparateur + question du quiz'"
+                                    class="px-2 py-1 text-xs rounded ml-1"
+                                    :class="m.est_mise_en_avant ? 'bg-yellow-400 text-yellow-900' : 'border border-gray-300 text-gray-500'">
+                                    {{ m.est_mise_en_avant ? '★ Phare' : '☆ Phare' }}
+                                </button>
+                                <button v-if="!m.affiche_publiquement" @click="supprimer(m)"
+                                    title="Supprimer la mesure (sa proposition revient en file ; réversible)"
+                                    class="px-2 py-1 text-xs rounded bg-red-100 text-red-700 ml-1">Supprimer</button>
                             </td>
                         </tr>
                         <tr v-if="!mesures.data.length">

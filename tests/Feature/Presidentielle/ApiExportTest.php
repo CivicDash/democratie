@@ -55,8 +55,7 @@ it('check-integrite bloque une mesure publiée sans contre-argument', function (
         'candidat_id' => $candidat->id, 'theme_id' => $theme->id,
         'source_officielle_url' => 'https://exemple.fr/#m2',
     ]);
-    $arg = Argument::factory()->publie()->create(['mesure_id' => $mesure->id, 'sens' => 'pour']);
-    ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
+    lierArgumentPublie($mesure, 'pour'); // uniquement un « pour »
 
     $resultat = app(IntegriteChecker::class)->analyser('2027');
     $types = array_column($resultat['violations'], 'type');
@@ -76,7 +75,7 @@ it('la commande export refuse en cas de violation, sauf --force', function () {
     $mesure = ProgrammeMesure::factory()->publie()->create([
         'candidat_id' => $candidat->id, 'theme_id' => $theme->id, 'source_officielle_url' => 'https://x.fr/#m',
     ]);
-    Argument::factory()->publie()->create(['mesure_id' => $mesure->id, 'sens' => 'pour']); // pas de contre
+    lierArgumentPublie($mesure, 'pour'); // pas de contre
 
     $dir = sys_get_temp_dir().'/exp_'.uniqid();
     expect(Artisan::call('presidentielle:export', ['--path' => $dir]))->toBe(1)

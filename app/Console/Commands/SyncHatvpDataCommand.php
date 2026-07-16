@@ -40,6 +40,8 @@ class SyncHatvpDataCommand extends Command
                             {--analyze : Analyser sans importer}
                             {--import : Importer les déclarations en base (métadonnées)}
                             {--import-details : Importer les détails complets des déclarations}
+                            {--presidentielle : Cibler UNIQUEMENT les déclarations rattachées à un candidat présidentielle (personne_politique_id) ; implique intérêts seulement (pas de patrimoine)}
+                            {--dia-only : N\'importer que les intérêts (DIA) — saute les sections de patrimoine (DSP)}
                             {--limit= : Limiter le nombre de déclarations à traiter}
                             {--verbose-details : Afficher les détails de chaque déclaration}';
 
@@ -398,6 +400,24 @@ class SyncHatvpDataCommand extends Command
 
         $parlementairesOnly = $this->option('parlementaires');
         $typeFilter = $this->option('type');
+        $presidentielleOnly = (bool) $this->option('presidentielle');
+        $diaOnly = (bool) $this->option('dia-only') || $presidentielleOnly;
+
+        // Ciblage présidentielle : ne traiter que les déclarations RATTACHÉES (BO) à un candidat 2027.
+        $uuidsCibles = null;
+        if ($presidentielleOnly) {
+            $personneIds = \App\Models\CandidatPresidentielle::where('election', '2027')
+                ->whereNotNull('personne_politique_id')->pluck('personne_politique_id')->unique();
+            $uuidsCibles = HatvpDeclaration::whereIn('personne_politique_id', $personneIds)
+                ->pluck('uuid')->flip()->all();
+            $this->info('   🎯 Ciblage présidentielle : '.count($uuidsCibles).' déclaration(s) rattachée(s) — intérêts (DIA) seulement.');
+            if (empty($uuidsCibles)) {
+                $this->warn('   Aucune déclaration rattachée à un candidat 2027 — rattachez-les au back-office d\'abord.');
+                $reader->close();
+
+                return Command::SUCCESS;
+            }
+        }
 
         while ($reader->read()) {
             if ($reader->nodeType === \XMLReader::ELEMENT && $reader->name === 'declaration') {
@@ -435,6 +455,13 @@ class SyncHatvpDataCommand extends Command
                     continue;
                 }
 
+                // Ciblage présidentielle : ignorer toute déclaration non rattachée à un candidat 2027.
+                if ($uuidsCibles !== null && ! isset($uuidsCibles[$uuid])) {
+                    $skipped++;
+
+                    continue;
+                }
+
                 $declaration = HatvpDeclaration::where('uuid', $uuid)->first();
 
                 if (! $declaration) {
@@ -456,7 +483,7 @@ class SyncHatvpDataCommand extends Command
 
                 // Importer les détails
                 try {
-                    $stats = $this->importDeclarationDetailsFromData($declaration, $data);
+                    $stats = $this->importDeclarationDetailsFromData($declaration, $data, $diaOnly);
                     $imported++;
                     $this->detailsImported++;
 
@@ -501,7 +528,7 @@ class SyncHatvpDataCommand extends Command
     /**
      * Importe les détails d'une déclaration à partir des données parsées
      */
-    private function importDeclarationDetailsFromData(HatvpDeclaration $declaration, array $data): array
+    private function importDeclarationDetailsFromData(HatvpDeclaration $declaration, array $data, bool $diaOnly = false): array
     {
         $stats = [
             'mandats' => 0,
@@ -512,7 +539,7 @@ class SyncHatvpDataCommand extends Command
         ];
 
         // Transaction pour l'intégrité
-        DB::transaction(function () use ($declaration, $data, &$stats) {
+        DB::transaction(function () use ($declaration, $data, &$stats, $diaOnly) {
             // 1. Importer les mandats électifs avec rémunérations
             if (! empty($data['mandats_electifs']['items'])) {
                 foreach ($data['mandats_electifs']['items'] as $mandat) {
@@ -626,24 +653,23 @@ class SyncHatvpDataCommand extends Command
                 }
             }
 
-            // 7. Importer les participations financières
-            if (! empty($data['participations_financieres']['items'])) {
-                foreach ($data['participations_financieres']['items'] as $financiere) {
-                    $this->importParticipationFinanciere($declaration, $financiere);
+            // 7-9. Patrimoine (DSP) : participations financières, immeubles, véhicules.
+            // SAUTÉ en mode DIA-only (garde-fou légal : le patrimoine n'est ni repris ni publié).
+            if (! $diaOnly) {
+                if (! empty($data['participations_financieres']['items'])) {
+                    foreach ($data['participations_financieres']['items'] as $financiere) {
+                        $this->importParticipationFinanciere($declaration, $financiere);
+                    }
                 }
-            }
-
-            // 8. Importer les immeubles (patrimoine)
-            if (! empty($data['immeubles']['items'])) {
-                foreach ($data['immeubles']['items'] as $immeuble) {
-                    $this->importImmeuble($declaration, $immeuble);
+                if (! empty($data['immeubles']['items'])) {
+                    foreach ($data['immeubles']['items'] as $immeuble) {
+                        $this->importImmeuble($declaration, $immeuble);
+                    }
                 }
-            }
-
-            // 9. Importer les véhicules (patrimoine)
-            if (! empty($data['vehicules']['items'])) {
-                foreach ($data['vehicules']['items'] as $vehicule) {
-                    $this->importVehicule($declaration, $vehicule);
+                if (! empty($data['vehicules']['items'])) {
+                    foreach ($data['vehicules']['items'] as $vehicule) {
+                        $this->importVehicule($declaration, $vehicule);
+                    }
                 }
             }
 

@@ -1,13 +1,20 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
 const props = defineProps({
     files: Object,
     propositions_en_attente: Number,
+    signalements_en_attente: Number,
+    referentiels: Array,
     integrite: Object,
 });
+
+import { router } from '@inertiajs/vue3';
+function agirReferentiel(d, action) {
+    router.post(route('admin.presidentielle.moderation.action'), { type: 'programme_document', id: d.id, action }, { preserveScroll: true });
+}
 
 const statuts = ['detecte', 'en_review', 'a_completer', 'valide'];
 
@@ -44,6 +51,32 @@ function total(file) {
             <!-- File d'ingestion -->
             <div class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-4">
                 <strong>{{ propositions_en_attente }}</strong> proposition(s) d'ingestion en attente de validation.
+            </div>
+
+            <!-- Signalements citoyens -->
+            <Link :href="route('admin.presidentielle.signalements')"
+                class="block rounded-xl border p-4 transition"
+                :class="signalements_en_attente > 0
+                    ? 'border-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100'
+                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'">
+                🚩 <strong>{{ signalements_en_attente }}</strong> signalement(s) citoyen(s) à traiter.
+            </Link>
+
+            <!-- Référentiels de programme (plan §11.5) -->
+            <div v-if="referentiels?.length" class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <h3 class="font-semibold mb-3">Référentiels de programme officiel</h3>
+                <div v-for="d in referentiels" :key="d.id" class="flex items-center justify-between gap-3 text-sm py-1.5 border-t border-gray-100 dark:border-gray-800 first:border-0">
+                    <div class="min-w-0">
+                        <p class="truncate font-medium">{{ d.titre }}</p>
+                        <p class="text-xs text-gray-500">{{ d.candidat }} · {{ d.nb_items }} entrées · <a :href="d.url" target="_blank" class="text-blue-600 hover:underline">source ↗</a></p>
+                    </div>
+                    <div class="whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs mr-2">{{ d.statut_validation }}{{ d.affiche_publiquement ? ' · publié' : '' }}</span>
+                        <button v-if="d.statut_validation !== 'valide'" @click="agirReferentiel(d, 'valider')" class="px-2 py-1 text-xs rounded bg-blue-600 text-white">Valider</button>
+                        <button v-if="d.statut_validation === 'valide' && !d.affiche_publiquement" @click="agirReferentiel(d, 'publier')" class="px-2 py-1 text-xs rounded bg-green-600 text-white ml-1">Publier</button>
+                        <button v-if="d.affiche_publiquement" @click="agirReferentiel(d, 'depublier')" class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 ml-1">Dépublier</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Intégrité -->

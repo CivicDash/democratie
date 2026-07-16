@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Argument;
+use App\Models\ArgumentMesureLien;
 use App\Models\CandidatPresidentielle;
 use App\Models\MesureScrutinLien;
 use App\Models\ProgrammeMesure;
@@ -30,12 +30,14 @@ it('un lien mesure↔scrutin sans explication n’est jamais publiable', functio
         ->and($sansExplication->estPubliable())->toBeFalse();
 });
 
-it('un argument « contre » exige une double validation', function () {
+it('une liaison « contre » exige une double validation', function () {
     $u1 = User::factory()->create();
     $u2 = User::factory()->create();
 
-    $contre = Argument::factory()->contre()->create([
+    // Liaison contre validée une fois, reliée à une mesure, dotée d'une note : pas encore valide.
+    $contre = ArgumentMesureLien::factory()->contre()->create([
         'statut_validation' => 'valide',
+        'note_contextuelle' => 'ce fait joue contre cette mesure',
         'valide_par' => $u1->id,
         'double_valide_par' => null,
     ]);
@@ -44,7 +46,11 @@ it('un argument « contre » exige une double validation', function () {
     $contre->update(['double_valide_par' => $u2->id]);
     expect($contre->refresh()->estValide())->toBeTrue();
 
-    // un argument "pour" n'exige qu'une validation simple
-    $pour = Argument::factory()->pour()->create(['statut_validation' => 'valide', 'valide_par' => $u1->id]);
+    // Une liaison "pour" n'exige qu'une validation simple.
+    $pour = ArgumentMesureLien::factory()->pour()->create([
+        'statut_validation' => 'valide',
+        'note_contextuelle' => 'ce fait joue pour cette mesure',
+        'valide_par' => $u1->id,
+    ]);
     expect($pour->estValide())->toBeTrue();
 });

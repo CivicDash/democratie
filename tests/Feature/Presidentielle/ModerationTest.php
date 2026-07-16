@@ -2,6 +2,7 @@
 
 use App\Exceptions\ModerationException;
 use App\Models\Argument;
+use App\Models\ArgumentMesureLien;
 use App\Models\ArgumentSource;
 use App\Models\CandidatPresidentielle;
 use App\Models\IngestionDocument;
@@ -53,8 +54,7 @@ function mesureConforme(): ProgrammeMesure
         'source_officielle_url' => 'https://exemple.fr/#m',
     ]);
     foreach (['pour', 'contre'] as $sens) {
-        $arg = Argument::factory()->publie()->create(['mesure_id' => $mesure->id, 'sens' => $sens]);
-        ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
+        lierArgumentPublie($mesure, $sens);
     }
 
     return $mesure;
@@ -85,20 +85,27 @@ it('refuse de publier une mesure sans contre-argument', function () {
         'candidat_id' => $candidat->id, 'theme_id' => ProgrammeTheme::factory()->create()->id,
         'statut_validation' => 'valide', 'source_officielle_url' => 'https://x.fr/#m',
     ]);
-    $arg = Argument::factory()->publie()->create(['mesure_id' => $mesure->id, 'sens' => 'pour']);
-    ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
+    lierArgumentPublie($mesure, 'pour'); // uniquement un « pour », pas de « contre »
 
     expect(fn () => $service->publier($mesure, moderateur()))
         ->toThrow(ModerationException::class);
     expect($mesure->fresh()->affiche_publiquement)->toBeFalse();
 });
 
-it('exige une double validation par un second modérateur pour un argument « contre »', function () {
+it('exige une double validation par un second modérateur pour une liaison « contre »', function () {
     $service = app(ModerationService::class);
     $mod1 = moderateur();
     $mod2 = moderateur();
 
-    $contre = Argument::factory()->create(['sens' => 'contre', 'statut_validation' => 'detecte']);
+    // Liaison contre publiable en tout sauf la double validation.
+    $arg = Argument::factory()->publie()->create();
+    ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
+    $contre = ArgumentMesureLien::factory()->contre()->create([
+        'argument_id' => $arg->id,
+        'mesure_id' => ProgrammeMesure::factory()->create()->id,
+        'note_contextuelle' => 'ce fait joue contre cette mesure',
+        'statut_validation' => 'detecte',
+    ]);
     $service->valider($contre, $mod1);
 
     // le même modérateur ne peut pas doubler sa propre validation
@@ -234,23 +241,32 @@ it('gère les arguments sourcés depuis le BO jusqu à la publication de la mesu
         $this->actingAs($mod1)->post(route('admin.presidentielle.arguments.store'), [
             'mesure_id' => $mesure->id, 'sens' => $sens, 'titre' => "Argument {$sens}",
             'contenu' => 'Contenu factuel appuyé sur une étude.', 'type_argument' => 'chiffrage',
+            'note_contextuelle' => "Pourquoi ce fait joue {$sens} cette mesure.",
         ])->assertSessionHasNoErrors();
     }
-    $pour = $mesure->arguments()->where('sens', 'pour')->first();
-    $contre = $mesure->arguments()->where('sens', 'contre')->first();
+    $lienPour = $mesure->liens()->where('sens', 'pour')->first();
+    $lienContre = $mesure->liens()->where('sens', 'contre')->first();
 
-    foreach ([$pour, $contre] as $a) {
+    // Sources sur les faits sous-jacents.
+    foreach ([$lienPour, $lienContre] as $l) {
         $this->actingAs($mod1)->post(route('admin.presidentielle.arguments.sources.store'), [
-            'argument_id' => $a->id, 'type_source' => 'insee', 'url' => 'https://insee.fr/etude', 'fiabilite' => 'haute',
+            'argument_id' => $l->argument_id, 'type_source' => 'insee', 'url' => 'https://insee.fr/etude', 'fiabilite' => 'haute',
         ])->assertSessionHasNoErrors();
     }
 
     $svc = app(ModerationService::class);
-    $svc->valider($pour, $mod1);
-    $svc->publier($pour->fresh(), $mod1);
-    $svc->valider($contre, $mod1);
-    $svc->doubleValider($contre->fresh(), $mod2);
-    $svc->publier($contre->fresh(), $mod1);
+    // Publier les faits (validés une fois, sourcés).
+    foreach ([$lienPour, $lienContre] as $l) {
+        $arg = $l->argument()->first();
+        $svc->valider($arg, $mod1);
+        $svc->publier($arg->fresh(), $mod1);
+    }
+    // Publier les liaisons (le « contre » exige une double validation).
+    $svc->valider($lienPour->fresh(), $mod1);
+    $svc->publier($lienPour->fresh(), $mod1);
+    $svc->valider($lienContre->fresh(), $mod1);
+    $svc->doubleValider($lienContre->fresh(), $mod2);
+    $svc->publier($lienContre->fresh(), $mod1);
 
     // la mesure devient publiable via l'endpoint
     $this->actingAs($mod1)->post('/admin/presidentielle/moderation/action', [
@@ -269,4 +285,37 @@ it('refuse de retraiter une proposition déjà rattachée (anti double-clic)', f
     expect(fn () => $svc->creerMesureDepuisProposition($prop->fresh(), $mod))
         ->toThrow(ModerationException::class);
     expect(ProgrammeMesure::count())->toBe(1);
+});
+
+it('marque et retire une mesure « phare » via l endpoint (comparateur + quiz)', function () {
+    $mod = moderateur();
+    $mesure = mesureConforme();
+
+    $this->actingAs($mod)->post('/admin/presidentielle/moderation/action', [
+        'type' => 'mesure', 'id' => $mesure->id, 'action' => 'mettre_en_avant',
+    ])->assertSessionHasNoErrors();
+    expect($mesure->fresh()->est_mise_en_avant)->toBeTrue();
+
+    $this->actingAs($mod)->post('/admin/presidentielle/moderation/action', [
+        'type' => 'mesure', 'id' => $mesure->id, 'action' => 'retirer_en_avant',
+    ])->assertSessionHasNoErrors();
+    expect($mesure->fresh()->est_mise_en_avant)->toBeFalse();
+});
+
+it('supprime une prise de parole et ses propositions, refuse si rattachée', function () {
+    $mod = moderateur();
+    $prop = propositionIngestion();
+    $docId = $prop->document_id;
+
+    // suppression OK (detecte)
+    $this->actingAs($mod)->delete(route('admin.presidentielle.documents.destroy', $docId))
+        ->assertSessionHasNoErrors();
+    expect(\App\Models\IngestionDocument::find($docId))->toBeNull()
+        ->and(\App\Models\IngestionProposition::find($prop->id))->toBeNull();
+
+    // refus si une proposition est rattachée
+    $prop2 = propositionIngestion(['statut' => 'rattachee']);
+    $this->actingAs($mod)->delete(route('admin.presidentielle.documents.destroy', $prop2->document_id))
+        ->assertSessionHasErrors('document');
+    expect(\App\Models\IngestionDocument::find($prop2->document_id))->not->toBeNull();
 });

@@ -3,6 +3,7 @@
 namespace App\Services\Presidentielle;
 
 use App\Models\CandidatPresidentielle;
+use App\Models\Controverse;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
 use Illuminate\Support\Facades\File;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\File;
  */
 class PresidentielleExporter
 {
-    public function __construct(private IntegriteChecker $integrite) {}
+    public function __construct(private IntegriteChecker $integrite, private HatvpSummary $hatvp) {}
 
     /** @return array<string,mixed> */
     public function build(string $election = '2027'): array
@@ -36,10 +37,15 @@ class PresidentielleExporter
                 // Publiées (comparateur, plein contenu) ET validées non publiées (« relevées »)
                 'mesures' => fn ($q) => $q->where('statut_validation', 'valide')->orderBy('ordre')->with([
                     'theme',
-                    'arguments' => fn ($a) => $a->publie()->orderBy('ordre')->with('sources'),
+                    // Argumentaire via les liaisons publiées ; le sens est porté par la liaison,
+                    // le fait (+ sources + controverse) par l'argument publié.
+                    'liens' => fn ($l) => $l->publie()->with([
+                        'argument' => fn ($a) => $a->publie()->with(['sources', 'controverse']),
+                    ]),
                     'scrutinLiens' => fn ($l) => $l->publie(),
                 ]),
                 'propositions' => fn ($p) => $p->whereIn('statut', ['detecte', 'validee', 'rattachee'])->with(['theme', 'document']),
+                'programmeDocuments' => fn ($d) => $d->publie()->with('items'),
             ])
             ->orderBy('ordre_affichage')
             ->get();
@@ -52,11 +58,21 @@ class PresidentielleExporter
 
         $comparateur = $this->buildComparateur($candidatsExport, $themesExport);
 
+        // Controverses publiées : note méthodologique affichée en tête du dépliant pour/contre
+        // (les arguments référencent leur controverse par slug dans chaque mesure).
+        $controverses = Controverse::publie()->with('theme')->orderBy('ordre')->get()
+            ->mapWithKeys(fn ($c) => [$c->slug => [
+                'titre' => $c->titre,
+                'theme' => $c->theme?->slug,
+                'note_methodologique' => $c->note_methodologique,
+            ]])->all();
+
         $contenu = [
             'election' => $election,
             'themes' => $themesExport,
             'candidats' => $candidatsExport,
             'comparateur' => $comparateur,
+            'controverses' => $controverses,
         ];
 
         return $contenu + [
@@ -106,8 +122,8 @@ class PresidentielleExporter
                 'date_annonce' => optional($mesure->date_annonce)->toDateString(),
                 'mise_en_avant' => (bool) $mesure->est_mise_en_avant,
                 'arguments' => [
-                    'pour' => $this->exportArguments($mesure->arguments->where('sens', 'pour')),
-                    'contre' => $this->exportArguments($mesure->arguments->where('sens', 'contre')),
+                    'pour' => $this->exportArguments($mesure->liens->where('sens', 'pour')),
+                    'contre' => $this->exportArguments($mesure->liens->where('sens', 'contre')),
                 ],
                 'en_pratique' => $mesure->scrutinLiens->map(fn ($l) => [
                     'sens' => $l->sens_lien,
@@ -176,6 +192,17 @@ class PresidentielleExporter
             'date_declaration' => optional($candidat->date_declaration)->toDateString(),
             'site_campagne_url' => $this->url($candidat->site_campagne_url),
             'programme_url_officiel' => $this->url($candidat->programme_url_officiel),
+            'reseaux' => array_filter([
+                'site' => $this->url($candidat->personnePolitique?->site_web),
+                'x' => $this->url($candidat->personnePolitique?->twitter_url),
+                'instagram' => $this->url($candidat->personnePolitique?->instagram_url),
+                'facebook' => $this->url($candidat->personnePolitique?->facebook_url),
+                'mastodon' => $this->url($candidat->personnePolitique?->mastodon_url),
+                'bluesky' => $this->url($candidat->personnePolitique?->bluesky_url),
+                'linkedin' => $this->url($candidat->personnePolitique?->linkedin_url),
+                'youtube' => $this->url($candidat->personnePolitique?->youtube_url),
+                'tiktok' => $this->url($candidat->personnePolitique?->tiktok_url),
+            ]),
             'couverture' => [
                 'themes_publies' => $themesPublies,
                 'themes_exprimes' => $themesExprimes,
@@ -205,8 +232,34 @@ class PresidentielleExporter
                 : [],
             'mesures_par_theme' => $mesuresParTheme,
             'mesures_relevees_par_theme' => $mesuresRelevees,
+            'programme_complet' => $this->exportProgrammeComplet($candidat),
             'prises_de_parole' => $this->exportPrisesDeParole($candidat),
-            'affaires' => $this->exportAffaires($candidat->personnePolitique),
+            'affaires' => $this->exportAffaires($candidat),
+            'hatvp' => $this->exportHatvp($candidat),
+        ];
+    }
+
+    /**
+     * Déclarations d'intérêts HATVP (DIA) — résumé « façon CivicDash » + graphe revenus.
+     * Le détail n'est exposé QUE si le rattachement a été validé au BO (hatvp_statut = 'lie') ;
+     * sinon on ne renvoie que l'état honnête. Le patrimoine (DSP) n'est jamais repris.
+     */
+    private function exportHatvp(CandidatPresidentielle $candidat): array
+    {
+        $statut = $candidat->hatvp_statut ?? 'a_verifier';
+        $personne = $candidat->personnePolitique;
+
+        if ($statut !== 'lie' || ! $personne) {
+            return ['statut' => $statut];
+        }
+
+        $data = $this->hatvp->pourPersonne($personne);
+
+        return [
+            'statut' => 'lie',
+            'url' => $data['declarations'][0]['url'] ?? null,
+            'derniere_declaration' => $data['declarations'][0]['date_depot'] ?? null,
+            'summary' => $data['summary'],
         ];
     }
 
@@ -226,10 +279,12 @@ class PresidentielleExporter
      * la condamnation n'est pas définitive. `en_verification` : une affaire est dans le
      * circuit de modération mais pas publiée → le front n'affiche PAS « aucune affaire ».
      */
-    private function exportAffaires(?PersonnePolitique $personne): array
+    private function exportAffaires(CandidatPresidentielle $candidat): array
     {
+        $personne = $candidat->personnePolitique;
+        $verif = optional($candidat->revue_judiciaire_at)->toDateString();
         if (! $personne) {
-            return ['publiees' => [], 'en_verification' => false];
+            return ['publiees' => [], 'en_verification' => false, 'derniere_verification' => $verif];
         }
 
         $publiees = $personne->affairesJudiciaires()
@@ -263,7 +318,7 @@ class PresidentielleExporter
             ->whereIn('statut_validation', ['detecte', 'en_review', 'a_completer'])
             ->exists();
 
-        return ['publiees' => $publiees, 'en_verification' => $enVerification];
+        return ['publiees' => $publiees, 'en_verification' => $enVerification, 'derniere_verification' => $verif];
     }
 
     /**
@@ -271,6 +326,39 @@ class PresidentielleExporter
      * avec timecode vérifiable (deep-link vidéo &t=Ns). Le différenciateur du site :
      * chaque citation est vérifiable à la source en un clic.
      */
+    /**
+     * Bandeau « programme complet — consulter » (plan §11.5) : référentiel officiel
+     * validé/publié, rendu en chapitres + liens d'ancre vers le texte officiel.
+     */
+    private function exportProgrammeComplet(CandidatPresidentielle $candidat): ?array
+    {
+        $doc = $candidat->programmeDocuments->first();
+        if (! $doc) {
+            return null;
+        }
+
+        $chapitres = collect($doc->structure ?? [])->map(function ($ch) use ($doc) {
+            $numero = $ch['numero'] ?? null;
+
+            return [
+                'numero' => $numero,
+                'titre' => $ch['titre'] ?? '',
+                'sous_pages' => $doc->items->where('chapitre_numero', $numero)->map(fn ($i) => [
+                    'titre' => $i->titre,
+                    'url' => $this->url($i->url_ancre),
+                ])->values()->all(),
+            ];
+        })->values()->all();
+
+        return [
+            'titre' => $doc->titre,
+            'url' => $this->url($doc->url),
+            'nb_chapitres' => count($chapitres),
+            'nb_entrees' => $doc->items->count(),
+            'chapitres' => $chapitres,
+        ];
+    }
+
     private function exportPrisesDeParole(CandidatPresidentielle $candidat): array
     {
         $parDocument = [];
@@ -337,21 +425,30 @@ class PresidentielleExporter
         return count($mots) <= $max ? $txt : implode(' ', array_slice($mots, 0, $max)).' …';
     }
 
-    private function exportArguments($arguments): array
+    /**
+     * @param  \Illuminate\Support\Collection  $liens  liaisons publiées d'un même sens
+     */
+    private function exportArguments($liens): array
     {
-        return $arguments->map(fn ($a) => [
-            'titre' => $a->titre,
-            'contenu' => $a->contenu,
-            'type' => $a->type_argument,
-            'sources' => $a->sources->map(fn ($s) => [
-                'type' => $s->type_source,
-                'titre' => $s->titre,
-                'url' => $this->url($s->url),
-                'media' => $s->media,
-                'archive_url' => $this->url($s->archive_url),
-                'fiabilite' => $s->fiabilite,
-            ])->values()->all(),
-        ])->values()->all();
+        return $liens
+            ->filter(fn ($l) => $l->argument && $l->argument->affiche_publiquement)
+            ->map(fn ($l) => [
+                'ref' => $l->argument->uuid,                 // même ref = même fait partagé entre mesures
+                'titre' => $l->argument->titre,
+                'contenu' => $l->argument->contenu,
+                'type' => $l->argument->type_argument,
+                'note_contextuelle' => $l->note_contextuelle, // pourquoi ce fait joue dans ce sens ICI
+                'controverse' => $l->argument->controverse && $l->argument->controverse->affiche_publiquement
+                    ? $l->argument->controverse->slug : null,
+                'sources' => $l->argument->sources->map(fn ($s) => [
+                    'type' => $s->type_source,
+                    'titre' => $s->titre,
+                    'url' => $this->url($s->url),
+                    'media' => $s->media,
+                    'archive_url' => $this->url($s->archive_url),
+                    'fiabilite' => $s->fiabilite,
+                ])->values()->all(),
+            ])->values()->all();
     }
 
     /** Matrice thème → candidat → mesures mises en avant, pour le comparateur. */

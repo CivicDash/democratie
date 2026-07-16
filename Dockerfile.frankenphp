@@ -58,7 +58,7 @@ RUN chmod 755 /usr/local/bin/frankenphp
 # Installation Node.js (pour build assets)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g npm@latest
+    && npm install -g npm@11
 
 # Configuration OPcache optimisée pour Octane
 RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
@@ -105,11 +105,11 @@ RUN npm ci && npm run build && rm -rf node_modules
 RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
     && chmod -R 775 /app/storage /app/bootstrap/cache
 
-# Cache Laravel
-RUN php artisan config:cache \
-    && php artisan route:cache \
+# Cache routes et vues (config exclue car dépend du .env monté au runtime)
+RUN php artisan route:cache \
     && php artisan view:cache \
-    && php artisan event:cache
+    && php artisan event:cache \
+    && rm -f /app/bootstrap/cache/config.php
 
 # Exposition des ports
 EXPOSE 80 443

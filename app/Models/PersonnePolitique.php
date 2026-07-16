@@ -34,6 +34,10 @@ class PersonnePolitique extends Model
         'facebook_url',
         'linkedin_url',
         'instagram_url',
+        'mastodon_url',
+        'bluesky_url',
+        'youtube_url',
+        'tiktok_url',
         'site_web',
         'url_hatvp',
         'hatvp_type_mandat',
@@ -155,11 +159,17 @@ class PersonnePolitique extends Model
     }
 
     /**
-     * Declarations HATVP multi-criteres :
-     * match par nom/prenom + par uid depute/senateur si applicable
+     * Declarations HATVP.
+     * Si un rattachement EXPLICITE (personne_politique_id, posé au BO) existe, il fait
+     * autorité et court-circuite le matching par nom. Sinon, fallback multi-critères :
+     * nom/prénom ILIKE + uid député/sénateur si applicable.
      */
     public function declarationsHatvp()
     {
+        if (HatvpDeclaration::where('personne_politique_id', $this->id)->exists()) {
+            return HatvpDeclaration::where('personne_politique_id', $this->id)->orderByDesc('date_depot');
+        }
+
         return HatvpDeclaration::where(function ($q) {
             $q->where(function ($q2) {
                 $q2->where('nom', 'ILIKE', $this->nom)

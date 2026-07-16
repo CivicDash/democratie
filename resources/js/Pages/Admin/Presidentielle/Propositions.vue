@@ -6,8 +6,17 @@ import PresidentielleNav from '@/Components/PresidentielleNav.vue';
 
 const props = defineProps({
     propositions: Object, // paginator
+    documents: Array,
     statut: String,
 });
+
+function supprimerDocument(d) {
+    const avert = d.nb_rattachees > 0
+        ? `⚠ ${d.nb_rattachees} proposition(s) déjà rattachée(s) à des mesures — la suppression sera refusée tant que ces mesures existent.\n\n`
+        : '';
+    if (!confirm(`${avert}Supprimer la prise de parole « ${d.titre} » et ses ${d.nb_propositions} proposition(s) ?`)) return;
+    router.delete(route('admin.presidentielle.documents.destroy', d.id), { preserveScroll: true });
+}
 
 const fichierJson = ref(null);
 const fichierSource = ref(null);
@@ -96,6 +105,20 @@ function nomCandidat(p) {
                         </button>
                     </div>
                 </form>
+            </details>
+
+            <!-- Prises de parole importées (suppression d'un import erroné) -->
+            <details v-if="documents?.length" class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <summary class="cursor-pointer font-semibold text-sm">🗑️ Prises de parole importées ({{ documents.length }})</summary>
+                <p class="text-xs text-gray-500 mt-2">Supprimer un document retire toutes ses propositions. Refusé si des propositions ont déjà été rattachées à des mesures (traiter ces mesures d’abord).</p>
+                <div v-for="d in documents" :key="d.id" class="flex items-center justify-between gap-3 text-sm py-1.5 border-t border-gray-100 dark:border-gray-800">
+                    <div class="min-w-0">
+                        <p class="truncate">{{ d.titre }}</p>
+                        <p class="text-xs text-gray-500">{{ d.type }} · {{ d.nb_propositions }} proposition(s)<span v-if="d.nb_rattachees"> · {{ d.nb_rattachees }} rattachée(s)</span></p>
+                    </div>
+                    <button @click="supprimerDocument(d)" class="px-2 py-1 text-xs rounded bg-red-100 text-red-700 whitespace-nowrap">Supprimer</button>
+                </div>
+                <p v-if="erreurs().document" class="text-xs text-red-600 mt-2">{{ erreurs().document }}</p>
             </details>
 
             <div class="flex gap-2 flex-wrap">

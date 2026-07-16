@@ -34,7 +34,7 @@ class IntegriteChecker
         $candidats = CandidatPresidentielle::publie()
             ->where('election', $election)
             ->with(['personnePolitique', 'mesures' => fn ($q) => $q->publie()->with([
-                'arguments' => fn ($a) => $a->publie()->with('sources'),
+                'liens' => fn ($l) => $l->publie()->with(['argument' => fn ($a) => $a->with('sources')]),
                 'scrutinLiens',
             ])])
             ->get();
@@ -103,8 +103,15 @@ class IntegriteChecker
             $violations[] = ['type' => 'mesure_source_invalide', 'message' => "{$ref} : URL de source invalide ou placeholder (A_COMPLETER)."];
         }
 
-        $pour = $mesure->arguments->where('sens', 'pour')->filter(fn ($a) => $this->argumentAvecSourceFiable($a));
-        $contre = $mesure->arguments->where('sens', 'contre')->filter(fn ($a) => $this->argumentAvecSourceFiable($a));
+        // Symétrie via les liaisons publiées : le sens est porté par la liaison, la fiabilité
+        // par l'argument (fait sourcé). Une liaison ne compte que si son argument est publié,
+        // sourcé fiablement, et qu'elle porte une note contextuelle.
+        $liensFiables = $mesure->liens->filter(fn ($l) => $l->argument
+            && $l->argument->affiche_publiquement
+            && filled($l->note_contextuelle)
+            && $this->argumentAvecSourceFiable($l->argument));
+        $pour = $liensFiables->where('sens', 'pour');
+        $contre = $liensFiables->where('sens', 'contre');
 
         if ($pour->isEmpty()) {
             $violations[] = ['type' => 'mesure_sans_pour', 'message' => "{$ref} : aucun argument « pour » validé et sourcé."];
