@@ -9,6 +9,7 @@ use App\Models\ArgumentMesureLien;
 use App\Models\ArgumentSource;
 use App\Models\CandidatPresidentielle;
 use App\Models\Controverse;
+use App\Models\HatvpDeclaration;
 use App\Models\IngestionDocument;
 use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
@@ -18,6 +19,7 @@ use App\Models\PresidentielleModerationLog;
 use App\Models\PresidentielleSignalement;
 use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeMesure;
+use App\Services\Presidentielle\HatvpSummary;
 use App\Services\Presidentielle\IntegriteChecker;
 use App\Services\Presidentielle\ModerationService;
 use Illuminate\Http\Request;
@@ -635,6 +637,113 @@ class PresidentielleModerationController extends Controller
         ]);
 
         return back()->with('success', 'Signalement mis à jour ('.$statut.').');
+    }
+
+    /** Écran BO : rattachement des déclarations HATVP aux candidats (recherche + aperçu + rattachement). */
+    public function hatvp()
+    {
+        $candidats = CandidatPresidentielle::where('election', '2027')->with('personnePolitique')
+            ->orderBy('ordre_affichage')->orderBy('id')->get()
+            ->map(function ($c) {
+                $pid = $c->personne_politique_id;
+                $liee = $pid
+                    ? HatvpDeclaration::where('personne_politique_id', $pid)->orderByDesc('date_depot')->first()
+                    : null;
+
+                return [
+                    'id' => $c->id,
+                    'personne_politique_id' => $pid,
+                    'nom' => $c->personnePolitique?->nom_complet,
+                    'nom_recherche' => trim(($c->personnePolitique?->nom ?? '').' '.($c->personnePolitique?->prenom ?? '')),
+                    'hatvp_statut' => $c->hatvp_statut,
+                    'declaration_liee' => $liee ? [
+                        'uuid' => $liee->uuid, 'type' => $liee->type_declaration,
+                        'date_depot' => optional($liee->date_depot)->format('d/m/Y'),
+                    ] : null,
+                ];
+            });
+
+        return Inertia::render('Admin/Presidentielle/Hatvp', [
+            'candidats' => $candidats,
+            'statuts' => ['a_verifier', 'lie', 'non_soumis', 'non_disponible'],
+        ]);
+    }
+
+    /** Recherche JSON de déclarations HATVP par nom (pour rattacher). */
+    public function hatvpSearch(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['resultats' => []]);
+        }
+
+        $resultats = HatvpDeclaration::where(fn ($w) => $w
+            ->where('nom', 'ILIKE', "%{$q}%")
+            ->orWhere('prenom', 'ILIKE', "%{$q}%")
+            ->orWhereRaw("(prenom || ' ' || nom) ILIKE ?", ["%{$q}%"]))
+            ->orderByDesc('date_depot')->limit(25)->get()
+            ->map(fn ($d) => [
+                'uuid' => $d->uuid,
+                'nom' => $d->nom, 'prenom' => $d->prenom,
+                'type' => $d->type_declaration,
+                'date_depot' => optional($d->date_depot)->format('d/m/Y'),
+                'type_mandat' => $d->type_mandat,
+                'deja_liee_a' => $d->personne_politique_id,
+            ]);
+
+        return response()->json(['resultats' => $resultats]);
+    }
+
+    /** Aperçu JSON « façon CivicDash » d'une déclaration (avant rattachement). */
+    public function hatvpPreview(string $uuid, HatvpSummary $builder)
+    {
+        return response()->json(['summary' => $builder->pourUuid($uuid)]);
+    }
+
+    /** Rattache une déclaration à la personne d'un candidat (pose la FK, statut « lié »). */
+    public function hatvpRattacher(Request $request)
+    {
+        $data = $request->validate([
+            'candidat_id' => ['required', 'integer', 'exists:candidats_presidentielle,id'],
+            'declaration_uuid' => ['required', 'string', 'exists:hatvp_declarations,uuid'],
+        ]);
+
+        $candidat = CandidatPresidentielle::with('personnePolitique')->findOrFail($data['candidat_id']);
+        if (! $candidat->personne_politique_id) {
+            throw ValidationException::withMessages(['candidat_id' => 'Ce candidat n’a pas de personne politique associée.']);
+        }
+
+        HatvpDeclaration::where('uuid', $data['declaration_uuid'])
+            ->update(['personne_politique_id' => $candidat->personne_politique_id]);
+        $candidat->update(['hatvp_statut' => 'lie']);
+
+        return back()->with('success', 'Déclaration HATVP rattachée à '.$candidat->personnePolitique?->nom_complet.'.');
+    }
+
+    /** Détache toutes les déclarations HATVP d'un candidat. */
+    public function hatvpDetacher(Request $request)
+    {
+        $data = $request->validate(['candidat_id' => ['required', 'integer', 'exists:candidats_presidentielle,id']]);
+        $candidat = CandidatPresidentielle::findOrFail($data['candidat_id']);
+        if ($candidat->personne_politique_id) {
+            HatvpDeclaration::where('personne_politique_id', $candidat->personne_politique_id)
+                ->update(['personne_politique_id' => null]);
+        }
+        $candidat->update(['hatvp_statut' => 'a_verifier']);
+
+        return back()->with('success', 'Déclaration(s) HATVP détachée(s).');
+    }
+
+    /** Fixe l'état d'honnêteté HATVP d'un candidat (non_soumis / non_disponible / a_verifier). */
+    public function hatvpStatut(Request $request)
+    {
+        $data = $request->validate([
+            'candidat_id' => ['required', 'integer', 'exists:candidats_presidentielle,id'],
+            'statut' => ['required', 'in:a_verifier,lie,non_soumis,non_disponible'],
+        ]);
+        CandidatPresidentielle::whereKey($data['candidat_id'])->update(['hatvp_statut' => $data['statut']]);
+
+        return back()->with('success', 'Statut HATVP mis à jour ('.$data['statut'].').');
     }
 
     /**

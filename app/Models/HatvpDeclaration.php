@@ -40,6 +40,7 @@ class HatvpDeclaration extends Model
 
     protected $fillable = [
         'uuid',
+        'personne_politique_id',
         'date_depot',
         'type_declaration',
         'origine',
@@ -72,6 +73,12 @@ class HatvpDeclaration extends Model
     ];
 
     // ==================== RELATIONS ====================
+
+    /** Rattachement explicite et validé (BO) à une personne — prioritaire sur le matching par nom. */
+    public function personnePolitique(): BelongsTo
+    {
+        return $this->belongsTo(PersonnePolitique::class, 'personne_politique_id');
+    }
 
     public function mandatsElectifs(): HasMany
     {

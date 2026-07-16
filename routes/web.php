@@ -978,6 +978,12 @@ Route::prefix('admin/presidentielle')
         Route::post('/controverses', [$c, 'controverseStore'])->name('controverses.store');
         Route::get('/signalements', [$c, 'signalements'])->name('signalements');
         Route::post('/signalements/action', [$c, 'signalementAction'])->name('signalements.action');
+        Route::get('/hatvp', [$c, 'hatvp'])->name('hatvp');
+        Route::get('/hatvp/search', [$c, 'hatvpSearch'])->name('hatvp.search');
+        Route::get('/hatvp/{uuid}/preview', [$c, 'hatvpPreview'])->name('hatvp.preview');
+        Route::post('/hatvp/rattacher', [$c, 'hatvpRattacher'])->name('hatvp.rattacher');
+        Route::post('/hatvp/detacher', [$c, 'hatvpDetacher'])->name('hatvp.detacher');
+        Route::post('/hatvp/statut', [$c, 'hatvpStatut'])->name('hatvp.statut');
         Route::get('/candidats', [$c, 'candidats'])->name('candidats');
         Route::post('/candidats', [$c, 'candidatStore'])->name('candidats.store');
         Route::post('/candidats/{candidat}/sync-parcours', [$c, 'syncParcours'])->name('candidats.sync-parcours');

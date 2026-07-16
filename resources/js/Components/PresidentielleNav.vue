@@ -12,6 +12,7 @@ const items = [
     { name: 'admin.presidentielle.mesures', label: 'Mesures', icon: '📋' },
     { name: 'admin.presidentielle.controverses', label: 'Controverses', icon: '⚖️' },
     { name: 'admin.presidentielle.signalements', label: 'Signalements', icon: '🚩' },
+    { name: 'admin.presidentielle.hatvp', label: 'HATVP', icon: '💼' },
     { name: 'admin.presidentielle.parcours', label: 'Parcours', icon: '🧭' },
     { name: 'admin.presidentielle.medias', label: 'Médias', icon: '🖼️' },
 ];
