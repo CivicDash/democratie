@@ -511,14 +511,25 @@ class PresidentielleModerationController extends Controller
 
         // Liaisons auto-détectées non encore reliées à une mesure (à résoudre).
         $liensAResoudre = ArgumentMesureLien::whereNull('mesure_id')->with('argument')
-            ->orderByDesc('id')->limit(50)->get()
-            ->map(fn ($l) => [
-                'id' => $l->id, 'sens' => $l->sens,
-                'argument_titre' => $l->argument?->titre,
-                'candidat_slug_propose' => $l->candidat_slug_propose,
-                'mesure_proposee' => $l->mesure_proposee,
-                'detection_confidence' => $l->detection_confidence,
-            ]);
+            ->orderByDesc('id')->limit(50)->get();
+
+        // Pré-charge, par candidat proposé, ses mesures — pour une recherche sans saisie d'ID.
+        $mesuresParSlug = [];
+        foreach ($liensAResoudre->pluck('candidat_slug_propose')->filter()->unique() as $slug) {
+            $mesuresParSlug[$slug] = ProgrammeMesure::whereHas('candidat', fn ($q) => $q
+                ->where('election', '2027')->whereHas('personnePolitique', fn ($p) => $p->where('slug', $slug)))
+                ->orderBy('titre')->get(['id', 'titre', 'theme_id'])
+                ->map(fn ($m) => ['id' => $m->id, 'titre' => $m->titre])->values();
+        }
+
+        $liensAResoudre = $liensAResoudre->map(fn ($l) => [
+            'id' => $l->id, 'sens' => $l->sens,
+            'argument_titre' => $l->argument?->titre,
+            'candidat_slug_propose' => $l->candidat_slug_propose,
+            'mesure_proposee' => $l->mesure_proposee,
+            'detection_confidence' => $l->detection_confidence,
+            'mesures_candidat' => $mesuresParSlug[$l->candidat_slug_propose] ?? [],
+        ]);
 
         return Inertia::render('Admin/Presidentielle/Controverses', [
             'controverses' => $controverses,

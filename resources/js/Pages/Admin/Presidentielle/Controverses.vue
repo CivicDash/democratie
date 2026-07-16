@@ -34,10 +34,19 @@ function agir(controverse, action) {
         { type: 'controverse', id: controverse.id, action }, { preserveScroll: true });
 }
 
-const resolutions = reactive({});
-function resoudre(lienId) {
+const recherche = reactive({});   // { [lienId]: texte de recherche }
+
+// Mesures du candidat proposé filtrées par le texte saisi (recherche sans ID).
+function mesuresFiltrees(lien) {
+    const q = (recherche[lien.id] ?? '').trim().toLowerCase();
+    const liste = lien.mesures_candidat ?? [];
+    if (!q) return liste.slice(0, 8);
+    return liste.filter((m) => m.titre.toLowerCase().includes(q)).slice(0, 8);
+}
+
+function resoudre(lienId, mesureId) {
     router.post(route('admin.presidentielle.arguments.liens.resolve'),
-        { id: lienId, mesure_id: resolutions[lienId] }, { preserveScroll: true });
+        { id: lienId, mesure_id: mesureId }, { preserveScroll: true });
 }
 
 const erreurs = () => usePage().props.errors ?? {};
@@ -74,16 +83,26 @@ const erreurs = () => usePage().props.errors ?? {};
             <div v-if="liens_a_resoudre.length" class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-4">
                 <h3 class="font-semibold text-sm text-amber-800 dark:text-amber-200">⚠ Liaisons à résoudre ({{ liens_a_resoudre.length }})</h3>
                 <p class="text-xs text-amber-700 dark:text-amber-300 mt-1">L'auto-match n'a pas trouvé de mesure. Renseignez l'ID de la mesure cible.</p>
-                <ul class="mt-3 space-y-2 text-sm">
-                    <li v-for="l in liens_a_resoudre" :key="l.id" class="flex items-center gap-2 flex-wrap">
-                        <span class="px-1.5 rounded text-[10px]" :class="l.sens === 'pour' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">{{ l.sens }}</span>
-                        <span class="font-medium">{{ l.argument_titre }}</span>
-                        <span class="text-xs text-gray-500">→ {{ l.candidat_slug_propose }} : « {{ l.mesure_proposee }} »
-                            <span v-if="l.detection_confidence != null">({{ Math.round(l.detection_confidence * 100) }}%)</span></span>
-                        <input v-model="resolutions[l.id]" type="number" placeholder="ID mesure"
-                            class="w-28 rounded border-gray-300 dark:bg-gray-800 text-xs" />
-                        <button @click="resoudre(l.id)" :disabled="!resolutions[l.id]"
-                            class="px-2 py-1 text-xs rounded bg-blue-600 text-white disabled:opacity-50">Relier</button>
+                <ul class="mt-3 space-y-3 text-sm">
+                    <li v-for="l in liens_a_resoudre" :key="l.id" class="rounded-lg border border-amber-200 dark:border-amber-800/40 bg-white/50 dark:bg-black/10 p-3">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-1.5 rounded text-[10px]" :class="l.sens === 'pour' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">{{ l.sens }}</span>
+                            <span class="font-medium">{{ l.argument_titre }}</span>
+                            <span class="text-xs text-gray-500">proposé : {{ l.candidat_slug_propose }} — « {{ l.mesure_proposee }} »
+                                <span v-if="l.detection_confidence != null">({{ Math.round(l.detection_confidence * 100) }}%)</span></span>
+                        </div>
+                        <div class="mt-2">
+                            <input v-model="recherche[l.id]" type="search" placeholder="Rechercher une mesure du candidat…"
+                                class="w-full max-w-md rounded border-gray-300 dark:bg-gray-800 text-sm" />
+                            <ul v-if="l.mesures_candidat.length" class="mt-1 divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden max-w-md">
+                                <li v-for="m in mesuresFiltrees(l)" :key="m.id" class="flex items-center justify-between gap-2 px-3 py-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                                    <span class="text-xs">{{ m.titre }}</span>
+                                    <button @click="resoudre(l.id, m.id)" class="flex-none px-2 py-1 text-xs rounded bg-blue-600 text-white">Relier</button>
+                                </li>
+                                <li v-if="!mesuresFiltrees(l).length" class="px-3 py-1.5 text-xs text-gray-400">Aucune mesure ne correspond.</li>
+                            </ul>
+                            <p v-else class="mt-1 text-xs text-gray-400">Aucune mesure en base pour ce candidat — validez-en une d'abord (file d'ingestion → Mesures).</p>
+                        </div>
                     </li>
                 </ul>
             </div>
