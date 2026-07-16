@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api\Presidentielle;
 
 use App\Http\Controllers\Controller;
+use App\Mail\SignalementPresidentielleMail;
 use App\Models\PresidentielleSignalement;
 use App\Services\Presidentielle\PresidentielleExporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * API publique read-only du domaine présidentielle (plan §6).
@@ -118,7 +121,17 @@ class PresidentielleController extends Controller
             'description.min' => 'Décrivez l’erreur en quelques mots (10 caractères minimum).',
         ]);
 
-        PresidentielleSignalement::create($data + ['statut' => 'nouveau']);
+        $signalement = PresidentielleSignalement::create($data + ['statut' => 'nouveau']);
+
+        // Notifie le staff (best-effort, en file) — n'impacte jamais la réponse.
+        $destinataires = config('presidentielle.signalement_notify', []);
+        if ($destinataires) {
+            try {
+                Mail::to($destinataires)->queue(new SignalementPresidentielleMail($signalement));
+            } catch (\Throwable $e) {
+                Log::warning('Notification de signalement non envoyée : '.$e->getMessage());
+            }
+        }
 
         return response()->json(['ok' => true, 'message' => 'Merci, votre signalement a bien été transmis.'], 201);
     }

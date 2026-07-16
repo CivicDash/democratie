@@ -1,8 +1,10 @@
 <?php
 
+use App\Mail\SignalementPresidentielleMail;
 use App\Models\PresidentielleModerationLog;
 use App\Models\PresidentielleSignalement;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Permission;
 
 function moderateurSignalement(): User
@@ -30,6 +32,31 @@ it('crée un signalement citoyen depuis l\'endpoint public (sans auth)', functio
     expect($s->statut)->toBe('nouveau')
         ->and($s->candidat_slug)->toBe('jean-luc-melenchon')
         ->and($s->email)->toBeNull();
+});
+
+it('notifie le staff par email (en file) à la réception', function () {
+    Mail::fake();
+    config()->set('presidentielle.signalement_notify', ['secretaire@civis-consilium.eu', 'president@civis-consilium.eu']);
+
+    $this->postJson('/api/v1/presidentielle/signalements', [
+        'type_incident' => 'affaire_judiciaire',
+        'description' => 'Le statut judiciaire affiché ne correspond pas à la décision.',
+    ])->assertCreated();
+
+    Mail::assertQueued(SignalementPresidentielleMail::class, function ($mail) {
+        return $mail->hasTo('secretaire@civis-consilium.eu') && $mail->hasTo('president@civis-consilium.eu');
+    });
+});
+
+it('n\'envoie aucune notification si la liste de destinataires est vide', function () {
+    Mail::fake();
+    config()->set('presidentielle.signalement_notify', []);
+
+    $this->postJson('/api/v1/presidentielle/signalements', [
+        'type_incident' => 'source_erronee', 'description' => 'Un lien de source est cassé sur cette fiche.',
+    ])->assertCreated();
+
+    Mail::assertNothingQueued();
 });
 
 it('accepte un email facultatif mais rejette un email invalide', function () {
