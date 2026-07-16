@@ -36,6 +36,7 @@ class PresidentielleImportParcours extends Command
             }
             $total += $this->importFonctionsGouvernementales($personne);
             $total += $this->importMandats($personne);
+            $total += $this->importDepuisHatvp($personne);
         }
 
         $this->info("{$total} événement(s) de parcours importé(s) en statut detecte (à valider).");
@@ -79,9 +80,51 @@ class PresidentielleImportParcours extends Command
         return $n;
     }
 
-    /** Crée l'événement s'il n'existe pas déjà (dédoublonnage). */
-    private function creer(PersonnePolitique $personne, string $type, string $titre, ?string $organisation, $dateDebut, $dateFin): bool
+    /**
+     * Enrichit le parcours depuis la déclaration HATVP rattachée (DIA) : mandats électifs,
+     * activités professionnelles/consultant, participations dirigeantes, fonctions bénévoles.
+     * Événements en `detecte` (validation humaine), sourcés vers la fiche HATVP.
+     */
+    private function importDepuisHatvp(PersonnePolitique $personne): int
     {
+        $decl = $personne->declarationsHatvp()->with([
+            'mandatsElectifs', 'activitesProfessionnelles', 'activitesConsultant',
+            'participationsDirigeantes', 'fonctionsBenevoles',
+        ])->first();
+        if (! $decl) {
+            return 0;
+        }
+
+        $url = $personne->url_hatvp
+            ?? 'https://www.hatvp.fr/fiche-nominative/?declarant='
+            .urlencode(strtolower($personne->nom).'-'.strtolower($personne->prenom));
+        $n = 0;
+
+        foreach ($decl->mandatsElectifs as $m) {
+            $titre = $m->description_mandat ?? $m->description ?? 'Mandat électif';
+            $n += $this->creer($personne, 'mandat', $titre, null, $m->date_debut, $m->date_fin, 'hatvp', $url) ? 1 : 0;
+        }
+        foreach ($decl->activitesProfessionnelles as $a) {
+            $n += $this->creer($personne, 'poste_prive', $a->description ?? 'Activité professionnelle', $a->employeur, $a->date_debut, $a->date_fin, 'hatvp', $url) ? 1 : 0;
+        }
+        foreach ($decl->activitesConsultant as $a) {
+            $n += $this->creer($personne, 'poste_prive', $a->description ?? 'Activité de conseil', null, $a->date_debut, $a->date_fin, 'hatvp', $url) ? 1 : 0;
+        }
+        foreach ($decl->participationsDirigeantes as $p) {
+            $titre = $p->activite ?: 'Mandat de direction';
+            $n += $this->creer($personne, 'poste_prive', $titre, $p->nom_societe ?? $p->societe, $p->date_debut, $p->date_fin, 'hatvp', $url) ? 1 : 0;
+        }
+        foreach ($decl->fonctionsBenevoles as $f) {
+            $n += $this->creer($personne, 'engagement', $f->description ?? 'Fonction bénévole', $f->organisme, null, null, 'hatvp', $url) ? 1 : 0;
+        }
+
+        return $n;
+    }
+
+    /** Crée l'événement s'il n'existe pas déjà (dédoublonnage). */
+    private function creer(PersonnePolitique $personne, string $type, string $titre, ?string $organisation, $dateDebut, $dateFin, string $sourceDetection = 'civicdash', ?string $sourceUrl = null): bool
+    {
+        $titre = trim($titre) !== '' ? $titre : 'Sans titre';
         $existe = ParcoursEvenement::where('personne_politique_id', $personne->id)
             ->where('type', $type)->where('titre', $titre)
             ->where('date_debut', $dateDebut ? \Illuminate\Support\Carbon::parse($dateDebut)->toDateString() : null)
@@ -99,7 +142,8 @@ class PresidentielleImportParcours extends Command
             'date_debut' => $dateDebut,
             'date_fin' => $dateFin,
             'en_cours' => $dateDebut && ! $dateFin,
-            'source_detection' => 'civicdash',
+            'source_url' => $sourceUrl,
+            'source_detection' => $sourceDetection,
             'statut_validation' => 'detecte',
             'affiche_publiquement' => false,
         ]);

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\File;
  */
 class PresidentielleExporter
 {
-    public function __construct(private IntegriteChecker $integrite) {}
+    public function __construct(private IntegriteChecker $integrite, private HatvpSummary $hatvp) {}
 
     /** @return array<string,mixed> */
     public function build(string $election = '2027'): array
@@ -235,6 +235,31 @@ class PresidentielleExporter
             'programme_complet' => $this->exportProgrammeComplet($candidat),
             'prises_de_parole' => $this->exportPrisesDeParole($candidat),
             'affaires' => $this->exportAffaires($candidat),
+            'hatvp' => $this->exportHatvp($candidat),
+        ];
+    }
+
+    /**
+     * Déclarations d'intérêts HATVP (DIA) — résumé « façon CivicDash » + graphe revenus.
+     * Le détail n'est exposé QUE si le rattachement a été validé au BO (hatvp_statut = 'lie') ;
+     * sinon on ne renvoie que l'état honnête. Le patrimoine (DSP) n'est jamais repris.
+     */
+    private function exportHatvp(CandidatPresidentielle $candidat): array
+    {
+        $statut = $candidat->hatvp_statut ?? 'a_verifier';
+        $personne = $candidat->personnePolitique;
+
+        if ($statut !== 'lie' || ! $personne) {
+            return ['statut' => $statut];
+        }
+
+        $data = $this->hatvp->pourPersonne($personne);
+
+        return [
+            'statut' => 'lie',
+            'url' => $data['declarations'][0]['url'] ?? null,
+            'derniere_declaration' => $data['declarations'][0]['date_depot'] ?? null,
+            'summary' => $data['summary'],
         ];
     }
 
