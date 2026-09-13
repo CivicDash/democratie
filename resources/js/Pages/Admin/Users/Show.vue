@@ -227,6 +227,8 @@ const breadcrumbs = [
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nouveau mot de passe</label>
                                         <input v-model="form.password" type="password" placeholder="Laisser vide pour garder l'actuel" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+                                        <p v-if="form.errors.password" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.password }}</p>
+                                        <p v-else class="mt-1 text-xs text-gray-500">8 caractères minimum.</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rôle</label>
@@ -263,7 +265,8 @@ const breadcrumbs = [
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° adhérent</label>
-                                                <input v-model="form.member_number" type="text" placeholder="Auto-généré si vide" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white font-mono" />
+                                                <input v-model="form.member_number" type="text" placeholder="Référence Dolibarr, ex. MEM2601-0003" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white font-mono" />
+                                                <p v-if="form.errors.member_number" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.member_number }}</p>
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Membre depuis</label>
@@ -278,6 +281,19 @@ const breadcrumbs = [
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+
+                                <!-- Sans ce bloc, une validation refusée ne produisait AUCUN
+                                     message : le formulaire restait ouvert, muet, et le refus
+                                     d'un seul champ (mot de passe trop court) faisait perdre
+                                     toute la saisie, numéro d'adhérent compris. -->
+                                <div v-if="Object.keys(form.errors).length" class="mt-4 rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 p-3">
+                                    <p class="text-sm font-medium text-red-800 dark:text-red-200">
+                                        Enregistrement refusé — rien n'a été modifié :
+                                    </p>
+                                    <ul class="mt-1 text-sm text-red-700 dark:text-red-300 list-disc pl-5">
+                                        <li v-for="(msg, champ) in form.errors" :key="champ">{{ msg }}</li>
+                                    </ul>
                                 </div>
 
                                 <div class="flex items-center gap-4 pt-4">

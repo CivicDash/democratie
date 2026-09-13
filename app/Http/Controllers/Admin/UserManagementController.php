@@ -269,7 +269,11 @@ class UserManagementController extends Controller
             $user->member_type = $validated['member_type'] ?? 'adherent';
             $user->member_since = $validated['member_since'] ?? now();
             $user->member_until = $validated['member_until'] ?? null;
-            $user->member_number = $validated['member_number'] ?? $this->generateMemberNumber();
+            // Dolibarr est la source de vérité des adhésions : il attribue lui-même la
+            // référence (format MEM2601-0003). Générer un numéro maison au format
+            // CD20260001 créerait une seconde source, écrasée à la synchro suivante.
+            // On garde donc la valeur saisie, ou rien.
+            $user->member_number = $validated['member_number'] ?: null;
         } else {
             $user->member_type = null;
             $user->member_since = null;
@@ -291,26 +295,6 @@ class UserManagementController extends Controller
 
         return redirect()->route('admin.users.show', $user)
             ->with('success', 'Utilisateur mis à jour avec succès.');
-    }
-
-    /**
-     * Générer un numéro de membre unique
-     */
-    private function generateMemberNumber(): string
-    {
-        $year = now()->format('Y');
-        $lastMember = User::whereNotNull('member_number')
-            ->where('member_number', 'LIKE', "CD{$year}%")
-            ->orderByDesc('member_number')
-            ->first();
-
-        if ($lastMember && preg_match('/CD\d{4}(\d+)/', $lastMember->member_number, $matches)) {
-            $nextNumber = (int) $matches[1] + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return sprintf('CD%s%04d', $year, $nextNumber);
     }
 
     /**

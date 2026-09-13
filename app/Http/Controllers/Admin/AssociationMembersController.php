@@ -167,9 +167,10 @@ class AssociationMembersController extends Controller
         $members = User::where('is_association_member', true)
             ->where('email_visible_to_admin', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'username', 'association_member_id', 'association_member_since', 'created_at']);
+            // `username` n'existe pas sur users : la requête échouait.
+            ->get(['id', 'name', 'email', 'association_member_id', 'association_member_since', 'created_at', 'member_number']);
 
-        $csv = "ID,Nom,Email,Pseudo,ID_Membre,Membre_Depuis,Inscrit_Le\n";
+        $csv = "ID,Nom,Email,Reference_Adherent,ID_Dolibarr,Membre_Depuis,Inscrit_Le\n";
 
         foreach ($members as $m) {
             $csv .= sprintf(
@@ -177,7 +178,7 @@ class AssociationMembersController extends Controller
                 $m->id,
                 str_replace('"', '""', $m->name),
                 $m->email,
-                $m->username ?? '',
+                $m->member_number ?? '',
                 $m->association_member_id ?? '',
                 $m->association_member_since?->format('Y-m-d') ?? '',
                 $m->created_at->format('Y-m-d')

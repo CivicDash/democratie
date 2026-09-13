@@ -44,6 +44,27 @@ class User extends Authenticatable implements MustVerifyEmail
         'profile_photo_submitted_at',
         'profile_photo_moderated_at',
         'profile_photo_moderated_by',
+        // Adhésion à l'association. Ces champs étaient absents : toute écriture par
+        // update() — AssociationMembersController, DolibarrService::syncMemberToUser() —
+        // était silencieusement ignorée, avec un message de succès affiché malgré tout.
+        // `member_number` est la RÉFÉRENCE lisible de l'adhérent (ex. MEM2601-0003) et
+        // `association_member_id` sa CLÉ TECHNIQUE dans Dolibarr (ex. 3) : deux notions
+        // distinctes, à ne pas fusionner.
+        'is_association_member',
+        'member_type',
+        'member_since',
+        'member_until',
+        'member_number',
+        'association_member_id',
+        'association_member_since',
+        // Statut d'élu vérifié.
+        'elu_type',
+        'elu_ref',
+        'is_verified_elu',
+        'verified_at',
+        // Sanctions : sans ce champ, la suspension et la réactivation d'un compte
+        // n'avaient aucun effet.
+        'account_status',
     ];
 
     /**
