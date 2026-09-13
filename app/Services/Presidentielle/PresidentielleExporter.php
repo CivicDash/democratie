@@ -2,12 +2,15 @@
 
 namespace App\Services\Presidentielle;
 
-use App\Models\CandidatPresidentielle;
 use App\Models\ArgumentMesureLien;
+use App\Models\CandidatPresidentielle;
 use App\Models\Controverse;
+use App\Models\EvenementCampagne;
+use App\Models\IngestionProposition;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Génère l'export JSON statique consommé par le front Astro (plan §6).
@@ -76,6 +79,7 @@ class PresidentielleExporter
             'candidats' => $candidatsExport,
             'comparateur' => $comparateur,
             'controverses' => $controverses,
+            'calendrier' => $this->buildCalendrier($election, $candidatsExport),
         ];
 
         return $contenu + [
@@ -429,6 +433,91 @@ class PresidentielleExporter
      * Sous le seuil de deux candidats on ne renvoie rien : un compteur à 1, croisé avec la
      * page thème, désignerait le candidat dont la position est en cours d'instruction.
      */
+    private const TYPE_EVT = [
+        'meeting' => ['Meeting', '🎤', '#1d4ed8'],
+        'debat' => ['Débat', '🎙', '#7c3aed'],
+        'discours' => ['Discours', '📣', '#0f766e'],
+        'interview' => ['Interview', '🎬', '#b45309'],
+        'emission' => ['Émission', '📺', '#be123c'],
+        'deplacement' => ['Déplacement', '🚩', '#4d7c0f'],
+        'communique' => ['Communiqué', '📄', '#475569'],
+        'autre' => ['Prise de parole', '📅', '#64748b'],
+    ];
+
+    /**
+     * Calendrier des prises de parole. Volontairement SANS champ dérivé de now() : le hash
+     * de contenu doit rester déterministe, et sur un site statique reconstruit seulement
+     * quand le contenu change, un « à venir » calculé au build se périmerait en silence.
+     * Le passé/futur se calcule côté client.
+     *
+     * Les citations ne sont pas inlinées — un seul débat en porte 262 : on n'expose que le
+     * volume et le lien vers la fiche candidat, où elles sont déjà timecodées.
+     */
+    private function buildCalendrier(string $election, array $candidatsExport): array
+    {
+        // Le code peut être déployé avant que la migration ne soit passée : sans ce garde,
+        // l'export lèverait, deploy.sh sortirait en erreur et figerait le site entier.
+        if (! Schema::hasTable('evenements_campagne')) {
+            return ['election' => $election, 'evenements' => []];
+        }
+
+        $evenements = EvenementCampagne::where('election', $election)->publie()
+            ->with(['candidats.personnePolitique', 'document'])
+            ->chronologique()->get();
+
+        return ['election' => $election, 'evenements' => $evenements->map(function (EvenementCampagne $e) use ($candidatsExport) {
+            [$label, $icone, $couleur] = self::TYPE_EVT[$e->type] ?? self::TYPE_EVT['autre'];
+
+            $nbParCandidat = $e->ingestion_document_id
+                ? IngestionProposition::where('document_id', $e->ingestion_document_id)
+                    ->whereNotNull('candidat_id')->selectRaw('candidat_id, count(*) as n')
+                    ->groupBy('candidat_id')->pluck('n', 'candidat_id')->all()
+                : [];
+
+            // Ne jamais faire fuiter par le calendrier un candidat non publié.
+            $intervenants = $e->candidats
+                ->filter(fn ($c) => isset($candidatsExport[$c->personnePolitique?->slug]))
+                ->sortBy(fn ($c) => $c->personnePolitique->nom)
+                ->map(fn ($c) => [
+                    'slug' => $c->personnePolitique->slug,
+                    'nom' => trim(($c->personnePolitique->prenom ?? '').' '.($c->personnePolitique->nom ?? '')),
+                    'couleur_hex' => $c->couleur_hex,
+                    'role' => $c->pivot->role,
+                    'nb_citations' => (int) ($nbParCandidat[$c->id] ?? 0),
+                ])->values()->all();
+
+            return [
+                'id' => 'evt-'.$e->id,
+                'uid' => "o2027-{$e->uuid}@objectif2027.fr",
+                // Clés au format FullCalendar : le jour où une grille arrive, aucun adaptateur.
+                'title' => $e->titre,
+                'start' => $e->journee_entiere ? $e->date_debut->toDateString() : $e->date_debut->toIso8601String(),
+                'end' => $e->date_fin ? ($e->journee_entiere ? $e->date_fin->toDateString() : $e->date_fin->toIso8601String()) : null,
+                'allDay' => (bool) $e->journee_entiere,
+                'color' => $couleur,
+                'precision_date' => $e->precision_date,
+                'type' => $e->type,
+                'type_label' => $label,
+                'icon' => $icone,
+                'statut' => $e->statut,
+                'lieu' => $e->lieu,
+                'ville' => $e->ville,
+                'organisateur' => $e->organisateur,
+                'media' => $e->media,
+                'description' => $e->description,
+                'candidats' => $intervenants,
+                'nb_citations' => array_sum($nbParCandidat),
+                'urlVideo' => $this->url($e->url_video),
+                'urlSource' => $this->url($e->url_source),
+                'archive_url' => $this->url($e->archive_url),
+                'source' => $e->document
+                    ? ['type' => $e->document->type, 'duree_s' => $e->document->duree_s, 'a_ete_depouille' => true]
+                    : ['a_ete_depouille' => false],
+                'note_methodologique' => $e->note_methodologique,
+            ];
+        })->values()->all()];
+    }
+
     private function chantierControverse(Controverse $c): ?array
     {
         $liens = ArgumentMesureLien::whereIn('argument_id', $c->arguments()->select('id'))
@@ -525,6 +614,7 @@ class PresidentielleExporter
         // vide et la note méthodologique — qui explique pourquoi les deux camps citent des
         // données exactes — n'atteint jamais le front.
         $ecrits[] = $this->put("{$dir}/controverses.json", $data['controverses']);
+        $ecrits[] = $this->put("{$dir}/calendrier.json", $data['calendrier']);
 
         foreach ($data['candidats'] as $slug => $candidat) {
             $ecrits[] = $this->put("{$dir}/candidats/{$slug}.json", $candidat);
