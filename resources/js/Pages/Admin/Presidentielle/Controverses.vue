@@ -29,6 +29,16 @@ function importer() {
     importForm.post(route('admin.presidentielle.arguments.import'), { preserveScroll: true, forceFormData: true });
 }
 
+// Action en lot sur l'argumentaire d'une controverse. Chaque objet reste traité et tracé
+// individuellement côté serveur ; les échecs sont rendus sans interrompre le reste du lot.
+function agirLot(type, ids, action, libelle) {
+    if (!ids?.length) return;
+    if (!confirm(`${libelle} : ${ids.length} élément(s) ?`)) return;
+    router.post(route('admin.presidentielle.moderation.action-lot'),
+        { type, ids, action }, { preserveScroll: true });
+}
+const echecsLot = () => usePage().props.flash?.echecs_lot ?? [];
+
 function agir(controverse, action) {
     router.post(route('admin.presidentielle.moderation.action'),
         { type: 'controverse', id: controverse.id, action }, { preserveScroll: true });
@@ -59,6 +69,15 @@ const erreurs = () => usePage().props.errors ?? {};
             <div class="space-y-3">
                 <h2 class="text-xl font-semibold">Controverses & argumentaire</h2>
                 <PresidentielleNav />
+
+            <div v-if="echecsLot().length" class="mt-4 rounded border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3">
+                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    {{ echecsLot().length }} élément(s) refusé(s) lors de la dernière action en lot
+                </p>
+                <ul class="mt-1 text-xs text-amber-700 dark:text-amber-300 list-disc pl-5">
+                    <li v-for="e in echecsLot()" :key="e.id">#{{ e.id }} — {{ e.motif }}</li>
+                </ul>
+            </div>
             </div>
         </template>
 
@@ -150,6 +169,44 @@ const erreurs = () => usePage().props.errors ?? {};
                                 <button v-if="c.statut_validation !== 'valide'" @click="agir(c, 'valider')" class="px-2 py-1 text-xs rounded bg-blue-600 text-white">Valider</button>
                                 <button v-if="c.statut_validation === 'valide' && !c.affiche_publiquement" @click="agir(c, 'publier')" class="px-2 py-1 text-xs rounded bg-green-600 text-white ml-1">Publier</button>
                                 <button v-if="c.affiche_publiquement" @click="agir(c, 'depublier')" class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 ml-1">Dépublier</button>
+                                <div v-if="c.lot" class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-1">
+                                    <div class="text-[11px] uppercase tracking-wide text-gray-400">
+                                        Argumentaire
+                                        <span class="normal-case tracking-normal text-gray-400" title="Publier une mesure avant que ses arguments et liaisons ne soient publiés fait échouer le contrôle d'intégrité, et l'export refuse alors de régénérer le site entier.">— dans l'ordre : faits, puis liaisons, puis mesures</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1">
+                                        <button v-if="c.lot.arguments_a_valider.length"
+                                                @click="agirLot('argument', c.lot.arguments_a_valider, 'valider', 'Valider les faits')"
+                                                class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
+                                            Valider {{ c.lot.arguments_a_valider.length }} fait(s)
+                                        </button>
+                                        <button v-if="c.lot.liens_a_valider.length"
+                                                @click="agirLot('argument_lien', c.lot.liens_a_valider, 'valider', 'Valider les liaisons')"
+                                                class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
+                                            Valider {{ c.lot.liens_a_valider.length }} liaison(s)
+                                        </button>
+                                        <button v-if="c.lot.liens_a_double_valider.length"
+                                                @click="agirLot('argument_lien', c.lot.liens_a_double_valider, 'double_valider', 'Seconde validation des liaisons « contre »')"
+                                                class="px-2 py-1 text-xs rounded bg-purple-100 text-purple-700"
+                                                title="Exige un modérateur différent du premier validateur">
+                                            2<sup>e</sup> validation · {{ c.lot.liens_a_double_valider.length }} « contre »
+                                        </button>
+                                        <button v-if="c.lot.arguments_a_publier.length"
+                                                @click="agirLot('argument', c.lot.arguments_a_publier, 'publier', 'Publier les faits')"
+                                                class="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
+                                            Publier {{ c.lot.arguments_a_publier.length }} fait(s)
+                                        </button>
+                                        <button v-if="c.lot.liens_a_publier.length"
+                                                @click="agirLot('argument_lien', c.lot.liens_a_publier, 'publier', 'Publier les liaisons')"
+                                                class="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
+                                            Publier {{ c.lot.liens_a_publier.length }} liaison(s)
+                                        </button>
+                                        <span v-if="!c.lot.arguments_a_valider.length && !c.lot.liens_a_valider.length
+                                                    && !c.lot.arguments_a_publier.length && !c.lot.liens_a_publier.length
+                                                    && !c.lot.liens_a_double_valider.length"
+                                              class="text-xs text-gray-400">Rien à traiter.</span>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="!controverses.data.length"><td colspan="6" class="p-6 text-center text-gray-400">Aucune controverse.</td></tr>

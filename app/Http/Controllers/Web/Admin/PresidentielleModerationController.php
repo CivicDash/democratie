@@ -19,9 +19,11 @@ use App\Models\PresidentielleModerationLog;
 use App\Models\PresidentielleSignalement;
 use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeMesure;
+use App\Models\User;
 use App\Services\Presidentielle\HatvpSummary;
 use App\Services\Presidentielle\IntegriteChecker;
 use App\Services\Presidentielle\ModerationService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -36,6 +38,16 @@ use Inertia\Inertia;
 class PresidentielleModerationController extends Controller
 {
     /** Types d'entités pilotables par le workflow statut_validation. */
+    /** Actions unitaires acceptées par action(). */
+    private const ACTIONS = ['prendre_en_charge', 'demander_complement', 'valider', 'double_valider', 'publier', 'depublier', 'supprimer', 'mettre_en_avant', 'retirer_en_avant'];
+
+    /**
+     * Sous-ensemble applicable en lot : uniquement les transitions d'état du workflow.
+     * Volontairement sans 'supprimer' ni la mise en avant — une suppression de masse ne doit
+     * pas tenir à une case cochée par erreur.
+     */
+    private const ACTIONS_LOT = ['valider', 'double_valider', 'publier', 'depublier'];
+
     private const MODELS = [
         'candidat' => CandidatPresidentielle::class,
         'mesure' => ProgrammeMesure::class,
@@ -510,9 +522,41 @@ class PresidentielleModerationController extends Controller
     /** File des controverses (regroupements d'arguments) + liaisons à résoudre. */
     public function controverses(Request $request)
     {
-        $controverses = Controverse::with('theme')->withCount('arguments')
+        $controverses = Controverse::with(['theme', 'arguments.liens'])->withCount('arguments')
             ->when($request->query('statut', 'tous') !== 'tous', fn ($q) => $q->where('statut_validation', $request->query('statut')))
-            ->orderByDesc('id')->paginate(25)->withQueryString();
+            ->orderByDesc('id')->paginate(25)->withQueryString()
+            // Publier un argumentaire complet représente des centaines d'actions unitaires.
+            // On expose donc, par controverse, les identifiants de ses faits et de ses liaisons
+            // regroupés par étape du workflow, pour permettre une action en lot ciblée.
+            // Chaque objet reste traité et tracé individuellement côté serveur.
+            ->through(function (Controverse $c) {
+                $args = $c->arguments;
+                $liens = $args->flatMap->liens;
+                $aValider = fn ($col) => $col->where('statut_validation', '!=', 'valide')->pluck('id')->values();
+                $aPublier = fn ($col) => $col->where('statut_validation', 'valide')->where('affiche_publiquement', false)->pluck('id')->values();
+
+                return [
+                    'id' => $c->id,
+                    'slug' => $c->slug,
+                    'titre' => $c->titre,
+                    'theme' => $c->theme ? ['nom' => $c->theme->nom] : null,
+                    'arguments_count' => $c->arguments_count,
+                    'statut_validation' => $c->statut_validation,
+                    'affiche_publiquement' => $c->affiche_publiquement,
+                    'lot' => [
+                        'arguments_a_valider' => $aValider($args),
+                        'arguments_a_publier' => $aPublier($args),
+                        'liens_a_valider' => $aValider($liens),
+                        'liens_a_publier' => $aPublier($liens),
+                        // La seconde validation d'une liaison « contre » exige un modérateur
+                        // différent du premier : le lot la propose, le service la refuse si
+                        // c'est la même personne. Le garde-fou reste entier.
+                        'liens_a_double_valider' => $liens->where('sens', 'contre')
+                            ->where('statut_validation', 'valide')
+                            ->whereNull('double_valide_par')->pluck('id')->values(),
+                    ],
+                ];
+            });
 
         // Liaisons auto-détectées non encore reliées à une mesure (à résoudre).
         $liensAResoudre = ArgumentMesureLien::whereNull('mesure_id')->with('argument')
@@ -803,56 +847,111 @@ class PresidentielleModerationController extends Controller
         $data = $request->validate([
             'type' => ['required', 'string', 'in:'.implode(',', array_keys(self::MODELS))],
             'id' => ['required', 'integer'],
-            'action' => ['required', 'string', 'in:prendre_en_charge,demander_complement,valider,double_valider,publier,depublier,supprimer,mettre_en_avant,retirer_en_avant'],
+            'action' => ['required', 'string', 'in:'.implode(',', self::ACTIONS)],
             'commentaire' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $model = self::MODELS[$data['type']];
         $entite = $model::findOrFail($data['id']);
-        $user = $request->user();
-        $commentaire = $data['commentaire'] ?? null;
-
-        // Suppression d'une mesure (soft-delete) + détachement de sa proposition d'ingestion :
-        // débloque la suppression du discours d'origine. Réservé aux mesures.
-        if ($data['action'] === 'supprimer') {
-            if (! $entite instanceof ProgrammeMesure) {
-                throw ValidationException::withMessages(['action' => 'La suppression ne concerne que les mesures.']);
-            }
-            try {
-                $service->supprimerMesure($entite, $user, $commentaire);
-            } catch (ModerationException $e) {
-                throw ValidationException::withMessages(['action' => $e->getMessage()]);
-            }
-
-            return back()->with('success', 'Mesure supprimée ; sa proposition est revenue en file de tri.');
-        }
-
-        // Mesure « phare » : alimente le comparateur (priorité) ET le quiz d'affinité.
-        // Réservé aux mesures ; sans effet public tant que la mesure n'est pas publiée.
-        if (in_array($data['action'], ['mettre_en_avant', 'retirer_en_avant'], true)) {
-            if (! $entite instanceof ProgrammeMesure) {
-                throw ValidationException::withMessages(['action' => 'La mise en avant ne concerne que les mesures.']);
-            }
-            $entite->update(['est_mise_en_avant' => $data['action'] === 'mettre_en_avant']);
-
-            return back()->with('success', $data['action'] === 'mettre_en_avant' ? 'Mesure marquée « phare » (comparateur + quiz).' : 'Mesure retirée des phares.');
-        }
 
         try {
-            match ($data['action']) {
-                'prendre_en_charge' => $service->prendreEnCharge($entite, $user),
-                'demander_complement' => $service->demanderComplement($entite, $user, $commentaire ?? 'complément requis'),
-                'valider' => $service->valider($entite, $user, $commentaire),
-                'double_valider' => $entite instanceof ArgumentMesureLien
-                    ? $service->doubleValider($entite, $user)
-                    : throw new ModerationException('La double validation ne concerne que les liaisons argument↔mesure « contre ».'),
-                'publier' => $service->publier($entite, $user),
-                'depublier' => $service->depublier($entite, $user, $commentaire),
-            };
+            $message = $this->appliquerAction($entite, $data['action'], $request->user(), $service, $data['commentaire'] ?? null);
         } catch (ModerationException $e) {
             throw ValidationException::withMessages(['action' => $e->getMessage()]);
         }
 
-        return back()->with('success', 'Action « '.$data['action'].' » appliquée.');
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Applique en lot une action de modération à plusieurs entités du même type.
+     *
+     * Chaque entité passe individuellement par ModerationService : les invariants sont
+     * vérifiés un par un et chaque action reste tracée dans presidentielle_moderation_logs.
+     * En particulier, la double validation d'une liaison « contre » continue d'exiger un
+     * modérateur DIFFÉRENT du premier validateur — le lot n'affaiblit aucun garde-fou.
+     *
+     * Un échec n'interrompt pas le lot : les motifs sont collectés et rendus à l'écran, car
+     * sur une centaine d'objets un blocage isolé ne doit pas annuler le travail restant.
+     */
+    public function actionLot(Request $request, ModerationService $service)
+    {
+        $data = $request->validate([
+            'type' => ['required', 'string', 'in:'.implode(',', array_keys(self::MODELS))],
+            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['integer'],
+            'action' => ['required', 'string', 'in:'.implode(',', self::ACTIONS_LOT)],
+            'commentaire' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $model = self::MODELS[$data['type']];
+        $user = $request->user();
+        $commentaire = $data['commentaire'] ?? null;
+
+        $traites = 0;
+        $echecs = [];
+
+        foreach ($model::findMany($data['ids']) as $entite) {
+            try {
+                $this->appliquerAction($entite, $data['action'], $user, $service, $commentaire);
+                $traites++;
+            } catch (ModerationException $e) {
+                $echecs[] = ['id' => $entite->getKey(), 'motif' => $e->getMessage()];
+            }
+        }
+
+        $resume = $traites.' élément(s) traité(s)';
+        if ($echecs) {
+            $resume .= ', '.count($echecs).' en échec';
+        }
+
+        return back()
+            ->with('success', 'Action « '.$data['action'].' » en lot : '.$resume.'.')
+            ->with('echecs_lot', $echecs);
+    }
+
+    /**
+     * Cœur commun aux actions unitaires et en lot. Retourne le message de succès.
+     *
+     * @throws ModerationException si l'action est refusée pour cette entité
+     */
+    private function appliquerAction(Model $entite, string $action, User $user, ModerationService $service, ?string $commentaire): string
+    {
+        // Suppression d'une mesure (soft-delete) + détachement de sa proposition d'ingestion :
+        // débloque la suppression du discours d'origine. Réservé aux mesures.
+        if ($action === 'supprimer') {
+            if (! $entite instanceof ProgrammeMesure) {
+                throw new ModerationException('La suppression ne concerne que les mesures.');
+            }
+            $service->supprimerMesure($entite, $user, $commentaire);
+
+            return 'Mesure supprimée ; sa proposition est revenue en file de tri.';
+        }
+
+        // Mesure « phare » : alimente le comparateur (priorité) ET le quiz d'affinité.
+        // Réservé aux mesures ; sans effet public tant que la mesure n'est pas publiée.
+        if (in_array($action, ['mettre_en_avant', 'retirer_en_avant'], true)) {
+            if (! $entite instanceof ProgrammeMesure) {
+                throw new ModerationException('La mise en avant ne concerne que les mesures.');
+            }
+            $entite->update(['est_mise_en_avant' => $action === 'mettre_en_avant']);
+
+            return $action === 'mettre_en_avant'
+                ? 'Mesure marquée « phare » (comparateur + quiz).'
+                : 'Mesure retirée des phares.';
+        }
+
+        match ($action) {
+            'prendre_en_charge' => $service->prendreEnCharge($entite, $user),
+            'demander_complement' => $service->demanderComplement($entite, $user, $commentaire ?? 'complément requis'),
+            'valider' => $service->valider($entite, $user, $commentaire),
+            'double_valider' => $entite instanceof ArgumentMesureLien
+                ? $service->doubleValider($entite, $user)
+                : throw new ModerationException('La double validation ne concerne que les liaisons argument↔mesure « contre ».'),
+            'publier' => $service->publier($entite, $user),
+            'depublier' => $service->depublier($entite, $user, $commentaire),
+        };
+
+        return 'Action « '.$action.' » appliquée.';
     }
 }

@@ -54,6 +54,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                // Détail des objets refusés lors d'une action de modération en lot.
+                'echecs_lot' => fn () => $request->session()->get('echecs_lot'),
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
