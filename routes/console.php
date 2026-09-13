@@ -442,3 +442,11 @@ Schedule::command('data:validate --json')
     ->weeklyOn(1, '08:00')
     ->description('Validation hebdomadaire des données (doublons, cohérence)')
     ->withoutOverlapping();
+
+// Audience d'objectif2027.fr : agrégation du journal d'accès en compteurs quotidiens.
+// Rien n'est collecté chez le visiteur — on ne fait que compter ce que le serveur
+// journalise déjà pour fonctionner. Aucune IP, aucune ligne de log n'est conservée.
+Schedule::command('audience:agreger')
+    ->dailyAt('04:50')
+    ->description('Agrégation quotidienne de l\'audience objectif2027.fr')
+    ->withoutOverlapping();

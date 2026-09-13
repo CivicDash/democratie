@@ -26,6 +26,7 @@ use App\Services\Presidentielle\ModerationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -842,6 +843,36 @@ class PresidentielleModerationController extends Controller
     }
 
     /** Applique une action de modération à une entité. */
+    /**
+     * Audience d'objectif2027.fr. Lit des agrégats déjà calculés : aucune donnée
+     * personnelle n'est manipulée ici, la table ne contient que des compteurs.
+     */
+    public function audience(Request $request)
+    {
+        $jours = max(7, min(180, (int) $request->query('jours', 30)));
+        $depuis = now()->subDays($jours)->toDateString();
+
+        $parJour = DB::table('audience_jour')->where('jour', '>=', $depuis)
+            ->selectRaw('jour, sum(vues_humaines) as humains, sum(vues_bots) as bots, max(visiteurs_estimes) as visiteurs')
+            ->groupBy('jour')->orderBy('jour')->get();
+
+        $parPage = DB::table('audience_jour')->where('jour', '>=', $depuis)
+            ->selectRaw('chemin, sum(vues_humaines) as humains, sum(vues_bots) as bots')
+            ->groupBy('chemin')->orderByDesc('humains')->limit(30)->get();
+
+        return Inertia::render('Admin/Presidentielle/Audience', [
+            'par_jour' => $parJour,
+            'par_page' => $parPage,
+            'jours' => $jours,
+            'totaux' => [
+                'humains' => (int) $parJour->sum('humains'),
+                'bots' => (int) $parJour->sum('bots'),
+            ],
+            // Sans journal, la page doit expliquer quoi faire plutôt que d'afficher zéro.
+            'actif' => DB::table('audience_jour')->exists(),
+        ]);
+    }
+
     public function action(Request $request, ModerationService $service)
     {
         $data = $request->validate([
