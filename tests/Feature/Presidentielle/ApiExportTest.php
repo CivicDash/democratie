@@ -45,6 +45,7 @@ it('écrit les fichiers JSON attendus', function () {
         ->and(file_exists("$dir/themes.json"))->toBeTrue()
         ->and(file_exists("$dir/comparateur.json"))->toBeTrue()
         ->and(file_exists("$dir/candidats.json"))->toBeTrue()
+        ->and(file_exists("$dir/controverses.json"))->toBeTrue()
         ->and(file_exists("$dir/candidats/{$candidat->personnePolitique->slug}.json"))->toBeTrue();
 });
 
