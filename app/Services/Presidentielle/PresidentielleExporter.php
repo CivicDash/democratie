@@ -486,6 +486,10 @@ class PresidentielleExporter
         $ecrits[] = $this->put("{$dir}/themes.json", $data['themes']);
         $ecrits[] = $this->put("{$dir}/comparateur.json", $data['comparateur']);
         $ecrits[] = $this->put("{$dir}/meta.json", $data['meta']);
+        // Controverses : sans ce fichier, le slug référencé par chaque argument pointe dans le
+        // vide et la note méthodologique — qui explique pourquoi les deux camps citent des
+        // données exactes — n'atteint jamais le front.
+        $ecrits[] = $this->put("{$dir}/controverses.json", $data['controverses']);
 
         foreach ($data['candidats'] as $slug => $candidat) {
             $ecrits[] = $this->put("{$dir}/candidats/{$slug}.json", $candidat);
