@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 class AudienceAgreger extends Command
 {
     protected $signature = 'audience:agreger
-        {--fichier=/var/log/caddy/objectif2027.log : journal d\'accès (JSON par ligne)}
+        {--fichier= : journal d\'accès (JSON par ligne) ; défaut storage/app/audience/objectif2027.log}
         {--site=objectif2027.fr : site mesuré}
         {--jour= : ne traiter qu\'un jour (AAAA-MM-JJ)}
         {--dry-run : afficher sans écrire}';
@@ -45,10 +45,14 @@ class AudienceAgreger extends Command
 
     public function handle(): int
     {
-        $fichier = (string) $this->option('fichier');
+        // Le conteneur applicatif ne monte que .env et storage : il ne voit pas
+        // /var/log/caddy. Le journal est donc déposé dans le storage par le script
+        // d'exploitation `audience-sync.sh`, qui tourne sur l'hôte.
+        $fichier = (string) ($this->option('fichier') ?: storage_path('app/audience/objectif2027.log'));
         if (! is_file($fichier)) {
             $this->error("Journal introuvable : {$fichier}");
-            $this->line('Activer la journalisation du vhost, puis relancer. Voir docs/audience.md.');
+            $this->line('Le journal doit être déposé dans le storage par audience-sync.sh (hôte).');
+            $this->line('Voir docs/audience.md.');
 
             return self::FAILURE;
         }

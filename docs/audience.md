@@ -38,13 +38,27 @@ l'agrégation tourne chaque nuit. Les données brutes disparaissent d'elles-mêm
 
 ## 2. Agréger
 
+**Le conteneur applicatif ne voit pas `/var/log/caddy`** : il ne monte que `.env` et
+`storage`. Le journal doit donc être déposé dans le storage partagé avant l'agrégation,
+ce que fait `audience-sync.sh`, à exécuter **sur l'hôte** :
+
 ```bash
-php artisan audience:agreger --dry-run      # afficher sans rien écrire
-php artisan audience:agreger                # écrire les agrégats
-php artisan audience:agreger --jour=2026-09-13
+/opt/civicdash-prod/audience-sync.sh --dry-run   # afficher sans rien écrire
+/opt/civicdash-prod/audience-sync.sh             # écrire les agrégats
 ```
 
-Planifiée tous les jours à 04h50 (`routes/console.php`).
+Le script copie le journal, lance `php artisan audience:agreger` dans le conteneur, puis
+**supprime la copie de travail** : les agrégats sont en base, les lignes brutes contiennent
+des adresses IP et n'ont plus d'utilité.
+
+Planification, dans la crontab de l'hôte :
+
+```cron
+50 4 * * * /opt/civicdash-prod/audience-sync.sh >> /var/log/audience-objectif2027.log 2>&1
+```
+
+Ce n'est volontairement **pas** une tâche du scheduler Laravel : elle échouerait chaque
+nuit, le conteneur n'ayant pas accès au journal.
 
 ## 3. Ce qui est compté, et ce qui ne l'est pas
 
