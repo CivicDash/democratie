@@ -14,7 +14,9 @@ const items = [
     { name: 'admin.presidentielle.signalements', label: 'Signalements', icon: '🚩' },
     { name: 'admin.presidentielle.hatvp', label: 'HATVP', icon: '💼' },
     { name: 'admin.presidentielle.parcours', label: 'Parcours', icon: '🧭' },
+    { name: 'admin.presidentielle.evenements', label: 'Calendrier', icon: '📅' },
     { name: 'admin.presidentielle.medias', label: 'Médias', icon: '🖼️' },
+    { name: 'admin.presidentielle.audience', label: 'Audience', icon: '📈' },
 ];
 
 function estActif(name) {

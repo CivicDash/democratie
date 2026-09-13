@@ -9,6 +9,7 @@ use App\Models\ArgumentMesureLien;
 use App\Models\ArgumentSource;
 use App\Models\CandidatPresidentielle;
 use App\Models\Controverse;
+use App\Models\EvenementCampagne;
 use App\Models\HatvpDeclaration;
 use App\Models\IngestionDocument;
 use App\Models\IngestionProposition;
@@ -843,6 +844,90 @@ class PresidentielleModerationController extends Controller
     }
 
     /** Applique une action de modération à une entité. */
+    /**
+     * Calendrier de campagne : liste des événements et de leur état de validation.
+     * Un événement n'est publiable que daté ET vérifiable à une source.
+     */
+    public function evenements(Request $request)
+    {
+        $evenements = EvenementCampagne::with(['candidats.personnePolitique', 'document'])
+            ->where('election', '2027')->orderByDesc('date_debut')->get()
+            ->map(fn (EvenementCampagne $e) => [
+                'id' => $e->id,
+                'titre' => $e->titre,
+                'type' => $e->type,
+                'date_debut' => $e->date_debut?->toDateString(),
+                'precision_date' => $e->precision_date,
+                'lieu' => $e->lieu,
+                'ville' => $e->ville,
+                'statut' => $e->statut,
+                'statut_validation' => $e->statut_validation,
+                'affiche_publiquement' => $e->affiche_publiquement,
+                'url_video' => $e->url_video,
+                'url_source' => $e->url_source,
+                'note_methodologique' => $e->note_methodologique,
+                'document_titre' => $e->document?->titre,
+                'candidats' => $e->candidats->map(fn ($c) => trim(($c->personnePolitique?->prenom ?? '').' '.($c->personnePolitique?->nom ?? '')))->values(),
+                'raisons_non_publiable' => $e->raisonsNonPubliable(),
+            ]);
+
+        return Inertia::render('Admin/Presidentielle/Evenements', [
+            'evenements' => $evenements,
+            'types' => ['meeting', 'debat', 'discours', 'interview', 'emission', 'deplacement', 'communique', 'autre'],
+        ]);
+    }
+
+    /** Mise à jour d'un événement (date, lieu, type, statut) avant validation. */
+    public function evenementUpdate(Request $request)
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer'],
+            'titre' => ['required', 'string', 'max:500'],
+            'type' => ['required', 'string', 'max:30'],
+            'date_debut' => ['required', 'date'],
+            'precision_date' => ['required', 'in:heure,jour,mois'],
+            'lieu' => ['nullable', 'string', 'max:255'],
+            'ville' => ['nullable', 'string', 'max:120'],
+            'statut' => ['required', 'in:annonce,confirme,reporte,annule'],
+            'note_methodologique' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        EvenementCampagne::findOrFail($data['id'])->update($data);
+
+        return back()->with('success', 'Événement mis à jour.');
+    }
+
+    /**
+     * Validation puis publication d'un événement. Les invariants sont vérifiés ici :
+     * un calendrier sans lien de vérification contredirait la promesse du site.
+     */
+    public function evenementAction(Request $request)
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer'],
+            'action' => ['required', 'in:valider,publier,depublier'],
+        ]);
+
+        $e = EvenementCampagne::findOrFail($data['id']);
+
+        if ($data['action'] === 'publier') {
+            if ($e->statut_validation !== 'valide') {
+                throw ValidationException::withMessages(['action' => 'L\'événement doit être validé avant publication.']);
+            }
+            if ($raisons = $e->raisonsNonPubliable()) {
+                throw ValidationException::withMessages(['action' => 'Publication impossible : '.implode(' ; ', $raisons)]);
+            }
+        }
+
+        $e->update(match ($data['action']) {
+            'valider' => ['statut_validation' => 'valide', 'valide_par' => $request->user()->id, 'valide_at' => now()],
+            'publier' => ['affiche_publiquement' => true],
+            'depublier' => ['affiche_publiquement' => false],
+        });
+
+        return back()->with('success', 'Action « '.$data['action'].' » appliquée.');
+    }
+
     /**
      * Audience d'objectif2027.fr. Lit des agrégats déjà calculés : aucune donnée
      * personnelle n'est manipulée ici, la table ne contient que des compteurs.
