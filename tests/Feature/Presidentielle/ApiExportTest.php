@@ -123,3 +123,15 @@ it('expose l état « relevée » pour une mesure validée sans argumentaire pub
         // le comparateur reste strict : uniquement les publiées
         ->and($data['comparateur'][$autre->slug][$candidat->personnePolitique->slug] ?? [])->toHaveCount(0);
 });
+
+it('n\'expose pas le chantier d\'une controverse sous deux candidats', function () {
+    // Un compteur à 1, croisé avec la page thème, désignerait le candidat dont la
+    // position est en cours d'instruction : le seuil protège une donnée non publiée.
+    $c = \App\Models\Controverse::factory()->create([
+        'statut_validation' => 'valide', 'affiche_publiquement' => true,
+    ]);
+
+    $controverses = app(PresidentielleExporter::class)->build('2027')['controverses'];
+
+    expect($controverses[$c->slug]['chantier'])->toBeNull();
+});

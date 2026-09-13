@@ -3,6 +3,7 @@
 namespace App\Services\Presidentielle;
 
 use App\Models\CandidatPresidentielle;
+use App\Models\ArgumentMesureLien;
 use App\Models\Controverse;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
@@ -65,6 +66,8 @@ class PresidentielleExporter
                 'titre' => $c->titre,
                 'theme' => $c->theme?->slug,
                 'note_methodologique' => $c->note_methodologique,
+                'ordre' => $c->ordre,
+                'chantier' => $this->chantierControverse($c),
             ]])->all();
 
         $contenu = [
@@ -418,6 +421,30 @@ class PresidentielleExporter
         return $url;
     }
 
+    /**
+     * Travail en cours sur une controverse, en VOLUME seulement — jamais un nom, jamais un
+     * contenu. Même principe que `affaires.en_verification` : le site peut annoncer
+     * honnêtement son avancement sans publier une liaison non encore doublement validée.
+     *
+     * Sous le seuil de deux candidats on ne renvoie rien : un compteur à 1, croisé avec la
+     * page thème, désignerait le candidat dont la position est en cours d'instruction.
+     */
+    private function chantierControverse(Controverse $c): ?array
+    {
+        $liens = ArgumentMesureLien::whereIn('argument_id', $c->arguments()->select('id'))
+            ->whereNotNull('mesure_id')
+            ->where(fn ($q) => $q->where('affiche_publiquement', false)
+                ->orWhere('statut_validation', '!=', 'valide'))
+            ->with('mesure:id,candidat_id')
+            ->get();
+
+        $candidats = $liens->pluck('mesure.candidat_id')->filter()->unique()->count();
+
+        return $candidats >= 2
+            ? ['candidats' => $candidats, 'mesures' => $liens->pluck('mesure_id')->unique()->count()]
+            : null;
+    }
+
     private function tronqueMots(string $txt, int $max): string
     {
         $mots = preg_split('/\s+/', trim($txt));
@@ -445,6 +472,14 @@ class PresidentielleExporter
                     'titre' => $s->titre,
                     'url' => $this->url($s->url),
                     'media' => $s->media,
+                    // L'auteur nommé et la date font partie de l'argument, pas du décor :
+                    // une évaluation de 2001 et une de 2024 ne pèsent pas pareil, et « le
+                    // Conseil d'analyse économique » vaut mieux que « des économistes ».
+                    'auteur' => $s->auteur,
+                    'date' => optional($s->date_publication)->toDateString(),
+                    // Verbatim d'une publication tierce : même prudence que pour les
+                    // citations de meeting (droit de courte citation).
+                    'extrait' => $s->extrait ? $this->tronqueMots($s->extrait, 25) : null,
                     'archive_url' => $this->url($s->archive_url),
                     'fiabilite' => $s->fiabilite,
                 ])->values()->all(),
