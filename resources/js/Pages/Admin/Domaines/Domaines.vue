@@ -2,6 +2,9 @@
 import { ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmDanger } = useConfirm();
 
 const props = defineProps({
     domaines: Array,
@@ -55,8 +58,10 @@ function submitEdit() {
     });
 }
 
-function deleteDomaine(domaine) {
-    if (confirm(`Supprimer le domaine "${domaine.nom}" ? Les ${domaine.postes_count} postes associés seront détachés.`)) {
+async function deleteDomaine(domaine) {
+    if (await confirmDanger(
+        `Les ${domaine.postes_count} poste(s) rattaché(s) à « ${domaine.nom} » seront détachés — ils ne seront pas supprimés, mais ils perdront leur classement.`,
+        'Supprimer ce domaine ?')) {
         router.delete(route('admin.domaines.destroy', domaine.id));
     }
 }

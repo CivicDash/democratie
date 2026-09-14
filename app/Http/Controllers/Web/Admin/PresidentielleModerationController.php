@@ -139,12 +139,20 @@ class PresidentielleModerationController extends Controller
     public function mesures(Request $request)
     {
         $statut = $request->query('statut', 'detecte');
+        $q = trim((string) $request->query('q', ''));
 
         $mesures = ProgrammeMesure::with(['candidat.personnePolitique', 'theme'])
-            ->withCount(['liens as pour_count' => fn ($q) => $q->where('sens', 'pour')->publie()])
-            ->withCount(['liens as contre_count' => fn ($q) => $q->where('sens', 'contre')->publie()])
-            ->when($statut === 'publie', fn ($q) => $q->where('affiche_publiquement', true))
-            ->when(! in_array($statut, ['tous', 'publie'], true), fn ($q) => $q->where('statut_validation', $statut))
+            ->withCount(['liens as pour_count' => fn ($r) => $r->where('sens', 'pour')->publie()])
+            ->withCount(['liens as contre_count' => fn ($r) => $r->where('sens', 'contre')->publie()])
+            ->when($statut === 'publie', fn ($r) => $r->where('affiche_publiquement', true))
+            ->when(! in_array($statut, ['tous', 'publie'], true), fn ($r) => $r->where('statut_validation', $statut))
+            // La file grossit à chaque source ingérée : sans recherche, retrouver une
+            // mesure suppose de feuilleter vingt-cinq lignes à la fois.
+            ->when($q !== '', fn ($r) => $r->where(fn ($sub) => $sub
+                ->where('titre', 'ilike', "%{$q}%")
+                ->orWhereHas('candidat.personnePolitique', fn ($p) => $p
+                    ->where('nom', 'ilike', "%{$q}%")
+                    ->orWhere('prenom', 'ilike', "%{$q}%"))))
             ->orderByDesc('id')
             ->paginate(25)
             ->withQueryString();
@@ -152,6 +160,7 @@ class PresidentielleModerationController extends Controller
         return Inertia::render('Admin/Presidentielle/Mesures', [
             'mesures' => $mesures,
             'statut' => $statut,
+            'q' => $q,
         ]);
     }
 
@@ -1069,5 +1078,41 @@ class PresidentielleModerationController extends Controller
         };
 
         return 'Action « '.$action.' » appliquée.';
+    }
+
+    /**
+     * Journal des décisions prises sur une entité.
+     *
+     * `presidentielle_moderation_logs` était alimenté à chaque geste depuis la mise en
+     * service — plus de mille sept cents lignes — et affiché nulle part. On ne pouvait
+     * donc pas répondre à « qui a validé cette question clé, quand, et pourquoi ».
+     *
+     * Une route dédiée, appelée à l'ouverture du dépliant, plutôt qu'un eager-load :
+     * les files affichent vingt-cinq lignes et le journal n'est consulté que
+     * ponctuellement.
+     */
+    public function journal(string $type, int $id)
+    {
+        abort_unless(isset(self::MODELS[$type]), 404);
+
+        $modele = self::MODELS[$type];
+
+        $entrees = PresidentielleModerationLog::with('moderator:id,name')
+            ->where('entite_type', (new $modele)->getMorphClass())
+            ->where('entite_id', $id)
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn (PresidentielleModerationLog $l) => [
+                'id' => $l->id,
+                'action' => $l->action,
+                'ancien_statut' => $l->ancien_statut,
+                'nouveau_statut' => $l->nouveau_statut,
+                'commentaire' => $l->commentaire,
+                'moderateur' => $l->moderator?->name ?? 'Système',
+                'date' => $l->created_at?->format('d/m/Y H:i'),
+            ]);
+
+        return response()->json(['entrees' => $entrees]);
     }
 }

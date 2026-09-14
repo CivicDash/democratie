@@ -2,6 +2,9 @@
 import { ref, computed, watch } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { useToast } from '@/composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
     fonctions: Object,
@@ -57,7 +60,7 @@ function assignerFonction(fonction, domaineId) {
 // Assigner en masse
 function assignerMasse() {
     if (selectedFonctions.value.length === 0 || !massForm.domaine_id) {
-        alert('Sélectionnez des fonctions et un domaine');
+        toast.warning('Sélectionnez au moins une fonction et un domaine de destination.');
         return;
     }
     

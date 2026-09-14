@@ -3,6 +3,9 @@ import { reactive } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import ActionButton from '@/Components/Admin/ActionButton.vue';
+import StatusBadge from '@/Components/Admin/StatusBadge.vue';
+import { messagePublication } from '@/composables/useModerationAction';
 
 const props = defineProps({ evenements: Array, types: Array });
 
@@ -67,7 +70,7 @@ const erreurs = () => usePage().props.errors ?? {};
                             </p>
                         </div>
                         <div class="flex gap-1 flex-wrap">
-                            <span class="px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700">{{ e.statut_validation }}</span>
+                            <StatusBadge :statut="e.statut_validation" />
                             <span :class="e.affiche_publiquement ? 'text-green-600' : 'text-gray-400'" class="px-2 py-0.5 text-xs">
                                 {{ e.affiche_publiquement ? 'public' : 'non publié' }}
                             </span>
@@ -78,16 +81,19 @@ const erreurs = () => usePage().props.errors ?? {};
                         Non publiable : {{ e.raisons_non_publiable.join(' ; ') }}
                     </p>
 
-                    <div class="mt-3 flex gap-1 flex-wrap">
-                        <button @click="editer(e)" class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700">Modifier</button>
-                        <button v-if="e.statut_validation !== 'valide'" @click="agir(e.id, 'valider')"
-                                class="px-2 py-1 text-xs rounded bg-blue-600 text-white">Valider</button>
-                        <button v-if="e.statut_validation === 'valide' && !e.affiche_publiquement"
-                                :disabled="e.raisons_non_publiable.length > 0"
-                                @click="agir(e.id, 'publier')"
-                                class="px-2 py-1 text-xs rounded bg-green-600 text-white disabled:opacity-40">Publier</button>
-                        <button v-if="e.affiche_publiquement" @click="agir(e.id, 'depublier')"
-                                class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700">Dépublier</button>
+                    <div class="mt-3 flex gap-1 flex-wrap items-center">
+                        <ActionButton verbe="neutre" libelle="Modifier" @action="editer(e)" />
+                        <ActionButton v-if="e.statut_validation !== 'valide'"
+                                      verbe="valider" @action="agir(e.id, 'valider')" />
+                        <ActionButton v-if="e.statut_validation === 'valide' && !e.affiche_publiquement"
+                                      verbe="publier"
+                                      :disabled="e.raisons_non_publiable.length > 0"
+                                      :titre="e.raisons_non_publiable.length ? e.raisons_non_publiable.join(' ; ') : null"
+                                      titre-confirmation="Publier cet événement ?"
+                                      :confirmation="messagePublication('Cet événement', e.titre, 'Il apparaîtra dans le calendrier de campagne public.')"
+                                      @action="agir(e.id, 'publier')" />
+                        <ActionButton v-if="e.affiche_publiquement"
+                                      verbe="depublier" @action="agir(e.id, 'depublier')" />
                         <a v-if="e.url_video || e.url_source" :href="e.url_video || e.url_source" target="_blank" rel="noopener"
                            class="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700">Voir la source ↗</a>
                     </div>

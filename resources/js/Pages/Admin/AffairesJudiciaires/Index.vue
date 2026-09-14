@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import QueueSearch from '@/Components/Admin/QueueSearch.vue';
 
 const props = defineProps({
     affaires: Object,
@@ -112,9 +113,28 @@ const statutColor = (s) => {
                 </nav>
             </div>
 
+            <!-- Le contrôleur implémentait la recherche depuis le début (ILIKE sur nom,
+                 prénom et titre) et la prop `search` était déclarée : seul le champ de
+                 saisie manquait. -->
+            <div class="mb-4">
+                <QueueSearch id="recherche-affaires"
+                             :valeur="search"
+                             route-nom="admin.affaires.index"
+                             :params="{ tab }"
+                             cle="search"
+                             label="Rechercher une affaire ou une personne"
+                             placeholder="Nom, prénom, titre de l'affaire…"
+                             :total="affaires.total" />
+            </div>
+
             <div v-if="affaires.data.length === 0" class="text-center py-16">
-                <div class="text-5xl mb-4">📋</div>
-                <p class="text-gray-500 dark:text-gray-400">Aucune affaire dans cet onglet.</p>
+                <div class="text-5xl mb-4" aria-hidden="true">📋</div>
+                <p class="text-gray-600 dark:text-gray-400">
+                    {{ search ? 'Aucune affaire ne correspond à cette recherche.' : 'Aucune affaire dans cet onglet.' }}
+                </p>
+                <p v-if="!search" class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                    Les affaires arrivent par la détection automatique ou par une saisie manuelle.
+                </p>
             </div>
 
             <div v-else class="space-y-3">

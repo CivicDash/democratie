@@ -58,9 +58,12 @@ const getSeparatorIcon = (type) => {
                 </template>
 
                 <!-- Lien ou texte -->
+                <!-- Quatre écrans passent `url` au lieu de `href` : leurs items
+                     s'affichaient en texte inerte, et sur deux d'entre eux il ne restait
+                     alors aucun chemin de retour vers le tableau de bord. -->
                 <Link
-                    v-if="item.href && index < items.length - 1"
-                    :href="item.href"
+                    v-if="(item.href || item.url) && index < items.length - 1"
+                    :href="item.href || item.url"
                     class="inline-flex items-center gap-1.5 transition-colors duration-150"
                     :class="variant === 'light' 
                         ? 'text-white/70 hover:text-white' 

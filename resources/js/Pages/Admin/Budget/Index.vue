@@ -4,6 +4,9 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmDanger } = useConfirm();
 
 const props = defineProps({
     budgets: Array,
@@ -29,8 +32,10 @@ const formatMiliardsEuros = (montant) => {
     return montant.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Md€';
 };
 
-const confirmDelete = (budget) => {
-    if (confirm(`Supprimer le budget "${budget.nom}" ?`)) {
+const confirmDelete = async (budget) => {
+    if (await confirmDanger(
+        `Le budget « ${budget.nom} » et ses lignes seront supprimés.`,
+        'Supprimer ce budget ?')) {
         router.delete(route('admin.budget.destroy', budget.id));
     }
 };

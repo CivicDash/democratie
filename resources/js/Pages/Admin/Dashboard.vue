@@ -3,6 +3,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmWarning } = useConfirm();
 
 const props = defineProps({
     userStats: Object,
@@ -76,10 +79,12 @@ onUnmounted(() => {
 });
 
 // Lancer une commande
-const runCommand = (command) => {
+const runCommand = async (command) => {
     if (runningCommand.value) return;
     
-    if (command.dangerous && !confirm(`Êtes-vous sûr de vouloir exécuter "${command.label}" ?`)) {
+    if (command.dangerous && !await confirmWarning(
+        `« ${command.label} » écrit en base et peut prendre plusieurs minutes. Ne relancez pas la commande tant qu'elle n'a pas rendu la main.`,
+        'Exécuter cette commande ?', { confirmLabel: 'Exécuter' })) {
         return;
     }
     

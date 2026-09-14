@@ -1,8 +1,11 @@
 <script setup>
 import { reactive } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import ActionButton from '@/Components/Admin/ActionButton.vue';
+import StatusBadge from '@/Components/Admin/StatusBadge.vue';
+import Pagination from '@/Components/Pagination.vue';
 
 const props = defineProps({
     signalements: Object,   // paginator
@@ -18,13 +21,19 @@ function filtrer(s) {
 }
 
 const notes = reactive({});
+
 function agir(s, action) {
-    if ((action === 'resoudre' || action === 'rejeter') && !notes[s.id]) {
-        if (!confirm('Traiter ce signalement sans note de résolution ?')) return;
-    }
     router.post(route('admin.presidentielle.signalements.action'),
         { id: s.id, action, note: notes[s.id] ?? null },
         { preserveScroll: true, onSuccess: () => { notes[s.id] = ''; } });
+}
+
+// Clore un signalement sans dire pourquoi rend la décision inexplicable plus tard :
+// on ne bloque pas, mais on le fait remarquer.
+function confirmationSansNote(s) {
+    return notes[s.id]
+        ? null
+        : 'Aucune note de traitement n’a été saisie. Sans elle, on ne saura plus, dans six mois, pourquoi ce signalement a été clos.';
 }
 </script>
 
@@ -50,13 +59,7 @@ function agir(s, action) {
                         <span class="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">{{ s.type_libelle }}</span>
                         <span class="ml-2 text-xs text-gray-400">#{{ s.id }} · {{ s.created_at }}</span>
                     </div>
-                    <span class="px-2 py-0.5 rounded text-xs"
-                        :class="{
-                            'bg-red-100 text-red-700': s.statut === 'nouveau',
-                            'bg-amber-100 text-amber-700': s.statut === 'en_cours',
-                            'bg-green-100 text-green-700': s.statut === 'resolu',
-                            'bg-gray-100 text-gray-500': s.statut === 'rejete',
-                        }">{{ libelleStatut[s.statut] ?? s.statut }}</span>
+                    <StatusBadge :statut="s.statut" />
                 </div>
 
                 <p class="text-sm whitespace-pre-wrap">{{ s.description }}</p>
@@ -75,19 +78,30 @@ function agir(s, action) {
                 <div v-if="s.statut !== 'resolu' && s.statut !== 'rejete'" class="pt-1 flex items-center gap-2 flex-wrap">
                     <input v-model="notes[s.id]" placeholder="Note de traitement (optionnelle)"
                         class="flex-1 min-w-[12rem] rounded border-gray-300 dark:bg-gray-800 text-xs" />
-                    <button v-if="s.statut === 'nouveau'" @click="agir(s, 'prendre_en_charge')" class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700">Prendre en charge</button>
-                    <button @click="agir(s, 'resoudre')" class="px-2 py-1 text-xs rounded bg-green-600 text-white">Résoudre</button>
-                    <button @click="agir(s, 'rejeter')" class="px-2 py-1 text-xs rounded bg-gray-200 text-gray-700">Rejeter</button>
+                    <ActionButton v-if="s.statut === 'nouveau'"
+                                  verbe="prendre" @action="agir(s, 'prendre_en_charge')" />
+                    <ActionButton verbe="valider" libelle="Résoudre"
+                                  :confirmer="!notes[s.id]"
+                                  titre-confirmation="Résoudre sans note ?"
+                                  :confirmation="confirmationSansNote(s)"
+                                  @action="agir(s, 'resoudre')" />
+                    <ActionButton verbe="rejeter"
+                                  :confirmer="!notes[s.id]"
+                                  titre-confirmation="Rejeter sans note ?"
+                                  :confirmation="confirmationSansNote(s)"
+                                  @action="agir(s, 'rejeter')" />
                 </div>
             </div>
 
-            <p v-if="!signalements.data.length" class="p-6 text-center text-gray-400">Aucun signalement.</p>
-
-            <div v-if="signalements.links" class="flex flex-wrap gap-1">
-                <Link v-for="(l, i) in signalements.links" :key="i" :href="l.url ?? ''" v-html="l.label"
-                    class="px-3 py-1 text-sm rounded border"
-                    :class="[l.active ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300', !l.url ? 'opacity-40 pointer-events-none' : '']" />
+            <div v-if="!signalements.data.length" class="p-8 text-center">
+                <p class="text-gray-600 dark:text-gray-400">Aucun signalement dans cette file.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                    Les signalements viennent des visiteurs d'objectif2027.fr, depuis le bouton
+                    présent au bas de chaque fiche.
+                </p>
             </div>
+
+            <Pagination v-if="signalements.links" :links="signalements.links" />
         </div>
     </AuthenticatedLayout>
 </template>

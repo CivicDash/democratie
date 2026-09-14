@@ -2,6 +2,9 @@
 import { ref, computed } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmDanger } = useConfirm();
 
 const props = defineProps({
     affaire: Object,
@@ -104,8 +107,10 @@ function ajouterSource() {
     });
 }
 
-function supprimerSource(sourceId) {
-    if (confirm('Supprimer cette source ?')) {
+async function supprimerSource(sourceId) {
+    if (await confirmDanger(
+        'Cette source sortira de la fiche. Elle reste consultable en base, mais ne comptera plus dans le sourçage.',
+        'Retirer cette source ?', { confirmLabel: 'Retirer' })) {
         router.delete(route('admin.affaires.source.delete', sourceId));
     }
 }

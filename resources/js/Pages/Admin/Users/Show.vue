@@ -40,20 +40,26 @@ const submit = () => {
     });
 };
 
-const verifyEmail = () => {
-    if (confirm('Valider manuellement l\'adresse email de cet utilisateur ?')) {
+const verifyEmail = async () => {
+    if (await confirmWarning(
+        "L'adresse sera considérée comme vérifiée sans que la personne ait cliqué le lien de confirmation. À ne faire que si vous l'avez vérifiée par un autre moyen.",
+        'Valider cette adresse à la main ?', { confirmLabel: 'Valider' })) {
         router.post(route('admin.users.verify-email', props.user.id));
     }
 };
 
-const verifyElu = () => {
-    if (confirm('Vérifier cet élu ?')) {
+const verifyElu = async () => {
+    if (await confirmWarning(
+        "Le compte portera publiquement la mention « élu vérifié ». Assurez-vous d'avoir confirmé le mandat auprès d'une source officielle.",
+        'Vérifier cet élu ?', { confirmLabel: 'Vérifier' })) {
         router.post(route('admin.users.verify-elu', props.user.id));
     }
 };
 
-const revokeElu = () => {
-    if (confirm('Révoquer la vérification de cet élu ?')) {
+const revokeElu = async () => {
+    if (await confirmWarning(
+        'La mention « élu vérifié » disparaîtra de son profil public.',
+        'Révoquer cette vérification ?', { confirmLabel: 'Révoquer' })) {
         router.post(route('admin.users.revoke-elu', props.user.id));
     }
 };

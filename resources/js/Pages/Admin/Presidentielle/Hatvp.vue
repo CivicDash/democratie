@@ -3,6 +3,9 @@ import { ref, reactive, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmWarning } = useConfirm();
 
 const props = defineProps({
     candidats: Array,
@@ -43,8 +46,10 @@ function rattacher(uuid) {
     if (!candidatId) return;
     router.post(route('admin.presidentielle.hatvp.rattacher'), { candidat_id: candidatId, declaration_uuid: uuid }, { preserveScroll: true });
 }
-function detacher(candidatId) {
-    if (!confirm('Détacher la/les déclaration(s) HATVP de ce candidat ?')) return;
+async function detacher(candidatId) {
+    if (!await confirmWarning(
+        'Les déclarations resteront en base mais ne seront plus rattachées à ce candidat, ni affichées sur sa fiche.',
+        'Détacher ces déclarations ?', { confirmLabel: 'Détacher' })) return;
     router.post(route('admin.presidentielle.hatvp.detacher'), { candidat_id: candidatId }, { preserveScroll: true });
 }
 function changerStatut(candidatId, statut) {

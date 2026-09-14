@@ -2,6 +2,9 @@
 import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import ActionButton from '@/Components/Admin/ActionButton.vue';
+import StatusBadge from '@/Components/Admin/StatusBadge.vue';
+import { messagePublication } from '@/composables/useModerationAction';
 
 const props = defineProps({
     files: Object,
@@ -70,11 +73,18 @@ function total(file) {
                         <p class="truncate font-medium">{{ d.titre }}</p>
                         <p class="text-xs text-gray-500">{{ d.candidat }} · {{ d.nb_items }} entrées · <a :href="d.url" target="_blank" class="text-blue-600 hover:underline">source ↗</a></p>
                     </div>
-                    <div class="whitespace-nowrap">
-                        <span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs mr-2">{{ d.statut_validation }}{{ d.affiche_publiquement ? ' · publié' : '' }}</span>
-                        <button v-if="d.statut_validation !== 'valide'" @click="agirReferentiel(d, 'valider')" class="px-2 py-1 text-xs rounded bg-blue-600 text-white">Valider</button>
-                        <button v-if="d.statut_validation === 'valide' && !d.affiche_publiquement" @click="agirReferentiel(d, 'publier')" class="px-2 py-1 text-xs rounded bg-green-600 text-white ml-1">Publier</button>
-                        <button v-if="d.affiche_publiquement" @click="agirReferentiel(d, 'depublier')" class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 ml-1">Dépublier</button>
+                    <div class="whitespace-nowrap space-x-1">
+                        <StatusBadge :statut="d.statut_validation" />
+                        <StatusBadge v-if="d.affiche_publiquement" publie />
+                        <ActionButton v-if="d.statut_validation !== 'valide'"
+                                      verbe="valider" @action="agirReferentiel(d, 'valider')" />
+                        <ActionButton v-if="d.statut_validation === 'valide' && !d.affiche_publiquement"
+                                      verbe="publier"
+                                      titre-confirmation="Publier ce référentiel ?"
+                                      :confirmation="messagePublication('Ce référentiel de programme de ' + d.candidat, d.titre)"
+                                      @action="agirReferentiel(d, 'publier')" />
+                        <ActionButton v-if="d.affiche_publiquement"
+                                      verbe="depublier" @action="agirReferentiel(d, 'depublier')" />
                     </div>
                 </div>
             </div>

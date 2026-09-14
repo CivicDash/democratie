@@ -953,6 +953,8 @@ Route::prefix('admin/presidentielle')
     ->group(function () {
         $c = App\Http\Controllers\Web\Admin\PresidentielleModerationController::class;
         Route::get('/moderation', [$c, 'index'])->name('moderation');
+        // Journal des décisions d'une entité, chargé à la demande.
+        Route::get('/journal/{type}/{id}', [$c, 'journal'])->whereNumber('id')->name('journal');
         Route::post('/moderation/action', [$c, 'action'])->name('moderation.action');
         Route::post('/moderation/action-lot', [$c, 'actionLot'])->name('moderation.action-lot');
         Route::get('/propositions', [$c, 'propositions'])->name('propositions');

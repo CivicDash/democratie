@@ -1,7 +1,11 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import ActionButton from '@/Components/Admin/ActionButton.vue';
+import StatusBadge from '@/Components/Admin/StatusBadge.vue';
+import Pagination from '@/Components/Pagination.vue';
+import { useModerationAction, messagePublication } from '@/composables/useModerationAction';
 
 const props = defineProps({
     evenements: Object, // paginator
@@ -14,11 +18,7 @@ function filtrer(s) {
     router.get(route('admin.presidentielle.parcours'), { statut: s }, { preserveState: true, replace: true });
 }
 
-function agir(evt, action) {
-    router.post(route('admin.presidentielle.moderation.action'),
-        { type: 'parcours', id: evt.id, action },
-        { preserveScroll: true });
-}
+const { agir } = useModerationAction('parcours');
 
 function nom(e) {
     return e.personne_politique ? `${e.personne_politique.prenom} ${e.personne_politique.nom}` : '—';
@@ -57,9 +57,8 @@ function nom(e) {
                             <th class="p-3">Type</th>
                             <th class="p-3">Fonction / mandat</th>
                             <th class="p-3">Période</th>
-                            <th class="p-3">Statut</th>
-                            <th class="p-3">Publié</th>
-                            <th class="p-3 text-right">Actions</th>
+                            <th scope="col" class="p-3">Statut</th>
+                            <th scope="col" class="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -68,26 +67,30 @@ function nom(e) {
                             <td class="p-3 text-xs">{{ e.type }}</td>
                             <td class="p-3">{{ e.titre }}<span v-if="e.organisation" class="text-gray-400"> · {{ e.organisation }}</span></td>
                             <td class="p-3 whitespace-nowrap text-xs">{{ e.date_debut?.slice(0,10) ?? '?' }} → {{ e.date_fin?.slice(0,10) ?? 'en cours' }}</td>
-                            <td class="p-3"><span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs">{{ e.statut_validation }}</span></td>
-                            <td class="p-3"><span :class="e.affiche_publiquement ? 'text-green-600' : 'text-gray-400'">{{ e.affiche_publiquement ? '✓' : '—' }}</span></td>
-                            <td class="p-3 text-right whitespace-nowrap">
-                                <button v-if="e.statut_validation !== 'valide'" @click="agir(e, 'valider')" class="px-2 py-1 text-xs rounded bg-blue-600 text-white">Valider</button>
-                                <button v-if="e.statut_validation === 'valide' && !e.affiche_publiquement" @click="agir(e, 'publier')" class="px-2 py-1 text-xs rounded bg-green-600 text-white ml-1">Publier</button>
-                                <button v-if="e.affiche_publiquement" @click="agir(e, 'depublier')" class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 ml-1">Dépublier</button>
+                            <td class="p-3 space-x-1">
+                                <StatusBadge :statut="e.statut_validation" />
+                                <StatusBadge v-if="e.affiche_publiquement" publie />
+                            </td>
+                            <td class="p-3 text-right whitespace-nowrap space-x-1">
+                                <ActionButton v-if="e.statut_validation !== 'valide'"
+                                              verbe="valider" @action="agir(e.id, 'valider')" />
+                                <ActionButton v-if="e.statut_validation === 'valide' && !e.affiche_publiquement"
+                                              verbe="publier"
+                                              titre-confirmation="Publier cette étape de parcours ?"
+                                              :confirmation="messagePublication('Cette étape du parcours de ' + nom(e), e.titre)"
+                                              @action="agir(e.id, 'publier')" />
+                                <ActionButton v-if="e.affiche_publiquement"
+                                              verbe="depublier" @action="agir(e.id, 'depublier')" />
                             </td>
                         </tr>
                         <tr v-if="!evenements.data.length">
-                            <td colspan="7" class="p-6 text-center text-gray-400">Aucun événement — utiliser « Sync parcours » depuis la page Candidats.</td>
+                            <td colspan="6" class="p-6 text-center text-gray-400">Aucun événement — utiliser « Sync parcours » depuis la page Candidats.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div v-if="evenements.links" class="flex flex-wrap gap-1">
-                <Link v-for="(l, i) in evenements.links" :key="i" :href="l.url ?? ''"
-                    v-html="l.label" class="px-3 py-1 text-sm rounded border"
-                    :class="[l.active ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300', !l.url ? 'opacity-40 pointer-events-none' : '']" />
-            </div>
+            <Pagination v-if="evenements.links" :links="evenements.links" />
         </div>
     </AuthenticatedLayout>
 </template>

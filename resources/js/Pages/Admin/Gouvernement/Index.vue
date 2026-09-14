@@ -3,6 +3,9 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmDanger } = useConfirm();
 
 const props = defineProps({
     gouvernements: Array,
@@ -14,8 +17,10 @@ const breadcrumbs = [
     { label: 'Gouvernements', current: true, icon: '🏛️' },
 ];
 
-const deleteGouvernement = (gouv) => {
-    if (confirm(`Supprimer le gouvernement "${gouv.nom}" et ses ${gouv.ministres_count} ministres ?`)) {
+const deleteGouvernement = async (gouv) => {
+    if (await confirmDanger(
+        `Le gouvernement « ${gouv.nom} » et les ${gouv.ministres_count} poste(s) ministériel(s) rattachés seront supprimés.`,
+        'Supprimer ce gouvernement ?')) {
         router.delete(route('admin.gouvernement.destroy', gouv.id));
     }
 };

@@ -2,6 +2,9 @@
 import { ref, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { useToast } from '@/composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
     suggestions: Array,
@@ -40,7 +43,7 @@ function applySuggestions() {
     }).filter(a => a.domaine_id);
     
     if (assignments.length === 0) {
-        alert('Aucune suggestion sélectionnée avec un domaine valide');
+        toast.warning('Sélectionnez au moins une suggestion et attribuez-lui un domaine.');
         return;
     }
     

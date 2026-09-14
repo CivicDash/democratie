@@ -8,6 +8,9 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmDanger, confirmWarning } = useConfirm();
 
 const props = defineProps({
     stats: Object,
@@ -131,8 +134,8 @@ const testModeration = async () => {
 };
 
 // Supprimer un mot banni
-const deleteBanned = (id) => {
-    if (confirm('Supprimer ce mot banni ?')) {
+const deleteBanned = async (id) => {
+    if (await confirmDanger('Il ne sera plus filtré dans les contenus publiés.', 'Retirer ce mot banni ?', { confirmLabel: 'Retirer' })) {
         router.delete(route('admin.moderation.banned.destroy', id), {
             preserveScroll: true,
         });
@@ -140,8 +143,8 @@ const deleteBanned = (id) => {
 };
 
 // Supprimer un mot gentil
-const deleteNice = (id) => {
-    if (confirm('Supprimer ce mot gentil ?')) {
+const deleteNice = async (id) => {
+    if (await confirmDanger('Il ne sera plus valorisé dans les contenus publiés.', 'Retirer ce mot gentil ?', { confirmLabel: 'Retirer' })) {
         router.delete(route('admin.moderation.nice.destroy', id), {
             preserveScroll: true,
         });
@@ -149,8 +152,8 @@ const deleteNice = (id) => {
 };
 
 // Seed les mots par défaut
-const seedDefaults = () => {
-    if (confirm('Initialiser avec les mots par défaut ?')) {
+const seedDefaults = async () => {
+    if (await confirmWarning('Le jeu de mots par défaut sera ajouté à la liste existante.', 'Initialiser la liste ?', { confirmLabel: 'Initialiser' })) {
         router.post(route('admin.moderation.seed'), {}, {
             preserveScroll: true,
         });

@@ -1,6 +1,9 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmInfo } = useConfirm();
 
 const props = defineProps({
     stats: Object,
@@ -23,8 +26,10 @@ const formatNumber = (num) => {
     return new Intl.NumberFormat('fr-FR').format(num)
 }
 
-const runImport = (type) => {
-    if (confirm(`Lancer l'import ${type} ?`)) {
+const runImport = async (type) => {
+    if (await confirmInfo(
+        `L'import ${type} s'exécute immédiatement et peut prendre plusieurs minutes. Ne rechargez pas la page pendant ce temps.`,
+        `Lancer l'import ${type} ?`, { confirmLabel: 'Lancer' })) {
         router.post(route('admin.finances.import'), { type })
     }
 }

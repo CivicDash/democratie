@@ -9,6 +9,9 @@ export default {
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
         './resources/js/**/*.vue',
+        // Le référentiel d'actions vit dans un .js : sans cette ligne, Tailwind purge
+        // ses classes et les boutons sortent sans style, sans que le build échoue.
+        './resources/js/**/*.js',
     ],
 
     theme: {

@@ -1,8 +1,13 @@
 <script setup>
 import { reactive } from 'vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import ActionButton from '@/Components/Admin/ActionButton.vue';
+import StatusBadge from '@/Components/Admin/StatusBadge.vue';
+import ModerationLog from '@/Components/Admin/ModerationLog.vue';
+import Pagination from '@/Components/Pagination.vue';
+import { messagePublication } from '@/composables/useModerationAction';
 
 const props = defineProps({
     candidats: Object, // paginator
@@ -123,33 +128,42 @@ function nom(c) {
                             <td class="p-3">{{ c.parti_soutien }}</td>
                             <td class="p-3">{{ c.nuance_politique }}</td>
                             <td class="p-3 whitespace-nowrap">{{ c.date_declaration?.slice(0, 10) ?? '—' }}</td>
-                            <td class="p-3"><span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs">{{ c.statut_validation }}</span></td>
-                            <td class="p-3">
-                                <span :class="c.affiche_publiquement ? 'text-green-600' : 'text-gray-400'">{{ c.affiche_publiquement ? '✓' : '—' }}</span>
+                            <td class="p-3 space-x-1">
+                                <StatusBadge :statut="c.statut_validation" />
+                                <StatusBadge v-if="c.affiche_publiquement" publie />
                             </td>
-                            <td class="p-3 text-right whitespace-nowrap">
-                                <button @click="syncParcours(c)" title="Importer le parcours depuis les données CivicDash (postes ministériels, mandats)"
-                                    class="px-2 py-1 text-xs rounded border border-gray-300 text-gray-600 hover:border-blue-400">⟳ Parcours</button>
-                                <button v-if="c.statut_validation !== 'valide'" @click="agir(c, 'valider')"
-                                    class="px-2 py-1 text-xs rounded bg-blue-600 text-white ml-1">Valider</button>
-                                <button v-if="c.statut_validation === 'valide' && !c.affiche_publiquement" @click="agir(c, 'publier')"
-                                    class="px-2 py-1 text-xs rounded bg-green-600 text-white ml-1">Publier</button>
-                                <button v-if="c.affiche_publiquement" @click="agir(c, 'depublier')"
-                                    class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 ml-1">Dépublier</button>
+                            <td class="p-3 text-right whitespace-nowrap space-x-1">
+                                <ActionButton verbe="neutre" libelle="Importer le parcours"
+                                              titre="Reprend les postes ministériels et mandats déjà présents dans CivicDash"
+                                              @action="syncParcours(c)" />
+                                <ActionButton v-if="c.statut_validation !== 'valide'"
+                                              verbe="valider" @action="agir(c, 'valider')" />
+                                <ActionButton v-if="c.statut_validation === 'valide' && !c.affiche_publiquement"
+                                              verbe="publier"
+                                              titre-confirmation="Publier ce candidat ?"
+                                              :confirmation="messagePublication('La fiche de', nom(c), 'Elle nomme une personne : vérifiez le parti, la nuance et la source de la déclaration avant de confirmer.')"
+                                              @action="agir(c, 'publier')" />
+                                <ActionButton v-if="c.affiche_publiquement"
+                                              verbe="depublier" @action="agir(c, 'depublier')" />
+                                <div class="mt-2">
+                                    <ModerationLog type="candidat" :id="c.id" />
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="!candidats.data.length">
-                            <td colspan="7" class="p-6 text-center text-gray-400">Aucun candidat.</td>
+                            <td colspan="7" class="p-8 text-center">
+                                <p class="text-gray-600 dark:text-gray-400">Aucun candidat dans cette file.</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                                    Ajoutez-en un avec le formulaire ci-dessus : il entrera en
+                                    « détecté », non publié.
+                                </p>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div v-if="candidats.links" class="flex flex-wrap gap-1">
-                <Link v-for="(l, i) in candidats.links" :key="i" :href="l.url ?? ''"
-                    v-html="l.label" class="px-3 py-1 text-sm rounded border"
-                    :class="[l.active ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300', !l.url ? 'opacity-40 pointer-events-none' : '']" />
-            </div>
+            <Pagination v-if="candidats.links" :links="candidats.links" />
         </div>
     </AuthenticatedLayout>
 </template>

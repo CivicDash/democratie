@@ -1,8 +1,12 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import ActionButton from '@/Components/Admin/ActionButton.vue';
+import StatusBadge from '@/Components/Admin/StatusBadge.vue';
+import Pagination from '@/Components/Pagination.vue';
+import { useConfirm } from '@/composables/useConfirm';
 
 const props = defineProps({
     propositions: Object, // paginator
@@ -10,12 +14,20 @@ const props = defineProps({
     statut: String,
 });
 
-function supprimerDocument(d) {
-    const avert = d.nb_rattachees > 0
-        ? `⚠ ${d.nb_rattachees} proposition(s) déjà rattachée(s) à des mesures — la suppression sera refusée tant que ces mesures existent.\n\n`
+const { confirmDanger } = useConfirm();
+
+async function supprimerDocument(d) {
+    const avertissement = d.nb_rattachees > 0
+        ? `${d.nb_rattachees} proposition(s) sont déjà rattachées à des mesures : la suppression sera refusée tant que ces mesures existent. `
         : '';
-    if (!confirm(`${avert}Supprimer la prise de parole « ${d.titre} » et ses ${d.nb_propositions} proposition(s) ?`)) return;
-    router.delete(route('admin.presidentielle.documents.destroy', d.id), { preserveScroll: true });
+    const ok = await confirmDanger(
+        `${avertissement}Les ${d.nb_propositions} proposition(s) issues de cette prise de parole seront retirées avec elle.`,
+        `Supprimer « ${d.titre} » ?`,
+        { confirmLabel: 'Supprimer' },
+    );
+    if (ok) {
+        router.delete(route('admin.presidentielle.documents.destroy', d.id), { preserveScroll: true });
+    }
 }
 
 const fichierJson = ref(null);
@@ -46,7 +58,6 @@ function filtrer(s) {
 const enTraitement = ref(new Set());
 
 function agir(proposition, action) {
-    if (action === 'rejeter' && !confirm('Rejeter cette proposition ?')) return;
     if (enTraitement.value.has(proposition.id)) return; // anti double-clic
     enTraitement.value.add(proposition.id);
     router.post(route('admin.presidentielle.propositions.action'), { id: proposition.id, action }, {
@@ -116,7 +127,7 @@ function nomCandidat(p) {
                         <p class="truncate">{{ d.titre }}</p>
                         <p class="text-xs text-gray-500">{{ d.type }} · {{ d.nb_propositions }} proposition(s)<span v-if="d.nb_rattachees"> · {{ d.nb_rattachees }} rattachée(s)</span></p>
                     </div>
-                    <button @click="supprimerDocument(d)" class="px-2 py-1 text-xs rounded bg-red-100 text-red-700 whitespace-nowrap">Supprimer</button>
+                    <ActionButton verbe="supprimer" :confirmer="false" @action="supprimerDocument(d)" />
                 </div>
                 <p v-if="erreurs().document" class="text-xs text-red-600 mt-2">{{ erreurs().document }}</p>
             </details>
@@ -157,28 +168,37 @@ function nomCandidat(p) {
                                     {{ p.verbatim_verifie ? '✓' : '⚠' }}
                                 </span>
                             </td>
-                            <td class="p-3 text-right whitespace-nowrap">
+                            <td class="p-3 text-right whitespace-nowrap space-x-1">
                                 <template v-if="p.statut === 'detecte'">
-                                    <button @click="agir(p, 'valider')" :disabled="enTraitement.has(p.id)"
-                                        class="px-2 py-1 text-xs rounded bg-green-600 text-white disabled:opacity-50">Valider → mesure</button>
-                                    <button @click="agir(p, 'rejeter')" :disabled="enTraitement.has(p.id)"
-                                        class="px-2 py-1 text-xs rounded bg-red-100 text-red-700 ml-1 disabled:opacity-50">Rejeter</button>
+                                    <!-- Bleu, pas vert : la mesure créée naît en « détectée » et
+                                         n'est pas publiée. Le vert annonçait une mise en ligne. -->
+                                    <ActionButton verbe="valider" libelle="Valider → mesure"
+                                                  :disabled="enTraitement.has(p.id)"
+                                                  @action="agir(p, 'valider')" />
+                                    <ActionButton verbe="rejeter"
+                                                  :disabled="enTraitement.has(p.id)"
+                                                  confirmer
+                                                  titre-confirmation="Rejeter cette proposition ?"
+                                                  confirmation="Elle sortira de la file d'ingestion et ne donnera pas lieu à une mesure."
+                                                  @action="agir(p, 'rejeter')" />
                                 </template>
-                                <span v-else class="text-xs text-gray-400">{{ p.statut }}</span>
+                                <StatusBadge v-else :statut="p.statut" />
                             </td>
                         </tr>
                         <tr v-if="!propositions.data.length">
-                            <td colspan="7" class="p-6 text-center text-gray-400">Aucune proposition.</td>
+                            <td colspan="7" class="p-8 text-center">
+                                <p class="text-gray-600 dark:text-gray-400">Aucune proposition dans cette file.</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                                    Importez une prise de parole ci-dessus : ses propositions arrivent
+                                    en « détectées », prêtes à être triées.
+                                </p>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div v-if="propositions.links" class="flex flex-wrap gap-1">
-                <Link v-for="(l, i) in propositions.links" :key="i" :href="l.url ?? ''"
-                    v-html="l.label" class="px-3 py-1 text-sm rounded border"
-                    :class="[l.active ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300', !l.url ? 'opacity-40 pointer-events-none' : '']" />
-            </div>
+            <Pagination v-if="propositions.links" :links="propositions.links" />
         </div>
     </AuthenticatedLayout>
 </template>

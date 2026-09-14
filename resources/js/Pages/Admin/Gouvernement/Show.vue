@@ -4,6 +4,9 @@ import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Card from '@/Components/Card.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmDanger, confirmWarning } = useConfirm();
 
 const page = usePage();
 const errors = computed(() => page.props.errors || {});
@@ -167,15 +170,15 @@ const savePoste = (poste) => {
     });
 };
 
-const deletePoste = (poste) => {
+const deletePoste = async (poste) => {
     const nom = poste.personne?.nom_complet || 'ce poste';
-    if (confirm(`Supprimer ${nom} de ce gouvernement ?`)) {
+    if (await confirmDanger(`${nom} sera retiré de ce gouvernement. La personne et ses autres mandats ne sont pas touchés.`, 'Retirer cette personne ?', { confirmLabel: 'Retirer' })) {
         router.delete(route('admin.gouvernement.delete-poste', poste.id));
     }
 };
 
-const endPoste = (poste) => {
-    if (confirm(`Terminer le poste de ${poste.personne?.nom_complet} ?`)) {
+const endPoste = async (poste) => {
+    if (await confirmWarning(`Le poste de ${poste.personne?.nom_complet} sera daté comme terminé. Il restera dans l'historique.`, 'Terminer ce poste ?', { confirmLabel: 'Terminer' })) {
         router.post(route('admin.gouvernement.end-poste', poste.id));
     }
 };
@@ -262,8 +265,8 @@ const updateGouvernement = () => {
     });
 };
 
-const deleteGouvernement = () => {
-    if (confirm(`Supprimer le gouvernement "${props.gouvernement.nom}" et tous ses postes associés ?`)) {
+const deleteGouvernement = async () => {
+    if (await confirmDanger(`Le gouvernement « ${props.gouvernement.nom} » et tous ses postes seront supprimés.`, 'Supprimer ce gouvernement ?')) {
         router.delete(route('admin.gouvernement.destroy', props.gouvernement.id));
     }
 };

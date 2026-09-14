@@ -3,6 +3,9 @@ import { ref, watch } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmWarning } = useConfirm();
 
 // Simple debounce function
 const debounce = (fn, delay) => {
@@ -87,8 +90,10 @@ const addMember = () => {
     });
 };
 
-const removeMember = (userId, userName) => {
-    if (confirm(`Retirer ${userName} de l'association ?`)) {
+const removeMember = async (userId, userName) => {
+    if (await confirmWarning(
+        `${userName} perdra son statut d'adhérent. Son compte et ses contributions restent intacts.`,
+        'Retirer cet adhérent ?', { confirmLabel: 'Retirer' })) {
         router.delete(route('admin.association.remove-member', userId));
     }
 };

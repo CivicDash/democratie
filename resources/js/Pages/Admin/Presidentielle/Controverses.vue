@@ -3,6 +3,11 @@ import { reactive, ref } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import ActionButton from '@/Components/Admin/ActionButton.vue';
+import StatusBadge from '@/Components/Admin/StatusBadge.vue';
+import ModerationLog from '@/Components/Admin/ModerationLog.vue';
+import { useConfirm } from '@/composables/useConfirm';
+import { messagePublication } from '@/composables/useModerationAction';
 
 const props = defineProps({
     controverses: Object,        // paginator
@@ -31,9 +36,26 @@ function importer() {
 
 // Action en lot sur l'argumentaire d'une controverse. Chaque objet reste traité et tracé
 // individuellement côté serveur ; les échecs sont rendus sans interrompre le reste du lot.
-function agirLot(type, ids, action, libelle) {
+const { confirm } = useConfirm();
+
+async function agirLot(type, ids, action, libelle) {
     if (!ids?.length) return;
-    if (!confirm(`${libelle} : ${ids.length} élément(s) ?`)) return;
+
+    const message = action === 'publier'
+        ? `${ids.length} élément(s) deviendront publiquement lisibles sur objectif2027.fr. `
+          + 'Publier une mesure avant ses faits et ses liaisons fait échouer le contrôle '
+          + "d'intégrité, et l'export refuse alors de régénérer le site entier."
+        : `${ids.length} élément(s) seront traités, chacun individuellement et tracé au journal. `
+          + 'Les échecs éventuels seront listés sans interrompre le reste du lot.';
+
+    const ok = await confirm({
+        type: action === 'publier' ? 'warning' : 'info',
+        title: `${libelle} ?`,
+        message,
+        confirmLabel: libelle,
+    });
+    if (!ok) return;
+
     router.post(route('admin.presidentielle.moderation.action-lot'),
         { type, ids, action }, { preserveScroll: true });
 }
@@ -105,7 +127,9 @@ const erreurs = () => usePage().props.errors ?? {};
                 <ul class="mt-3 space-y-3 text-sm">
                     <li v-for="l in liens_a_resoudre" :key="l.id" class="rounded-lg border border-amber-200 dark:border-amber-800/40 bg-white/50 dark:bg-black/10 p-3">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="px-1.5 rounded text-[10px]" :class="l.sens === 'pour' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">{{ l.sens }}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                                {{ l.sens === 'pour' ? 'étaye' : 'contredit' }}
+                            </span>
                             <span class="font-medium">{{ l.argument_titre }}</span>
                             <span class="text-xs text-gray-500">proposé : {{ l.candidat_slug_propose }} — « {{ l.mesure_proposee }} »
                                 <span v-if="l.detection_confidence != null">({{ Math.round(l.detection_confidence * 100) }}%)</span></span>
@@ -163,44 +187,52 @@ const erreurs = () => usePage().props.errors ?? {};
                             </td>
                             <td class="p-3 whitespace-nowrap">{{ c.theme?.nom ?? '—' }}</td>
                             <td class="p-3">{{ c.arguments_count }}</td>
-                            <td class="p-3"><span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs">{{ c.statut_validation }}</span></td>
-                            <td class="p-3"><span :class="c.affiche_publiquement ? 'text-green-600' : 'text-gray-400'">{{ c.affiche_publiquement ? '✓' : '—' }}</span></td>
+                            <td class="p-3 space-x-1">
+                                <StatusBadge :statut="c.statut_validation" />
+                                <StatusBadge v-if="c.affiche_publiquement" publie />
+                            </td>
                             <td class="p-3 text-right whitespace-nowrap">
-                                <button v-if="c.statut_validation !== 'valide'" @click="agir(c, 'valider')" class="px-2 py-1 text-xs rounded bg-blue-600 text-white">Valider</button>
-                                <button v-if="c.statut_validation === 'valide' && !c.affiche_publiquement" @click="agir(c, 'publier')" class="px-2 py-1 text-xs rounded bg-green-600 text-white ml-1">Publier</button>
-                                <button v-if="c.affiche_publiquement" @click="agir(c, 'depublier')" class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 ml-1">Dépublier</button>
+                                <div class="space-x-1">
+                                    <ActionButton v-if="c.statut_validation !== 'valide'"
+                                                  verbe="valider" @action="agir(c, 'valider')" />
+                                    <ActionButton v-if="c.statut_validation === 'valide' && !c.affiche_publiquement"
+                                                  verbe="publier"
+                                                  titre-confirmation="Publier cette question clé ?"
+                                                  :confirmation="messagePublication('Cette question clé', c.titre)"
+                                                  @action="agir(c, 'publier')" />
+                                    <ActionButton v-if="c.affiche_publiquement"
+                                                  verbe="depublier" @action="agir(c, 'depublier')" />
+                                </div>
+                                <div class="mt-2">
+                                    <ModerationLog type="controverse" :id="c.id" />
+                                </div>
                                 <div v-if="c.lot" class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-1">
                                     <div class="text-[11px] uppercase tracking-wide text-gray-400">
                                         Argumentaire
                                         <span class="normal-case tracking-normal text-gray-400" title="Publier une mesure avant que ses arguments et liaisons ne soient publiés fait échouer le contrôle d'intégrité, et l'export refuse alors de régénérer le site entier.">— dans l'ordre : faits, puis liaisons, puis mesures</span>
                                     </div>
                                     <div class="flex flex-wrap gap-1">
-                                        <button v-if="c.lot.arguments_a_valider.length"
-                                                @click="agirLot('argument', c.lot.arguments_a_valider, 'valider', 'Valider les faits')"
-                                                class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
-                                            Valider {{ c.lot.arguments_a_valider.length }} fait(s)
-                                        </button>
-                                        <button v-if="c.lot.liens_a_valider.length"
-                                                @click="agirLot('argument_lien', c.lot.liens_a_valider, 'valider', 'Valider les liaisons')"
-                                                class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
-                                            Valider {{ c.lot.liens_a_valider.length }} liaison(s)
-                                        </button>
-                                        <button v-if="c.lot.liens_a_double_valider.length"
-                                                @click="agirLot('argument_lien', c.lot.liens_a_double_valider, 'double_valider', 'Seconde validation des liaisons « contre »')"
-                                                class="px-2 py-1 text-xs rounded bg-purple-100 text-purple-700"
-                                                title="Exige un modérateur différent du premier validateur">
-                                            2<sup>e</sup> validation · {{ c.lot.liens_a_double_valider.length }} « contre »
-                                        </button>
-                                        <button v-if="c.lot.arguments_a_publier.length"
-                                                @click="agirLot('argument', c.lot.arguments_a_publier, 'publier', 'Publier les faits')"
-                                                class="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
-                                            Publier {{ c.lot.arguments_a_publier.length }} fait(s)
-                                        </button>
-                                        <button v-if="c.lot.liens_a_publier.length"
-                                                @click="agirLot('argument_lien', c.lot.liens_a_publier, 'publier', 'Publier les liaisons')"
-                                                class="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
-                                            Publier {{ c.lot.liens_a_publier.length }} liaison(s)
-                                        </button>
+                                        <ActionButton v-if="c.lot.arguments_a_valider.length"
+                                                      verbe="valider"
+                                                      :libelle="`Valider ${c.lot.arguments_a_valider.length} fait(s)`"
+                                                      @action="agirLot('argument', c.lot.arguments_a_valider, 'valider', 'Valider les faits')" />
+                                        <ActionButton v-if="c.lot.liens_a_valider.length"
+                                                      verbe="valider"
+                                                      :libelle="`Valider ${c.lot.liens_a_valider.length} liaison(s)`"
+                                                      @action="agirLot('argument_lien', c.lot.liens_a_valider, 'valider', 'Valider les liaisons')" />
+                                        <ActionButton v-if="c.lot.liens_a_double_valider.length"
+                                                      verbe="double_valider"
+                                                      :libelle="`2ᵉ validation · ${c.lot.liens_a_double_valider.length} liaison(s)`"
+                                                      titre="Exige un modérateur différent du premier validateur"
+                                                      @action="agirLot('argument_lien', c.lot.liens_a_double_valider, 'double_valider', 'Seconde validation')" />
+                                        <ActionButton v-if="c.lot.arguments_a_publier.length"
+                                                      verbe="publier" :confirmer="false"
+                                                      :libelle="`Publier ${c.lot.arguments_a_publier.length} fait(s)`"
+                                                      @action="agirLot('argument', c.lot.arguments_a_publier, 'publier', 'Publier les faits')" />
+                                        <ActionButton v-if="c.lot.liens_a_publier.length"
+                                                      verbe="publier" :confirmer="false"
+                                                      :libelle="`Publier ${c.lot.liens_a_publier.length} liaison(s)`"
+                                                      @action="agirLot('argument_lien', c.lot.liens_a_publier, 'publier', 'Publier les liaisons')" />
                                         <span v-if="!c.lot.arguments_a_valider.length && !c.lot.liens_a_valider.length
                                                     && !c.lot.arguments_a_publier.length && !c.lot.liens_a_publier.length
                                                     && !c.lot.liens_a_double_valider.length"
@@ -209,7 +241,15 @@ const erreurs = () => usePage().props.errors ?? {};
                                 </div>
                             </td>
                         </tr>
-                        <tr v-if="!controverses.data.length"><td colspan="6" class="p-6 text-center text-gray-400">Aucune controverse.</td></tr>
+                        <tr v-if="!controverses.data.length">
+                            <td colspan="6" class="p-8 text-center">
+                                <p class="text-gray-600 dark:text-gray-400">Aucune question clé.</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                                    Créez-en une ci-dessus, puis importez son argumentaire : les faits
+                                    se relieront aux mesures des candidats.
+                                </p>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

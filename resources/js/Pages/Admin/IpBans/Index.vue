@@ -3,6 +3,9 @@ import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import Pagination from '@/Components/Pagination.vue';
+import PromptModal from '@/Components/Admin/PromptModal.vue';
+import ActionButton from '@/Components/Admin/ActionButton.vue';
 
 const props = defineProps({
     bans: Object,
@@ -31,9 +34,20 @@ const resetFilters = () => {
     router.get(route('admin.ip-bans.index'));
 };
 
+// window.prompt() n'est pas stylable, n'associe aucune étiquette au champ, et
+// plusieurs navigateurs laissent l'utilisateur le supprimer définitivement — après
+// quoi le déblocage cessait de fonctionner sans explication.
+const banEnCours = ref(null);
+
 const unban = (ban) => {
-    const reason = window.prompt(`Motif de déblocage pour ${ban.ip} (optionnel) :`);
-    router.post(route('admin.ip-bans.unban', ban.id), { reason: reason || null });
+    banEnCours.value = ban;
+};
+
+const confirmerDeblocage = (motif) => {
+    router.post(route('admin.ip-bans.unban', banEnCours.value.id),
+        { reason: motif || null },
+        { preserveScroll: true });
+    banEnCours.value = null;
 };
 
 const breadcrumbs = [
@@ -126,21 +140,39 @@ const statusClass = (ban) => {
                                 <span class="px-2 py-1 rounded-full text-xs font-medium" :class="statusClass(ban)">
                                     {{ statusLabel(ban) }}
                                 </span>
-                                <button
+                                <!-- Ambre, pas rouge : débloquer est une réparation, pas
+                                     une destruction. Le rouge disait le contraire. -->
+                                <ActionButton
                                     v-if="!ban.unbanned_at && (!ban.expires_at || new Date(ban.expires_at) > new Date())"
-                                    @click="unban(ban)"
-                                    class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                                >
-                                    Débloquer
-                                </button>
+                                    verbe="depublier"
+                                    libelle="Débloquer"
+                                    taille="md"
+                                    @action="unban(ban)" />
                             </div>
                         </div>
                     </div>
-                    <div v-else class="p-8 text-center text-gray-500 dark:text-gray-400">
-                        Aucun ban IP.
+                    <div v-else class="p-8 text-center">
+                        <p class="text-gray-600 dark:text-gray-400">Aucun blocage ne correspond à ces filtres.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                            Les blocages d'adresse sont posés automatiquement après des tentatives
+                            de connexion répétées.
+                        </p>
                     </div>
                 </div>
+
+                <!-- Le contrôleur pagine par vingt ; sans ce bloc, les blocages au-delà du
+                     vingtième n'existaient plus pour l'équipe. -->
+                <Pagination v-if="bans.links" :links="bans.links" class="mt-4" />
             </div>
         </div>
+
+        <PromptModal :show="banEnCours !== null"
+                     :titre="`Débloquer ${banEnCours?.ip ?? ''} ?`"
+                     message="Cette adresse pourra de nouveau se connecter."
+                     label="Motif du déblocage (facultatif)"
+                     id-champ="motif-deblocage"
+                     libelle-validation="Débloquer"
+                     @valider="confirmerDeblocage"
+                     @annuler="banEnCours = null" />
     </AuthenticatedLayout>
 </template>
