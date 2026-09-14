@@ -228,7 +228,8 @@ const progressPct = computed(() => {
                 
                 <!-- Liste des fonctions -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-900">
                             <tr>
                                 <th class="px-4 py-3 text-left">
@@ -303,6 +304,7 @@ const progressPct = computed(() => {
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                     
                     <!-- Pagination -->
                     <div class="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">

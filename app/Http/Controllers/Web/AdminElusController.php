@@ -9,6 +9,7 @@ use App\Models\Ministre;
 use App\Models\PersonnePolitique;
 use App\Models\Senateur;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -147,11 +148,15 @@ class AdminElusController extends Controller
 
         $senateurs = $query->paginate(50);
 
-        $groupes = Senateur::select('groupe_politique_code')
-            ->whereNotNull('groupe_politique_code')
-            ->distinct()
-            ->orderBy('groupe_politique_code')
-            ->pluck('groupe_politique_code');
+        // Liste de référence quasi statique : un DISTINCT sur la vue `senateurs`
+        // (elle-même en DISTINCT ON avec trois jointures) à chaque affichage, pour
+        // une vingtaine de valeurs. Le motif de cache existe déjà dans CommuneController.
+        $groupes = Cache::remember('admin_elus_groupes_senat', now()->addHour(),
+            fn () => Senateur::select('groupe_politique_code')
+                ->whereNotNull('groupe_politique_code')
+                ->distinct()
+                ->orderBy('groupe_politique_code')
+                ->pluck('groupe_politique_code'));
 
         return Inertia::render('Admin/Elus/Senateurs', [
             'senateurs' => $senateurs,
@@ -225,12 +230,15 @@ class AdminElusController extends Controller
 
         $maires = $query->paginate(50);
 
-        $departements = Maire::select('code_departement', 'nom_departement')
-            ->whereNotNull('code_departement')
-            ->distinct()
-            ->orderBy('code_departement')
-            ->get()
-            ->mapWithKeys(fn ($d) => [$d->code_departement => $d->nom_departement ?? $d->code_departement]);
+        // Balayage séquentiel de 50 808 maires à chaque affichage, pour 142 lignes
+        // de résultat qui ne changent qu'à l'import.
+        $departements = Cache::remember('admin_elus_departements', now()->addHour(),
+            fn () => Maire::select('code_departement', 'nom_departement')
+                ->whereNotNull('code_departement')
+                ->distinct()
+                ->orderBy('code_departement')
+                ->get()
+                ->mapWithKeys(fn ($d) => [$d->code_departement => $d->nom_departement ?? $d->code_departement]));
 
         return Inertia::render('Admin/Elus/Maires', [
             'maires' => $maires,
@@ -321,12 +329,13 @@ class AdminElusController extends Controller
             ];
         });
 
-        $partis = PersonnePolitique::select('parti_politique')
-            ->whereNotNull('parti_politique')
-            ->where('parti_politique', '!=', '')
-            ->distinct()
-            ->orderBy('parti_politique')
-            ->pluck('parti_politique');
+        $partis = Cache::remember('admin_elus_partis', now()->addHour(),
+            fn () => PersonnePolitique::select('parti_politique')
+                ->whereNotNull('parti_politique')
+                ->where('parti_politique', '!=', '')
+                ->distinct()
+                ->orderBy('parti_politique')
+                ->pluck('parti_politique'));
 
         return Inertia::render('Admin/Elus/Ministres', [
             'ministres' => $ministres,

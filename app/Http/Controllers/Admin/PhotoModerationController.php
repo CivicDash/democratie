@@ -19,6 +19,7 @@ class PhotoModerationController extends Controller
         $status = $request->input('status', 'pending');
 
         $query = User::query()
+            ->with('roles')   // getRoleNames() est appelé sur chaque ligne paginée
             ->whereNotNull('profile_photo_path')
             ->where('profile_photo_path', '!=', '');
 

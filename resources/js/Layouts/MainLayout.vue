@@ -322,6 +322,9 @@ onUnmounted(() => { document.removeEventListener('click', onDocClick); });
                                             <DropdownLink v-if="user.roles?.includes('moderator') || user.roles?.includes('admin')" :href="route('moderation.dashboard')">
                                                 <span class="flex items-center gap-2"><span>🛡️</span> Moderation</span>
                                             </DropdownLink>
+                                            <DropdownLink v-if="user.permissions?.includes('moderer_presidentielle')" :href="route('admin.presidentielle.moderation')">
+                                                <span class="flex items-center gap-2"><span>🗳️</span> Présidentielle 2027</span>
+                                            </DropdownLink>
                                             <DropdownLink v-if="user.roles?.includes('admin')" :href="route('admin.dashboard')">
                                                 <span class="flex items-center gap-2"><span>⚙️</span> Administration</span>
                                             </DropdownLink>

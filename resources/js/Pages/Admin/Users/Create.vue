@@ -68,10 +68,11 @@ const breadcrumbs = [
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label :for="'utilisateur-nom'" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Nom complet *
                                 </label>
                                 <input
+                                    id="utilisateur-nom"
                                     v-model="form.name"
                                     type="text"
                                     required
@@ -82,10 +83,11 @@ const breadcrumbs = [
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label :for="'utilisateur-email'" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Email *
                                 </label>
                                 <input
+                                    id="utilisateur-email"
                                     v-model="form.email"
                                     type="email"
                                     required
@@ -96,11 +98,12 @@ const breadcrumbs = [
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label :for="'utilisateur-mot-de-passe'" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Mot de passe *
                                 </label>
                                 <div class="flex gap-2">
                                     <input
+                                        id="utilisateur-mot-de-passe"
                                         v-model="form.password"
                                         type="text"
                                         required
@@ -110,19 +113,22 @@ const breadcrumbs = [
                                     <button
                                         type="button"
                                         @click="generatePassword"
-                                        class="px-3 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
+                                        aria-label="Générer un mot de passe"
+                                        title="Générer un mot de passe"
+                                        class="px-3 py-2 min-h-[40px] bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
                                     >
-                                        🎲
+                                        <span aria-hidden="true">🎲</span>
                                     </button>
                                 </div>
                                 <p v-if="form.errors.password" class="mt-1 text-sm text-red-600">{{ form.errors.password }}</p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label :for="'utilisateur-role'" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Rôle *
                                 </label>
                                 <select
+                                    id="utilisateur-role"
                                     v-model="form.role"
                                     required
                                     class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
@@ -147,10 +153,11 @@ const breadcrumbs = [
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label :for="'utilisateur-type-elu'" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Type d'élu
                                 </label>
                                 <select
+                                    id="utilisateur-type-elu"
                                     v-model="form.elu_type"
                                     class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                                 >
@@ -162,10 +169,11 @@ const breadcrumbs = [
                             </div>
 
                             <div v-if="form.elu_type">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label :for="'utilisateur-reference-elu'" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Référence élu (UID/Matricule)
                                 </label>
                                 <input
+                                    id="utilisateur-reference-elu"
                                     v-model="form.elu_ref"
                                     type="text"
                                     placeholder="Ex: PA793172, 21071F"

@@ -350,6 +350,17 @@ const getStatusClass = (status) => {
                             </div>
                             
                             <div class="p-4 grid grid-cols-2 gap-3">
+                                <!-- Le module présidentielle est l'usage principal du
+                                     back-office et n'apparaissait nulle part ici : on n'y
+                                     arrivait que par le menu du profil. Data Health et les
+                                     blocages IP n'avaient, eux, aucun lien entrant du tout. -->
+                                <Link
+                                    :href="route('admin.presidentielle.moderation')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition border border-blue-200 dark:border-blue-700 col-span-2"
+                                >
+                                    <span class="text-2xl" aria-hidden="true">🗳️</span>
+                                    <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Présidentielle 2027</span>
+                                </Link>
                                 <Link
                                     :href="route('admin.users.index')"
                                     class="flex flex-col items-center gap-2 p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition border border-indigo-200 dark:border-indigo-700"
@@ -461,6 +472,20 @@ const getStatusClass = (status) => {
                                 >
                                     <span class="text-2xl">💰</span>
                                     <span class="text-sm font-medium text-green-700 dark:text-green-300">Budget</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.data-health')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                                >
+                                    <span class="text-2xl" aria-hidden="true">🩺</span>
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Santé des données</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.ip-bans.index')"
+                                    class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                                >
+                                    <span class="text-2xl" aria-hidden="true">🚧</span>
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Blocages IP</span>
                                 </Link>
                             </div>
                         </div>

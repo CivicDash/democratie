@@ -395,12 +395,20 @@ function sectionActiveClass(section) {
                                     <template v-if="$page.props.auth.user.roles?.includes('moderator') || $page.props.auth.user.roles?.includes('admin')">
                                         <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                                         <DropdownLink :href="route('moderation.dashboard')">
-                                            🛡️ Moderation
-                                        </DropdownLink>
-                                        <DropdownLink :href="route('admin.presidentielle.moderation')">
-                                            🗳️ Présidentielle 2027
+                                            🛡️ Modération
                                         </DropdownLink>
                                     </template>
+
+                                    <!-- La route est gardée par la permission
+                                         `moderer_presidentielle`, pas par un rôle : un
+                                         bénévole porteur de cette seule permission ne
+                                         voyait aucun lien et devait taper l'URL. -->
+                                    <DropdownLink
+                                        v-if="$page.props.auth.user.permissions?.includes('moderer_presidentielle')"
+                                        :href="route('admin.presidentielle.moderation')"
+                                    >
+                                        🗳️ Présidentielle 2027
+                                    </DropdownLink>
 
                                     <DropdownLink
                                         v-if="$page.props.auth.user.roles?.includes('admin')"

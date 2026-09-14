@@ -2,6 +2,14 @@
 import { Head, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+
+// Cet écran est servi aux rôles `moderator` et `admin`, mais il pointait sans
+// condition vers cinq routes gardées `role:admin`. Un modérateur non-admin voyait
+// les compteurs et récoltait un 403 à chaque clic — y compris sur « Photos à
+// valider », qu'il ne peut pas modérer.
+const estAdmin = computed(() => usePage().props.auth?.user?.roles?.includes('admin') ?? false);
 
 const props = defineProps({
     photoStats: Object,
@@ -68,6 +76,7 @@ const getActionBadge = (action) => {
                 <!-- Actions rapides -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <Link
+                        v-if="estAdmin"
                         :href="route('admin.moderation.photos.index')"
                         class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-yellow-300 dark:border-yellow-600 p-6 hover:shadow-lg transition group"
                     >
@@ -81,6 +90,7 @@ const getActionBadge = (action) => {
                     </Link>
                     
                     <Link
+                        v-if="estAdmin"
                         :href="route('admin.moderation.words')"
                         class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-amber-300 dark:border-amber-600 p-6 hover:shadow-lg transition group"
                     >
@@ -107,6 +117,7 @@ const getActionBadge = (action) => {
                     </Link>
                     
                     <Link
+                        v-if="estAdmin"
                         :href="route('admin.users.index') + '?verified=0'"
                         class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 border-blue-300 dark:border-blue-600 p-6 hover:shadow-lg transition group"
                     >
@@ -122,7 +133,8 @@ const getActionBadge = (action) => {
                 
                 <div class="grid lg:grid-cols-2 gap-8">
                     <!-- Photos en attente -->
-                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div v-if="estAdmin"
+                         class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20">
                             <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 📸 Photos en attente
@@ -239,6 +251,7 @@ const getActionBadge = (action) => {
                     </h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         <Link
+                            v-if="estAdmin"
                             :href="route('admin.moderation.photos.index')"
                             class="flex flex-col items-center gap-2 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition border border-yellow-200 dark:border-yellow-800"
                         >
@@ -246,6 +259,7 @@ const getActionBadge = (action) => {
                             <span class="text-sm font-medium text-yellow-700 dark:text-yellow-300">Photos</span>
                         </Link>
                         <Link
+                            v-if="estAdmin"
                             :href="route('admin.moderation.words')"
                             class="flex flex-col items-center gap-2 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition border border-amber-200 dark:border-amber-800"
                         >
@@ -260,6 +274,7 @@ const getActionBadge = (action) => {
                             <span class="text-sm font-medium text-red-700 dark:text-red-300">Signalements</span>
                         </Link>
                         <Link
+                            v-if="estAdmin"
                             :href="route('admin.users.index')"
                             class="flex flex-col items-center gap-2 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition border border-blue-200 dark:border-blue-800"
                         >
@@ -267,6 +282,7 @@ const getActionBadge = (action) => {
                             <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Utilisateurs</span>
                         </Link>
                         <Link
+                            v-if="estAdmin"
                             :href="route('admin.email.index')"
                             class="flex flex-col items-center gap-2 p-4 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition border border-cyan-200 dark:border-cyan-800"
                         >
@@ -274,6 +290,7 @@ const getActionBadge = (action) => {
                             <span class="text-sm font-medium text-cyan-700 dark:text-cyan-300">Test Email</span>
                         </Link>
                         <Link
+                            v-if="estAdmin"
                             :href="route('admin.dashboard')"
                             class="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition border border-slate-200 dark:border-slate-600"
                         >

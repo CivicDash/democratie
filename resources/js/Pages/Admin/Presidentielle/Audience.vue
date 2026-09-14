@@ -82,7 +82,8 @@ const part = (v, t) => (t > 0 ? Math.round((v / t) * 100) : 0);
 
                 <section>
                     <h2 class="font-semibold mb-2">Pages les plus lues</h2>
-                    <table class="w-full text-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
                         <thead class="text-left text-gray-500 border-b dark:border-gray-700">
                             <tr><th class="p-2">Page</th><th class="p-2 w-28">Humains</th><th class="p-2 w-28">Robots</th></tr>
                         </thead>
@@ -95,6 +96,7 @@ const part = (v, t) => (t > 0 ? Math.round((v / t) * 100) : 0);
                             <tr v-if="!par_page.length"><td colspan="3" class="p-6 text-center text-gray-400">Aucune page mesurée.</td></tr>
                         </tbody>
                     </table>
+                    </div>
                 </section>
             </template>
         </div>

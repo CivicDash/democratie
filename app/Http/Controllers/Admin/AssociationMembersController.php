@@ -22,7 +22,10 @@ class AssociationMembersController extends Controller
         $search = $request->input('search');
         $status = $request->input('status', 'active'); // active, all
 
-        $query = User::query();
+        // La vue appelle getRoleNames() sur chaque ligne : sans eager loading, la
+        // page émettait vingt-cinq requêtes supplémentaires. Le correctif existait
+        // déjà dans UserManagementController, il n'avait pas été propagé.
+        $query = User::query()->with('roles');
 
         if ($status === 'active') {
             $query->where('is_association_member', true);

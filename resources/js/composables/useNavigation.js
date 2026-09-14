@@ -307,6 +307,10 @@ export function useNavigation() {
                         ...(user.value?.roles?.includes('moderator') || user.value?.roles?.includes('admin')
                             ? [{ href: route('moderation.dashboard'), icon: '\u{1F6E1}\uFE0F', title: 'Moderation' }]
                             : []),
+                        // Gardée par la permission `moderer_presidentielle` côté serveur.
+                        ...(user.value?.permissions?.includes('moderer_presidentielle')
+                            ? [{ href: route('admin.presidentielle.moderation'), icon: '\u{1F5F3}\uFE0F', title: 'Presidentielle 2027' }]
+                            : []),
                         ...(user.value?.roles?.includes('admin')
                             ? [{ href: route('admin.dashboard'), icon: '\u2699\uFE0F', title: 'Administration' }]
                             : []),

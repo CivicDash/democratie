@@ -166,8 +166,8 @@ const erreurs = () => usePage().props.errors ?? {};
             </details>
 
             <!-- Liste -->
-            <div class="flex gap-2 flex-wrap">
-                <button v-for="s in filtres" :key="s" @click="filtrer(s)" class="px-3 py-1 rounded-full text-sm border"
+            <div class="flex gap-2 flex-wrap" role="group" aria-label="Filtrer par statut">
+                <button v-for="s in filtres" :key="s" type="button" :aria-pressed="statut === s" @click="filtrer(s)" class="px-3 py-1 rounded-full text-sm border"
                     :class="statut === s ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600'">{{ s }}</button>
             </div>
 

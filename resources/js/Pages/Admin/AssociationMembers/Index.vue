@@ -166,7 +166,8 @@ const removeMember = async (userId, userName) => {
 
                 <!-- Liste -->
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-                    <table class="w-full">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
                         <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                             <tr>
                                 <th class="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Membre</th>
@@ -225,6 +226,7 @@ const removeMember = async (userId, userName) => {
                             </tr>
                         </tbody>
                     </table>
+                    </div>
 
                     <!-- Pagination -->
                     <div v-if="members.links.length > 3" class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-center gap-2">
