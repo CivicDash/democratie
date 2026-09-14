@@ -9,6 +9,7 @@ use App\Models\Ministre;
 use App\Models\PersonnePolitique;
 use App\Models\Senateur;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class AdminElusController extends Controller
@@ -110,6 +111,8 @@ class AdminElusController extends Controller
             'linkedin_url' => 'nullable|url|max:500',
             'instagram_url' => 'nullable|url|max:500',
             'wikipedia_url' => 'nullable|url|max:500',
+            'photo_wikipedia_url' => 'nullable|url|max:500',
+            'wikipedia_extract' => 'nullable|string|max:5000',
         ]);
 
         $acteurAn->update($validated);
@@ -170,23 +173,32 @@ class AdminElusController extends Controller
     /**
      * Mettre à jour un sénateur
      */
+    /**
+     * `senateurs` est une VUE PostgreSQL (SELECT DISTINCT ON + trois jointures), donc
+     * non modifiable : PostgreSQL refuse tout UPDATE dessus. Le formulaire validait
+     * nom, prenom, profession et groupe_politique_code, que le $fillable du modèle
+     * écartait — l'écriture ne partait donc jamais, et l'écran annonçait un succès.
+     * « Corriger le $fillable » aurait transformé ce silence en 500 à chaque
+     * enregistrement.
+     *
+     * L'identité d'un sénateur vient de l'import Sénat et se corrige à la source. Ce
+     * qui reste légitimement éditable à la main, c'est l'enrichissement Wikipédia,
+     * qui vit dans sa propre table.
+     */
     public function updateSenateur(Request $request, Senateur $senateur)
     {
         $validated = $request->validate([
-            'nom' => 'required|string|max:255',
-            'prenom' => 'required|string|max:255',
-            'civilite' => 'nullable|in:M.,Mme',
-            'date_naissance' => 'nullable|date',
-            'profession' => 'nullable|string|max:500',
-            'email' => 'nullable|email|max:255',
             'wikipedia_url' => 'nullable|url|max:500',
-            'circonscription' => 'nullable|string|max:255',
-            'groupe_politique_code' => 'nullable|string|max:50',
+            'photo_wikipedia_url' => 'nullable|url|max:500',
+            'wikipedia_extract' => 'nullable|string|max:5000',
         ]);
 
-        $senateur->update($validated);
+        DB::table('senateurs_wikipedia')->updateOrInsert(
+            ['senateur_matricule' => $senateur->matricule],
+            $validated + ['updated_at' => now(), 'created_at' => now()],
+        );
 
-        return back()->with('success', 'Sénateur mis à jour : '.$senateur->nom_complet);
+        return back()->with('success', 'Fiche Wikipédia mise à jour : '.$senateur->nom_complet);
     }
 
     /**

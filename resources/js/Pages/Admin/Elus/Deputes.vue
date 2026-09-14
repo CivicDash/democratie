@@ -135,7 +135,7 @@ watch([groupe, enMandat, sansPhoto], applyFilters);
                             <tbody>
                                 <tr 
                                     v-for="depute in deputes.data" 
-                                    :key="depute.id"
+                                    :key="depute.uid"
                                     class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition"
                                 >
                                     <td class="py-3 px-4">
@@ -182,7 +182,7 @@ watch([groupe, enMandat, sansPhoto], applyFilters);
                                     </td>
                                     <td class="py-3 px-4 text-right">
                                         <Link
-                                            :href="route('admin.elus.deputes.edit', depute.id)"
+                                            :href="route('admin.elus.deputes.edit', depute.uid)"
                                             class="px-3 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-sm"
                                         >
                                             ✏️ Modifier

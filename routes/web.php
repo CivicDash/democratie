@@ -649,8 +649,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
 
         // Députés
         Route::get('/deputes', [App\Http\Controllers\Web\AdminElusController::class, 'deputes'])->name('deputes.index');
-        Route::get('/deputes/{depute}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editDepute'])->name('deputes.edit');
-        Route::put('/deputes/{depute}', [App\Http\Controllers\Web\AdminElusController::class, 'updateDepute'])->name('deputes.update');
+        // Le paramètre doit porter le nom de la variable typée du contrôleur
+        // (ActeurAN $acteurAn) : avec {depute}, le binding implicite n'appariait rien,
+        // le contrôleur recevait un modèle vide et update() sortait en false — suivi
+        // d'un flash de succès.
+        Route::get('/deputes/{acteurAn}/edit', [App\Http\Controllers\Web\AdminElusController::class, 'editDepute'])->name('deputes.edit');
+        Route::put('/deputes/{acteurAn}', [App\Http\Controllers\Web\AdminElusController::class, 'updateDepute'])->name('deputes.update');
 
         // Sénateurs
         Route::get('/senateurs', [App\Http\Controllers\Web\AdminElusController::class, 'senateurs'])->name('senateurs.index');

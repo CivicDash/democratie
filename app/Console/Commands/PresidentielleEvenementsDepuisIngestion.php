@@ -39,6 +39,7 @@ class PresidentielleEvenementsDepuisIngestion extends Command
         $vus = [];   // dédoublonnage par URL : deux documents peuvent pointer la même vidéo
         $crees = 0;
         $ignores = 0;
+        $aDater = [];
 
         foreach ($docs as $doc) {
             if (EvenementCampagne::where('ingestion_document_id', $doc->id)->exists()) {
@@ -57,6 +58,19 @@ class PresidentielleEvenementsDepuisIngestion extends Command
             [$date, $origine] = $this->date($doc);
             $type = $this->type($doc->titre ?? '');
 
+            // Sans date lisible, ne rien créer. La commande retombait auparavant sur
+            // now(), ce qui a fabriqué trois événements datés du jour de l'exécution :
+            // des dates plausibles, donc invisibles à la relecture, et fausses. Un trou
+            // qu'on voit vaut mieux qu'une date qu'on croit.
+            if (! $date) {
+                $this->line(sprintf('  #%-3d %-11s %-9s %s', $doc->id, '— À DATER —', $type,
+                    mb_strimwidth($doc->titre ?? '', 0, 58, '…')));
+                $aDater[] = $doc;
+                $ignores++;
+
+                continue;
+            }
+
             $note = $origine === 'titre'
                 ? 'Date lue dans le titre de la source, à confirmer avant publication.'
                 : null;
@@ -74,7 +88,7 @@ class PresidentielleEvenementsDepuisIngestion extends Command
                 'election' => $election,
                 'type' => $type,
                 'titre' => $doc->titre ?? 'Sans titre',
-                'date_debut' => $date ? $date.' 00:00:00' : now()->toDateString().' 00:00:00',
+                'date_debut' => $date.' 00:00:00',
                 'journee_entiere' => true,
                 'precision_date' => 'jour',
                 'url_video' => str_contains((string) $doc->url, 'youtube') ? $doc->url : null,
@@ -95,6 +109,19 @@ class PresidentielleEvenementsDepuisIngestion extends Command
         }
 
         $this->info(($apply ? '' : 'DRY-RUN : ')."{$crees} événement(s), {$ignores} ignoré(s).");
+
+        if ($aDater !== []) {
+            $this->newLine();
+            $this->warn(count($aDater).' document(s) sans date lisible — à dater à la main :');
+            foreach ($aDater as $doc) {
+                $this->line("  #{$doc->id}  ".mb_strimwidth((string) $doc->titre, 0, 70, '…'));
+                if ($doc->url) {
+                    $this->line("        {$doc->url}");
+                }
+            }
+            $this->line('Renseigner ingestion_documents.date_publication, puis relancer.');
+        }
+
         if (! $apply) {
             $this->line('Relancer avec --apply pour créer. Tout entre en « detecte », rien n\'est publié.');
         }

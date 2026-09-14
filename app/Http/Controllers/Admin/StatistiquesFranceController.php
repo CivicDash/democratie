@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\ChampsStatistiques;
 use App\Models\BudgetAnnuel;
 use App\Models\FranceBudgetRevenue;
 use App\Models\FranceBudgetSpending;
@@ -126,54 +127,54 @@ class StatistiquesFranceController extends Controller
     /**
      * Édition des données démographiques
      */
+    /*
+    |--------------------------------------------------------------------------
+    | Écrans annuels
+    |--------------------------------------------------------------------------
+    |
+    | Les champs affichés ET les règles de validation dérivent tous deux des
+    | colonnes réelles, via ChampsStatistiques. Auparavant chaque écran portait sa
+    | propre liste, dérivée à son tour d'une liste du contrôleur elle-même dérivée
+    | des colonnes : sur soixante-quatre champs de saisie, dix-neuf atteignaient la
+    | base, et quatre écrans n'écrivaient rien en affichant « mises à jour ».
+    |
+    */
+
     public function demographie(Request $request): Response
     {
-        $annee = $request->input('annee', date('Y'));
+        $annee = $request->input('annee', FranceDemographics::max('year') ?? date('Y'));
         $data = FranceDemographics::where('year', $annee)->first();
         $anneesDisponibles = FranceDemographics::orderBy('year', 'desc')->pluck('year')->toArray();
 
         return Inertia::render('Admin/StatistiquesFrance/Demographie', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceDemographics::class),
             'data' => $data,
         ]);
     }
 
     public function updateDemographie(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'population_total' => 'required|integer|min:0',
-            'birth_rate' => 'nullable|numeric',
-            'death_rate' => 'nullable|numeric',
-            'life_expectancy_male' => 'nullable|numeric',
-            'life_expectancy_female' => 'nullable|numeric',
-            'median_salary_euros' => 'nullable|numeric',
-            'population_by_age_group' => 'nullable|array',
-            'population_by_gender' => 'nullable|array',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceDemographics::class));
 
-        FranceDemographics::updateOrCreate(
-            ['year' => $annee],
-            $validated
-        );
+        FranceDemographics::updateOrCreate(['year' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.demographie', ['annee' => $annee])
-            ->with('success', 'Données démographiques mises à jour.');
+            ->with('success', "Données « Démographie » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des données économiques
-     */
     public function economie(Request $request): Response
     {
-        $annee = $request->input('annee', date('Y'));
+        $annee = $request->input('annee', FranceEconomy::whereNull('quarter')->max('year') ?? date('Y'));
         $data = FranceEconomy::where('year', $annee)->whereNull('quarter')->first();
-        $dataQuarterly = FranceEconomy::where('year', $annee)->whereNotNull('quarter')->get();
         $anneesDisponibles = FranceEconomy::whereNull('quarter')->orderBy('year', 'desc')->pluck('year')->toArray();
+        $dataQuarterly = FranceEconomy::where('year', $annee)->whereNotNull('quarter')->get();
 
         return Inertia::render('Admin/StatistiquesFrance/Economie', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceEconomy::class),
             'data' => $data,
             'dataQuarterly' => $dataQuarterly,
         ]);
@@ -181,38 +182,19 @@ class StatistiquesFranceController extends Controller
 
     public function updateEconomie(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'gdp_billions_euros' => 'nullable|numeric',
-            'gdp_growth_rate' => 'nullable|numeric',
-            'unemployment_rate' => 'nullable|numeric',
-            'inflation_rate' => 'nullable|numeric',
-            'public_debt_billions_euros' => 'nullable|numeric',
-            'public_debt_gdp_percentage' => 'nullable|numeric',
-            'trade_balance_billions_euros' => 'nullable|numeric',
-            'exports_billions_euros' => 'nullable|numeric',
-            'imports_billions_euros' => 'nullable|numeric',
-            'gdp_per_capita_euros' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceEconomy::class));
 
-        FranceEconomy::updateOrCreate(
-            ['year' => $annee, 'quarter' => null],
-            $validated
-        );
+        FranceEconomy::updateOrCreate(['year' => $annee, 'quarter' => null], $validated);
 
         return redirect()->route('admin.stats-france.economie', ['annee' => $annee])
-            ->with('success', 'Données économiques mises à jour.');
+            ->with('success', "Données « Économie » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des données Budget État (lié à BudgetEtat)
-     */
     public function budget(Request $request): Response
     {
         $annee = $request->input('annee', BudgetAnnuel::max('annee') ?? date('Y'));
         $data = BudgetAnnuel::where('annee', $annee)->first();
         $anneesDisponibles = BudgetAnnuel::orderBy('annee', 'desc')->pluck('annee')->toArray();
-
-        // Missions et programmes liés
         $missions = \App\Models\BudgetMission::where('annee', $annee)
             ->orderByDesc('credits_cp')
             ->get();
@@ -220,6 +202,7 @@ class StatistiquesFranceController extends Controller
         return Inertia::render('Admin/StatistiquesFrance/Budget', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(BudgetAnnuel::class),
             'data' => $data,
             'missions' => $missions,
         ]);
@@ -227,25 +210,14 @@ class StatistiquesFranceController extends Controller
 
     public function updateBudget(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'recettes_nettes' => 'nullable|numeric',
-            'depenses_nettes' => 'nullable|numeric',
-            'deficit_excedent' => 'nullable|numeric',
-            'dette_pib_pct' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(BudgetAnnuel::class));
 
-        BudgetAnnuel::updateOrCreate(
-            ['annee' => $annee],
-            $validated
-        );
+        BudgetAnnuel::updateOrCreate(['annee' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.budget', ['annee' => $annee])
-            ->with('success', 'Budget de l\'État mis à jour.');
+            ->with('success', "Données « Budget de l'État » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des recettes consolidées
-     */
     public function recettes(Request $request): Response
     {
         $annee = $request->input('annee', FranceBudgetRevenue::max('year') ?? date('Y'));
@@ -255,37 +227,21 @@ class StatistiquesFranceController extends Controller
         return Inertia::render('Admin/StatistiquesFrance/Recettes', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceBudgetRevenue::class),
             'data' => $data,
         ]);
     }
 
     public function updateRecettes(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'income_tax_billions_euros' => 'nullable|numeric',
-            'vat_billions_euros' => 'nullable|numeric',
-            'corporate_tax_billions_euros' => 'nullable|numeric',
-            'wealth_tax_billions_euros' => 'nullable|numeric',
-            'local_taxes_billions_euros' => 'nullable|numeric',
-            'social_contributions_billions_euros' => 'nullable|numeric',
-            'social_spending_billions_euros' => 'nullable|numeric',
-            'social_balance_billions_euros' => 'nullable|numeric',
-            'other_revenue_billions_euros' => 'nullable|numeric',
-            'total_revenue_billions_euros' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceBudgetRevenue::class));
 
-        FranceBudgetRevenue::updateOrCreate(
-            ['year' => $annee],
-            $validated
-        );
+        FranceBudgetRevenue::updateOrCreate(['year' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.recettes', ['annee' => $annee])
-            ->with('success', 'Recettes consolidées mises à jour.');
+            ->with('success', "Données « Recettes publiques » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des dépenses publiques
-     */
     public function depenses(Request $request): Response
     {
         $annee = $request->input('annee', FranceBudgetSpending::max('year') ?? date('Y'));
@@ -295,38 +251,21 @@ class StatistiquesFranceController extends Controller
         return Inertia::render('Admin/StatistiquesFrance/Depenses', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceBudgetSpending::class),
             'data' => $data,
         ]);
     }
 
     public function updateDepenses(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'education_billions_euros' => 'nullable|numeric',
-            'health_billions_euros' => 'nullable|numeric',
-            'defense_billions_euros' => 'nullable|numeric',
-            'social_protection_billions_euros' => 'nullable|numeric',
-            'public_order_billions_euros' => 'nullable|numeric',
-            'general_services_billions_euros' => 'nullable|numeric',
-            'economic_affairs_billions_euros' => 'nullable|numeric',
-            'environment_billions_euros' => 'nullable|numeric',
-            'housing_billions_euros' => 'nullable|numeric',
-            'culture_billions_euros' => 'nullable|numeric',
-            'total_spending_billions_euros' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceBudgetSpending::class));
 
-        FranceBudgetSpending::updateOrCreate(
-            ['year' => $annee],
-            $validated
-        );
+        FranceBudgetSpending::updateOrCreate(['year' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.depenses', ['annee' => $annee])
-            ->with('success', 'Dépenses publiques mises à jour.');
+            ->with('success', "Données « Dépenses publiques » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des données éducation
-     */
     public function education(Request $request): Response
     {
         $annee = $request->input('annee', FranceEducation::max('year') ?? date('Y'));
@@ -336,34 +275,21 @@ class StatistiquesFranceController extends Controller
         return Inertia::render('Admin/StatistiquesFrance/Education', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceEducation::class),
             'data' => $data,
         ]);
     }
 
     public function updateEducation(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'students_count' => 'nullable|integer',
-            'teachers_count' => 'nullable|integer',
-            'schools_count' => 'nullable|integer',
-            'baccalaureat_success_rate' => 'nullable|numeric',
-            'higher_education_rate' => 'nullable|numeric',
-            'literacy_rate' => 'nullable|numeric',
-            'education_spending_gdp_pct' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceEducation::class));
 
-        FranceEducation::updateOrCreate(
-            ['year' => $annee],
-            $validated
-        );
+        FranceEducation::updateOrCreate(['year' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.education', ['annee' => $annee])
-            ->with('success', 'Données éducation mises à jour.');
+            ->with('success', "Données « Éducation » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des données santé
-     */
     public function sante(Request $request): Response
     {
         $annee = $request->input('annee', FranceHealth::max('year') ?? date('Y'));
@@ -373,33 +299,21 @@ class StatistiquesFranceController extends Controller
         return Inertia::render('Admin/StatistiquesFrance/Sante', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceHealth::class),
             'data' => $data,
         ]);
     }
 
     public function updateSante(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'doctors_per_100k' => 'nullable|numeric',
-            'nurses_per_100k' => 'nullable|numeric',
-            'hospital_beds_per_100k' => 'nullable|numeric',
-            'health_spending_gdp_pct' => 'nullable|numeric',
-            'life_expectancy' => 'nullable|numeric',
-            'infant_mortality_rate' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceHealth::class));
 
-        FranceHealth::updateOrCreate(
-            ['year' => $annee],
-            $validated
-        );
+        FranceHealth::updateOrCreate(['year' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.sante', ['annee' => $annee])
-            ->with('success', 'Données santé mises à jour.');
+            ->with('success', "Données « Santé » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des données environnement
-     */
     public function environnement(Request $request): Response
     {
         $annee = $request->input('annee', FranceEnvironment::max('year') ?? date('Y'));
@@ -409,32 +323,21 @@ class StatistiquesFranceController extends Controller
         return Inertia::render('Admin/StatistiquesFrance/Environnement', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceEnvironment::class),
             'data' => $data,
         ]);
     }
 
     public function updateEnvironnement(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'co2_emissions_mt' => 'nullable|numeric',
-            'renewable_energy_pct' => 'nullable|numeric',
-            'recycling_rate' => 'nullable|numeric',
-            'air_quality_index' => 'nullable|numeric',
-            'protected_areas_pct' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceEnvironment::class));
 
-        FranceEnvironment::updateOrCreate(
-            ['year' => $annee],
-            $validated
-        );
+        FranceEnvironment::updateOrCreate(['year' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.environnement', ['annee' => $annee])
-            ->with('success', 'Données environnement mises à jour.');
+            ->with('success', "Données « Environnement » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des données sécurité
-     */
     public function securite(Request $request): Response
     {
         $annee = $request->input('annee', FranceSecurity::max('year') ?? date('Y'));
@@ -444,32 +347,21 @@ class StatistiquesFranceController extends Controller
         return Inertia::render('Admin/StatistiquesFrance/Securite', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceSecurity::class),
             'data' => $data,
         ]);
     }
 
     public function updateSecurite(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'crime_rate_per_100k' => 'nullable|numeric',
-            'burglary_rate' => 'nullable|numeric',
-            'homicide_rate' => 'nullable|numeric',
-            'road_deaths' => 'nullable|integer',
-            'police_per_100k' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceSecurity::class));
 
-        FranceSecurity::updateOrCreate(
-            ['year' => $annee],
-            $validated
-        );
+        FranceSecurity::updateOrCreate(['year' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.securite', ['annee' => $annee])
-            ->with('success', 'Données sécurité mises à jour.');
+            ->with('success', "Données « Sécurité » enregistrées pour {$annee}.");
     }
 
-    /**
-     * Édition des données emploi
-     */
     public function emploi(Request $request): Response
     {
         $annee = $request->input('annee', FranceEmploymentDetailed::max('year') ?? date('Y'));
@@ -479,28 +371,19 @@ class StatistiquesFranceController extends Controller
         return Inertia::render('Admin/StatistiquesFrance/Emploi', [
             'annee' => $annee,
             'anneesDisponibles' => $anneesDisponibles,
+            'champs' => ChampsStatistiques::pour(FranceEmploymentDetailed::class),
             'data' => $data,
         ]);
     }
 
     public function updateEmploi(Request $request, int $annee)
     {
-        $validated = $request->validate([
-            'employment_rate' => 'nullable|numeric',
-            'unemployment_rate' => 'nullable|numeric',
-            'youth_unemployment_rate' => 'nullable|numeric',
-            'part_time_rate' => 'nullable|numeric',
-            'minimum_wage_euros' => 'nullable|numeric',
-            'average_wage_euros' => 'nullable|numeric',
-        ]);
+        $validated = $request->validate(ChampsStatistiques::regles(FranceEmploymentDetailed::class));
 
-        FranceEmploymentDetailed::updateOrCreate(
-            ['year' => $annee],
-            $validated
-        );
+        FranceEmploymentDetailed::updateOrCreate(['year' => $annee], $validated);
 
         return redirect()->route('admin.stats-france.emploi', ['annee' => $annee])
-            ->with('success', 'Données emploi mises à jour.');
+            ->with('success', "Données « Emploi » enregistrées pour {$annee}.");
     }
 
     /**
