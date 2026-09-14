@@ -35,8 +35,13 @@ class DocumentService
             // Calculer le hash SHA256 du fichier
             $fileHash = hash_file('sha256', $file->getRealPath());
 
-            // Vérifier qu'un document avec le même hash n'existe pas déjà
-            $existingDocument = Document::where('sha256_hash', $fileHash)->first();
+            // Le service était écrit contre un schéma qui n'existe plus : file_path,
+            // file_name, file_size, sha256_hash et is_verified ne sont pas des colonnes
+            // de `documents`. Les écritures partaient silencieusement à la poubelle
+            // (hors $fillable) et les lectures en SQLSTATE 42703 — donc en 500 sur
+            // /api/documents?verified=, /api/documents/pending et /api/documents/stats.
+            // L'état de vérification vit dans `status` ; le modèle a déjà les scopes.
+            $existingDocument = Document::where('hash', $fileHash)->first();
             if ($existingDocument) {
                 throw new RuntimeException('This document already exists in the system.');
             }
@@ -49,13 +54,14 @@ class DocumentService
                 'documentable_type' => get_class($documentable),
                 'documentable_id' => $documentable->id,
                 'uploader_id' => $uploader->id,
-                'file_path' => $path,
-                'file_name' => $file->getClientOriginalName(),
+                'path' => $path,
+                'filename' => $file->getClientOriginalName(),
+                'title' => $file->getClientOriginalName(),
                 'mime_type' => $file->getMimeType(),
-                'file_size' => $file->getSize(),
-                'sha256_hash' => $fileHash,
+                'size' => $file->getSize(),
+                'hash' => $fileHash,
                 'description' => $description,
-                'is_verified' => false,
+                'status' => 'pending',
             ]);
 
             return $document;
@@ -138,7 +144,7 @@ class DocumentService
             );
 
             // Marquer le document comme vérifié
-            $document->update(['is_verified' => true]);
+            $document->update(['status' => 'verified']);
 
             return [
                 'document' => $document->fresh(),
@@ -184,7 +190,7 @@ class DocumentService
      */
     public function getPendingDocuments(?int $limit = 20): \Illuminate\Support\Collection
     {
-        return Document::where('is_verified', false)
+        return Document::pending()
             ->whereDoesntHave('verifications', function ($query) {
                 $query->where('status', 'verified');
             })
@@ -202,10 +208,10 @@ class DocumentService
         $since = now()->subDays($days);
 
         $totalDocuments = Document::where('created_at', '>=', $since)->count();
-        $verifiedDocuments = Document::where('is_verified', true)
+        $verifiedDocuments = Document::verified()
             ->where('created_at', '>=', $since)
             ->count();
-        $pendingDocuments = Document::where('is_verified', false)->count();
+        $pendingDocuments = Document::pending()->count();
 
         $verifications = Verification::where('created_at', '>=', $since);
 

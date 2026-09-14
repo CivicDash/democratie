@@ -25,7 +25,8 @@ class DocumentController extends Controller
 
         // Filtrer par vérification
         if ($request->has('verified')) {
-            $query->where('is_verified', $request->boolean('verified'));
+            // `is_verified` n'est pas une colonne : l'état vit dans `status`.
+            $request->boolean('verified') ? $query->verified() : $query->pending();
         }
 
         // Filtrer par type de contenu

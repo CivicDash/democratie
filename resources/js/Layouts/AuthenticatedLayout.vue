@@ -18,19 +18,14 @@ import BottomTabBar from "@/Components/Navigation/BottomTabBar.vue";
 import { Link, router, usePage } from "@inertiajs/vue3";
 import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 import { useNavigation } from "@/composables/useNavigation";
-import { useToast } from "@/composables/useToast";
+import { useFeedbackToasts } from "@/composables/useFeedbackToasts";
 
 const { desktopSections, institutions, mesElus, legislatif, agir, comprendre, user: navUser } = useNavigation();
-const toast = useToast();
 const page = usePage();
 
-const flash = computed(() => page.props.flash);
-watch(flash, (newFlash) => {
-    if (newFlash?.success) toast.success(newFlash.success);
-    if (newFlash?.error) toast.error(newFlash.error);
-    if (newFlash?.warning) toast.warning(newFlash.warning);
-    if (newFlash?.info) toast.info(newFlash.info);
-}, { deep: true, immediate: true });
+// Messages flash ET erreurs de validation : le succès était déjà signalé, l'échec ne
+// l'était nulle part.
+useFeedbackToasts();
 
 const showCommandPalette = ref(false);
 const showKeyboardHelp = ref(false);

@@ -1,5 +1,9 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import ToastContainer from '@/Components/ToastContainer.vue';
+import { useFeedbackToasts } from '@/composables/useFeedbackToasts';
+
+useFeedbackToasts();
 </script>
 
 <template>
@@ -35,4 +39,6 @@ import { Link } from '@inertiajs/vue3';
             </p>
         </div>
     </div>
+
+    <ToastContainer />
 </template>

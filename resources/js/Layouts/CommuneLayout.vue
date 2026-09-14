@@ -1,6 +1,10 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import ToastContainer from '@/Components/ToastContainer.vue';
+import { useFeedbackToasts } from '@/composables/useFeedbackToasts';
+
+useFeedbackToasts();
 
 const props = defineProps({
     ville: Object,
@@ -214,4 +218,6 @@ const jsonLd = computed(() => {
             </div>
         </footer>
     </div>
+
+    <ToastContainer />
 </template>

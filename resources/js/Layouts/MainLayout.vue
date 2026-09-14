@@ -9,12 +9,16 @@ import InstitutionsMegaMenu from '@/Components/Navigation/InstitutionsMegaMenu.v
 import BottomTabBar from '@/Components/Navigation/BottomTabBar.vue';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
 import { useNavigation } from '@/composables/useNavigation';
+import ToastContainer from '@/Components/ToastContainer.vue';
+import { useFeedbackToasts } from '@/composables/useFeedbackToasts';
 
 defineProps({
     title: String,
 });
 
 const { user, isAuthenticated, mesElus, institutions, legislatif, agir, comprendre } = useNavigation();
+
+useFeedbackToasts();
 
 const showCommandPalette = ref(false);
 
@@ -405,4 +409,6 @@ onUnmounted(() => { document.removeEventListener('click', onDocClick); });
 
     <!-- Command Palette (Ctrl+K) -->
     <CommandPalette v-model="showCommandPalette" />
+
+    <ToastContainer />
 </template>

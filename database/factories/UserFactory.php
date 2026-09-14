@@ -31,6 +31,17 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // HandleInertiaRequests::share() lit ces attributs sur chaque requête. Une
+            // fabrique qui ne les définit pas produit un modèle où ils sont « absents »
+            // (et non « nuls ») : sous preventAccessingMissingAttributes, la lecture lève.
+            'elu_type' => null,
+            'elu_ref' => null,
+            'is_verified_elu' => false,
+            'two_factor_enabled' => false,
+            'account_status' => 'active',
+            'franceconnect_sub' => null,
+            'email_visible_to_admin' => false,
+            'is_association_member' => false,
         ];
     }
 

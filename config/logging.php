@@ -52,6 +52,20 @@ return [
 
     'channels' => [
 
+        /*
+         * Journal d'audit : écritures ignorées par Eloquent, suppressions définitives
+         * de comptes, décisions de modération irréversibles. Fichier séparé et
+         * rétention longue — c'est la trace qu'on va chercher quand une décision est
+         * contestée, pas un journal d'exploitation qu'on purge chaque semaine.
+         */
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => 'info',
+            'days' => env('LOG_AUDIT_DAYS', 365),
+            'replace_placeholders' => true,
+        ],
+
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', env('LOG_STACK', 'single')),

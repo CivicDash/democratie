@@ -16,7 +16,13 @@ class TerritoryRegionFactory extends Factory
     {
         return [
             'code' => fake()->unique()->numerify('##'),
-            'name' => fake()->unique()->region(),
+            // `region` n'existe pas non plus en fr_FR.
+            'name' => fake()->unique()->randomElement([
+                'Auvergne-Rhône-Alpes', 'Bourgogne-Franche-Comté', 'Bretagne',
+                'Centre-Val de Loire', 'Corse', 'Grand Est', 'Hauts-de-France',
+                'Île-de-France', 'Normandie', 'Nouvelle-Aquitaine', 'Occitanie',
+                'Pays de la Loire', "Provence-Alpes-Côte d'Azur",
+            ]),
         ];
     }
 

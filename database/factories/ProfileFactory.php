@@ -20,7 +20,11 @@ class ProfileFactory extends Factory
         return [
             'user_id' => User::factory(),
             'display_name' => Profile::generateDisplayName(),
-            'citizen_ref_hash' => Profile::hashCitizenRef(fake()->unique()->ssn()),
+            // `ssn` est un format Faker propre à en_US : avec APP_FAKER_LOCALE=fr_FR
+            // (valeur de .env.example, donc celle de la CI) il n'existe pas et la
+            // fabrique lève. Une référence numérique unique suffit ici : elle n'est
+            // stockée que hachée.
+            'citizen_ref_hash' => Profile::hashCitizenRef(fake()->unique()->numerify('##############')),
             'scope' => fake()->randomElement(['national', 'region', 'dept']),
             'region_id' => null,
             'department_id' => null,

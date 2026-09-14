@@ -18,6 +18,16 @@ pest()->extend(Tests\TestCase::class)
     })
     ->in('Feature');
 
+// Les tests de tests/Unit n'étaient reliés à aucun TestCase : sans application Laravel
+// bootée, la moindre façade levait « A facade root has not been set ». Ils utilisent
+// pourtant modèles et fabriques, donc ils ont besoin de la base comme les autres.
+pest()->extend(Tests\TestCase::class)
+    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->beforeEach(function () {
+        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+    })
+    ->in('Unit');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
