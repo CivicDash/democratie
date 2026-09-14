@@ -630,39 +630,6 @@ class GouvernementController extends Controller
     }
 
     /**
-     * Historique des gouvernements
-     */
-    public function historique(): Response
-    {
-        $gouvernements = Gouvernement::orderByDesc('date_debut')
-            ->withCount('postes')
-            ->get()
-            ->groupBy('president')
-            ->map(function ($gouvernements, $president) {
-                return [
-                    'president' => $president,
-                    'periode' => $this->getPeriodePresident($president),
-                    'gouvernements' => $gouvernements->map(fn ($g) => [
-                        'id' => $g->id,
-                        'numero' => $g->numero,
-                        'nom' => $g->nom,
-                        'nom_complet' => $g->nom_complet,
-                        'premier_ministre' => $g->premier_ministre,
-                        'date_debut' => $g->date_debut?->format('d/m/Y'),
-                        'date_fin' => $g->date_fin?->format('d/m/Y'),
-                        'duree' => $g->duree,
-                        'actif' => $g->actif,
-                        'nb_postes' => $g->postes_count,
-                    ])->values(),
-                ];
-            })->values();
-
-        return Inertia::render('Gouvernement/Historique', [
-            'gouvernementsParPresident' => $gouvernements,
-        ]);
-    }
-
-    /**
      * Page des statistiques gouvernementales
      */
     public function statistiques(): Response

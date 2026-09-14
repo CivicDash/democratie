@@ -83,49 +83,6 @@ class CalendrierController extends Controller
     }
 
     /**
-     * Vue semaine
-     */
-    public function semaine(Request $request)
-    {
-        $date = $request->input('date', now()->format('Y-m-d'));
-        $source = $request->input('source');
-
-        $dateRef = Carbon::parse($date);
-        $debutSemaine = $dateRef->copy()->startOfWeek();
-        $finSemaine = $dateRef->copy()->endOfWeek();
-
-        $evenements = EvenementLegislatif::query()
-            ->periode($debutSemaine, $finSemaine)
-            ->confirmes()
-            ->when($source, fn ($q) => $q->source($source))
-            ->orderBy('date_debut')
-            ->get()
-            ->map(fn ($e) => $e->toCalendarEvent());
-
-        // Grouper par jour
-        $joursArray = [];
-        for ($i = 0; $i < 7; $i++) {
-            $jour = $debutSemaine->copy()->addDays($i);
-            $jourKey = $jour->format('Y-m-d');
-            $joursArray[$jourKey] = [
-                'date' => $jourKey,
-                'label' => $jour->translatedFormat('l j'),
-                'estAujourdhui' => $jour->isToday(),
-                'evenements' => $evenements->filter(fn ($e) => Carbon::parse($e['start'])->format('Y-m-d') === $jourKey
-                )->values(),
-            ];
-        }
-
-        return Inertia::render('Parlement/Calendrier/Semaine', [
-            'jours' => $joursArray,
-            'debutSemaine' => $debutSemaine->format('Y-m-d'),
-            'finSemaine' => $finSemaine->format('Y-m-d'),
-            'semaineLabel' => $debutSemaine->translatedFormat('j M').' - '.$finSemaine->translatedFormat('j M Y'),
-            'filtres' => ['source' => $source],
-        ]);
-    }
-
-    /**
      * Détail d'un événement
      */
     public function show(string $uid)

@@ -123,23 +123,6 @@ class DocumentController extends Controller
     }
 
     /**
-     * Documents en attente de vérification
-     */
-    public function pending(): Response
-    {
-        $this->authorize('viewPending', Document::class);
-
-        $documents = Document::with(['uploader'])
-            ->where('verification_status', 'pending')
-            ->latest()
-            ->paginate(20);
-
-        return Inertia::render('Documents/Pending', [
-            'documents' => $documents,
-        ]);
-    }
-
-    /**
      * Vérifier un document
      */
     public function verify(VerifyDocumentRequest $request, Document $document)
@@ -151,19 +134,5 @@ class DocumentController extends Controller
         );
 
         return back()->with('success', 'Vérification enregistrée avec succès !');
-    }
-
-    /**
-     * Statistiques des documents
-     */
-    public function stats(): Response
-    {
-        $stats = $this->documentService->getStats();
-        $topVerifiers = $this->documentService->getTopVerifiers();
-
-        return Inertia::render('Documents/Stats', [
-            'stats' => $stats,
-            'topVerifiers' => $topVerifiers,
-        ]);
     }
 }

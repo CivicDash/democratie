@@ -116,3 +116,7 @@ frankenphp-worker.php
 
 # Roadmap interne
 /ROADMAP/
+
+# Snapshot Ziggy : le runtime charge @routes + ZiggyVue depuis vendor. Un fichier
+# régénéré ici serait mort, et fausserait toute recherche dans le front.
+resources/js/ziggy.js

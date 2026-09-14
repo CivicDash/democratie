@@ -417,48 +417,6 @@ class AdminGouvernementController extends Controller
     }
 
     /**
-     * Liste des ministères
-     */
-    public function ministeres()
-    {
-        $ministeres = Ministere::withCount('postes')
-            ->orderBy('nom')
-            ->get();
-
-        return Inertia::render('Admin/Gouvernement/Ministeres', [
-            'ministeres' => $ministeres,
-        ]);
-    }
-
-    /**
-     * Liste des personnes politiques
-     */
-    public function personnes(Request $request)
-    {
-        $query = PersonnePolitique::with(['postes' => function ($q) {
-            $q->with('gouvernement', 'ministere')
-                ->orderByDesc('date_debut');
-        }]);
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nom', 'ilike', "%{$search}%")
-                    ->orWhere('prenom', 'ilike', "%{$search}%");
-            });
-        }
-
-        $personnes = $query->orderBy('nom')
-            ->orderBy('prenom')
-            ->paginate(50);
-
-        return Inertia::render('Admin/Gouvernement/Personnes', [
-            'personnes' => $personnes,
-            'filters' => $request->only('search'),
-        ]);
-    }
-
-    /**
      * Export JSON du gouvernement
      */
     public function exportJson(Gouvernement $gouvernement)

@@ -38,21 +38,6 @@ class VoteController extends Controller
     }
 
     /**
-     * Afficher les résultats
-     */
-    public function results(Topic $topic): Response
-    {
-        abort_unless($topic->ballot_type, 404);
-
-        $results = $this->ballotService->getResults($topic);
-
-        return Inertia::render('Vote/Results', [
-            'topic' => $topic,
-            'results' => $results,
-        ]);
-    }
-
-    /**
      * Demander un jeton de vote
      */
     public function requestToken(RequestBallotTokenRequest $request, Topic $topic)

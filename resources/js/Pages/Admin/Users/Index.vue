@@ -35,13 +35,6 @@ const resetFilters = () => {
     router.get(route('admin.users.index'));
 };
 
-const changeRole = (user, newRole) => {
-    if (confirm(`Changer le rôle de ${user.name} en ${newRole} ?`)) {
-        router.post(route('admin.users.change-role', user.id), {
-            role: newRole,
-        });
-    }
-};
 
 const getRoleBadgeClass = (role) => {
     return {

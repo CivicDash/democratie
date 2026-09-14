@@ -220,7 +220,6 @@ Route::prefix('legislation')->name('legislation.')->middleware('auth')->group(fu
 Route::prefix('parlement')->name('parlement.')->middleware('auth')->group(function () {
     // Calendrier des réunions
     Route::get('/calendrier', [\App\Http\Controllers\Web\CalendrierController::class, 'index'])->name('calendrier.index');
-    Route::get('/calendrier/semaine', [\App\Http\Controllers\Web\CalendrierController::class, 'semaine'])->name('calendrier.semaine');
     Route::get('/calendrier/reunion/{uid}', [\App\Http\Controllers\Web\CalendrierController::class, 'show'])->name('calendrier.show');
 
     // API pour widgets
@@ -296,7 +295,6 @@ Route::prefix('elections')->name('elections.')->middleware('auth')->group(functi
 // ==========================================
 Route::prefix('lois')->name('lois.')->middleware('auth')->group(function () {
     Route::get('/', [\App\Http\Controllers\Web\LoiController::class, 'index'])->name('index');
-    Route::get('/statistiques', [\App\Http\Controllers\Web\LoiController::class, 'statistiques'])->name('statistiques');
     Route::get('/recherche', [\App\Http\Controllers\Web\LoiController::class, 'search'])->name('search');
     Route::get('/{loicod}', [\App\Http\Controllers\Web\LoiController::class, 'show'])->name('show');
     Route::get('/{loicod}/timeline', [\App\Http\Controllers\Web\LoiController::class, 'timeline'])->name('timeline');
@@ -355,7 +353,6 @@ Route::prefix('topics')->name('topics.')->group(function () {
 Route::prefix('vote')->name('vote.')->middleware('auth')->group(function () {
     // Public routes (lecture)
     Route::get('/topics/{topic}', [VoteController::class, 'show'])->name('show');
-    Route::get('/topics/{topic}/results', [VoteController::class, 'results'])->name('results');
 
     // Authenticated routes (écriture - bloqué pour comptes démo)
     Route::middleware('not-readonly')->group(function () {
@@ -373,7 +370,6 @@ Route::prefix('budget')->name('budget.')->middleware('auth')->group(function () 
     // Public routes
     Route::get('/', [BudgetController::class, 'index'])->name('index');
     Route::get('/stats', [BudgetController::class, 'stats'])->name('stats');
-    Route::get('/sectors', [BudgetController::class, 'sectors'])->name('sectors');
 
     // Authenticated routes
     Route::middleware('auth')->group(function () {
@@ -391,7 +387,6 @@ Route::prefix('budget')->name('budget.')->middleware('auth')->group(function () 
 */
 Route::prefix('budget-etat')->name('budget-etat.')->group(function () {
     Route::get('/', [BudgetEtatController::class, 'index'])->name('index');
-    Route::get('/mission/{code}', [BudgetEtatController::class, 'showMission'])->name('mission');
     Route::get('/api/data', [BudgetEtatController::class, 'apiData'])->name('api.data');
 });
 
@@ -407,7 +402,6 @@ Route::prefix('gouvernement')->name('gouvernement.')->group(function () {
     Route::get('/ministeres/{slug}', [GouvernementController::class, 'showMinistere'])->name('ministere.show');
     Route::get('/president', [GouvernementController::class, 'showPresident'])->name('president');
     Route::get('/president/{slug}', [GouvernementController::class, 'showPresident'])->name('president.show');
-    Route::get('/historique', [GouvernementController::class, 'historique'])->name('historique');
     Route::get('/personne/{slug}', [GouvernementController::class, 'showPersonne'])->name('personne');
 });
 
@@ -447,10 +441,8 @@ Route::prefix('legislation/propositions')->middleware('auth:web')->group(functio
 |--------------------------------------------------------------------------
 */
 Route::prefix('moderation')->name('moderation.')->middleware(['auth', 'role:moderator|admin', 'two-factor'])->group(function () {
-    // Dashboard utilise le controller avec les bonnes props (photoStats, etc.)
-    Route::get('/dashboard', [\App\Http\Controllers\ModerationController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [ModerationController::class, 'dashboard'])->name('dashboard');
     Route::get('/reports', [ModerationController::class, 'reports'])->name('reports.index');
-    Route::get('/reports/priority', [ModerationController::class, 'priorityReports'])->name('reports.priority');
     Route::get('/reports/{report}', [ModerationController::class, 'showReport'])->name('reports.show');
     Route::post('/reports/{report}/assign', [ModerationController::class, 'assignReport'])->name('reports.assign');
     Route::post('/reports/{report}/resolve', [ModerationController::class, 'resolveReport'])->name('reports.resolve');
@@ -460,7 +452,6 @@ Route::prefix('moderation')->name('moderation.')->middleware(['auth', 'role:mode
     Route::get('/sanctions/{sanction}', [ModerationController::class, 'showSanction'])->name('sanctions.show');
     Route::delete('/sanctions/{sanction}', [ModerationController::class, 'revokeSanction'])->name('sanctions.revoke');
 
-    Route::get('/stats', [ModerationController::class, 'stats'])->name('stats');
 });
 
 // Public report submission (API version in api.php handles this now)
@@ -476,7 +467,6 @@ Route::prefix('documents')->name('documents.')->middleware('auth')->group(functi
     Route::get('/', [DocumentController::class, 'index'])->name('index');
     Route::get('/{document}', [DocumentController::class, 'show'])->name('show');
     Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
-    Route::get('/stats', [DocumentController::class, 'stats'])->name('stats');
 
     // Authenticated routes
     Route::middleware('auth')->group(function () {
@@ -487,7 +477,6 @@ Route::prefix('documents')->name('documents.')->middleware('auth')->group(functi
 
     // Verification (journalists, ong, admin)
     Route::middleware(['auth', 'role:journalist|ong|admin'])->group(function () {
-        Route::get('/pending', [DocumentController::class, 'pending'])->name('pending');
         Route::post('/{document}/verify', [DocumentController::class, 'verify'])->name('verify');
     });
 });
@@ -614,8 +603,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin', 'two-f
         Route::get('/', [App\Http\Controllers\Web\AdminGouvernementController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Web\AdminGouvernementController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Web\AdminGouvernementController::class, 'store'])->name('store');
-        Route::get('/ministeres', [App\Http\Controllers\Web\AdminGouvernementController::class, 'ministeres'])->name('ministeres');
-        Route::get('/personnes', [App\Http\Controllers\Web\AdminGouvernementController::class, 'personnes'])->name('personnes');
         Route::get('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'show'])->name('show');
         Route::put('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'update'])->name('update');
         Route::delete('/{gouvernement}', [App\Http\Controllers\Web\AdminGouvernementController::class, 'destroy'])->name('destroy');

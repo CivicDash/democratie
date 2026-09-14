@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Moderation\ResolveReportRequest;
 use App\Http\Requests\Moderation\StoreReportRequest;
+use App\Models\BannedWord;
+use App\Models\ProfilePhotoModeration;
 use App\Models\Report;
 use App\Models\Sanction;
 use App\Models\User;
@@ -20,32 +22,65 @@ class ModerationController extends Controller
     ) {}
 
     /**
-     * Dashboard modération
+     * Dashboard modération.
+     *
+     * Deux contrôleurs rendaient cet écran avec des jeux de props entièrement
+     * différents : celui-ci, et un homonyme à la racine que la route « dashboard »
+     * appelait en nom complet. Le compteur de signalements du tableau de bord portait
+     * sur `content_reports` pendant que la liste affichait `reports` — deux tables sans
+     * rapport. `Report` est le modèle vivant (ModerationService, écran de liste,
+     * FormRequests) ; `ContentReport` n'était plus référencé que par le doublon.
      */
     public function dashboard(): Response
     {
-        $stats = [
-            'pending_reports' => Report::where('status', 'pending')->count(),
-            'investigating_reports' => Report::where('status', 'reviewing')->count(),
-            'resolved_today' => Report::where('status', 'resolved')->whereDate('updated_at', today())->count(),
-            'active_moderators' => User::role('moderator')->count(),
+        $photoStats = [
+            'pending' => User::where('profile_photo_status', 'pending')->count(),
+            'approved' => User::where('profile_photo_status', 'approved')->count(),
+            'rejected' => User::where('profile_photo_status', 'rejected')->count(),
         ];
 
-        $recentReports = Report::with(['reporter', 'reportable'])
+        $reportStats = [
+            'pending' => Report::where('status', 'pending')->count(),
+            'reviewing' => Report::where('status', 'reviewing')->count(),
+            'resolved' => Report::where('status', 'resolved')->count(),
+            'rejected' => Report::where('status', 'rejected')->count(),
+            'resolved_today' => Report::where('status', 'resolved')->whereDate('updated_at', today())->count(),
+        ];
+
+        $pendingPhotos = User::where('profile_photo_status', 'pending')
+            ->orderByDesc('profile_photo_submitted_at')
+            ->take(5)
+            ->get(['id', 'name', 'email', 'profile_photo_path', 'profile_photo_submitted_at']);
+
+        $recentModerations = ProfilePhotoModeration::with(['user:id,name,email', 'moderator:id,name'])
             ->latest()
             ->take(10)
             ->get();
 
-        $topModerators = User::role('moderator')
-            ->withCount(['sanctions as resolved_count'])
-            ->orderByDesc('resolved_count')
-            ->take(5)
-            ->get();
-
         return Inertia::render('Moderation/Dashboard', [
-            'stats' => $stats,
-            'recentReports' => $recentReports,
-            'topModerators' => $topModerators,
+            'photoStats' => $photoStats,
+            'reportStats' => $reportStats,
+            'bannedWordsCount' => BannedWord::count(),
+            'unverifiedUsers' => User::whereNull('email_verified_at')
+                ->where('created_at', '>=', now()->subDays(7))
+                ->count(),
+            'activeModerators' => User::role('moderator')->count(),
+            'pendingPhotos' => $pendingPhotos->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'photo_url' => $u->profile_photo_url,
+                'submitted_at' => $u->profile_photo_submitted_at?->diffForHumans(),
+            ]),
+            'recentReports' => Report::with(['reporter', 'reportable'])->latest()->take(10)->get(),
+            'recentModerations' => $recentModerations->map(fn ($m) => [
+                'id' => $m->id,
+                'user_name' => $m->user?->name ?? 'Inconnu',
+                'moderator_name' => $m->moderator?->name ?? 'Système',
+                'action' => $m->action,
+                'reason' => $m->reason,
+                'created_at' => $m->created_at->diffForHumans(),
+            ]),
         ]);
     }
 
@@ -69,18 +104,6 @@ class ModerationController extends Controller
         return Inertia::render('Moderation/Reports', [
             'reports' => $reports,
             'filters' => $request->only(['status', 'reason']),
-        ]);
-    }
-
-    /**
-     * Signalements prioritaires
-     */
-    public function priorityReports(): Response
-    {
-        $reports = $this->moderationService->getPriorityReports();
-
-        return Inertia::render('Moderation/PriorityReports', [
-            'reports' => $reports,
         ]);
     }
 
@@ -208,19 +231,5 @@ class ModerationController extends Controller
         $this->moderationService->revokeSanction($sanction);
 
         return back()->with('success', 'Sanction révoquée avec succès.');
-    }
-
-    /**
-     * Statistiques de modération
-     */
-    public function stats(): Response
-    {
-        $stats = $this->moderationService->getModerationStats();
-        $topModerators = $this->moderationService->getTopModerators();
-
-        return Inertia::render('Moderation/Stats', [
-            'stats' => $stats,
-            'topModerators' => $topModerators,
-        ]);
     }
 }

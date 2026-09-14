@@ -257,47 +257,6 @@ class BudgetEtatController extends Controller
     }
 
     /**
-     * Détail d'une mission budgétaire
-     */
-    public function showMission(Request $request, string $code): Response
-    {
-        $annee = $request->input('annee', date('Y'));
-
-        $mission = BudgetMission::where('code', $code)
-            ->where('annee', $annee)
-            ->firstOrFail();
-
-        $programmes = $mission->programmes()
-            ->orderByDesc('credits_cp')
-            ->get()
-            ->map(fn ($p) => [
-                'id' => $p->id,
-                'code' => $p->code,
-                'libelle' => $p->libelle,
-                'ministere' => $p->ministere,
-                'credits_cp' => $p->credits_cp,
-                'credits_cp_formate' => $p->credits_cp_formate,
-                'evolution_pct' => $p->evolution_pct,
-                'evolution_badge' => $p->evolution_badge,
-            ]);
-
-        return Inertia::render('BudgetEtat/Mission', [
-            'mission' => [
-                'id' => $mission->id,
-                'code' => $mission->code,
-                'libelle' => $mission->libelle,
-                'annee' => $mission->annee,
-                'credits_ae' => $mission->credits_ae_formate,
-                'credits_cp' => $mission->credits_cp_formate,
-                'nb_programmes' => $mission->nb_programmes,
-                'couleur' => BudgetMission::getCouleurMission($mission->code),
-            ],
-            'programmes' => $programmes,
-            'annee' => (int) $annee,
-        ]);
-    }
-
-    /**
      * API : données pour graphiques
      */
     public function apiData(Request $request)

@@ -22,35 +22,8 @@ return [
          * une navigation interne produit un écran blanc.
          */
         'composants_inertia_absents' => [
-            // Module de modération citoyenne — écrans à écrire.
-            'Moderation/ReportDetail',
-            'Moderation/Sanctions',
-            'Moderation/SanctionDetail',
-            'Moderation/PriorityReports',
-            'Moderation/Stats',
-
-            // Administration.
-            'Admin/Moderation/PhotoHistory',
-            'Admin/Gouvernement/Ministeres',
-            'Admin/Gouvernement/Personnes',
-
-            // Public ou semi-public.
-            'Documents/Show',
-            'Documents/Pending',
-            'Documents/Stats',
-            'Elections/Municipales/ShowCandidat',
-
-            // Écrans hérités, rendus par du code non routé ou en sursis.
-            'Topics/Index',
-            'Topics/Show',
-            'Topics/Create',
-            'Topics/Edit',
-            'Vote/Results',
-            'Budget/Sectors',
-            'BudgetEtat/Mission',
-            'Gouvernement/Historique',
-            'Legislation/Lois/Statistiques',
-            'Parlement/Calendrier/Semaine',
+            // Vide, et à garder vide : chaque entrée ici est un écran qui renvoie un 500
+            // au chargement direct et un écran blanc en navigation interne.
         ],
 
     ],

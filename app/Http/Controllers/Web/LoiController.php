@@ -961,62 +961,6 @@ class LoiController extends Controller
     }
 
     /**
-     * Statistiques globales sur les lois
-     */
-    public function statistiques(): Response
-    {
-        $stats = Cache::remember('lois_statistiques_detaillees', 3600, function () {
-            // Par état
-            $parEtat = DB::table('senat_dosleg_loi as l')
-                ->join('senat_dosleg_etaloi as e', 'l.etaloicod', '=', 'e.etaloicod')
-                ->select('e.etaloilib', DB::raw('count(*) as total'))
-                ->groupBy('e.etaloilib')
-                ->orderByDesc('total')
-                ->get();
-
-            // Par année (promulguées)
-            $parAnnee = DB::table('senat_dosleg_loi')
-                ->selectRaw('EXTRACT(YEAR FROM loidatjo) as annee, count(*) as total')
-                ->where('etaloicod', '04')
-                ->whereNotNull('loidatjo')
-                ->groupBy(DB::raw('EXTRACT(YEAR FROM loidatjo)'))
-                ->orderBy('annee')
-                ->get();
-
-            // Moyenne de lectures
-            $moyenneLectures = DB::table('senat_dosleg_lecture')
-                ->selectRaw('AVG(nb)::numeric(10,2) as moyenne')
-                ->fromSub(
-                    DB::table('senat_dosleg_lecture')
-                        ->select('loicod', DB::raw('count(*) as nb'))
-                        ->groupBy('loicod'),
-                    'sub'
-                )
-                ->first();
-
-            // Répartition AN vs Sénat (première lecture)
-            $chambreOrigine = DB::table('senat_dosleg_lecass as la')
-                ->join('senat_dosleg_lecture as l', 'la.lecidt', '=', 'l.lecidt')
-                ->where('l.typleccod', '1')
-                ->where('la.ordreass', 1)
-                ->select('la.codass', DB::raw('count(DISTINCT l.loicod) as total'))
-                ->groupBy('la.codass')
-                ->get();
-
-            return [
-                'par_etat' => $parEtat,
-                'par_annee' => $parAnnee,
-                'moyenne_lectures' => $moyenneLectures->moyenne ?? 0,
-                'chambre_origine' => $chambreOrigine,
-            ];
-        });
-
-        return Inertia::render('Legislation/Lois/Statistiques', [
-            'stats' => $stats,
-        ]);
-    }
-
-    /**
      * Recherche de lois
      */
     public function search(Request $request)

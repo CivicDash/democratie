@@ -95,16 +95,6 @@ class BudgetController extends Controller
     }
 
     /**
-     * Liste des secteurs
-     */
-    public function sectors(): Response
-    {
-        return Inertia::render('Budget/Sectors', [
-            'sectors' => Sector::orderBy('name')->get(),
-        ]);
-    }
-
-    /**
      * Mes allocations
      */
     public function myAllocations()
