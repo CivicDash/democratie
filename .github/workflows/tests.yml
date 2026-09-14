@@ -42,6 +42,17 @@ jobs:
       - run: cp .env.example .env
       - run: php artisan key:generate
 
+      # Le contrôle « chaque écran se rend » passe par app.blade.php, donc par le
+      # manifeste Vite : sans build, il ne prouverait rien — et sans manifeste du tout,
+      # il échouerait pour la mauvaise raison. Le build attrape en prime les erreurs de
+      # gabarit Vue, qu'aucun test PHP ne verrait.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+
       - name: Garde-fous
         env:
           APP_ENV: testing
