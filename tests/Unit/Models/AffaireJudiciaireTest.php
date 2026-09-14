@@ -82,7 +82,7 @@ test('gravite_score est entre 2 et 10', function () {
 });
 
 test('uuid est auto-généré à la création', function () {
-    $affaire = AffaireJudiciaire::factory()->make();
+    $affaire = AffaireJudiciaire::factory()->make(['uuid' => null]);
     expect($affaire->uuid)->toBeNull();
 
     $affaire->save();
@@ -105,7 +105,8 @@ test('scope enAttente ne retourne que les détectées', function () {
 
 test('workflow : prendreEnCharge change le statut', function () {
     $affaire = AffaireJudiciaire::factory()->create();
-    $user = User::factory()->create(['role' => 'admin']);
+    $user = User::factory()->create();
+    $user->assignRole('admin');
 
     $affaire->prendreEnCharge($user);
 
@@ -116,7 +117,8 @@ test('workflow : prendreEnCharge change le statut', function () {
 
 test('workflow : rejeter empêche la publication', function () {
     $affaire = AffaireJudiciaire::factory()->enReview()->create();
-    $user = User::factory()->create(['role' => 'admin']);
+    $user = User::factory()->create();
+    $user->assignRole('admin');
 
     $affaire->rejeter($user, 'Faux positif');
 
@@ -127,7 +129,8 @@ test('workflow : rejeter empêche la publication', function () {
 
 test('workflow : valider active la publication', function () {
     $affaire = AffaireJudiciaire::factory()->enReview()->create();
-    $user = User::factory()->create(['role' => 'admin']);
+    $user = User::factory()->create();
+    $user->assignRole('admin');
 
     $affaire->valider($user, 'Sources confirmées');
 

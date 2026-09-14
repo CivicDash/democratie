@@ -255,35 +255,38 @@ if (props.duration > 0) {
   color: #1e40af;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .toast-success {
-    background: rgba(6, 78, 59, 0.95);
-  }
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .toast-success) {
+  background: rgba(6, 78, 59, 0.95);
+}
 
-  .toast-error {
-    background: rgba(127, 29, 29, 0.95);
-  }
+:global(.dark .toast-error) {
+  background: rgba(127, 29, 29, 0.95);
+}
 
-  .toast-warning {
-    background: rgba(120, 53, 15, 0.95);
-  }
+:global(.dark .toast-warning) {
+  background: rgba(120, 53, 15, 0.95);
+}
 
-  .toast-info {
-    background: rgba(30, 58, 138, 0.95);
-  }
+:global(.dark .toast-info) {
+  background: rgba(30, 58, 138, 0.95);
+}
 
-  .toast-title {
-    color: #f1f5f9 !important;
-  }
+:global(.dark .toast-title) {
+  color: #f1f5f9 !important;
+}
 
-  .toast-message {
-    color: #e2e8f0 !important;
-  }
+:global(.dark .toast-message) {
+  color: #e2e8f0 !important;
+}
 
-  .toast-close {
-    color: #e2e8f0 !important;
-  }
+:global(.dark .toast-close) {
+  color: #e2e8f0 !important;
 }
 
 /* Responsive */

@@ -224,16 +224,19 @@ const handleAction = (action) => {
     opacity: 0;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-    .fab-action {
-        background: #1F2937;
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .fab-action) {
+  background: #1F2937;
         color: white;
-    }
-    
-    .fab-action-label {
-        color: #F3F4F6;
-    }
+}
+
+:global(.dark .fab-action-label) {
+  color: #F3F4F6;
 }
 </style>
 

@@ -170,15 +170,18 @@ const onTouchEnd = () => {
     }
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-    .swipeable-card {
-        background: #1F2937;
-    }
-    
-    .card-content {
-        background: #1F2937;
-    }
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .swipeable-card) {
+  background: #1F2937;
+}
+
+:global(.dark .card-content) {
+  background: #1F2937;
 }
 </style>
 

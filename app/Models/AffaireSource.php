@@ -2,11 +2,18 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AffaireSource extends Model
 {
+    // Le sourçage d'une fiche judiciaire nominative ne se détruit pas : c'est la
+    // pièce qu'on produit quand une affaire est contestée.
+    use HasFactory;
+    use SoftDeletes;
+
     protected $table = 'affaires_sources';
 
     protected $fillable = [

@@ -195,25 +195,28 @@ const sizeClasses = {
   max-width: 500px;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .empty-state {
-    background: #1e293b;
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .empty-state) {
+  background: #1e293b;
     border-color: #334155;
-  }
+}
 
-  .empty-state:hover {
-    border-color: #475569;
+:global(.dark .empty-state:hover) {
+  border-color: #475569;
     background: #0f172a;
-  }
+}
 
-  .empty-title {
-    color: #f1f5f9;
-  }
+:global(.dark .empty-title) {
+  color: #f1f5f9;
+}
 
-  .empty-description {
-    color: #94a3b8;
-  }
+:global(.dark .empty-description) {
+  color: #94a3b8;
 }
 
 /* Responsive */

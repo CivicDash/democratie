@@ -260,32 +260,31 @@ const skeletonStyle = computed(() => ({
   height: 12px;
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .skeleton-item {
-    background: #1e293b;
-  }
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .skeleton-item) {
+  background: #1e293b;
+}
 
-  .skeleton-line,
-  .skeleton-image,
-  .skeleton-avatar,
-  .skeleton-avatar-only,
-  .skeleton-button {
-    background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
+:global(.dark .skeleton-line), :global(.dark .skeleton-image), :global(.dark .skeleton-avatar), :global(.dark .skeleton-avatar-only), :global(.dark .skeleton-button) {
+  background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
     background-size: 200% 100%;
-  }
+}
 
-  .skeleton-list-item {
-    border-bottom-color: #334155;
-  }
+:global(.dark .skeleton-list-item) {
+  border-bottom-color: #334155;
+}
 
-  .skeleton-table {
-    border-color: #334155;
-  }
+:global(.dark .skeleton-table) {
+  border-color: #334155;
+}
 
-  .skeleton-table-row {
-    border-bottom-color: #334155;
-  }
+:global(.dark .skeleton-table-row) {
+  border-bottom-color: #334155;
 }
 
 /* Responsive */

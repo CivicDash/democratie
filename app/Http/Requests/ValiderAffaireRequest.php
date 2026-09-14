@@ -37,6 +37,9 @@ class ValiderAffaireRequest extends FormRequest
             'lien_decision_justice' => 'nullable|url|max:500',
             'commentaire_validation' => 'nullable|string|max:2000',
             'sources' => 'required|array|min:1',
+            // Une source déjà enregistrée se met à jour au lieu d'être détruite puis
+            // recréée : c'est ce qui préserve son historique de vérification.
+            'sources.*.id' => 'nullable|integer|exists:affaires_sources,id',
             'sources.*.url' => 'required|url',
             'sources.*.media' => 'required|string|max:200',
             'sources.*.type_source' => 'required|in:'.implode(',', AffaireSource::TYPES_SOURCE()),

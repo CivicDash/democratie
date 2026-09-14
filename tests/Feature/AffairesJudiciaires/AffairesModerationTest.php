@@ -4,7 +4,8 @@ use App\Models\AffaireJudiciaire;
 use App\Models\User;
 
 test('un admin peut voir la file de modération', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     AffaireJudiciaire::factory()->count(3)->create();
 
     $this->actingAs($admin)
@@ -18,7 +19,8 @@ test('un admin peut voir la file de modération', function () {
 });
 
 test('un admin peut voir le détail d\'une affaire', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $affaire = AffaireJudiciaire::factory()->create();
 
     $this->actingAs($admin)
@@ -32,7 +34,8 @@ test('un admin peut voir le détail d\'une affaire', function () {
 });
 
 test('un admin peut prendre en charge une affaire', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $affaire = AffaireJudiciaire::factory()->create();
 
     $this->actingAs($admin)
@@ -43,7 +46,8 @@ test('un admin peut prendre en charge une affaire', function () {
 });
 
 test('un admin peut rejeter une affaire avec motif', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $affaire = AffaireJudiciaire::factory()->enReview()->create();
 
     $this->actingAs($admin)
@@ -55,7 +59,8 @@ test('un admin peut rejeter une affaire avec motif', function () {
 });
 
 test('un admin peut demander un complément', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $affaire = AffaireJudiciaire::factory()->enReview()->create();
 
     $this->actingAs($admin)
@@ -66,7 +71,8 @@ test('un admin peut demander un complément', function () {
 });
 
 test('un admin peut archiver une affaire', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $affaire = AffaireJudiciaire::factory()->valide()->create();
 
     $this->actingAs($admin)
@@ -78,7 +84,8 @@ test('un admin peut archiver une affaire', function () {
 });
 
 test('la validation exige au moins une source non basse', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $affaire = AffaireJudiciaire::factory()->enReview()->create();
 
     $this->actingAs($admin)
@@ -95,7 +102,8 @@ test('la validation exige au moins une source non basse', function () {
 });
 
 test('la validation fonctionne avec une source haute fiabilité', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $affaire = AffaireJudiciaire::factory()->enReview()->create();
 
     $this->actingAs($admin)
@@ -116,7 +124,8 @@ test('la validation fonctionne avec une source haute fiabilité', function () {
 });
 
 test('un utilisateur non-admin ne peut pas accéder à la modération', function () {
-    $user = User::factory()->create(['role' => 'user']);
+    $user = User::factory()->create();
+    $user->assignRole('citizen');
 
     $this->actingAs($user)
         ->get(route('admin.affaires.index'))
@@ -124,7 +133,8 @@ test('un utilisateur non-admin ne peut pas accéder à la modération', function
 });
 
 test('chaque action de workflow génère un log', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
     $affaire = AffaireJudiciaire::factory()->create();
 
     $affaire->prendreEnCharge($admin);

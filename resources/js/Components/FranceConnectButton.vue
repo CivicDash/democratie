@@ -126,15 +126,18 @@ const handleClick = () => {
     }
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-    .fc-button {
-        background-color: #F6F6F6;
-    }
-    
-    .fc-button:hover:not(.fc-button-disabled) {
-        background-color: #003189;
-    }
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .fc-button) {
+  background-color: #F6F6F6;
+}
+
+:global(.dark .fc-button:hover:not(.fc-button-disabled)) {
+  background-color: #003189;
 }
 </style>
 

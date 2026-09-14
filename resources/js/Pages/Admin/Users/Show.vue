@@ -1,8 +1,12 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { router, Link, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Breadcrumb from '@/Components/Breadcrumb.vue';
+import FormErrors from '@/Components/Admin/FormErrors.vue';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { confirmDanger, confirmWarning } = useConfirm();
 
 const props = defineProps({
     user: Object,
@@ -54,10 +58,80 @@ const revokeElu = () => {
     }
 };
 
-const deleteUser = () => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${props.user.name} ?`)) {
+const deleteUser = async () => {
+    const ok = await confirmDanger(
+        `Le compte de ${props.user.name} sera désactivé et n'apparaîtra plus dans la liste. ` +
+        `Ses contributions restent en place. Cette action est réversible : le compte peut être restauré.`,
+        'Supprimer ce compte ?',
+        { confirmLabel: 'Supprimer le compte' },
+    );
+    if (ok) {
         router.delete(route('admin.users.destroy', props.user.id));
     }
+};
+
+/*
+ * Sanctions de compte.
+ *
+ * Les routes suspend / ban / unban existaient depuis toujours et n'étaient appelées
+ * de nulle part : la seule action offerte sur un compte problématique était de le
+ * supprimer. Pour une équipe qui modère des contenus politiques, « ne rien faire ou
+ * supprimer définitivement » n'est pas un choix acceptable.
+ */
+const panneauSanction = ref(null);   // 'suspend' | 'ban' | null
+
+const suspension = useForm({ days: 7, reason: '' });
+const bannissement = useForm({ reason: '' });
+const levee = useForm({ reason: '' });
+
+const estSanctionne = computed(() => ['suspended', 'banned'].includes(props.user.account_status));
+
+const statutLabel = computed(() => ({
+    active: 'Actif',
+    suspended: 'Suspendu',
+    banned: 'Banni',
+    deleted: 'Supprimé',
+}[props.user.account_status] ?? props.user.account_status));
+
+const statutClasse = computed(() => ({
+    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    suspended: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+    banned: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    deleted: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+}[props.user.account_status] ?? 'bg-gray-100 text-gray-800'));
+
+const suspendre = async () => {
+    const ok = await confirmWarning(
+        `${props.user.name} ne pourra plus se connecter pendant ${suspension.days} jour(s). ` +
+        `La suspension se lève ensuite d'elle-même. Le motif lui sera affiché.`,
+        'Suspendre ce compte ?',
+        { confirmLabel: 'Suspendre' },
+    );
+    if (ok) {
+        suspension.post(route('admin.users.suspend', props.user.id), {
+            preserveScroll: true,
+            onSuccess: () => { panneauSanction.value = null; suspension.reset(); },
+        });
+    }
+};
+
+const bannir = async () => {
+    const ok = await confirmDanger(
+        `${props.user.name} ne pourra plus se connecter, sans échéance. ` +
+        `Un bannissement se lève à la main : préférez une suspension si le doute subsiste.`,
+        'Bannir ce compte ?',
+        { confirmLabel: 'Bannir' },
+    );
+    if (ok) {
+        bannissement.post(route('admin.users.ban', props.user.id), {
+            preserveScroll: true,
+            onSuccess: () => { panneauSanction.value = null; bannissement.reset(); },
+        });
+    }
+};
+
+const lever = () => {
+    levee.post(route('admin.users.unban', props.user.id), { preserveScroll: true });
 };
 
 const getRoleBadgeClass = (role) => {
@@ -359,11 +433,144 @@ const breadcrumbs = [
                             </div>
                         </div>
 
-                        <!-- Sanctions -->
+                        <!-- Statut du compte et sanctions -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                    Statut du compte
+                                </h2>
+                                <span :class="['px-2.5 py-1 rounded-full text-xs font-medium', statutClasse]">
+                                    {{ statutLabel }}
+                                </span>
+                            </div>
+
+                            <div v-if="estSanctionne"
+                                 class="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                <p class="text-sm text-amber-900 dark:text-amber-100">
+                                    <strong>Motif :</strong> {{ user.suspension_reason || 'non renseigné' }}
+                                </p>
+                                <p v-if="user.suspended_until" class="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                                    Échéance : {{ user.suspended_until }} — la levée est automatique.
+                                </p>
+                                <p v-else-if="user.account_status === 'banned'" class="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                                    Sans échéance : ce bannissement ne se lèvera que manuellement.
+                                </p>
+                            </div>
+
+                            <p v-if="user.suspension_count" class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                {{ user.suspension_count }} suspension(s) depuis la création du compte.
+                            </p>
+
+                            <!-- Actions -->
+                            <div v-if="!user.is_demo" class="flex flex-wrap gap-2">
+                                <button v-if="!estSanctionne"
+                                        type="button"
+                                        @click="panneauSanction = panneauSanction === 'suspend' ? null : 'suspend'"
+                                        class="px-3 py-2 min-h-[36px] rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/20 text-sm">
+                                    Suspendre temporairement
+                                </button>
+                                <button v-if="user.account_status !== 'banned'"
+                                        type="button"
+                                        @click="panneauSanction = panneauSanction === 'ban' ? null : 'ban'"
+                                        class="px-3 py-2 min-h-[36px] rounded-lg border border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/20 text-sm">
+                                    Bannir
+                                </button>
+                                <button v-if="estSanctionne"
+                                        type="button"
+                                        @click="lever"
+                                        :disabled="levee.processing"
+                                        class="px-3 py-2 min-h-[36px] rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 text-sm">
+                                    Lever la sanction
+                                </button>
+                            </div>
+                            <p v-else class="text-sm text-gray-500 dark:text-gray-400">
+                                Les comptes de démonstration ne se sanctionnent pas.
+                            </p>
+
+                            <!-- Formulaire de suspension -->
+                            <form v-if="panneauSanction === 'suspend'" @submit.prevent="suspendre"
+                                  class="mt-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/40 space-y-3">
+                                <div>
+                                    <label for="suspension-days" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Durée (jours)
+                                    </label>
+                                    <input id="suspension-days" v-model.number="suspension.days" type="number" min="1" max="365"
+                                           class="w-32 px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" />
+                                </div>
+                                <div>
+                                    <label for="suspension-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Motif communiqué à la personne
+                                    </label>
+                                    <textarea id="suspension-reason" v-model="suspension.reason" rows="3" required
+                                              class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"></textarea>
+                                </div>
+                                <FormErrors :errors="suspension.errors" />
+                                <div class="flex gap-2">
+                                    <button type="submit" :disabled="suspension.processing"
+                                            class="px-4 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 text-sm">
+                                        Suspendre
+                                    </button>
+                                    <button type="button" @click="panneauSanction = null"
+                                            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">
+                                        Annuler
+                                    </button>
+                                </div>
+                            </form>
+
+                            <!-- Formulaire de bannissement -->
+                            <form v-if="panneauSanction === 'ban'" @submit.prevent="bannir"
+                                  class="mt-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/40 space-y-3">
+                                <div>
+                                    <label for="ban-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Motif communiqué à la personne
+                                    </label>
+                                    <textarea id="ban-reason" v-model="bannissement.reason" rows="3" required
+                                              class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"></textarea>
+                                </div>
+                                <FormErrors :errors="bannissement.errors" />
+                                <div class="flex gap-2">
+                                    <button type="submit" :disabled="bannissement.processing"
+                                            class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 text-sm">
+                                        Bannir
+                                    </button>
+                                    <button type="button" @click="panneauSanction = null"
+                                            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">
+                                        Annuler
+                                    </button>
+                                </div>
+                            </form>
+
+                            <!-- Historique des sanctions de compte -->
+                            <div v-if="user.sanctions_compte?.length" class="mt-6">
+                                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                    Historique
+                                </h3>
+                                <ul class="space-y-2">
+                                    <li v-for="s in user.sanctions_compte" :key="s.id"
+                                        class="text-sm p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+                                        <div class="flex flex-wrap items-baseline justify-between gap-2">
+                                            <span class="font-medium text-gray-900 dark:text-white">{{ s.type_label }}</span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ s.starts_at }}<span v-if="s.ends_at"> → {{ s.ends_at }}</span>
+                                            </span>
+                                        </div>
+                                        <p class="text-gray-600 dark:text-gray-400 mt-1">{{ s.reason }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                            Par {{ s.moderator }}
+                                        </p>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Sanctions de contenu -->
                         <div v-if="user.sanctions && user.sanctions.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                                Sanctions
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                                Modération de contenu
                             </h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                Sanctions portant sur la publication, distinctes de l'accès au compte.
+                            </p>
                             <div class="space-y-3">
                                 <div v-for="sanction in user.sanctions" :key="sanction.id" 
                                      :class="['p-3 rounded-lg', sanction.is_active ? 'bg-red-50 dark:bg-red-900/20' : 'bg-gray-50 dark:bg-gray-700']">
@@ -430,17 +637,30 @@ const breadcrumbs = [
                                 >
                                     ✗ Révoquer vérification
                                 </button>
-                                <button
-                                    v-if="!user.is_demo"
-                                    @click="deleteUser"
-                                    class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                                >
-                                    🗑 Supprimer le compte
-                                </button>
-                                <p v-if="user.is_demo" class="text-xs text-gray-500 text-center">
-                                    Les comptes démo ne peuvent pas être supprimés.
-                                </p>
                             </div>
+                        </div>
+
+                        <!--
+                            La suppression sortait du même bloc que « vérifier l'email » : le geste
+                            le plus lourd était aussi le plus accessible, et c'était le seul offert
+                            face à un compte problématique. Il est maintenant à part, après les
+                            sanctions qui, elles, se lèvent.
+                        -->
+                        <div v-if="!user.is_demo"
+                             class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-red-200 dark:border-red-900/50">
+                            <h2 class="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">
+                                Zone de danger
+                            </h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                Préférez une suspension : elle est temporaire, motivée, et la personne
+                                en est informée.
+                            </p>
+                            <button
+                                @click="deleteUser"
+                                class="w-full px-4 py-2 min-h-[36px] rounded-lg border border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/20 text-sm"
+                            >
+                                Supprimer le compte
+                            </button>
                         </div>
 
                         <!-- Retour -->

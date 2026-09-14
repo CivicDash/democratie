@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\AffaireJudiciaire;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -40,7 +41,7 @@ class AffaireJudiciaireFactory extends Factory
             'statut_validation' => 'valide',
             'affiche_publiquement' => true,
             'valide_at' => $this->faker->dateTimeBetween('-6 months', 'now'),
-            'valide_par' => 1,
+            'valide_par' => User::factory(),
         ]);
     }
 

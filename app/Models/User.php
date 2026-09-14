@@ -408,12 +408,36 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Vérifie si l'user est mute
      */
+    /**
+     * Deux systèmes de sanction coexistent et ne se parlaient pas.
+     *
+     * `sanctions` porte la modération de contenu (avertissement, mute, ban) et
+     * commande canPost(). `user_sanctions`, écrit par UserSanctionService, porte la
+     * sanction de compte et commande l'accès via CheckAccountStatus. Conséquence :
+     * un utilisateur banni par l'administration voyait sa connexion bloquée mais
+     * gardait isBanned() === false, donc le droit de publier.
+     *
+     * Le statut du compte est désormais pris en compte des deux côtés. La question de
+     * savoir s'il faut fusionner les deux tables reste ouverte : muter et suspendre ne
+     * sont pas la même décision, et les deux tables sont vides — c'est le bon moment
+     * pour trancher, mais ce n'est pas une décision technique.
+     */
     public function isMuted(): bool
     {
+        if ($this->account_status === 'suspended') {
+            return true;
+        }
+
         return $this->sanctions()
             ->mutes()
             ->active()
             ->exists();
+    }
+
+    /** Sanctions de compte (suspension, bannissement) prononcées par l'administration. */
+    public function sanctionsCompte(): HasMany
+    {
+        return $this->hasMany(UserSanction::class);
     }
 
     /**
@@ -421,6 +445,10 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isBanned(): bool
     {
+        if ($this->account_status === 'banned') {
+            return true;
+        }
+
         return $this->sanctions()
             ->bans()
             ->active()

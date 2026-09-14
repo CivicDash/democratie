@@ -38,14 +38,18 @@ const form = useForm({
     numero_dossier: props.affaire?.numero_dossier || '',
     lien_decision_justice: props.affaire?.lien_decision_justice || '',
     commentaire_validation: '',
+    // L'identifiant voyage avec la source : sans lui, le serveur ne peut pas la
+    // reconnaître et devait tout détruire pour tout recréer — en perdant au passage
+    // la trace de qui l'avait vérifiée.
     sources: props.affaire?.sources?.length ? props.affaire.sources.map(s => ({
+        id: s.id,
         url: s.url || '',
         media: s.media || '',
         type_source: s.type_source || 'article_presse',
         fiabilite: s.fiabilite || 'moyenne',
         titre: s.titre || '',
         date_publication: s.date_publication || '',
-    })) : [{ url: '', media: '', type_source: 'article_presse', fiabilite: 'moyenne', titre: '', date_publication: '' }],
+    })) : [{ id: null, url: '', media: '', type_source: 'article_presse', fiabilite: 'moyenne', titre: '', date_publication: '' }],
 });
 
 const rejectForm = useForm({ motif: '' });
@@ -61,7 +65,7 @@ const newSourceForm = useForm({
 });
 
 function addSource() {
-    form.sources.push({ url: '', media: '', type_source: 'article_presse', fiabilite: 'moyenne', titre: '', date_publication: '' });
+    form.sources.push({ id: null, url: '', media: '', type_source: 'article_presse', fiabilite: 'moyenne', titre: '', date_publication: '' });
 }
 
 function removeSource(idx) {

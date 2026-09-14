@@ -156,8 +156,10 @@ class UserManagementController extends Controller
 
         $user->assignRole($validated['role']);
 
-        // Si c'est un élu, assigner aussi le rôle legislator
-        if ($validated['elu_type'] && $validated['is_verified_elu']) {
+        // Ces deux clés sont `nullable` : absentes de la requête, elles sont absentes de
+        // $validated, et l'accès direct levait « Undefined array key » — créer un
+        // utilisateur ordinaire depuis l'administration se terminait en erreur.
+        if (($validated['elu_type'] ?? null) && ($validated['is_verified_elu'] ?? false)) {
             $user->assignRole('legislator');
         }
 
@@ -170,7 +172,11 @@ class UserManagementController extends Controller
      */
     public function show(User $user): Response
     {
-        $user->load(['roles', 'topics', 'posts', 'sanctions']);
+        // withCount plutôt que load : on ne chargeait toutes les lignes que pour les
+        // compter. Sans effet aujourd'hui (les deux tables sont vides), mais la page
+        // d'un utilisateur actif aurait hydraté tout son historique.
+        $user->load(['roles', 'sanctions', 'sanctionsCompte.moderator'])
+            ->loadCount(['topics', 'posts']);
 
         return Inertia::render('Admin/Users/Show', [
             'user' => [
@@ -204,8 +210,13 @@ class UserManagementController extends Controller
                 'created_at' => $user->created_at->format('d/m/Y H:i'),
                 'email_verified_at' => $user->email_verified_at?->format('d/m/Y H:i'),
                 'verified_at' => $user->verified_at?->format('d/m/Y H:i'),
-                'topics_count' => $user->topics->count(),
-                'posts_count' => $user->posts->count(),
+                'topics_count' => $user->topics_count,
+                'posts_count' => $user->posts_count,
+                'account_status' => $user->account_status,
+                'suspended_until' => $user->suspended_until?->format('d/m/Y H:i'),
+                'suspension_reason' => $user->suspension_reason,
+                'suspension_count' => $user->suspension_count,
+                // Modération de contenu (mute, ban de publication).
                 'sanctions' => $user->sanctions->map(fn ($s) => [
                     'id' => $s->id,
                     'type' => $s->type,
@@ -213,6 +224,23 @@ class UserManagementController extends Controller
                     'expires_at' => $s->expires_at?->format('d/m/Y H:i'),
                     'is_active' => $s->isActive(),
                 ]),
+                // Sanctions de compte (suspension, bannissement) : elles étaient
+                // prononcées par l'administration et n'apparaissaient nulle part,
+                // l'écran n'affichant que la première liste.
+                'sanctions_compte' => $user->sanctionsCompte
+                    ->sortByDesc('created_at')
+                    ->values()
+                    ->map(fn ($s) => [
+                        'id' => $s->id,
+                        'type' => $s->type,
+                        'type_label' => $s->getTypeLabel(),
+                        'reason' => $s->reason,
+                        'duration_days' => $s->duration_days,
+                        'starts_at' => $s->starts_at?->format('d/m/Y H:i'),
+                        'ends_at' => $s->ends_at?->format('d/m/Y H:i'),
+                        'is_active' => $s->is_active,
+                        'moderator' => $s->moderator?->name ?? 'Système',
+                    ]),
             ],
             'roles' => Role::all()->map(fn ($r) => [
                 'name' => $r->name,

@@ -8,6 +8,7 @@ use App\Http\Requests\ValiderAffaireRequest;
 use App\Models\AffaireJudiciaire;
 use App\Models\AffaireSource;
 use App\Models\StatsAffaireJudiciaire;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -142,17 +143,12 @@ class AdminAffairesJudiciairesController extends Controller
 
         $affaire->update($data);
 
-        $affaire->sources()->delete();
-        foreach ($sources as $sourceData) {
-            $sourceData['verifie_par'] = $request->user()->id;
-            $sourceData['verifie_at'] = now();
-            $affaire->sources()->create($sourceData);
-        }
+        $bilan = $this->rapprocherSources($affaire, $sources, $request->user());
 
         $affaire->valider($request->user(), $data['commentaire_validation'] ?? null);
 
         return redirect()->route('admin.affaires.show', $affaire)
-            ->with('success', 'Affaire validée et publiée.');
+            ->with('success', "Affaire validée et publiée. Sources : {$bilan}.");
     }
 
     public function rejeter(Request $request, AffaireJudiciaire $affaire)
@@ -240,5 +236,70 @@ class AdminAffairesJudiciairesController extends Controller
             'stats_global' => $global?->data,
             'health_metrics' => $healthMetrics,
         ]);
+    }
+
+    /**
+     * Met à jour les sources existantes, crée les nouvelles, retire les autres.
+     *
+     * La validation détruisait auparavant toutes les sources (`sources()->delete()`,
+     * sans SoftDeletes) avant de recréer celles du formulaire. Deux conséquences sur
+     * des fiches nominatives publiées : le sourçage disparaissait définitivement, et
+     * `verifie_par`/`verifie_at` étaient réécrits au nom du dernier modérateur — on
+     * perdait qui avait réellement vérifié quoi. Rien n'en était journalisé, alors
+     * que supprimerSource(), juste à côté, le fait.
+     */
+    private function rapprocherSources(AffaireJudiciaire $affaire, array $sources, User $moderateur): string
+    {
+        $conservees = [];
+        $ajoutees = 0;
+        $modifiees = 0;
+
+        foreach ($sources as $donnees) {
+            $id = $donnees['id'] ?? null;
+            unset($donnees['id']);
+
+            $existante = $id
+                ? $affaire->sources()->whereKey($id)->first()
+                : null;
+
+            if ($existante) {
+                // La vérification n'est réattribuée que si la source a réellement changé.
+                $existante->fill($donnees);
+                if ($existante->isDirty()) {
+                    $existante->verifie_par = $moderateur->id;
+                    $existante->verifie_at = now();
+                    $existante->save();
+                    $modifiees++;
+                }
+                $conservees[] = $existante->id;
+
+                continue;
+            }
+
+            $creee = $affaire->sources()->create($donnees + [
+                'verifie_par' => $moderateur->id,
+                'verifie_at' => now(),
+            ]);
+            $conservees[] = $creee->id;
+            $ajoutees++;
+        }
+
+        $retirees = $affaire->sources()->whereNotIn('id', $conservees)->get();
+        foreach ($retirees as $source) {
+            $source->delete();   // soft delete : la pièce reste consultable en base
+        }
+
+        $bilan = sprintf('%d ajoutée(s), %d modifiée(s), %d retirée(s)',
+            $ajoutees, $modifiees, $retirees->count());
+
+        if ($ajoutees || $modifiees || $retirees->count()) {
+            $affaire->moderationLogs()->create([
+                'action' => 'sources_modifiees',
+                'commentaire' => $bilan,
+                'moderator_id' => $moderateur->id,
+            ]);
+        }
+
+        return $bilan;
     }
 }

@@ -335,29 +335,32 @@ watch(
   transform: scale(0.95);
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .modal-container {
-    background: #1e293b;
-  }
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .modal-container) {
+  background: #1e293b;
+}
 
-  .modal-title {
-    color: #f1f5f9;
-  }
+:global(.dark .modal-title) {
+  color: #f1f5f9;
+}
 
-  .modal-message {
+:global(.dark .modal-message) {
+  color: #94a3b8;
+}
+
+:global(.dark .modal-button-cancel) {
+  background: #334155;
     color: #94a3b8;
-  }
+}
 
-  .modal-button-cancel {
-    background: #334155;
-    color: #94a3b8;
-  }
-
-  .modal-button-cancel:not(:disabled):hover {
-    background: #475569;
+:global(.dark .modal-button-cancel:not(:disabled):hover) {
+  background: #475569;
     color: #e2e8f0;
-  }
 }
 
 /* Responsive */

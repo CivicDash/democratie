@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserSanction;
 use App\Services\UserSanctionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UserSanctionController extends Controller
 {
@@ -140,19 +141,40 @@ class UserSanctionController extends Controller
 
     /**
      * Supprimer définitivement (force delete) - Admin uniquement
+     *
+     * Seule action de l'administration qui détruit sans retour. Elle ne laissait
+     * aucune trace, alors que suspend/ban/unban créent tous une UserSanction — et une
+     * sanction rattachée à l'utilisateur disparaîtrait de toute façon avec lui. La
+     * trace part donc dans le canal `audit`, qui survit à la ligne supprimée, et elle
+     * est écrite AVANT la destruction.
      */
     public function forceDelete(Request $request, $userId)
     {
         $user = User::withTrashed()->findOrFail($userId);
 
-        // Empêcher de supprimer un admin
         if ($user->hasRole('admin')) {
             return back()->with('error', 'Impossible de supprimer définitivement un administrateur.');
         }
 
+        // Deux protections que delete() avait déjà et que celle-ci n'avait pas.
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Vous ne pouvez pas supprimer définitivement votre propre compte.');
+        }
+
+        if ($user->isDemoAccount()) {
+            return back()->with('error', 'Les comptes de démonstration ne se suppriment pas.');
+        }
+
         $userName = $user->name;
 
-        // Force delete
+        Log::channel('audit')->critical('Suppression définitive de compte', [
+            'utilisateur_supprime' => ['id' => $user->id, 'nom' => $userName, 'email' => $user->email],
+            'roles' => $user->getRoleNames()->all(),
+            'inscrit_le' => $user->created_at?->toIso8601String(),
+            'supprime_par' => ['id' => auth()->id(), 'nom' => auth()->user()?->name],
+            'motif' => $request->input('reason'),
+        ]);
+
         $user->forceDelete();
 
         return back()->with('success', "Le compte de {$userName} a été supprimé définitivement.");

@@ -381,49 +381,52 @@ const getStepStyle = (stepIndex) => {
   }
 }
 
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .timeline-container {
-    background: linear-gradient(to bottom, #1e293b 0%, #0f172a 100%);
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .timeline-container) {
+  background: linear-gradient(to bottom, #1e293b 0%, #0f172a 100%);
     border-color: #334155;
-  }
+}
 
-  .timeline-connector {
-    background: #334155;
-  }
+:global(.dark .timeline-connector) {
+  background: #334155;
+}
 
-  .step-icon {
-    background: #1e293b;
+:global(.dark .step-icon) {
+  background: #1e293b;
     border-color: #334155;
-  }
+}
 
-  .step-label {
-    color: #f1f5f9;
-  }
+:global(.dark .step-label) {
+  color: #f1f5f9;
+}
 
-  .timeline-step.pending .step-label {
-    color: #64748b;
-  }
+:global(.dark .timeline-step.pending .step-label) {
+  color: #64748b;
+}
 
-  .step-description {
-    color: #94a3b8;
-  }
+:global(.dark .step-description) {
+  color: #94a3b8;
+}
 
-  .progress-bar-container {
-    background: #334155;
-  }
+:global(.dark .progress-bar-container) {
+  background: #334155;
+}
 
-  .timeline-summary {
-    background: #1e293b;
-  }
+:global(.dark .timeline-summary) {
+  background: #1e293b;
+}
 
-  .summary-label {
-    color: #94a3b8;
-  }
+:global(.dark .summary-label) {
+  color: #94a3b8;
+}
 
-  .summary-value {
-    color: #f1f5f9;
-  }
+:global(.dark .summary-value) {
+  color: #f1f5f9;
 }
 
 /* Responsive */

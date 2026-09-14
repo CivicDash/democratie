@@ -120,16 +120,20 @@ onUnmounted(() => {
     transform: translateY(20px);
 }
 
-@media (prefers-color-scheme: dark) {
-    .scroll-to-top {
-        background: linear-gradient(135deg, #6366F1, #818CF8);
+/* Thème sombre.
+   L'application pilote son thème par une classe `dark` sur <html>
+   (tailwind.config.js : darkMode: 'class'). Ces règles suivaient auparavant
+   `prefers-color-scheme`, c'est-à-dire le réglage du système d'exploitation : sur un
+   poste en sombre avec l'application en clair, le composant s'affichait en sombre au
+   milieu d'une page claire — et l'inverse. */
+:global(.dark .scroll-to-top) {
+  background: linear-gradient(135deg, #6366F1, #818CF8);
         border-color: rgba(255, 255, 255, 0.15);
         box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-    }
+}
 
-    .scroll-to-top:hover {
-        background: linear-gradient(135deg, #4F46E5, #6366F1);
+:global(.dark .scroll-to-top:hover) {
+  background: linear-gradient(135deg, #4F46E5, #6366F1);
         box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-    }
 }
 </style>
