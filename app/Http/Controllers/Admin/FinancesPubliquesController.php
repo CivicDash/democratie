@@ -40,6 +40,7 @@ class FinancesPubliquesController extends Controller
                 'depenses_formate' => $b->depenses_formate,
                 'deficit' => $b->deficit,
                 'deficit_formate' => $b->deficit_formate,
+                'dette_publique' => $b->dette_publique,
                 'dette_pib_pct' => $b->dette_pib_pct,
                 'deficit_pib_pct' => $b->deficit_pib_pct,
             ]);
@@ -96,7 +97,9 @@ class FinancesPubliquesController extends Controller
             'recettes_nettes' => 'nullable|numeric',
             'depenses_nettes' => 'nullable|numeric',
             'deficit' => 'nullable|numeric',
-            'dette' => 'nullable|numeric',
+            // La colonne s'appelle `dette_publique` : validée sous « dette », la valeur était
+            // écartée par le $fillable, et le champ revenait vide à chaque ouverture.
+            'dette_publique' => 'nullable|numeric',
             'dette_pib_pct' => 'nullable|numeric|min:0|max:500',
             'deficit_pib_pct' => 'nullable|numeric|min:-50|max:50',
         ]);
@@ -128,7 +131,9 @@ class FinancesPubliquesController extends Controller
             'recettes_nettes' => 'nullable|numeric',
             'depenses_nettes' => 'nullable|numeric',
             'deficit' => 'nullable|numeric',
-            'dette' => 'nullable|numeric',
+            // La colonne s'appelle `dette_publique` : validée sous « dette », la valeur était
+            // écartée par le $fillable, et le champ revenait vide à chaque ouverture.
+            'dette_publique' => 'nullable|numeric',
             'dette_pib_pct' => 'nullable|numeric|min:0|max:500',
             'deficit_pib_pct' => 'nullable|numeric|min:-50|max:50',
         ]);

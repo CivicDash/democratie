@@ -14,7 +14,7 @@ const form = useForm({
     recettes_nettes: props.budget?.recettes_nettes ?? null,
     depenses_nettes: props.budget?.depenses_nettes ?? null,
     deficit: props.budget?.deficit ?? null,
-    dette: props.budget?.dette ?? null,
+    dette_publique: props.budget?.dette_publique ?? null,
     dette_pib_pct: props.budget?.dette_pib_pct ?? null,
     deficit_pib_pct: props.budget?.deficit_pib_pct ?? null,
 })
@@ -137,7 +137,7 @@ const calculatedDeficit = () => {
                             Dette totale (Md€)
                         </label>
                         <input 
-                            v-model="form.dette"
+                            v-model="form.dette_publique"
                             type="number"
                             step="0.01"
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
