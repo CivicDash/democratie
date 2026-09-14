@@ -167,7 +167,7 @@ const rejectionReasons = [
                         <!-- Infos -->
                         <div class="p-3">
                             <p class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ photo.name }}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">@{{ photo.username || 'sans pseudo' }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ photo.email }}</p>
                             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                 Soumise le {{ photo.submitted_at || 'N/A' }}
                             </p>

@@ -143,8 +143,16 @@ class UserManagementController extends Controller
             'elu_type' => $validated['elu_type'] ?? null,
             'elu_ref' => $validated['elu_ref'] ?? null,
             'is_verified_elu' => $validated['is_verified_elu'] ?? false,
-            'email_verified_at' => now(), // Admin-created accounts are verified
         ]);
+
+        // `email_verified_at` n'est pas assignable en masse (et ne doit pas l'être : un
+        // update() trop large permettrait à un compte de s'auto-vérifier). L'appel explicite
+        // contourne le $fillable proprement.
+        //
+        // Sans cela, le compte créé par un administrateur restait non vérifié : la connexion
+        // réussissait, puis `/dashboard` — gardé par le middleware `verified` — renvoyait vers
+        // l'écran de vérification. Vu de l'administrateur, « le mot de passe ne fonctionne pas ».
+        $user->markEmailAsVerified();
 
         $user->assignRole($validated['role']);
 

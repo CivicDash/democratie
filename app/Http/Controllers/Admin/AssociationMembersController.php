@@ -9,6 +9,11 @@ use Inertia\Inertia;
 
 class AssociationMembersController extends Controller
 {
+    // La colonne `username` n'a jamais existé sur `users` : toute requête qui la
+    // référençait partait en 500 (recherche de membres, autocomplétion d'ajout).
+    // La référence lisible d'un adhérent est `member_number` (ex. MEM2601-0003) ;
+    // `association_member_id` est sa clé technique Dolibarr (ex. 3).
+
     /**
      * Liste des membres de l'association Civis-Consilium
      */
@@ -27,7 +32,7 @@ class AssociationMembersController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'ilike', "%{$search}%")
                     ->orWhere('email', 'ilike', "%{$search}%")
-                    ->orWhere('username', 'ilike', "%{$search}%")
+                    ->orWhere('member_number', 'ilike', "%{$search}%")
                     ->orWhere('association_member_id', 'ilike', "%{$search}%");
             });
         }
@@ -38,7 +43,7 @@ class AssociationMembersController extends Controller
             ->through(fn ($user) => [
                 'id' => $user->id,
                 'name' => $user->name,
-                'username' => $user->username,
+                'member_number' => $user->member_number,
                 'email' => $user->email_visible_to_admin ? $user->email : '(masqué)',
                 'photo_url' => $user->profile_photo_url,
                 'photo_status' => $user->profile_photo_status,
@@ -145,16 +150,16 @@ class AssociationMembersController extends Controller
             ->where(function ($q) use ($search) {
                 $q->where('name', 'ilike', "%{$search}%")
                     ->orWhere('email', 'ilike', "%{$search}%")
-                    ->orWhere('username', 'ilike', "%{$search}%");
+                    ->orWhere('member_number', 'ilike', "%{$search}%");
             })
             ->limit(10)
-            ->get(['id', 'name', 'email', 'username', 'profile_photo_path']);
+            ->get(['id', 'name', 'email', 'member_number', 'profile_photo_path']);
 
         return response()->json($users->map(fn ($u) => [
             'id' => $u->id,
             'name' => $u->name,
             'email' => $u->email,
-            'username' => $u->username,
+            'member_number' => $u->member_number,
             'photo_url' => $u->profile_photo_url,
         ]));
     }
@@ -167,7 +172,6 @@ class AssociationMembersController extends Controller
         $members = User::where('is_association_member', true)
             ->where('email_visible_to_admin', true)
             ->orderBy('name')
-            // `username` n'existe pas sur users : la requête échouait.
             ->get(['id', 'name', 'email', 'association_member_id', 'association_member_since', 'created_at', 'member_number']);
 
         $csv = "ID,Nom,Email,Reference_Adherent,ID_Dolibarr,Membre_Depuis,Inscrit_Le\n";

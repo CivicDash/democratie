@@ -62,9 +62,17 @@ class User extends Authenticatable implements MustVerifyEmail
         'elu_ref',
         'is_verified_elu',
         'verified_at',
-        // Sanctions : sans ce champ, la suspension et la réactivation d'un compte
-        // n'avaient aucun effet.
+        // Sanctions. `account_status` avait été rattrapé seul : sans les cinq champs
+        // qui l'accompagnent, UserSanctionService::suspend() n'écrivait que le statut.
+        // CheckAccountStatus:37 testant `suspended_until`, toujours NULL, la levée
+        // automatique ne se déclenchait jamais : une suspension d'un jour devenait un
+        // bannissement définitif, et l'écran de suspension n'affichait ni motif ni échéance.
         'account_status',
+        'suspended_at',
+        'suspended_until',
+        'suspension_reason',
+        'suspended_by',
+        'suspension_count',
     ];
 
     /**

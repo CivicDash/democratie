@@ -186,7 +186,7 @@ const removeMember = (userId, userName) => {
                                         </div>
                                         <div>
                                             <p class="font-medium text-gray-800 dark:text-gray-200">{{ member.name }}</p>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">@{{ member.username || 'sans pseudo' }}</p>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ member.member_number || 'aucune référence adhérent' }}</p>
                                         </div>
                                     </div>
                                 </td>

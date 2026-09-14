@@ -25,8 +25,11 @@ class IpBanController extends Controller
             ->when($scope, fn ($q) => $q->where('scope', $scope))
             ->when($ip, fn ($q) => $q->where('ip', 'like', '%'.$ip.'%'))
             ->when($status === 'active', fn ($q) => $q->active())
-            ->when($status === 'expired', fn ($q) => $q->whereNotNull('unbanned_at')
-                ->orWhere('expires_at', '<=', now()))
+            // Le orWhere doit rester dans son propre groupe : sans la closure, il remonte à
+            // la racine de la requête et annule les filtres `scope` et `ip` posés au-dessus.
+            ->when($status === 'expired', fn ($q) => $q->where(
+                fn ($sub) => $sub->whereNotNull('unbanned_at')->orWhere('expires_at', '<=', now())
+            ))
             ->orderByDesc('created_at');
 
         $bans = $query->paginate(20)->withQueryString();
