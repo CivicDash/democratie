@@ -16,6 +16,7 @@ const items = [
     { name: 'admin.presidentielle.parcours', label: 'Parcours', icon: '🧭' },
     { name: 'admin.presidentielle.evenements', label: 'Calendrier', icon: '📅' },
     { name: 'admin.presidentielle.medias', label: 'Médias', icon: '🖼️' },
+    { name: 'admin.presidentielle.themes', label: 'Thèmes', icon: '🧮' },
     { name: 'admin.presidentielle.audience', label: 'Audience', icon: '📈' },
 ];
 

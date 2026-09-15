@@ -984,6 +984,115 @@ class PresidentielleModerationController extends Controller
         ]);
     }
 
+    /**
+     * Répartition thématique de la campagne : combien de mesures par thème, et de qui.
+     *
+     * Le décompte brut répond à une question simple — quels sujets occupent la campagne —
+     * mais il en cache une autre : un thème peut être gros parce qu'il est réellement
+     * débattu, ou seulement parce qu'un candidat y a été dépouillé plus finement que les
+     * autres. Les deux se ressemblent sur un histogramme et se distinguent sur deux
+     * indicateurs, servis ici à côté du total :
+     *   - le nombre de candidats ayant au moins une mesure sur le thème ;
+     *   - la part du candidat le plus représenté (la « concentration »).
+     * Un thème à 120 mesures dont 70 % viennent d'une seule personne est un artefact de
+     * corpus, pas un fait de campagne. La page le dit, plutôt que de laisser croire.
+     */
+    public function themes(Request $request)
+    {
+        $perimetres = ['toutes', 'validees', 'publiees'];
+        $perimetre = in_array($request->query('perimetre'), $perimetres, true)
+            ? $request->query('perimetre') : 'toutes';
+
+        $candidatId = (int) $request->query('candidat', 0) ?: null;
+
+        $filtrer = function ($q) use ($perimetre, $candidatId) {
+            if ($perimetre === 'validees') {
+                $q->where('m.statut_validation', 'valide');
+            } elseif ($perimetre === 'publiees') {
+                $q->where('m.affiche_publiquement', true);
+            }
+            if ($candidatId) {
+                $q->where('m.candidat_id', $candidatId);
+            }
+
+            return $q;
+        };
+
+        // Un décompte par thème ET par candidat : c'est la même requête qui alimente le
+        // total, l'empilement du graphe et la concentration. Les agréger côté PHP évite
+        // trois requêtes qui pourraient diverger.
+        $lignes = $filtrer(DB::table('programme_mesures as m')
+            ->join('candidats_presidentielle as c', 'c.id', '=', 'm.candidat_id')
+            ->join('personnes_politiques as pp', 'pp.id', '=', 'c.personne_politique_id')
+            ->whereNull('m.deleted_at')
+            ->where('c.election', '2027'))
+            ->selectRaw('m.theme_id, m.candidat_id, pp.nom as candidat_nom, c.couleur_hex, count(*) as n')
+            ->groupBy('m.theme_id', 'm.candidat_id', 'pp.nom', 'c.couleur_hex')
+            ->get();
+
+        // Les thèmes sans aucune mesure doivent apparaître à zéro : un sujet absent de la
+        // campagne est une information, pas une ligne à omettre.
+        $themes = DB::table('programme_themes')->orderBy('ordre')->orderBy('nom')
+            ->get(['id', 'slug', 'nom']);
+
+        $parTheme = $lignes->groupBy('theme_id');
+        $total = (int) $lignes->sum('n');
+
+        $donnees = $themes->map(function ($t) use ($parTheme, $total) {
+            $l = $parTheme->get($t->id, collect());
+            $n = (int) $l->sum('n');
+            $tete = $l->sortByDesc('n')->first();
+
+            return [
+                'id' => $t->id,
+                'slug' => $t->slug,
+                'nom' => $t->nom,
+                'total' => $n,
+                'part' => $total > 0 ? round($n * 100 / $total, 1) : 0.0,
+                'candidats' => $l->count(),
+                'tete_nom' => $tete->candidat_nom ?? null,
+                'tete_n' => (int) ($tete->n ?? 0),
+                'concentration' => $n > 0 ? round(((int) ($tete->n ?? 0)) * 100 / $n, 1) : 0.0,
+                // Empilement du graphe, du plus gros contributeur au plus petit.
+                'detail' => $l->sortByDesc('n')->values()->map(fn ($x) => [
+                    'candidat_id' => $x->candidat_id,
+                    'nom' => $x->candidat_nom,
+                    'couleur' => $x->couleur_hex,
+                    'n' => (int) $x->n,
+                ]),
+            ];
+        })->values();
+
+        // Ce qui n'est pas encore compté : la file d'ingestion. Sans ce chiffre, un thème
+        // peut sembler délaissé alors que ses propositions attendent simplement d'être
+        // rattachées à des mesures.
+        $enFile = DB::table('ingestion_propositions')
+            ->where('statut', 'detecte')
+            ->when($candidatId, fn ($q) => $q->where('candidat_id', $candidatId))
+            ->selectRaw('theme_id, count(*) as n')
+            ->groupBy('theme_id')->pluck('n', 'theme_id');
+
+        $donnees = $donnees->map(fn ($d) => $d + ['en_file' => (int) ($enFile[$d['id']] ?? 0)]);
+
+        return Inertia::render('Admin/Presidentielle/Themes', [
+            'themes' => $donnees,
+            'total' => $total,
+            'total_en_file' => (int) $enFile->sum(),
+            'perimetre' => $perimetre,
+            'candidat_id' => $candidatId,
+            'candidats' => CandidatPresidentielle::with('personnePolitique')
+                ->where('election', '2027')
+                ->get()
+                ->map(fn ($c) => [
+                    'id' => $c->id,
+                    'nom' => $c->personnePolitique?->nom_complet ?? '—',
+                    'couleur' => $c->couleur_hex,
+                ])
+                ->sortBy('nom', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values(),
+        ]);
+    }
+
     public function action(Request $request, ModerationService $service)
     {
         $data = $request->validate([
