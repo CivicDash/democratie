@@ -113,11 +113,17 @@ class IntegriteChecker
         $pour = $liensFiables->where('sens', 'pour');
         $contre = $liensFiables->where('sens', 'contre');
 
-        if ($pour->isEmpty()) {
-            $violations[] = ['type' => 'mesure_sans_pour', 'message' => "{$ref} : aucun argument « pour » validé et sourcé."];
-        }
-        if ($contre->isEmpty()) {
-            $violations[] = ['type' => 'mesure_sans_contre', 'message' => "{$ref} : aucun argument « contre » validé et sourcé (symétrie obligatoire)."];
+        // Même règle que ModerationService::raisonsNonPubliable(), et elle doit le rester :
+        // ici une violation REFUSE l'export, donc fige objectif2027.fr. Si les deux copies
+        // divergeaient, publier une mesure autorisée par le back-office gèlerait le site
+        // entier, sans rapport visible avec le geste qui l'a causé.
+        if ($liensFiables->isNotEmpty()) {
+            if ($pour->isEmpty()) {
+                $violations[] = ['type' => 'mesure_argumentaire_desequilibre', 'message' => "{$ref} : argumentaire publié sans aucun argument « pour » validé et sourcé."];
+            }
+            if ($contre->isEmpty()) {
+                $violations[] = ['type' => 'mesure_argumentaire_desequilibre', 'message' => "{$ref} : argumentaire publié sans aucun argument « contre » validé et sourcé."];
+            }
         }
 
         foreach ($mesure->scrutinLiens->where('affiche_publiquement', true) as $lien) {

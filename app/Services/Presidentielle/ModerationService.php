@@ -198,11 +198,21 @@ class ModerationService
             $liens = $entite->liens()->publie()->with('argument.sources')->get()
                 ->filter(fn ($l) => $l->argument && $l->argument->affiche_publiquement
                     && filled($l->note_contextuelle) && $l->argument->aSourceFiable());
-            if ($liens->where('sens', 'pour')->isEmpty()) {
-                $raisons[] = 'aucun argument « pour » publié et sourcé';
-            }
-            if ($liens->where('sens', 'contre')->isEmpty()) {
-                $raisons[] = 'aucun argument « contre » publié et sourcé (symétrie obligatoire)';
+            // La symétrie porte sur l'ARGUMENTAIRE, pas sur la mesure. Une mesure sans
+            // aucun argument publié est un relevé sourcé de ce que propose le candidat :
+            // il n'y a rien à équilibrer, et rien à taire. Dès qu'un argument est publié,
+            // les deux sens redeviennent obligatoires — c'est là, et seulement là, qu'un
+            // déséquilibre constituerait une prise de position.
+            //
+            // La règle précédente ne distinguait pas les deux cas et bloquait donc la
+            // publication de 522 mesures sur 523, faute d'argumentaire écrit.
+            if ($liens->isNotEmpty()) {
+                if ($liens->where('sens', 'pour')->isEmpty()) {
+                    $raisons[] = 'argumentaire déséquilibré : aucun argument « pour » publié et sourcé';
+                }
+                if ($liens->where('sens', 'contre')->isEmpty()) {
+                    $raisons[] = 'argumentaire déséquilibré : aucun argument « contre » publié et sourcé';
+                }
             }
         }
 
