@@ -9,6 +9,7 @@ use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
 use App\Models\PresidentielleModerationLog;
 use App\Models\ProgrammeMesure;
+use App\Models\QuizQuestion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -233,6 +234,36 @@ class ModerationService
             }
             if ($entite->sens === 'contre' && ! $entite->double_valide_par) {
                 $raisons[] = 'liaison « contre » non doublement validée';
+            }
+        }
+
+        if ($entite instanceof QuizQuestion) {
+            $entite->loadMissing('options.mesures');
+            $options = $entite->options;
+
+            // Une option sans mesure publiée derrière est une position que NOUS aurions
+            // formulée : le quiz ne doit proposer que des positions réellement défendues.
+            $adossees = $options->filter(fn ($o) => $o->mesures
+                ->where('affiche_publiquement', true)->isNotEmpty());
+
+            if ($adossees->count() !== $options->count() || $options->isEmpty()) {
+                $raisons[] = 'chaque option doit être adossée à au moins une mesure publiée';
+            }
+
+            if ($entite->format === 'arbitrage') {
+                if ($options->count() < 2) {
+                    $raisons[] = 'un arbitrage demande au moins deux options — une seule serait un plébiscite';
+                }
+
+                // Un « arbitrage » dont toutes les options viennent du même candidat n'oppose
+                // personne : c'est un questionnaire sur une seule offre politique.
+                $candidats = $adossees->flatMap(fn ($o) => $o->mesures
+                    ->where('affiche_publiquement', true)->pluck('candidat_id'))->unique();
+                if ($options->count() >= 2 && $candidats->count() < 2) {
+                    $raisons[] = 'toutes les options viennent du même candidat — ce n\'est pas un arbitrage';
+                }
+            } elseif ($options->count() !== 1) {
+                $raisons[] = 'un accord porte sur une seule proposition';
             }
         }
 

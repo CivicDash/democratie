@@ -4,6 +4,7 @@ namespace App\Services\Presidentielle;
 
 use App\Models\CandidatPresidentielle;
 use App\Models\ProgrammeMesure;
+use App\Models\QuizQuestion;
 use App\Models\ProgrammeTheme;
 
 /**
@@ -90,7 +91,62 @@ class IntegriteChecker
             }
         }
 
+        $this->verifierQuiz($election, $violations, $alertes);
+
         return ['violations' => $violations, 'alertes' => $alertes];
+    }
+
+    /**
+     * Questions de quiz publiées.
+     *
+     * Mêmes règles que ModerationService::raisonsNonPubliable(), et elles doivent le
+     * rester : ici une violation REFUSE l'export, donc fige objectif2027.fr. Si les deux
+     * copies divergeaient, publier une question autorisée par le back-office gèlerait le
+     * site entier — c'est exactement le piège rencontré sur la symétrie des mesures.
+     */
+    private function verifierQuiz(string $election, array &$violations, array &$alertes): void
+    {
+        $questions = QuizQuestion::publie()->where('election', $election)
+            ->with('options.mesures')->get();
+
+        foreach ($questions as $q) {
+            $ref = 'quiz « '.mb_strimwidth($q->intitule, 0, 60, '…').' »';
+            $options = $q->options;
+            $adossees = $options->filter(fn ($o) => $o->mesures
+                ->where('affiche_publiquement', true)->isNotEmpty());
+
+            if ($options->isEmpty() || $adossees->count() !== $options->count()) {
+                $violations[] = ['type' => 'quiz_option_sans_mesure',
+                    'message' => "{$ref} : une option n'est adossée à aucune mesure publiée."];
+            }
+
+            if ($q->format === 'arbitrage') {
+                if ($options->count() < 2) {
+                    $violations[] = ['type' => 'quiz_arbitrage_option_unique',
+                        'message' => "{$ref} : arbitrage à une seule option."];
+                }
+                $candidats = $adossees->flatMap(fn ($o) => $o->mesures
+                    ->where('affiche_publiquement', true)->pluck('candidat_id'))->unique();
+                if ($options->count() >= 2 && $candidats->count() < 2) {
+                    $violations[] = ['type' => 'quiz_arbitrage_mono_candidat',
+                        'message' => "{$ref} : toutes les options viennent du même candidat."];
+                }
+            } elseif ($options->count() !== 1) {
+                $violations[] = ['type' => 'quiz_accord_multi_options',
+                    'message' => "{$ref} : un accord porte sur une seule proposition."];
+            }
+        }
+
+        // Un quiz dont les questions se concentrent sur deux ou trois thèmes donnerait une
+        // image faussée de la campagne. Alerte, pas violation : c'est un jugement éditorial.
+        if ($questions->count() >= 5) {
+            $parTheme = $questions->groupBy('theme_id');
+            if ($parTheme->count() < 3) {
+                $alertes[] = ['type' => 'quiz_themes_concentres',
+                    'message' => "Quiz : {$questions->count()} questions réparties sur seulement "
+                        .$parTheme->count().' thème(s).'];
+            }
+        }
     }
 
     private function verifierMesure(ProgrammeMesure $mesure, string $candidat, array &$violations): void

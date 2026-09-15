@@ -20,6 +20,7 @@ use App\Models\PresidentielleModerationLog;
 use App\Models\PresidentielleSignalement;
 use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeMesure;
+use App\Models\QuizQuestion;
 use App\Models\User;
 use App\Services\Presidentielle\HatvpSummary;
 use App\Services\Presidentielle\IntegriteChecker;
@@ -56,6 +57,7 @@ class PresidentielleModerationController extends Controller
         'argument' => Argument::class,
         'argument_lien' => ArgumentMesureLien::class,   // liaison argument↔mesure (porte le sens)
         'controverse' => Controverse::class,
+        'quiz_question' => QuizQuestion::class,      // question du quiz thématique
         'lien' => MesureScrutinLien::class,              // lien mesure↔scrutin (module cohérence)
         'parcours' => ParcoursEvenement::class,
         'programme_document' => ProgrammeDocument::class,
