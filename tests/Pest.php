@@ -104,3 +104,23 @@ function lierArgumentPublie(\App\Models\ProgrammeMesure $mesure, string $sens): 
         'mesure_id' => $mesure->id,
     ]);
 }
+
+/**
+ * En-têtes d'une requête Inertia de test.
+ *
+ * `X-Inertia` seul ne suffit pas : Inertia compare la version des assets et répond 409
+ * dès qu'elle diverge, pour forcer un rechargement complet côté navigateur. Tant qu'il
+ * n'existait aucun `public/build/manifest.json` dans la copie de travail, la version
+ * valait null des deux côtés et le 409 ne se produisait pas — les tests passaient par
+ * accident. Le premier `npm run build` les a fait tomber tous ensemble.
+ */
+function enTeteInertia(): array
+{
+    $version = app(\App\Http\Middleware\HandleInertiaRequests::class)
+        ->version(\Illuminate\Http\Request::create('/'));
+
+    return array_filter([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => $version,
+    ]);
+}

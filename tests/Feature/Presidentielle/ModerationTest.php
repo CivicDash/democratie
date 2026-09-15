@@ -120,9 +120,10 @@ it('exige une double validation par un second modérateur pour une liaison « co
 });
 
 it('expose la file de modération au modérateur et refuse les autres (403)', function () {
-    // en-tête X-Inertia : réponse JSON (pas de rendu blade/Vite en environnement de test)
+    // En-têtes Inertia : réponse JSON plutôt qu'un rendu blade/Vite. La VERSION doit y
+    // figurer, sinon Inertia répond 409 pour forcer un rechargement complet.
     $this->actingAs(moderateur())
-        ->withHeader('X-Inertia', 'true')
+        ->withHeaders(enTeteInertia())
         ->get('/admin/presidentielle/moderation')
         ->assertOk();
 
@@ -131,7 +132,7 @@ it('expose la file de modération au modérateur et refuse les autres (403)', fu
         ->assertForbidden();
 });
 
-it('applique une action via l’endpoint HTTP et bloque une publication non conforme', function () {
+it('applique une action via l’endpoint HTTP et bloque un argumentaire à sens unique', function () {
     $mod = moderateur();
     $mesure = mesureConforme();
 
@@ -141,16 +142,31 @@ it('applique une action via l’endpoint HTTP et bloque une publication non conf
     ])->assertSessionHasNoErrors();
     expect($mesure->fresh()->affiche_publiquement)->toBeTrue();
 
-    // mesure sans contre -> l'endpoint renvoie une erreur de validation
+    // Mesure sourcée SANS aucun argumentaire : publiable depuis le 15/09/2026. La
+    // symétrie porte sur l'argumentaire, pas sur la mesure — sans argument publié il n'y
+    // a rien à équilibrer, et c'est ce qui débloquait 522 mesures sur 523.
     $candidat = CandidatPresidentielle::factory()->publie()->create();
-    $incomplete = ProgrammeMesure::factory()->create([
+    $sansArgumentaire = ProgrammeMesure::factory()->create([
         'candidat_id' => $candidat->id, 'theme_id' => ProgrammeTheme::factory()->create()->id,
         'statut_validation' => 'valide', 'source_officielle_url' => 'https://x.fr/#m',
     ]);
     $this->actingAs($mod)->post('/admin/presidentielle/moderation/action', [
-        'type' => 'mesure', 'id' => $incomplete->id, 'action' => 'publier',
+        'type' => 'mesure', 'id' => $sansArgumentaire->id, 'action' => 'publier',
+    ])->assertSessionHasNoErrors();
+    expect($sansArgumentaire->fresh()->affiche_publiquement)->toBeTrue();
+
+    // Argumentaire à sens unique : toujours refusé, et c'est là que la règle compte.
+    // Publier un seul camp serait une prise de position déguisée.
+    $desequilibree = ProgrammeMesure::factory()->create([
+        'candidat_id' => $candidat->id, 'theme_id' => ProgrammeTheme::factory()->create()->id,
+        'statut_validation' => 'valide', 'source_officielle_url' => 'https://x.fr/#m2',
+    ]);
+    lierArgumentPublie($desequilibree, 'contre');
+
+    $this->actingAs($mod)->post('/admin/presidentielle/moderation/action', [
+        'type' => 'mesure', 'id' => $desequilibree->id, 'action' => 'publier',
     ])->assertSessionHasErrors('action');
-    expect($incomplete->fresh()->affiche_publiquement)->toBeFalse();
+    expect($desequilibree->fresh()->affiche_publiquement)->toBeFalse();
 });
 
 it('valide une proposition en créant une mesure rattachée en statut detecte', function () {

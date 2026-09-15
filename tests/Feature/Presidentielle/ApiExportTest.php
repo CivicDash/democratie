@@ -50,7 +50,7 @@ it('écrit les fichiers JSON attendus', function () {
         ->and(file_exists("$dir/candidats/{$candidat->personnePolitique->slug}.json"))->toBeTrue();
 });
 
-it('check-integrite bloque une mesure publiée sans contre-argument', function () {
+it('check-integrite bloque une mesure publiée dont l\'argumentaire est à sens unique', function () {
     [$candidat, $theme] = candidatPubliePublic();
     // mesure publiée avec seulement un "pour" -> viole la symétrie
     $mesure = ProgrammeMesure::factory()->publie()->create([
@@ -62,7 +62,10 @@ it('check-integrite bloque une mesure publiée sans contre-argument', function (
     $resultat = app(IntegriteChecker::class)->analyser('2027');
     $types = array_column($resultat['violations'], 'type');
 
-    expect($types)->toContain('mesure_sans_contre');
+    // La symétrie porte sur l'argumentaire, pas sur la mesure : une mesure SANS aucun
+    // argument publié reste publiable, c'est un relevé sourcé. Dès qu'un argument est
+    // publié, les deux sens deviennent obligatoires — d'où un type unique.
+    expect($types)->toContain('mesure_argumentaire_desequilibre');
     expect(Artisan::call('presidentielle:check-integrite'))->toBe(1); // échec
 });
 

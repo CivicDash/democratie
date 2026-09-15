@@ -101,7 +101,7 @@ it('liste les signalements et les traite (prise en charge → résolution), jour
     $mod = moderateurSignalement();
     $s = PresidentielleSignalement::factory()->create(['statut' => 'nouveau']);
 
-    $this->actingAs($mod)->withHeader('X-Inertia', 'true')
+    $this->actingAs($mod)->withHeaders(enTeteInertia())
         ->get('/admin/presidentielle/signalements')->assertOk();
 
     $this->actingAs($mod)->post(route('admin.presidentielle.signalements.action'), [

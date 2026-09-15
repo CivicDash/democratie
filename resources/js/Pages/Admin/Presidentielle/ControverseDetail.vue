@@ -47,7 +47,7 @@ const bloqueesParMoi = computed(() => aDoubleValider.value.filter((l) => l.doubl
         </template>
 
         <div class="max-w-5xl mx-auto p-6 space-y-5">
-            <FormErrors />
+            <FormErrors :errors="$page.props.errors" />
 
             <!-- En-tête -->
             <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
