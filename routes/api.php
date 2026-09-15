@@ -152,14 +152,19 @@ Route::prefix('v1')->name('v1.')->group(function () {
 Route::get('/lois/search', [\App\Http\Controllers\Api\LoiSearchController::class, 'search']);
 
 // Documents - routes publiques
+//
+// Les chemins littéraux passent AVANT /documents/{document}, sinon celui-ci les
+// capture : « stats », « top-verifiers » et « pending » étaient liés au paramètre
+// {document}, la résolution du modèle échouait, et les trois routes répondaient une
+// erreur au lieu de leur contenu. Elles étaient déclarées, routées, et inatteignables.
 Route::get('/documents', [DocumentController::class, 'index']);
-Route::get('/documents/{document}', [DocumentController::class, 'show']);
-Route::get('/documents/{document}/verifications', [DocumentController::class, 'verifications']);
-Route::get('/documents/{document}/download', [DocumentController::class, 'download']);
 Route::get('/documents/stats', [DocumentController::class, 'stats']);
 Route::get('/documents/top-verifiers', [DocumentController::class, 'topVerifiers']);
 Route::get('/documents/pending', [DocumentController::class, 'pending'])
     ->middleware(['auth:sanctum', 'role:journalist|ong|admin']);
+Route::get('/documents/{document}', [DocumentController::class, 'show']);
+Route::get('/documents/{document}/verifications', [DocumentController::class, 'verifications']);
+Route::get('/documents/{document}/download', [DocumentController::class, 'download']);
 
 // ============================================================================
 // RECHERCHE MEILISEARCH - Routes publiques

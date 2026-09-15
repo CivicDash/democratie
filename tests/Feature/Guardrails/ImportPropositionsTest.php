@@ -63,3 +63,43 @@ it('accepte encore l\'ancienne clé document_source', function () {
 
     File::delete($json);
 });
+
+/**
+ * Les chemins littéraux doivent l'emporter sur les paramètres qui les englobent.
+ *
+ * /api/documents/{document} était déclarée avant /api/documents/stats : elle capturait
+ * « stats », « top-verifiers » et « pending ». Trois routes déclarées, routées, et
+ * inatteignables — l'appelant recevait une erreur, jamais le contenu attendu.
+ */
+it('ne laisse pas un paramètre de route en capturer un chemin littéral', function () {
+    $collisions = [];
+
+    foreach (Illuminate\Support\Facades\Route::getRoutes() as $route) {
+        if (! in_array('GET', $route->methods(), true)) {
+            continue;
+        }
+        $uri = $route->uri();
+        if (! preg_match('#^(.*)/\{[^/}]+\}$#', $uri, $m)) {
+            continue;
+        }
+        $prefixe = $m[1];
+        $position = array_search($route, iterator_to_array(Illuminate\Support\Facades\Route::getRoutes()), true);
+
+        foreach (Illuminate\Support\Facades\Route::getRoutes() as $i => $autre) {
+            if (! in_array('GET', $autre->methods(), true)) {
+                continue;
+            }
+            $u = $autre->uri();
+            // Un chemin littéral d'un segment sous le même préfixe, déclaré APRÈS.
+            if ($u !== $uri && str_starts_with($u, $prefixe.'/')
+                && ! str_contains(substr($u, strlen($prefixe) + 1), '/')
+                && ! str_contains($u, '{')
+                && $i > $position) {
+                $collisions[] = "{$u} est masquée par {$uri}";
+            }
+        }
+    }
+
+    expect(array_values(array_unique($collisions)))->toBe([],
+        "Routes inatteignables :\n  ".implode("\n  ", array_unique($collisions)));
+});
