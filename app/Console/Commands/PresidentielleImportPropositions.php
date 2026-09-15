@@ -63,15 +63,31 @@ class PresidentielleImportPropositions extends Command
 
         DB::beginTransaction();
         try {
-            $ds = $data['document_source'] ?? [];
+            // Le contrat écrit `source` ; la commande ne lisait que `document_source`.
+            // Résultat : chaque import créait un document sans titre, sans URL, sans date
+            // ni durée — il fallait le rattraper en SQL après coup, à la main, à chaque
+            // fois. Les deux clés sont acceptées pour ne pas casser les anciens fichiers.
+            $ds = $data['source'] ?? $data['document_source'] ?? [];
             $document = null;
             if (! $dryRun) {
+                // La note méthodologique est la partie la plus utile du fichier : elle dit
+                // ce qu'il faut réécouter, quelles erreurs de transcription corriger et
+                // quels doublons attendre. Elle était purement et simplement jetée.
+                $note = trim(implode("\n\n", array_filter([
+                    $ds['transcription'] ?? ($ds['avertissement'] ?? null),
+                    $ds['note_methodologique'] ?? null,
+                ])));
+
                 $document = IngestionDocument::create([
                     'type' => $ds['type'] ?? 'article',
                     'titre' => $ds['titre'] ?? basename($fichier),
                     'url' => $ds['url'] ?? null,
-                    'transcription_note' => $ds['transcription'] ?? ($ds['avertissement'] ?? null),
-                    'contrat_version' => $data['contrat_version'] ?? null,
+                    'date_publication' => $ds['date'] ?? ($ds['date_publication'] ?? null),
+                    'duree_s' => $ds['duree_s'] ?? null,
+                    'transcription_note' => $note !== '' ? $note : null,
+                    // La colonne fait 20 caractères : on n'y met pas le nom complet du
+                    // contrat (« presidentielle.propositions.v1 ») mais sa seule version.
+                    'contrat_version' => $this->versionContrat($data),
                     'generateur' => $data['generateur'] ?? null,
                     'statut' => 'extrait',
                 ]);
@@ -96,13 +112,13 @@ class PresidentielleImportPropositions extends Command
                         $score = $citationNorm === '' ? 0.0 : $this->similariteMots($citationNorm, $sourceNorm);
                         if ($score >= 0.85) {
                             $verbatimOk = true;
-                            $this->line("  <fg=yellow>≈</> [{$i}] citation approchée (".round($score * 100)."% — sous-titres auto) : \"".mb_substr($citation, 0, 50).'…"');
+                            $this->line("  <fg=yellow>≈</> [{$i}] citation approchée (".round($score * 100).'% — sous-titres auto) : "'.mb_substr($citation, 0, 50).'…"');
                         } elseif ($score >= 0.55) {
                             $aVerifier = true;
                             $this->line("  <fg=yellow>?</> [{$i}] à vérifier (".round($score * 100).'%) — insérée non vérifiée');
                         } else {
                             $stats['rejete_verbatim']++;
-                            $this->line("  <fg=red>✗</> [{$i}] citation absente de la source (".round($score * 100)."%) : \"".mb_substr($citation, 0, 50).'…"');
+                            $this->line("  <fg=red>✗</> [{$i}] citation absente de la source (".round($score * 100).'%) : "'.mb_substr($citation, 0, 50).'…"');
 
                             continue;
                         }
@@ -255,5 +271,23 @@ class PresidentielleImportPropositions extends Command
         }
 
         return $meilleur / $m;
+    }
+
+    /** Version courte du contrat, tenant dans les 20 caractères de la colonne. */
+    private function versionContrat(array $data): ?string
+    {
+        if (! empty($data['contrat_version'])) {
+            return mb_substr((string) $data['contrat_version'], 0, 20);
+        }
+
+        $contrat = (string) ($data['contrat'] ?? '');
+        if ($contrat === '') {
+            return null;
+        }
+
+        // « presidentielle.propositions.v1 » -> « v1 »
+        $morceaux = explode('.', $contrat);
+
+        return mb_substr(end($morceaux) ?: $contrat, 0, 20);
     }
 }
