@@ -988,6 +988,20 @@ Route::prefix('admin/presidentielle')
         Route::post('/evenements/action', [$c, 'evenementAction'])->name('evenements.action');
         Route::get('/audience', [$c, 'audience'])->name('audience');
         Route::get('/themes', [$c, 'themes'])->name('themes');
+
+        // Quiz thématique. La route littérale `/quiz/mesures/search` est déclarée AVANT
+        // `/quiz/{question}`, sinon le paramètre l'avale — c'est le défaut corrigé sur
+        // /api/documents (patch 0013).
+        Route::get('/quiz', [$c, 'quiz'])->name('quiz');
+        Route::post('/quiz', [$c, 'quizStore'])->name('quiz.store');
+        Route::get('/quiz/mesures/search', [$c, 'quizMesuresSearch'])->name('quiz.mesures.search');
+        Route::post('/quiz/options', [$c, 'quizOptionStore'])->name('quiz.options.store');
+        Route::post('/quiz/options/{option}', [$c, 'quizOptionUpdate'])->whereNumber('option')->name('quiz.options.update');
+        Route::delete('/quiz/options/{option}', [$c, 'quizOptionDestroy'])->whereNumber('option')->name('quiz.options.destroy');
+        Route::post('/quiz/options/{option}/mesures', [$c, 'quizOptionAttach'])->whereNumber('option')->name('quiz.options.mesures.attach');
+        Route::delete('/quiz/options/{option}/mesures', [$c, 'quizOptionDetach'])->whereNumber('option')->name('quiz.options.mesures.detach');
+        Route::get('/quiz/{question}', [$c, 'quizShow'])->whereNumber('question')->name('quiz.show');
+        Route::post('/quiz/{question}', [$c, 'quizUpdate'])->whereNumber('question')->name('quiz.update');
         Route::get('/medias', [$c, 'medias'])->name('medias');
         Route::post('/medias', [$c, 'updateMedias'])->name('medias.update');
     });

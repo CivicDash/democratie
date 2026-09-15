@@ -9,6 +9,7 @@ use App\Models\EvenementCampagne;
 use App\Models\IngestionProposition;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
+use App\Models\QuizQuestion;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 
@@ -80,6 +81,10 @@ class PresidentielleExporter
             'comparateur' => $comparateur,
             'controverses' => $controverses,
             'calendrier' => $this->buildCalendrier($election, $candidatsExport),
+            // Dans $contenu, donc pris dans le content_hash : publier une question
+            // déclenche le rebuild du front. Une clé posée après le « + ['meta' …] »
+            // ne serait jamais hachée et pourrait changer sans qu'aucun rebuild ne parte.
+            'quiz' => $this->buildQuiz($election),
         ];
 
         return $contenu + [
@@ -91,6 +96,69 @@ class PresidentielleExporter
                 'genere_le' => now()->toDateString(),
             ],
         ];
+    }
+
+    /**
+     * Questions de quiz publiées.
+     *
+     * Le garde n'est pas décoratif : le code peut être déployé avant que la migration ne
+     * soit passée. Sans lui, l'export lèverait, `deploy.sh` sortirait en erreur et
+     * figerait objectif2027.fr en entier — même mécanique que pour le calendrier.
+     *
+     * Les candidats figurent dans le JSON : c'est un fichier public, il n'y a rien à
+     * cacher. Les masquer pendant que le visiteur répond est un choix d'interface, pour
+     * qu'il réponde au contenu et non à l'étiquette — pas un secret.
+     */
+    private function buildQuiz(string $election): array
+    {
+        if (! Schema::hasTable('quiz_questions')) {
+            return ['election' => $election, 'questions' => []];
+        }
+
+        $questions = QuizQuestion::publie()
+            ->where('election', $election)
+            ->with(['theme', 'controverse', 'options.mesures.candidat.personnePolitique'])
+            ->orderBy('ordre')->orderBy('id')
+            ->get()
+            ->map(function (QuizQuestion $q) {
+                $options = $q->options->map(function ($o) {
+                    // Seules les mesures publiées comptent : une option adossée à un
+                    // brouillon n'aurait aucune position visible derrière elle.
+                    $mesures = $o->mesures->where('affiche_publiquement', true);
+
+                    return [
+                        'ref' => $o->uuid,
+                        'libelle' => $o->libelle,
+                        // Une position commune à plusieurs candidats les crédite tous.
+                        'candidats' => $mesures
+                            ->map(fn ($m) => [
+                                'slug' => $m->candidat?->personnePolitique?->slug,
+                                'nom' => $m->candidat?->personnePolitique?->nom_complet,
+                                'couleur' => $m->candidat?->couleur_hex,
+                            ])
+                            ->filter(fn ($c) => $c['slug'] !== null)
+                            ->unique('slug')->values()->all(),
+                        'mesures' => $mesures->map(fn ($m) => [
+                            'titre' => $m->titre,
+                            'candidat_slug' => $m->candidat?->personnePolitique?->slug,
+                            'source_url' => $this->url($m->source_officielle_url),
+                        ])->values()->all(),
+                    ];
+                })->values()->all();
+
+                return [
+                    'ref' => $q->uuid,
+                    'theme' => $q->theme?->slug,
+                    'format' => $q->format,
+                    'intitule' => $q->intitule,
+                    'precision' => $q->precision_contexte,
+                    'controverse' => $q->controverse?->slug,
+                    'options' => $options,
+                ];
+            })
+            ->values()->all();
+
+        return ['election' => $election, 'questions' => $questions];
     }
 
     /** Ne renvoie une URL que si elle est publique et valide (jamais de placeholder). */
@@ -615,6 +683,7 @@ class PresidentielleExporter
         // données exactes — n'atteint jamais le front.
         $ecrits[] = $this->put("{$dir}/controverses.json", $data['controverses']);
         $ecrits[] = $this->put("{$dir}/calendrier.json", $data['calendrier']);
+        $ecrits[] = $this->put("{$dir}/quiz.json", $data['quiz']);
 
         foreach ($data['candidats'] as $slug => $candidat) {
             $ecrits[] = $this->put("{$dir}/candidats/{$slug}.json", $candidat);

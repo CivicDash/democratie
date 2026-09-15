@@ -20,6 +20,8 @@ use App\Models\PresidentielleModerationLog;
 use App\Models\PresidentielleSignalement;
 use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeMesure;
+use App\Models\ProgrammeTheme;
+use App\Models\QuizOption;
 use App\Models\QuizQuestion;
 use App\Models\User;
 use App\Services\Presidentielle\HatvpSummary;
@@ -1196,6 +1198,250 @@ class PresidentielleModerationController extends Controller
                 ->sortBy('nom', SORT_NATURAL | SORT_FLAG_CASE)
                 ->values(),
         ]);
+    }
+
+    /**
+     * File des questions de quiz.
+     *
+     * La colonne qui compte est « candidats couverts » : une question d'arbitrage dont
+     * toutes les options viennent du même candidat n'oppose personne et reste impubliable.
+     * Elle doit se voir dans la liste, sans avoir à ouvrir la question.
+     */
+    public function quiz(Request $request, ModerationService $service)
+    {
+        $statut = $request->query('statut', 'tous');
+        $q = trim((string) $request->query('q', ''));
+
+        $questions = QuizQuestion::with(['theme', 'controverse', 'options.mesures.candidat'])
+            ->when($statut === 'publie', fn ($r) => $r->where('affiche_publiquement', true))
+            ->when(! in_array($statut, ['tous', 'publie'], true), fn ($r) => $r->where('statut_validation', $statut))
+            ->when($q !== '', fn ($r) => $r->where('intitule', 'ilike', "%{$q}%"))
+            ->orderBy('ordre')->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString()
+            ->through(fn (QuizQuestion $question) => [
+                'id' => $question->id,
+                'intitule' => $question->intitule,
+                'theme' => $question->theme?->nom,
+                'format' => $question->format,
+                'format_libelle' => QuizQuestion::FORMATS[$question->format] ?? $question->format,
+                'controverse' => $question->controverse?->titre,
+                'nb_options' => $question->options->count(),
+                'nb_candidats' => $question->options
+                    ->flatMap(fn ($o) => $o->mesures->where('affiche_publiquement', true)->pluck('candidat_id'))
+                    ->unique()->count(),
+                'statut_validation' => $question->statut_validation,
+                'affiche_publiquement' => $question->affiche_publiquement,
+                'raisons_non_publiable' => $service->raisonsNonPubliable($question),
+            ]);
+
+        return Inertia::render('Admin/Presidentielle/Quiz', [
+            'questions' => $questions,
+            'statut' => $statut,
+            'q' => $q,
+            'themes' => ProgrammeTheme::actif()->ordonne()->get(['id', 'nom']),
+            'formats' => QuizQuestion::FORMATS,
+            // Une controverse porte déjà un intitulé neutre passé en modération : la
+            // proposer en amorce évite de réécrire, sans dispenser de relire.
+            'controverses' => Controverse::orderBy('titre')->get(['id', 'titre', 'theme_id']),
+        ]);
+    }
+
+    /** Crée une question, toujours en `detecte` et non publiée. */
+    public function quizStore(Request $request)
+    {
+        $data = $request->validate([
+            'theme_id' => ['required', 'integer', 'exists:programme_themes,id'],
+            'format' => ['required', 'string', 'in:'.implode(',', array_keys(QuizQuestion::FORMATS))],
+            'intitule' => ['required', 'string', 'max:500'],
+            'precision_contexte' => ['nullable', 'string', 'max:2000'],
+            'controverse_id' => ['nullable', 'integer', 'exists:controverses,id'],
+        ], [
+            'intitule.required' => 'Formulez la question — neutre, et de préférence interrogative.',
+            'theme_id.required' => 'Une question appartient à un thème.',
+        ]);
+
+        $question = QuizQuestion::create($data + [
+            'election' => '2027',
+            'statut_validation' => 'detecte',
+            'affiche_publiquement' => false,
+        ]);
+
+        return redirect()->route('admin.presidentielle.quiz.show', $question->id)
+            ->with('success', 'Question créée (detecte). Ajoutez ses options et rattachez-y des mesures publiées.');
+    }
+
+    /**
+     * Détail d'une question : ses options, et les mesures qui les adossent.
+     *
+     * Le libellé court d'une option est le SEUL texte que nous écrivons nous-mêmes dans
+     * tout le quiz. Aucune règle ne peut vérifier qu'il ne déforme pas la mesure ni ne
+     * reprend le cadrage d'un camp. L'écran sert donc le libellé et les verbatims l'un
+     * sous l'autre : c'est le seul contrôle possible, il doit être rendu facile.
+     */
+    public function quizShow(QuizQuestion $question, ModerationService $service)
+    {
+        $question->load([
+            'theme', 'controverse',
+            'options.mesures.candidat.personnePolitique',
+            'options.mesures.theme',
+        ]);
+
+        return Inertia::render('Admin/Presidentielle/QuizDetail', [
+            'question' => [
+                'id' => $question->id,
+                'intitule' => $question->intitule,
+                'precision_contexte' => $question->precision_contexte,
+                'format' => $question->format,
+                'format_libelle' => QuizQuestion::FORMATS[$question->format] ?? $question->format,
+                'theme_id' => $question->theme_id,
+                'theme' => $question->theme?->nom,
+                'controverse' => $question->controverse?->titre,
+                'statut_validation' => $question->statut_validation,
+                'affiche_publiquement' => $question->affiche_publiquement,
+                'raisons_non_publiable' => $service->raisonsNonPubliable($question),
+            ],
+            'options' => $question->options->map(fn (QuizOption $o) => [
+                'id' => $o->id,
+                'libelle' => $o->libelle,
+                'ordre' => $o->ordre,
+                'mesures' => $o->mesures->map(fn ($m) => [
+                    'id' => $m->id,
+                    'titre' => $m->titre,
+                    'candidat' => $m->candidat?->personnePolitique?->nom_complet,
+                    'theme' => $m->theme?->nom,
+                    'affiche_publiquement' => $m->affiche_publiquement,
+                ])->values(),
+            ]),
+            'themes' => ProgrammeTheme::actif()->ordonne()->get(['id', 'nom']),
+            'formats' => QuizQuestion::FORMATS,
+        ]);
+    }
+
+    public function quizUpdate(Request $request, QuizQuestion $question)
+    {
+        $data = $request->validate([
+            'intitule' => ['required', 'string', 'max:500'],
+            'precision_contexte' => ['nullable', 'string', 'max:2000'],
+            'theme_id' => ['required', 'integer', 'exists:programme_themes,id'],
+            'format' => ['required', 'string', 'in:'.implode(',', array_keys(QuizQuestion::FORMATS))],
+        ]);
+
+        $question->update($data);
+
+        return back()->with('success', 'Question mise à jour.');
+    }
+
+    public function quizOptionStore(Request $request)
+    {
+        $data = $request->validate([
+            'question_id' => ['required', 'integer', 'exists:quiz_questions,id'],
+            'libelle' => ['required', 'string', 'max:300'],
+        ], [
+            'libelle.max' => 'Le libellé doit se lire d\'un coup d\'œil — 300 caractères au plus.',
+        ]);
+
+        $question = QuizQuestion::findOrFail($data['question_id']);
+        QuizOption::create([
+            'question_id' => $question->id,
+            'libelle' => $data['libelle'],
+            'ordre' => (int) $question->options()->max('ordre') + 1,
+        ]);
+
+        return back()->with('success', 'Option ajoutée. Rattachez-y au moins une mesure publiée.');
+    }
+
+    public function quizOptionUpdate(Request $request, QuizOption $option)
+    {
+        $option->update($request->validate([
+            'libelle' => ['required', 'string', 'max:300'],
+            'ordre' => ['nullable', 'integer', 'min:0'],
+        ]));
+
+        return back()->with('success', 'Option mise à jour.');
+    }
+
+    public function quizOptionDestroy(QuizOption $option)
+    {
+        $option->delete();
+
+        return back()->with('success', 'Option supprimée.');
+    }
+
+    /** Rattache une mesure publiée à une option. */
+    public function quizOptionAttach(Request $request, QuizOption $option)
+    {
+        $data = $request->validate([
+            'mesure_id' => ['required', 'integer', 'exists:programme_mesures,id'],
+        ]);
+
+        $mesure = ProgrammeMesure::findOrFail($data['mesure_id']);
+        if (! $mesure->affiche_publiquement) {
+            throw ValidationException::withMessages([
+                'mesure_id' => 'Cette mesure n\'est pas publiée. Une option ne peut s\'adosser qu\'à une position déjà visible du public.',
+            ]);
+        }
+
+        // Vérifier AVANT d'insérer, et non rattraper la violation d'unicité. PostgreSQL
+        // avorte la transaction courante dès qu'une contrainte saute : le `catch` produit
+        // bien le bon message, mais tout ce qui suit dans la même transaction échoue avec
+        // « current transaction is aborted ». La contrainte du pivot reste la garantie de
+        // dernier recours, pour la course entre deux clics simultanés.
+        if ($option->mesures()->whereKey($mesure->id)->exists()) {
+            throw ValidationException::withMessages([
+                'mesure_id' => 'Cette mesure est déjà rattachée à cette option.',
+            ]);
+        }
+
+        $option->mesures()->attach($mesure->id);
+
+        return back()->with('success', 'Mesure rattachée.');
+    }
+
+    public function quizOptionDetach(Request $request, QuizOption $option)
+    {
+        $data = $request->validate(['mesure_id' => ['required', 'integer']]);
+        $option->mesures()->detach($data['mesure_id']);
+
+        return back()->with('success', 'Mesure détachée.');
+    }
+
+    /**
+     * Recherche de mesures publiées, pour le sélecteur du détail.
+     *
+     * Serveur et non préchargé : le gisement est l'ensemble des mesures publiées — 523 à
+     * ce jour, soit une septantaine de kilo-octets de seuls titres. Les inliner dans la
+     * page répéterait le défaut de la page quiz publique, qui sérialise aujourd'hui tout
+     * l'argumentaire de tous les candidats dans son HTML.
+     */
+    public function quizMesuresSearch(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        $themeId = (int) $request->query('theme_id', 0) ?: null;
+
+        if (mb_strlen($q) < 2 && ! $themeId) {
+            return response()->json(['mesures' => []]);
+        }
+
+        $mesures = ProgrammeMesure::with(['candidat.personnePolitique', 'theme'])
+            ->where('affiche_publiquement', true)
+            ->when($themeId, fn ($r) => $r->where('theme_id', $themeId))
+            ->when($q !== '', fn ($r) => $r->where(fn ($sub) => $sub
+                ->where('titre', 'ilike', "%{$q}%")
+                ->orWhereHas('candidat.personnePolitique', fn ($p) => $p
+                    ->where('nom', 'ilike', "%{$q}%")
+                    ->orWhere('prenom', 'ilike', "%{$q}%"))))
+            ->orderBy('titre')
+            ->limit(25)
+            ->get()
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'titre' => $m->titre,
+                'candidat' => $m->candidat?->personnePolitique?->nom_complet,
+                'theme' => $m->theme?->nom,
+            ]);
+
+        return response()->json(['mesures' => $mesures]);
     }
 
     public function action(Request $request, ModerationService $service)

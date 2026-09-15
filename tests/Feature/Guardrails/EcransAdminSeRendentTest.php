@@ -62,6 +62,7 @@ dataset('écrans admin', [
     'présidentielle — signalements' => ['admin.presidentielle.signalements'],
     'présidentielle — événements' => ['admin.presidentielle.evenements'],
     'présidentielle — thèmes' => ['admin.presidentielle.themes'],
+    'présidentielle — quiz' => ['admin.presidentielle.quiz'],
     'présidentielle — audience' => ['admin.presidentielle.audience'],
     'présidentielle — médias' => ['admin.presidentielle.medias'],
     'présidentielle — HATVP' => ['admin.presidentielle.hatvp'],
