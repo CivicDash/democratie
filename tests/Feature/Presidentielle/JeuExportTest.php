@@ -107,3 +107,34 @@ it('compose le nom sans civilité', function () {
     // le reste du front retire ensuite. On compose donc directement prénom + nom.
     expect(collect(jeu()['candidats'])->pluck('nom'))->toContain('Camille Alpha');
 });
+
+it('pointe le lien à la seconde quand le repérage est un timecode', function () {
+    $candidat = candidatAvecCitations('Alpha', 10);
+    $doc = \App\Models\IngestionDocument::create([
+        'type' => 'video', 'titre' => 'Débat', 'url' => 'https://www.youtube.com/watch?v=abc123',
+        'statut' => 'extrait',
+    ]);
+    \App\Models\IngestionProposition::where('candidat_id', $candidat->id)->update([
+        'document_id' => $doc->id, 'source_url' => null, 'timestamp_ou_paragraphe' => '01:57:01',
+    ]);
+
+    $url = collect(jeu()['citations'])->firstWhere('candidat', 'alpha')['source']['url'];
+
+    // 1×3600 + 57×60 + 1 = 7021
+    expect($url)->toBe('https://www.youtube.com/watch?v=abc123&t=7021s');
+});
+
+it('ne touche pas au lien quand le repérage n\'est pas un timecode', function () {
+    $candidat = candidatAvecCitations('Alpha', 10);
+    $doc = \App\Models\IngestionDocument::create([
+        'type' => 'article', 'titre' => 'Discours publié',
+        'url' => 'https://exemple.fr/discours', 'statut' => 'extrait',
+    ]);
+    \App\Models\IngestionProposition::where('candidat_id', $candidat->id)->update([
+        'document_id' => $doc->id, 'source_url' => null,
+        'timestamp_ou_paragraphe' => 'paragraphe « Alors, camarades »',
+    ]);
+
+    expect(collect(jeu()['citations'])->firstWhere('candidat', 'alpha')['source']['url'])
+        ->toBe('https://exemple.fr/discours');
+});

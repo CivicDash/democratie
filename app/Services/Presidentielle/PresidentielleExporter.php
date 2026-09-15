@@ -100,6 +100,29 @@ class PresidentielleExporter
         ];
     }
 
+    /**
+     * Ajoute le paramètre de temps à une URL YouTube quand le repérage est un timecode.
+     *
+     * Le repérage vaut soit « 01:57:01 » pour une vidéo, soit « lignes ~1440-1443 » ou
+     * « paragraphe … » pour une source écrite : on ne touche qu'au premier cas.
+     */
+    private function lienHorodate(?string $url, ?string $reperage): ?string
+    {
+        if (! $url || ! $reperage || ! preg_match('#youtube\.com|youtu\.be#', $url)) {
+            return $url;
+        }
+        if (! preg_match('/^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})$/', trim($reperage), $m)) {
+            return $url;
+        }
+
+        $secondes = ((int) ($m[1] ?: 0)) * 3600 + ((int) $m[2]) * 60 + (int) $m[3];
+        if ($secondes <= 0) {
+            return $url;
+        }
+
+        return $url.(str_contains($url, '?') ? '&' : '?')."t={$secondes}s";
+    }
+
     /** Nombre de citations retenues par candidat, et seuil d'entrée dans le vivier. */
     private const JEU_PAR_CANDIDAT = 12;
 
@@ -161,8 +184,15 @@ class PresidentielleExporter
                 'theme' => $l->theme,
                 'source' => array_filter([
                     'titre' => $l->doc_titre,
-                    'url' => $this->url($l->source_url) ?? $this->url($l->doc_url),
-                    'date' => $l->date_publication,
+                    // Lien pointé à la seconde quand le repérage est un timecode : la
+                    // correction devient vérifiable en un clic, au bon moment du discours.
+                    'url' => $this->lienHorodate(
+                        $this->url($l->source_url) ?? $this->url($l->doc_url),
+                        $l->timestamp_ou_paragraphe,
+                    ),
+                    'date' => $l->date_publication
+                        ? \Illuminate\Support\Carbon::parse($l->date_publication)->format('d/m/Y')
+                        : null,
                     'reperage' => $l->timestamp_ou_paragraphe,
                 ], fn ($v) => $v !== null && $v !== ''),
             ])
