@@ -11,6 +11,7 @@ use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
 use App\Models\QuizQuestion;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -85,6 +86,7 @@ class PresidentielleExporter
             // déclenche le rebuild du front. Une clé posée après le « + ['meta' …] »
             // ne serait jamais hachée et pourrait changer sans qu'aucun rebuild ne parte.
             'quiz' => $this->buildQuiz($election),
+            'jeu' => $this->buildJeu($election),
         ];
 
         return $contenu + [
@@ -96,6 +98,87 @@ class PresidentielleExporter
                 'genere_le' => now()->toDateString(),
             ],
         ];
+    }
+
+    /** Nombre de citations retenues par candidat, et seuil d'entrée dans le vivier. */
+    private const JEU_PAR_CANDIDAT = 12;
+
+    private const JEU_MINIMUM = 8;
+
+    /**
+     * Vivier du jeu « Qui a dit quoi ? ».
+     *
+     * On y met des CITATIONS VERBATIM, pas les titres de mesures : ces titres sont nos
+     * résumés, personne ne les a prononcés. Demander « qui a dit ça » à propos d'une
+     * phrase que nous avons écrite serait un contresens, et un contresens sur la seule
+     * chose que le jeu prétend enseigner.
+     *
+     * La question posée est celle de l'AUTEUR d'une phrase, pas du partage d'une opinion :
+     * elle a exactement une bonne réponse, y compris quand deux candidats pensent la même
+     * chose. C'est ce qui permet de tirer les leurres sans enquêter sur les convergences.
+     *
+     * Tirage ÉQUILIBRÉ, et c'est l'essentiel : à volume libre, Mélenchon pèserait 20 % du
+     * corpus et répondre son nom à chaque carte donnerait autant que le hasard, sans lire.
+     * Le jeu mesurerait notre dépouillement. Plafond par candidat, et seuil d'entrée pour
+     * écarter ceux dont deux citations feraient un leurre reconnaissable.
+     *
+     * Ordre déterministe (par identifiant) : le content_hash doit rester stable d'un export
+     * à l'autre, sans quoi le front se reconstruirait à chaque passage du cron.
+     */
+    private function buildJeu(string $election): array
+    {
+        if (! Schema::hasTable('ingestion_propositions')) {
+            return ['election' => $election, 'candidats' => [], 'citations' => []];
+        }
+
+        $lignes = DB::table('ingestion_propositions as p')
+            ->join('programme_mesures as m', 'm.id', '=', 'p.mesure_id')
+            ->join('candidats_presidentielle as c', 'c.id', '=', 'm.candidat_id')
+            ->join('personnes_politiques as pp', 'pp.id', '=', 'c.personne_politique_id')
+            ->leftJoin('programme_themes as t', 't.id', '=', 'm.theme_id')
+            ->leftJoin('ingestion_documents as d', 'd.id', '=', 'p.document_id')
+            ->whereNull('m.deleted_at')
+            ->where('m.affiche_publiquement', true)
+            ->where('c.election', $election)
+            ->where('c.affiche_publiquement', true)
+            ->whereRaw('length(p.citation_verbatim) between 40 and 180')
+            ->orderBy('m.id')
+            ->get([
+                'p.uuid as ref', 'p.citation_verbatim', 'p.timestamp_ou_paragraphe', 'p.source_url',
+                'pp.slug as candidat', 'pp.prenom', 'pp.nom', 'c.couleur_hex', 't.slug as theme',
+                'd.titre as doc_titre', 'd.url as doc_url', 'd.date_publication',
+            ]);
+
+        $parCandidat = $lignes->groupBy('candidat')
+            ->filter(fn ($g) => $g->count() >= self::JEU_MINIMUM);
+
+        $citations = $parCandidat
+            ->flatMap(fn ($g) => $g->take(self::JEU_PAR_CANDIDAT))
+            ->map(fn ($l) => [
+                'ref' => $l->ref,
+                'texte' => trim($l->citation_verbatim),
+                'candidat' => $l->candidat,
+                'theme' => $l->theme,
+                'source' => array_filter([
+                    'titre' => $l->doc_titre,
+                    'url' => $this->url($l->source_url) ?? $this->url($l->doc_url),
+                    'date' => $l->date_publication,
+                    'reperage' => $l->timestamp_ou_paragraphe,
+                ], fn ($v) => $v !== null && $v !== ''),
+            ])
+            ->values()->all();
+
+        $candidats = $parCandidat
+            ->map(fn ($g) => [
+                'slug' => $g->first()->candidat,
+                'nom' => trim($g->first()->prenom.' '.$g->first()->nom),
+                'couleur' => $g->first()->couleur_hex,
+            ])
+            ->values()
+            ->sortBy('nom', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()->all();
+
+        return ['election' => $election, 'candidats' => $candidats, 'citations' => $citations];
     }
 
     /**
@@ -684,6 +767,7 @@ class PresidentielleExporter
         $ecrits[] = $this->put("{$dir}/controverses.json", $data['controverses']);
         $ecrits[] = $this->put("{$dir}/calendrier.json", $data['calendrier']);
         $ecrits[] = $this->put("{$dir}/quiz.json", $data['quiz']);
+        $ecrits[] = $this->put("{$dir}/jeu.json", $data['jeu']);
 
         foreach ($data['candidats'] as $slug => $candidat) {
             $ecrits[] = $this->put("{$dir}/candidats/{$slug}.json", $candidat);
