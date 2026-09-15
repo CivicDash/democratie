@@ -135,6 +135,109 @@ class PresidentielleModerationController extends Controller
         return back()->with('success', "Prise de parole supprimée : « {$titre} » (et ses propositions).");
     }
 
+    /**
+     * Détail d'une controverse : ses faits, leurs sources, et l'emploi de chaque fait.
+     *
+     * Écran manquant jusqu'ici, et son absence avait une conséquence précise. La liste des
+     * controverses propose une double validation en lot, par identifiants : un modérateur
+     * pouvait donc confirmer dix liaisons « contre » sans jamais lire ce qu'il confirmait.
+     * Or la seconde validation n'a de sens que comme seconde LECTURE, indépendante de la
+     * première. Un bouton sans texte à lire la vide de son objet.
+     *
+     * Contrainte métier respectée ici : le sens est porté par la liaison, jamais par le
+     * fait. Les faits ne sont donc ni groupés ni filtrés par sens ; le libellé « étaye » /
+     * « contredit » reste collé au titre de la mesure visée, à l'intérieur du fait.
+     */
+    public function controverseShow(Controverse $controverse, ModerationService $service, Request $request)
+    {
+        $controverse->load([
+            'theme',
+            'arguments' => fn ($q) => $q->orderBy('id'),
+            'arguments.sources',
+            'arguments.liens.mesure.candidat.personnePolitique',
+            'arguments.liens.mesure.theme',
+        ]);
+
+        $moderateurIds = $controverse->arguments->flatMap->liens
+            ->flatMap(fn ($l) => [$l->valide_par, $l->double_valide_par])
+            ->filter()->unique()->values();
+        $moderateurs = User::whereIn('id', $moderateurIds)->pluck('name', 'id');
+
+        $moiId = (int) $request->user()->id;
+
+        return Inertia::render('Admin/Presidentielle/ControverseDetail', [
+            'controverse' => [
+                'id' => $controverse->id,
+                'slug' => $controverse->slug,
+                'titre' => $controverse->titre,
+                'note_methodologique' => $controverse->note_methodologique,
+                'theme' => $controverse->theme?->nom,
+                'statut_validation' => $controverse->statut_validation,
+                'affiche_publiquement' => $controverse->affiche_publiquement,
+                'raisons_non_publiable' => $service->raisonsNonPubliable($controverse),
+            ],
+            'faits' => $controverse->arguments->map(fn (Argument $a) => [
+                'id' => $a->id,
+                'type_argument' => $a->type_argument,
+                'type_libelle' => Argument::TYPES[$a->type_argument] ?? $a->type_argument,
+                'titre' => $a->titre,
+                'contenu' => $a->contenu,
+                'statut_validation' => $a->statut_validation,
+                'affiche_publiquement' => $a->affiche_publiquement,
+                'a_source_fiable' => $a->aSourceFiable(),
+                'raisons_non_publiable' => $service->raisonsNonPubliable($a),
+                'sources' => $a->sources->map(fn ($s) => [
+                    'id' => $s->id,
+                    'type_source' => $s->type_source,
+                    'titre' => $s->titre,
+                    'url' => $s->url,
+                    'media' => $s->media,
+                    'auteur' => $s->auteur,
+                    'date_publication' => $s->date_publication?->format('d/m/Y'),
+                    'extrait' => $s->extrait,
+                    'fiabilite' => $s->fiabilite,
+                    'archive_url' => $s->archive_url,
+                ]),
+                // L'emploi du fait : une entrée par mesure visée. C'est ici, et seulement
+                // ici, que le sens apparaît.
+                'liaisons' => $a->liens->map(function ($l) use ($moderateurs, $moiId, $service) {
+                    $premier = $l->valide_par ? (int) $l->valide_par : null;
+                    $attendDouble = $l->sens === 'contre'
+                        && $l->statut_validation === 'valide'
+                        && ! $l->double_valide_par;
+
+                    return [
+                        'id' => $l->id,
+                        'sens' => $l->sens,
+                        'sens_libelle' => $l->sens === 'contre' ? 'contredit' : 'étaye',
+                        'note_contextuelle' => $l->note_contextuelle,
+                        'statut_validation' => $l->statut_validation,
+                        'affiche_publiquement' => $l->affiche_publiquement,
+                        'mesure' => $l->mesure ? [
+                            'id' => $l->mesure->id,
+                            'titre' => $l->mesure->titre,
+                            'candidat' => $l->mesure->candidat?->personnePolitique?->nom_complet,
+                            'theme' => $l->mesure->theme?->nom,
+                            'affiche_publiquement' => $l->mesure->affiche_publiquement,
+                        ] : null,
+                        'valide_par_nom' => $premier ? ($moderateurs[$premier] ?? "modérateur #{$premier}") : null,
+                        'valide_at' => $l->valide_at?->format('d/m/Y H:i'),
+                        'double_valide_par_nom' => $l->double_valide_par
+                            ? ($moderateurs[(int) $l->double_valide_par] ?? 'modérateur #'.$l->double_valide_par)
+                            : null,
+                        'double_valide_at' => $l->double_valide_at?->format('d/m/Y H:i'),
+                        'attend_double_validation' => $attendDouble,
+                        // Le service refuse qu'une même personne valide deux fois. L'écran
+                        // doit le dire AVANT le clic, sinon le garde-fou se vit comme une
+                        // panne : bouton pressé, message d'erreur, rien de fait.
+                        'double_validation_par_moi_interdite' => $attendDouble && $premier === $moiId,
+                        'raisons_non_publiable' => $service->raisonsNonPubliable($l),
+                    ];
+                })->values(),
+            ]),
+        ]);
+    }
+
     /** File des mesures par statut de validation (ou « publie » = affichées publiquement). */
     public function mesures(Request $request)
     {

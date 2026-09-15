@@ -182,7 +182,19 @@ const erreurs = () => usePage().props.errors ?? {};
                     <tbody>
                         <tr v-for="c in controverses.data" :key="c.id" class="border-t border-gray-100 dark:border-gray-800 align-top">
                             <td class="p-3">
-                                <div class="font-medium">{{ c.titre }}</div>
+                                <Link :href="route('admin.presidentielle.controverses.show', c.id)"
+                                      class="font-medium text-blue-700 dark:text-blue-300 hover:underline">
+                                    {{ c.titre }}
+                                </Link>
+                                <div class="text-xs text-gray-500">
+                                    <!-- L'action en lot agit sur des identifiants. Le détail est
+                                         le seul endroit où l'on voit ce que l'on valide : pour une
+                                         seconde validation, c'est la lecture qui fait le contrôle. -->
+                                    <Link :href="route('admin.presidentielle.controverses.show', c.id)"
+                                          class="text-blue-600 hover:underline">
+                                        Lire les faits, sources et liaisons →
+                                    </Link>
+                                </div>
                                 <div v-if="c.note_methodologique" class="text-xs text-gray-500 max-w-md">{{ c.note_methodologique }}</div>
                             </td>
                             <td class="p-3 whitespace-nowrap">{{ c.theme?.nom ?? '—' }}</td>
