@@ -981,6 +981,7 @@ Route::prefix('admin/presidentielle')
         Route::post('/hatvp/statut', [$c, 'hatvpStatut'])->name('hatvp.statut');
         Route::get('/candidats', [$c, 'candidats'])->name('candidats');
         Route::post('/candidats', [$c, 'candidatStore'])->name('candidats.store');
+        Route::post('/candidats/{candidat}', [$c, 'candidatUpdate'])->whereNumber('candidat')->name('candidats.update');
         Route::post('/candidats/{candidat}/sync-parcours', [$c, 'syncParcours'])->name('candidats.sync-parcours');
         Route::get('/parcours', [$c, 'parcours'])->name('parcours');
         Route::get('/evenements', [$c, 'evenements'])->name('evenements');

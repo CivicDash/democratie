@@ -1207,6 +1207,53 @@ class PresidentielleModerationController extends Controller
      * toutes les options viennent du même candidat n'oppose personne et reste impubliable.
      * Elle doit se voir dans la liste, sans avoir à ouvrir la question.
      */
+    /**
+     * Met à jour un candidat.
+     *
+     * Cette route n'existait pas : on pouvait créer un candidat et le modérer, jamais
+     * corriger son statut. Conséquence concrète le 15/09/2026 — Clémentine Autain s'est
+     * retirée le 11 juillet, et le site l'affichait toujours « déclarée » deux mois plus
+     * tard, sans moyen de le corriger autrement qu'en base.
+     *
+     * Le statut de candidature n'est pas un détail d'affichage : il dit au visiteur qui
+     * est encore en lice. La primaire socialiste va en faire changer sept d'un coup.
+     */
+    public function candidatUpdate(Request $request, CandidatPresidentielle $candidat)
+    {
+        $data = $request->validate([
+            'statut_candidature' => ['required', 'in:'.implode(',', CandidatPresidentielle::STATUTS_CANDIDATURE)],
+            'parti_soutien' => ['nullable', 'string', 'max:150'],
+            'nuance_politique' => ['nullable', 'string', 'max:10'],
+            'date_declaration' => ['nullable', 'date'],
+            'slogan' => ['nullable', 'string', 'max:200'],
+            'couleur_hex' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'site_campagne_url' => ['nullable', 'url', 'max:500'],
+            'programme_url_officiel' => ['nullable', 'url', 'max:500'],
+            'condition' => ['nullable', 'string', 'max:255'],
+        ], [
+            'couleur_hex.regex' => 'Couleur au format #rrggbb.',
+        ]);
+
+        $ancien = $candidat->statut_candidature;
+        $candidat->update($data);
+
+        // Un changement de statut est une décision éditoriale visible du public : il doit
+        // laisser une trace, au même titre qu'une validation ou une publication.
+        if ($ancien !== $data['statut_candidature']) {
+            PresidentielleModerationLog::create([
+                'entite_type' => $candidat->getMorphClass(),
+                'entite_id' => $candidat->getKey(),
+                'action' => 'changement_statut_candidature',
+                'ancien_statut' => $ancien,
+                'nouveau_statut' => $data['statut_candidature'],
+                'moderator_id' => $request->user()->id,
+                'created_at' => now(),
+            ]);
+        }
+
+        return back()->with('success', 'Candidat mis à jour.');
+    }
+
     public function quiz(Request $request, ModerationService $service)
     {
         $statut = $request->query('statut', 'tous');

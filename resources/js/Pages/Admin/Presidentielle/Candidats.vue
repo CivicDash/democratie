@@ -36,6 +36,27 @@ function filtrer(s) {
     router.get(route('admin.presidentielle.candidats'), { statut: s }, { preserveState: true, replace: true });
 }
 
+const LIBELLE_CANDIDATURE = {
+    pressenti: 'Pressenti', declare: 'Déclaré', investi: 'Investi',
+    parrainages_valides: '500 parrainages validés', retire: 'Retiré', elimine_t1: 'Éliminé au 1er tour',
+};
+
+// Un état d'édition par ligne, préchargé depuis les données servies : le formulaire est
+// replié, mais son contenu doit refléter la ligne dès l'ouverture.
+const edition = reactive(Object.fromEntries(props.candidats.data.map((c) => [c.id, {
+    statut_candidature: c.statut_candidature,
+    parti_soutien: c.parti_soutien ?? '',
+    date_declaration: c.date_declaration?.slice(0, 10) ?? '',
+}])));
+
+function enregistrer(candidat) {
+    router.post(route('admin.presidentielle.candidats.update', candidat.id), {
+        ...edition[candidat.id],
+        parti_soutien: edition[candidat.id].parti_soutien || null,
+        date_declaration: edition[candidat.id].date_declaration || null,
+    }, { preserveScroll: true });
+}
+
 function agir(candidat, action) {
     router.post(route('admin.presidentielle.moderation.action'),
         { type: 'candidat', id: candidat.id, action },
@@ -131,6 +152,13 @@ function nom(c) {
                             <td class="p-3 space-x-1">
                                 <StatusBadge :statut="c.statut_validation" />
                                 <StatusBadge v-if="c.affiche_publiquement" publie />
+                                <!-- Le statut de CANDIDATURE n'était affiché nulle part, alors
+                                     que c'est lui qui dit au public qui est encore en lice. -->
+                                <div class="mt-1 text-xs"
+                                     :class="['retire', 'elimine_t1'].includes(c.statut_candidature)
+                                         ? 'text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500'">
+                                    {{ LIBELLE_CANDIDATURE[c.statut_candidature] ?? c.statut_candidature }}
+                                </div>
                             </td>
                             <td class="p-3 text-right whitespace-nowrap space-x-1">
                                 <ActionButton verbe="neutre" libelle="Importer le parcours"
@@ -148,6 +176,24 @@ function nom(c) {
                                 <div class="mt-2">
                                     <ModerationLog type="candidat" :id="c.id" />
                                 </div>
+                                <details class="mt-2 text-left">
+                                    <summary class="cursor-pointer text-xs text-blue-600">✎ Modifier</summary>
+                                    <div class="grid gap-2 mt-2 text-xs" style="min-width: 17rem">
+                                        <label :for="`st-${c.id}`" class="sr-only">Statut de candidature</label>
+                                        <select :id="`st-${c.id}`" v-model="edition[c.id].statut_candidature"
+                                                class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-xs">
+                                            <option v-for="(lib, clef) in LIBELLE_CANDIDATURE" :key="clef" :value="clef">{{ lib }}</option>
+                                        </select>
+                                        <label :for="`pa-${c.id}`" class="sr-only">Parti de soutien</label>
+                                        <input :id="`pa-${c.id}`" v-model="edition[c.id].parti_soutien" type="text" maxlength="150"
+                                               placeholder="Parti de soutien"
+                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-xs" />
+                                        <label :for="`dt-${c.id}`" class="sr-only">Date de déclaration</label>
+                                        <input :id="`dt-${c.id}`" v-model="edition[c.id].date_declaration" type="date"
+                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-xs" />
+                                        <ActionButton verbe="valider" libelle="Enregistrer" @action="enregistrer(c)" />
+                                    </div>
+                                </details>
                             </td>
                         </tr>
                         <tr v-if="!candidats.data.length">
