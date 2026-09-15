@@ -1,8 +1,8 @@
 <script setup>
-import { computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
+import GrapheAudience from '@/Components/Admin/GrapheAudience.vue';
 
 const props = defineProps({
     par_jour: Array, par_page: Array, jours: Number, totaux: Object, actif: Boolean,
@@ -12,9 +12,11 @@ function periode(n) {
     router.get(route('admin.presidentielle.audience'), { jours: n }, { preserveState: true, replace: true });
 }
 
-// Échelle du graphe : la plus haute barre du jour le plus chargé, humains + bots.
-const max = computed(() => Math.max(1, ...props.par_jour.map((j) => Number(j.humains) + Number(j.bots))));
 const part = (v, t) => (t > 0 ? Math.round((v / t) * 100) : 0);
+
+const dateLongue = (jour) => (jour
+    ? new Date(jour + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+    : '—');
 </script>
 
 <template>
@@ -56,28 +58,22 @@ const part = (v, t) => (t > 0 ? Math.round((v / t) * 100) : 0);
                         <p class="text-xs uppercase tracking-wide text-gray-500">Vues de robots</p>
                         <p class="text-2xl font-bold text-gray-400">{{ totaux.bots.toLocaleString('fr-FR') }}</p>
                         <p class="text-xs text-gray-500">{{ part(totaux.bots, totaux.humains + totaux.bots) }} % du trafic</p>
+                        <p class="text-xs text-gray-400">Un robot qui se déclare navigateur reste compté comme humain.</p>
                     </div>
                     <div class="rounded border p-3 dark:border-gray-700">
-                        <p class="text-xs uppercase tracking-wide text-gray-500">Estimation</p>
-                        <p class="text-sm mt-1 text-gray-500">
-                            Ordre de grandeur : un robot qui se déclare navigateur est compté comme humain.
+                        <p class="text-xs uppercase tracking-wide text-gray-500">Meilleure journée</p>
+                        <p class="text-2xl font-bold">
+                            {{ Number(totaux.meilleur_jour?.humains ?? 0).toLocaleString('fr-FR') }}
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            le {{ dateLongue(totaux.meilleur_jour?.jour) }}
                         </p>
                     </div>
                 </div>
 
                 <section>
                     <h2 class="font-semibold mb-2">Par jour</h2>
-                    <div class="flex items-end gap-0.5 h-32 border-b dark:border-gray-700">
-                        <div v-for="j in par_jour" :key="j.jour" class="flex-1 flex flex-col justify-end"
-                             :title="`${j.jour} — ${j.humains} humains, ${j.bots} robots`">
-                            <div class="bg-gray-300 dark:bg-gray-600" :style="`height:${(j.bots / max) * 100}%`"></div>
-                            <div class="bg-blue-600" :style="`height:${(j.humains / max) * 100}%`"></div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">
-                        <span class="inline-block w-2 h-2 bg-blue-600 align-middle"></span> humains ·
-                        <span class="inline-block w-2 h-2 bg-gray-300 dark:bg-gray-600 align-middle"></span> robots
-                    </p>
+                    <GrapheAudience :par-jour="par_jour" />
                 </section>
 
                 <section>

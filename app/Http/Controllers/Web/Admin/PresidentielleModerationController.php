@@ -946,9 +946,24 @@ class PresidentielleModerationController extends Controller
         $jours = max(7, min(180, (int) $request->query('jours', 30)));
         $depuis = now()->subDays($jours)->toDateString();
 
-        $parJour = DB::table('audience_jour')->where('jour', '>=', $depuis)
+        $mesures = DB::table('audience_jour')->where('jour', '>=', $depuis)
             ->selectRaw('jour, sum(vues_humaines) as humains, sum(vues_bots) as bots, max(visiteurs_estimes) as visiteurs')
-            ->groupBy('jour')->orderBy('jour')->get();
+            ->groupBy('jour')->orderBy('jour')->get()->keyBy('jour');
+
+        // Un jour sans trafic n'a pas de ligne en base. Sans ce remplissage, la courbe
+        // rapproche silencieusement deux dates éloignées et l'axe des abscisses ment :
+        // une coupure de trois jours se lit comme une simple baisse.
+        $parJour = collect();
+        for ($d = now()->subDays($jours)->startOfDay(); $d->lte(now()->startOfDay()); $d->addDay()) {
+            $cle = $d->toDateString();
+            $ligne = $mesures->get($cle);
+            $parJour->push([
+                'jour' => $cle,
+                'humains' => (int) ($ligne->humains ?? 0),
+                'bots' => (int) ($ligne->bots ?? 0),
+                'visiteurs' => (int) ($ligne->visiteurs ?? 0),
+            ]);
+        }
 
         $parPage = DB::table('audience_jour')->where('jour', '>=', $depuis)
             ->selectRaw('chemin, sum(vues_humaines) as humains, sum(vues_bots) as bots')
@@ -961,6 +976,8 @@ class PresidentielleModerationController extends Controller
             'totaux' => [
                 'humains' => (int) $parJour->sum('humains'),
                 'bots' => (int) $parJour->sum('bots'),
+                'visiteurs_max' => (int) $parJour->max('visiteurs'),
+                'meilleur_jour' => $parJour->sortByDesc('humains')->first(),
             ],
             // Sans journal, la page doit expliquer quoi faire plutôt que d'afficher zéro.
             'actif' => DB::table('audience_jour')->exists(),
