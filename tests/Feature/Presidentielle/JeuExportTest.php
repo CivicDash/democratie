@@ -18,7 +18,19 @@ use App\Services\Presidentielle\PresidentielleExporter;
  *    pèserait un cinquième du corpus, et répondre son nom à chaque carte vaudrait le
  *    hasard : le jeu mesurerait notre travail, pas la connaissance du joueur.
  */
-function candidatAvecCitations(string $nom, int $combien, int $longueur = 90): CandidatPresidentielle
+/** Une phrase entière : majuscule au début, ponctuation forte à la fin, longueur jouable. */
+function phraseEntiere(string $nom, int $i, int $longueur = 110): string
+{
+    $debut = "Nous ferons la mesure numéro {$i} de {$nom} dès le début du mandat";
+    $remplissage = ', et nous la financerons sans créer de nouvel impôt';
+    while (mb_strlen($debut) < $longueur - 1) {
+        $debut .= $remplissage;
+    }
+
+    return mb_substr($debut, 0, $longueur - 1).'.';
+}
+
+function candidatAvecCitations(string $nom, int $combien, int $longueur = 110): CandidatPresidentielle
 {
     $personne = PersonnePolitique::factory()->create([
         'prenom' => 'Camille', 'nom' => $nom, 'slug' => \Illuminate\Support\Str::slug($nom),
@@ -40,7 +52,7 @@ function candidatAvecCitations(string $nom, int $combien, int $longueur = 90): C
             'document_id' => $doc->id, 'candidat_id' => $candidat->id, 'theme_id' => $theme->id,
             'mesure_id' => $mesure->id, 'type' => 'mesure',
             'resume_propose' => 'Résumé rédigé par nous, que personne n\'a prononcé.',
-            'citation_verbatim' => str_pad("phrase {$i} de {$nom} ", $longueur, 'et je le ferai '),
+            'citation_verbatim' => phraseEntiere($nom, $i, $longueur),
             'statut' => 'rattachee', 'confiance' => 0.9,
         ]);
     }
@@ -58,12 +70,12 @@ it('plafonne le nombre de citations par candidat', function () {
 
     $parCandidat = collect(jeu()['citations'])->countBy('candidat');
 
-    expect($parCandidat['prolixe'])->toBe(12);
+    expect($parCandidat['prolixe'])->toBe(10);
 });
 
 it('écarte un candidat qui n\'a pas assez de matière', function () {
     candidatAvecCitations('Prolixe', 20);
-    candidatAvecCitations('Discret', 3);   // sous le seuil de 8
+    candidatAvecCitations('Discret', 3);   // sous le seuil de 10
 
     $j = jeu();
 
@@ -89,13 +101,13 @@ it('sert le verbatim et jamais notre résumé', function () {
     foreach (jeu()['citations'] as $c) {
         expect($c['texte'])->not->toContain('Résumé rédigé par nous')
             ->and(mb_strlen($c['texte']))->toBeGreaterThanOrEqual(40)
-            ->and(mb_strlen($c['texte']))->toBeLessThanOrEqual(180);
+            ->and(mb_strlen($c['texte']))->toBeLessThanOrEqual(220);
     }
 });
 
 it('écarte les citations trop courtes ou trop longues', function () {
     candidatAvecCitations('Alpha', 10);          // longueur jouable
-    candidatAvecCitations('Bavard', 10, 400);    // au-delà de 180
+    candidatAvecCitations('Bavard', 10, 400);    // au-delà de 220
 
     expect(collect(jeu()['candidats'])->pluck('slug'))->not->toContain('bavard');
 });
@@ -137,4 +149,29 @@ it('ne touche pas au lien quand le repérage n\'est pas un timecode', function (
 
     expect(collect(jeu()['citations'])->firstWhere('candidat', 'alpha')['source']['url'])
         ->toBe('https://exemple.fr/discours');
+});
+
+it('écarte les fragments coupés au milieu d\'une phrase', function () {
+    $candidat = candidatAvecCitations('Alpha', 10);
+
+    // Exactement le cas remonté par Kévin : assez long, mais tronqué — indevinable, et il
+    // donne une fausse idée de ce que le candidat a dit.
+    \App\Models\IngestionProposition::where('candidat_id', $candidat->id)->limit(3)->update([
+        'citation_verbatim' => 'Ça veut dire créer un prêt long terme à taux zéro pour les jeunes ménages et pour',
+    ]);
+
+    $textes = collect(jeu()['citations'])->pluck('texte');
+
+    expect($textes)->not->toContain('Ça veut dire créer un prêt long terme à taux zéro pour les jeunes ménages et pour');
+});
+
+it('écarte une phrase qui commence en cours de propos', function () {
+    $candidat = candidatAvecCitations('Alpha', 10);
+
+    \App\Models\IngestionProposition::where('candidat_id', $candidat->id)->limit(3)->update([
+        'citation_verbatim' => 'et donc il faudra bien que quelqu\'un paie cette dépense publique supplémentaire.',
+    ]);
+
+    expect(collect(jeu()['citations'])->pluck('texte'))
+        ->not->toContain('et donc il faudra bien que quelqu\'un paie cette dépense publique supplémentaire.');
 });

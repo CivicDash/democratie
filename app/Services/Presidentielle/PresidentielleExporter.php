@@ -124,9 +124,9 @@ class PresidentielleExporter
     }
 
     /** Nombre de citations retenues par candidat, et seuil d'entrée dans le vivier. */
-    private const JEU_PAR_CANDIDAT = 12;
+    private const JEU_PAR_CANDIDAT = 10;
 
-    private const JEU_MINIMUM = 8;
+    private const JEU_MINIMUM = 10;
 
     /**
      * Vivier du jeu « Qui a dit quoi ? ».
@@ -164,7 +164,18 @@ class PresidentielleExporter
             ->where('m.affiche_publiquement', true)
             ->where('c.election', $election)
             ->where('c.affiche_publiquement', true)
-            ->whereRaw('length(p.citation_verbatim) between 40 and 180')
+            // Une citation ne devient jouable que si c'est une PHRASE ENTIÈRE. Le seul
+            // filtre de longueur laissait passer des fragments coupés au milieu — « Ça
+            // veut dire créer un prêt long terme à ta zéro pour » — indevinables, et qui
+            // donnent en prime une fausse idée de ce que le candidat a dit.
+            //
+            // Deux signaux structurels suffisent et ne coûtent aucun jugement : la phrase
+            // commence par une majuscule, et se termine par une ponctuation forte. Ils
+            // écartent 74 % du corpus, ce qui est le prix à payer : il reste neuf
+            // candidats et de dix à vingt et une phrases chacun, assez pour une manche.
+            ->whereRaw("p.citation_verbatim ~ '^[A-ZÀÉÈÊÎÔÛÇ]'")
+            ->whereRaw("p.citation_verbatim ~ '[.!?]\\s*$'")
+            ->whereRaw('length(p.citation_verbatim) between 60 and 220')
             ->orderBy('m.id')
             ->get([
                 'p.uuid as ref', 'p.citation_verbatim', 'p.timestamp_ou_paragraphe', 'p.source_url',
