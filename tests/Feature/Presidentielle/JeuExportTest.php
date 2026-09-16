@@ -175,3 +175,28 @@ it('écarte une phrase qui commence en cours de propos', function () {
     expect(collect(jeu()['citations'])->pluck('texte'))
         ->not->toContain('et donc il faudra bien que quelqu\'un paie cette dépense publique supplémentaire.');
 });
+
+it('sert un contexte avec chaque citation', function () {
+    candidatAvecCitations('Alpha', 10);
+
+    foreach (jeu()['citations'] as $c) {
+        // Sans le résumé, un fragment complet reste indevinable : « la capitalisation,
+        // c'est pas pour aujourd'hui » ne dit pas de quoi il est question.
+        expect($c)->toHaveKey('contexte')
+            ->and($c['contexte'])->not->toBeEmpty();
+    }
+});
+
+it('écarte une citation dont le résumé nomme quelqu\'un', function () {
+    $candidat = candidatAvecCitations('Alpha', 10);
+
+    // Le résumé accompagne la citation à l'écran : nommer un adversaire ne donne pas la
+    // réponse mais rétrécit le champ des possibles.
+    \App\Models\ProgrammeMesure::where('candidat_id', $candidat->id)->limit(4)->update([
+        'titre' => 'S\'oppose à la position de Jean-Luc Mélenchon sur la dette publique.',
+    ]);
+
+    $contextes = collect(jeu()['citations'])->pluck('contexte');
+
+    expect($contextes)->not->toContain('S\'oppose à la position de Jean-Luc Mélenchon sur la dette publique.');
+});

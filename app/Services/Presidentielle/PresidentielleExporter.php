@@ -176,10 +176,15 @@ class PresidentielleExporter
             ->whereRaw("p.citation_verbatim ~ '^[A-ZÀÉÈÊÎÔÛÇ]'")
             ->whereRaw("p.citation_verbatim ~ '[.!?]\\s*$'")
             ->whereRaw('length(p.citation_verbatim) between 60 and 220')
+            // Le résumé accompagne la citation dans le jeu : il ne doit nommer personne.
+            // Deux résumés du corpus citent un adversaire (« S'oppose à la position de
+            // Jean-Luc Mélenchon… ») — cela ne donne pas la réponse mais rétrécit le champ.
+            ->whereRaw("m.titre !~* '(m[ée]lenchon|le pen|zemmour|attal|philippe|retailleau|ruffin|tondelier|glucksmann|villepin|roussel|arthaud|bardella|macron|faure|royal|guedj|cazeneuve|hollande|bertrand|lisnard)'")
             ->orderBy('m.id')
             ->get([
                 'p.uuid as ref', 'p.citation_verbatim', 'p.timestamp_ou_paragraphe', 'p.source_url',
                 'pp.slug as candidat', 'pp.prenom', 'pp.nom', 'c.couleur_hex', 't.slug as theme',
+                'm.titre as contexte',
                 'd.titre as doc_titre', 'd.url as doc_url', 'd.date_publication',
             ]);
 
@@ -191,6 +196,11 @@ class PresidentielleExporter
             ->map(fn ($l) => [
                 'ref' => $l->ref,
                 'texte' => trim($l->citation_verbatim),
+                // Notre résumé neutre, en discours indirect : il rend la phrase
+                // compréhensible hors de son contexte sans nommer son auteur. Sans lui,
+                // un fragment comme « la capitalisation, c'est pas pour aujourd'hui »
+                // reste indevinable même complet.
+                'contexte' => trim((string) $l->contexte),
                 'candidat' => $l->candidat,
                 'theme' => $l->theme,
                 'source' => array_filter([
