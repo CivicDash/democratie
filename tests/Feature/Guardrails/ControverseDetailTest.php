@@ -18,6 +18,13 @@ use App\Models\User;
  * pas seulement qu'il répond 200.
  */
 beforeEach(function () {
+    // Sans manifeste Vite, app.blade.php lève avant d'atteindre le composant : le test
+    // échouerait pour la mauvaise raison. Un dépôt fraîchement cloné affichait cinq
+    // échecs fantômes là où il n'y avait qu'un `npm run build` manquant.
+    if (! file_exists(public_path('build/manifest.json'))) {
+        test()->markTestSkipped('Manifeste Vite absent : lancer `npm run build` avant ce test.');
+    }
+
     $this->moderateur = User::factory()->create();
     $this->moderateur->givePermissionTo('moderer_presidentielle');
 
