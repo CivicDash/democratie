@@ -223,10 +223,13 @@ class PresidentielleExporter
             ->map(fn ($g) => [
                 'slug' => $g->first()->candidat,
                 'nom' => trim($g->first()->prenom.' '.$g->first()->nom),
+                // Clé de tri : nom puis prénom, comme partout ailleurs.
+                'tri' => trim($g->first()->nom.' '.$g->first()->prenom),
                 'couleur' => $g->first()->couleur_hex,
             ])
             ->values()
-            ->sortBy('nom', SORT_NATURAL | SORT_FLAG_CASE)
+            ->sortBy(fn ($x) => $x['tri'], SORT_NATURAL | SORT_FLAG_CASE)
+            ->map(fn ($x) => \Illuminate\Support\Arr::except($x, 'tri'))
             ->values()->all();
 
         return ['election' => $election, 'candidats' => $candidats, 'citations' => $citations];
@@ -383,6 +386,13 @@ class PresidentielleExporter
         return [
             'slug' => $candidat->personnePolitique?->slug,
             'nom_complet' => $candidat->personnePolitique?->nom_complet,
+            // Nom et prénom séparés : l'ordre alphabétique se fait sur le NOM, et
+            // `nom_complet` ne permet pas de le retrouver de façon fiable — « Dominique
+            // de Villepin », « Nicolas Dupont-Aignan », « Jean-Luc Mélenchon » se
+            // découpent chacun autrement. Il porte en outre la civilité, qui triait
+            // « M. » et « Mme » comme du texte et regroupait les candidates entre elles.
+            'nom' => $candidat->personnePolitique?->nom,
+            'prenom' => $candidat->personnePolitique?->prenom,
             'slogan' => $candidat->slogan,
             'parti_soutien' => $candidat->parti_soutien,
             'nuance' => $candidat->nuance_politique,
@@ -828,6 +838,8 @@ class PresidentielleExporter
         $index = array_map(fn ($c) => [
             'slug' => $c['slug'],
             'nom_complet' => $c['nom_complet'],
+            'nom' => $c['nom'],
+            'prenom' => $c['prenom'],
             'parti_soutien' => $c['parti_soutien'],
             'nuance' => $c['nuance'],
             'couleur_hex' => $c['couleur_hex'],
