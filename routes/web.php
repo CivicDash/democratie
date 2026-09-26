@@ -947,9 +947,11 @@ Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'ind
 | Back-office présidentielle 2027 (plan §5) — permission moderer_presidentielle
 |--------------------------------------------------------------------------
 */
+// GardeIntegriteExport : aucune écriture de ce groupe ne peut introduire une violation
+// d'intégrité — elle ferait refuser l'export et figerait objectif2027.fr.
 Route::prefix('admin/presidentielle')
     ->name('admin.presidentielle.')
-    ->middleware(['auth', 'two-factor', 'can:moderer_presidentielle'])
+    ->middleware(['auth', 'two-factor', 'can:moderer_presidentielle', App\Http\Middleware\GardeIntegriteExport::class])
     ->group(function () {
         $c = App\Http\Controllers\Web\Admin\PresidentielleModerationController::class;
         Route::get('/moderation', [$c, 'index'])->name('moderation');

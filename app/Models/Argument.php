@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Support\UrlSource;
 use Illuminate\Support\Str;
 
 /**
@@ -81,9 +82,15 @@ class Argument extends Model
         return $this->statut_validation === 'valide' && $this->valide_par !== null;
     }
 
-    /** Au moins une source de fiabilité haute ou moyenne (exigence de publication). */
+    /**
+     * Au moins une source de fiabilité haute ou moyenne, avec une URL publiable
+     * (exigence de publication). L'URL est exigée ici comme dans
+     * IntegriteChecker::argumentAvecSourceFiable() : sans elle, un argument publiable dans
+     * le back-office faisait refuser l'export.
+     */
     public function aSourceFiable(): bool
     {
-        return $this->sources->contains(fn ($s) => in_array($s->fiabilite, ['haute', 'moyenne'], true));
+        return $this->sources->contains(fn ($s) => in_array($s->fiabilite, ['haute', 'moyenne'], true)
+            && UrlSource::estValide($s->url));
     }
 }

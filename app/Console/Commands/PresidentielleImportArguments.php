@@ -10,6 +10,7 @@ use App\Models\Controverse;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeMesure;
 use App\Models\ProgrammeTheme;
+use App\Support\UrlSource;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -347,11 +348,7 @@ class PresidentielleImportArguments extends Command
     /** URL publique ou null (jamais de placeholder). */
     private function cleanUrl($u): ?string
     {
-        if (! is_string($u) || trim($u) === '' || str_contains($u, 'A_COMPLETER')) {
-            return null;
-        }
-
-        return preg_match('#^https?://#i', $u) ? $u : null;
+        return UrlSource::nettoyer($u);
     }
 
     private function normalize(string $s): string

@@ -10,6 +10,7 @@ use App\Models\IngestionProposition;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
 use App\Models\QuizQuestion;
+use App\Support\UrlSource;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -301,11 +302,7 @@ class PresidentielleExporter
     /** Ne renvoie une URL que si elle est publique et valide (jamais de placeholder). */
     private function url(?string $u): ?string
     {
-        if (! $u || str_contains($u, 'A_COMPLETER')) {
-            return null;
-        }
-
-        return preg_match('#^https?://#i', $u) ? $u : null;
+        return UrlSource::nettoyer($u);
     }
 
     private function exportCandidat(CandidatPresidentielle $candidat, array $themes): array

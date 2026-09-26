@@ -6,6 +6,7 @@ use App\Models\CandidatPresidentielle;
 use App\Models\ProgrammeMesure;
 use App\Models\QuizQuestion;
 use App\Models\ProgrammeTheme;
+use App\Support\UrlSource;
 
 /**
  * Contrôle d'intégrité éditoriale avant export (plan §5 / §8).
@@ -199,6 +200,6 @@ class IntegriteChecker
     /** URL publique valide : absolue http(s) et sans placeholder. */
     private function estUrlValide(?string $u): bool
     {
-        return $u && ! str_contains($u, 'A_COMPLETER') && (bool) preg_match('#^https?://#i', $u);
+        return UrlSource::estValide($u);
     }
 }
