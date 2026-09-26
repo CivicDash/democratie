@@ -16,4 +16,20 @@ return [
             'secretaire@civis-consilium.eu,president@civis-consilium.eu'
         ))
     ))),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Domaines exclus des sources de « Ce qu'on entend »
+    |--------------------------------------------------------------------------
+    | Exclusions du cadre éditorial (« CNews / groupe Bolloré »). Une fiche qui cite une
+    | source de ces domaines n'est pas publiable. Un sous-domaine est exclu avec son
+    | domaine. Liste à valider par l'équipe éditoriale : le périmètre du groupe varie
+    | (Prisma Media, notamment, n'y figure pas ici).
+    */
+    'sources_exclues' => [
+        'cnews.fr',
+        'europe1.fr',
+        'lejdd.fr',
+        'parismatch.com',
+    ],
 ];

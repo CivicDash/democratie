@@ -1007,6 +1007,29 @@ Route::prefix('admin/presidentielle')
         Route::post('/quiz/{question}', [$c, 'quizUpdate'])->whereNumber('question')->name('quiz.update');
         Route::get('/medias', [$c, 'medias'])->name('medias');
         Route::post('/medias', [$c, 'updateMedias'])->name('medias.update');
+
+        // « Ce qu'on entend » : affirmations confrontées aux données, et leurs séries
+        // Eurostat. Routes littérales avant les routes à paramètre.
+        $a = App\Http\Controllers\Web\Admin\PresidentielleAffirmationsController::class;
+        Route::get('/affirmations', [$a, 'index'])->name('affirmations');
+        Route::post('/affirmations/import', [$a, 'import'])->name('affirmations.import');
+        Route::post('/affirmations/verdicts/{verdict}', [$a, 'verdictUpdate'])->whereNumber('verdict')->name('affirmations.verdicts.update');
+        Route::delete('/affirmations/verdicts/{verdict}', [$a, 'verdictDestroy'])->whereNumber('verdict')->name('affirmations.verdicts.destroy');
+        Route::post('/affirmations/constats/{constat}', [$a, 'constatUpdate'])->whereNumber('constat')->name('affirmations.constats.update');
+        Route::post('/affirmations/constats/{constat}/verification', [$a, 'constatVerification'])->whereNumber('constat')->name('affirmations.constats.verification');
+        Route::delete('/affirmations/constats/{constat}', [$a, 'constatDestroy'])->whereNumber('constat')->name('affirmations.constats.destroy');
+        Route::post('/affirmations/sources/{source}', [$a, 'sourceUpdate'])->whereNumber('source')->name('affirmations.sources.update');
+        Route::delete('/affirmations/sources/{source}', [$a, 'sourceDestroy'])->whereNumber('source')->name('affirmations.sources.destroy');
+        Route::post('/affirmations/graphiques/{graphique}', [$a, 'graphiqueUpdate'])->whereNumber('graphique')->name('affirmations.graphiques.update');
+        Route::get('/affirmations/{affirmation}', [$a, 'show'])->whereNumber('affirmation')->name('affirmations.show');
+        Route::post('/affirmations/{affirmation}', [$a, 'update'])->whereNumber('affirmation')->name('affirmations.update');
+        Route::post('/affirmations/{affirmation}/verdicts', [$a, 'verdictStore'])->whereNumber('affirmation')->name('affirmations.verdicts.store');
+        Route::post('/affirmations/{affirmation}/constats', [$a, 'constatStore'])->whereNumber('affirmation')->name('affirmations.constats.store');
+        Route::post('/affirmations/{affirmation}/sources', [$a, 'sourceStore'])->whereNumber('affirmation')->name('affirmations.sources.store');
+        Route::get('/eurostat', [$a, 'eurostat'])->name('eurostat');
+        Route::post('/eurostat/extraire', [$a, 'eurostatExtraire'])->name('eurostat.extraire');
+        Route::post('/eurostat/valider-nouveaux', [$a, 'eurostatValiderNouveaux'])->name('eurostat.valider-nouveaux');
+        Route::post('/eurostat/{indicateur}/valider', [$a, 'eurostatValider'])->whereNumber('indicateur')->name('eurostat.valider');
     });
 
 /*

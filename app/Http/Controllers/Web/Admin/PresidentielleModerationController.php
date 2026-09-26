@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Exceptions\ModerationException;
 use App\Http\Controllers\Controller;
+use App\Models\Affirmation;
 use App\Models\Argument;
 use App\Models\ArgumentMesureLien;
 use App\Models\ArgumentSource;
@@ -60,6 +61,7 @@ class PresidentielleModerationController extends Controller
         'argument_lien' => ArgumentMesureLien::class,   // liaison argument↔mesure (porte le sens)
         'controverse' => Controverse::class,
         'quiz_question' => QuizQuestion::class,      // question du quiz thématique
+        'affirmation' => Affirmation::class,         // fiche « Ce qu'on entend »
         'lien' => MesureScrutinLien::class,              // lien mesure↔scrutin (module cohérence)
         'parcours' => ParcoursEvenement::class,
         'programme_document' => ProgrammeDocument::class,
@@ -1569,8 +1571,13 @@ class PresidentielleModerationController extends Controller
         // Suppression d'une mesure (soft-delete) + détachement de sa proposition d'ingestion :
         // débloque la suppression du discours d'origine. Réservé aux mesures.
         if ($action === 'supprimer') {
+            if ($entite instanceof Affirmation) {
+                $service->supprimerAffirmation($entite, $user, $commentaire);
+
+                return 'Fiche supprimée.';
+            }
             if (! $entite instanceof ProgrammeMesure) {
-                throw new ModerationException('La suppression ne concerne que les mesures.');
+                throw new ModerationException('La suppression ne concerne que les mesures et les fiches « Ce qu\'on entend ».');
             }
             $service->supprimerMesure($entite, $user, $commentaire);
 

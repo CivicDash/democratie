@@ -2,9 +2,11 @@
 
 namespace App\Services\Presidentielle;
 
+use App\Models\Affirmation;
 use App\Models\ArgumentMesureLien;
 use App\Models\CandidatPresidentielle;
 use App\Models\Controverse;
+use App\Models\EurostatIndicateur;
 use App\Models\EvenementCampagne;
 use App\Models\IngestionProposition;
 use App\Models\PersonnePolitique;
@@ -88,6 +90,7 @@ class PresidentielleExporter
             // ne serait jamais hachée et pourrait changer sans qu'aucun rebuild ne parte.
             'quiz' => $this->buildQuiz($election),
             'jeu' => $this->buildJeu($election),
+            'affirmations' => $this->buildAffirmations($election),
         ];
 
         return $contenu + [
@@ -234,6 +237,87 @@ class PresidentielleExporter
             ->values()->all();
 
         return ['election' => $election, 'candidats' => $candidats, 'citations' => $citations];
+    }
+
+    /**
+     * Fiches « Ce qu'on entend » publiées, et les séries Eurostat de leurs graphiques.
+     *
+     * Même garde que le quiz : le code peut précéder la migration, et un export qui lève
+     * fige tout le site.
+     *
+     * Ce qui ne sort JAMAIS d'ici, et que AffirmationExportTest vérifie : la coloration
+     * politique perçue (elle ne sert qu'au contrôle de symétrie interne), les notes de
+     * vérification, et l'identité des modérateurs. Seules les sources citées par un
+     * constat partent, et seules les séries Eurostat relues — `series_publiees`, jamais
+     * ce que la dernière extraction a trouvé.
+     */
+    private function buildAffirmations(string $election): array
+    {
+        $vide = ['election' => $election, 'legende_statuts' => config('eurostat.legende_statuts'), 'affirmations' => [], 'indicateurs' => (object) []];
+        if (! Schema::hasTable('affirmations')) {
+            return $vide;
+        }
+
+        $fiches = Affirmation::publie()
+            ->where('election', $election)
+            ->with(['theme', 'themesSecondaires', 'verdicts', 'constats.sources', 'graphiques'])
+            ->get()
+            ->sortBy(fn ($f) => [$f->theme?->ordre ?? 99, $f->enonce])
+            ->values();
+
+        $codes = $fiches->flatMap(fn ($f) => $f->graphiques->flatMap(fn ($g) => (array) $g->indicateurs))->unique()->values();
+        $indicateurs = EurostatIndicateur::whereIn('code', $codes)->whereNotNull('series_publiees')->orderBy('code')->get()
+            ->mapWithKeys(fn (EurostatIndicateur $i) => [$i->code => [
+                'titre' => $i->titre,
+                'unite' => $i->unite,
+                'note_methodo' => $i->note_methodo,
+                'sources' => $i->sources,
+                'extraction' => $i->extraction_publiee?->toDateString(),
+                'series' => $i->series_publiees,
+            ]])->all();
+
+        $affirmations = $fiches->map(function (Affirmation $f) {
+            $citees = $f->constats->flatMap->sources->unique('id')->sortBy('id')->values();
+
+            return [
+                'slug' => $f->slug,
+                'enonce' => $f->enonce,
+                'resume' => $f->resume,
+                'theme' => $f->theme?->slug,
+                'themes_secondaires' => $f->themesSecondaires->pluck('slug')->values()->all(),
+                'part_de_valeur' => $f->part_de_valeur,
+                'derniere_verification' => $f->derniere_verification?->toDateString(),
+                'verdicts' => $f->verdicts->map(fn ($v) => ['portee' => $v->portee, 'verdict' => $v->verdict])->values()->all(),
+                'constats' => $f->constats->map(fn ($c) => [
+                    'id' => $c->id,
+                    'section' => $c->section,
+                    'groupe' => $c->groupe,
+                    'texte' => $c->texte,
+                    'sources' => $c->sources->sortBy('id')->pluck('cle')->values()->all(),
+                ])->values()->all(),
+                'sources' => $citees->map(fn ($s) => [
+                    'cle' => $s->cle,
+                    'producteur' => $s->producteur,
+                    'titre' => $s->titre,
+                    'url' => $this->url($s->url),
+                    'archive_url' => $this->url($s->archive_url),
+                    'categorie' => $s->categorie,
+                    'date_publication' => $s->date_publication?->toDateString(),
+                    'date_consultation' => $s->date_consultation?->toDateString(),
+                ])->all(),
+                'graphiques' => $f->graphiques->map(fn ($g) => [
+                    'constat' => $g->constat_id,
+                    'type' => $g->type,
+                    'titre' => $g->titre,
+                    'sous_titre' => $g->sous_titre,
+                    'indicateurs' => array_values((array) $g->indicateurs),
+                    'options' => $g->options ?? (object) [],
+                    'note' => $g->note,
+                ])->values()->all(),
+            ];
+        })->all();
+
+        return ['affirmations' => $affirmations, 'indicateurs' => $indicateurs ?: (object) []] + $vide;
     }
 
     /**
@@ -826,6 +910,7 @@ class PresidentielleExporter
         $ecrits[] = $this->put("{$dir}/calendrier.json", $data['calendrier']);
         $ecrits[] = $this->put("{$dir}/quiz.json", $data['quiz']);
         $ecrits[] = $this->put("{$dir}/jeu.json", $data['jeu']);
+        $ecrits[] = $this->put("{$dir}/affirmations.json", $data['affirmations']);
 
         foreach ($data['candidats'] as $slug => $candidat) {
             $ecrits[] = $this->put("{$dir}/candidats/{$slug}.json", $candidat);

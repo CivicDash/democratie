@@ -424,6 +424,13 @@ Schedule::command('import:securite-stats')
     ->description('Import mensuel données sécurité')
     ->withoutOverlapping();
 
+// Comparaisons européennes de « Ce qu'on entend » : le 2, après les imports INSEE du 1er.
+// L'extraction ne change pas le site — les révisions attendent une validation humaine.
+Schedule::command('presidentielle:eurostat-extraire')
+    ->monthlyOn(2, '03:00')
+    ->description('Extraction mensuelle Eurostat (Ce qu\'on entend), révisions à valider')
+    ->withoutOverlapping();
+
 Schedule::command('import:rss-franceinfo')
     ->everyThirtyMinutes()
     ->description('Import des flux RSS France Info toutes les 30 min')

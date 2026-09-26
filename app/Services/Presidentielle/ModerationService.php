@@ -3,6 +3,7 @@
 namespace App\Services\Presidentielle;
 
 use App\Exceptions\ModerationException;
+use App\Models\Affirmation;
 use App\Models\Argument;
 use App\Models\ArgumentMesureLien;
 use App\Models\IngestionProposition;
@@ -130,6 +131,22 @@ class ModerationService
 
         $this->log($mesure, 'suppression', $mesure->statut_validation, null, $user, $motif);
         $mesure->delete();
+    }
+
+    /**
+     * Supprime une fiche « Ce qu'on entend » (soft-delete, réversible). Refuse une fiche
+     * encore publiée : dépublier d'abord, comme pour les mesures.
+     *
+     * @throws ModerationException si la fiche est encore affichée publiquement
+     */
+    public function supprimerAffirmation(Affirmation $fiche, User $user, ?string $motif = null): void
+    {
+        if ($fiche->affiche_publiquement) {
+            throw new ModerationException('Dépubliez la fiche avant de la supprimer.');
+        }
+
+        $this->log($fiche, 'suppression', $fiche->statut_validation, null, $user, $motif);
+        $fiche->delete();
     }
 
     /**
@@ -269,6 +286,11 @@ class ModerationService
 
         if ($entite instanceof MesureScrutinLien && blank($entite->explication)) {
             $raisons[] = 'lien scrutin sans explication rédigée';
+        }
+
+        // « Ce qu'on entend » : une seule implémentation, partagée avec IntegriteChecker.
+        if ($entite instanceof Affirmation) {
+            $raisons = [...$raisons, ...app(ReglesAffirmation::class)->raisons($entite)];
         }
 
         return $raisons;

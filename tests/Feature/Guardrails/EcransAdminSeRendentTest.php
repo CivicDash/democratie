@@ -63,6 +63,8 @@ dataset('écrans admin', [
     'présidentielle — événements' => ['admin.presidentielle.evenements'],
     'présidentielle — thèmes' => ['admin.presidentielle.themes'],
     'présidentielle — quiz' => ['admin.presidentielle.quiz'],
+    'présidentielle — ce qu\'on entend' => ['admin.presidentielle.affirmations'],
+    'présidentielle — eurostat' => ['admin.presidentielle.eurostat'],
     'présidentielle — audience' => ['admin.presidentielle.audience'],
     'présidentielle — médias' => ['admin.presidentielle.medias'],
     'présidentielle — HATVP' => ['admin.presidentielle.hatvp'],

@@ -124,3 +124,31 @@ function enTeteInertia(): array
         'X-Inertia-Version' => $version,
     ]);
 }
+
+/**
+ * Crée une fiche « Ce qu'on entend » conforme à toutes les règles de publication, au
+ * statut `valide` mais NON publiée : un verdict, un chiffre vérifié et sourcé, une limite
+ * vérifiée. Retourne la fiche.
+ */
+function affirmationPubliable(array $overrides = []): \App\Models\Affirmation
+{
+    $theme = \App\Models\ProgrammeTheme::factory()->create(['slug' => 'theme-'.uniqid(), 'actif' => true]);
+    $fiche = \App\Models\Affirmation::factory()->create(['theme_id' => $theme->id] + $overrides);
+
+    $fiche->verdicts()->create(['ordre' => 0, 'portee' => null, 'verdict' => 'nuance']);
+    $source = $fiche->sources()->create([
+        'cle' => 'insee-test', 'producteur' => 'INSEE', 'titre' => 'Une publication',
+        'url' => 'https://www.insee.fr/fr/statistiques/1', 'categorie' => 'producteur_public',
+    ]);
+    $chiffre = $fiche->constats()->create([
+        'section' => 'chiffres', 'ordre' => 0, 'verification' => 'verifie',
+        'texte' => '14,4 % (2022) → 15,4 % (2023), soit +1,0 point.',
+    ]);
+    $chiffre->sources()->attach($source->id);
+    $fiche->constats()->create([
+        'section' => 'limites', 'ordre' => 1, 'verification' => 'verifie',
+        'texte' => 'Le niveau souhaitable relève d\'un choix politique.',
+    ]);
+
+    return $fiche->fresh();
+}
