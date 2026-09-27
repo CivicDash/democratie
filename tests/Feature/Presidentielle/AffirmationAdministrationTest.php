@@ -63,11 +63,11 @@ it('mène une fiche de l\'import à la publication', function () {
     // 2. L'écran de détail sert les phrases et ce qui empêche la publication.
     $props = $this->actingAs($mod)->withHeaders(enTeteInertia())
         ->get(route('admin.presidentielle.affirmations.show', $fiche))->assertOk()->json('props');
-    expect($props['raisons'])->toContain('1 constat(s) encore à vérifier')
+    expect($props['raisons'])->toContain('1 phrase(s) « Ce que les chiffres ne disent pas » à vérifier : une fiche ne paraît jamais sans toutes ses réserves')
         ->and($props['constats'])->toHaveCount(2)
         ->and($props['fiche']['coloration_percue'])->toBe('transversale');
 
-    // 3. Validée mais pas publiable : il reste une phrase à vérifier.
+    // 3. Validée mais pas publiable : il reste une réserve à vérifier.
     $this->actingAs($mod)->post(route('admin.presidentielle.moderation.action'), ['type' => 'affirmation', 'id' => $fiche->id, 'action' => 'valider'])
         ->assertSessionHasNoErrors();
     $this->actingAs($mod)->post(route('admin.presidentielle.moderation.action'), ['type' => 'affirmation', 'id' => $fiche->id, 'action' => 'publier'])

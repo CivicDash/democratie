@@ -37,31 +37,38 @@ class ReglesAffirmation
             $raisons[] = 'plusieurs verdicts : chacun doit dire sur quoi il porte';
         }
 
+        // Tout ce qui suit porte sur ce qui PARAÎT : une phrase non vérifiée reste masquée,
+        // et la fiche dit combien il en reste. On ne vérifie donc pas les sources d'une
+        // phrase que personne ne lira encore.
+        $affiches = $a->constatsAffiches();
+
         // 2. Ce que disent les chiffres, et ce qu'ils ne disent pas.
-        if ($a->constats->where('section', 'chiffres')->isEmpty()) {
-            $raisons[] = 'aucun constat « Ce que disent les chiffres »';
+        if ($affiches->where('section', 'chiffres')->isEmpty()) {
+            $raisons[] = 'aucun constat « Ce que disent les chiffres » vérifié';
         }
         if ($a->constats->where('section', 'limites')->isEmpty()) {
             $raisons[] = 'aucune limite : la fiche doit dire ce que les chiffres ne disent pas';
         }
 
-        // 3. Tout est vérifié. Masquer les constats non vérifiés aurait été plus simple, mais
-        //    retirer une réserve change la conclusion d'une fiche.
-        $aVerifier = $a->constats->where('verification', '!==', 'verifie')->count();
-        if ($aVerifier > 0) {
-            $raisons[] = "{$aVerifier} constat(s) encore à vérifier";
+        // 3. Les réserves paraissent toutes, ou la fiche ne paraît pas. Masquer un chiffre
+        //    non sourcé retire une preuve ; masquer une réserve durcit la conclusion.
+        foreach (AffirmationConstat::SECTIONS_INTEGRALES as $section) {
+            $masquees = $a->constats->where('section', $section)->reject->estAffiche()->count();
+            if ($masquees > 0) {
+                $raisons[] = "{$masquees} phrase(s) « ".AffirmationConstat::SECTIONS[$section].' » à vérifier : une fiche ne paraît jamais sans toutes ses réserves';
+            }
         }
 
-        // 4. Un chiffre cite sa source.
-        $sansSource = $a->constats
+        // 4. Un chiffre affiché cite sa source.
+        $sansSource = $affiches
             ->filter(fn ($c) => in_array($c->section, AffirmationConstat::SECTIONS_SOURCEES, true) && $c->sources->isEmpty())
             ->count();
         if ($sansSource > 0) {
-            $raisons[] = "{$sansSource} constat(s) chiffré(s) sans source";
+            $raisons[] = "{$sansSource} constat(s) chiffré(s) vérifié(s) sans source";
         }
 
-        // 5 et 6. Chaque source citée est consultable, et hors des domaines exclus.
-        $citees = $a->constats->flatMap->sources->unique('id');
+        // 5 et 6. Chaque source affichée est consultable, et hors des domaines exclus.
+        $citees = $affiches->flatMap->sources->unique('id');
         $sansUrl = $citees->reject(fn ($s) => UrlSource::estValide($s->url))->pluck('cle');
         if ($sansUrl->isNotEmpty()) {
             $raisons[] = 'source(s) sans URL valide : '.$sansUrl->implode(', ');
@@ -91,14 +98,20 @@ class ReglesAffirmation
 
         $raisons = [];
         $idsConstats = $a->constats->pluck('id')->all();
-        $codes = $a->graphiques->flatMap(fn ($g) => (array) $g->indicateurs)->unique()->values();
+        foreach ($a->graphiques as $g) {
+            if (! $g->constat_id || ! in_array($g->constat_id, $idsConstats, true)) {
+                $raisons[] = "graphique « {$g->titre} » : rattaché à aucune phrase de la fiche — un graphique n'est jamais le seul support d'une conclusion";
+            }
+        }
+
+        // Un graphique dont la phrase n'est pas encore vérifiée ne paraît pas : ses séries
+        // n'ont pas à être relues pour que le reste de la fiche soit publié.
+        $affiches = $a->graphiquesAffiches();
+        $codes = $affiches->flatMap(fn ($g) => (array) $g->indicateurs)->unique()->values();
         $publies = EurostatIndicateur::whereIn('code', $codes)->whereNotNull('series_publiees')->pluck('code')->all();
 
-        foreach ($a->graphiques as $g) {
+        foreach ($affiches as $g) {
             $nom = "graphique « {$g->titre} »";
-            if (! $g->constat_id || ! in_array($g->constat_id, $idsConstats, true)) {
-                $raisons[] = "{$nom} : rattaché à aucune phrase de la fiche — un graphique n'est jamais le seul support d'une conclusion";
-            }
             if (! isset(AffirmationGraphique::TYPES[$g->type])) {
                 $raisons[] = "{$nom} : type inconnu « {$g->type} »";
 

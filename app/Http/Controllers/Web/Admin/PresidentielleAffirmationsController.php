@@ -55,10 +55,16 @@ class PresidentielleAffirmationsController extends Controller
                 'verdicts' => $f->verdicts->map(fn ($v) => ['portee' => $v->portee, 'verdict' => $v->verdict])->all(),
                 'statut_validation' => $f->statut_validation,
                 'affiche_publiquement' => $f->affiche_publiquement,
-                'a_verifier' => $f->constats->where('verification', '!==', 'verifie')->count(),
+                'a_verifier' => $f->constats->reject->estAffiche()->count(),
+                // Seules les réserves non vérifiées bloquent : les autres phrases sont masquées.
+                'reserves_a_verifier' => $f->constats
+                    ->filter(fn ($c) => in_array($c->section, AffirmationConstat::SECTIONS_INTEGRALES, true) && ! $c->estAffiche())
+                    ->count(),
                 'constats' => $f->constats->count(),
-                'sources_sans_url' => $f->sources->reject(fn ($s) => UrlSource::estValide($s->url))->count(),
-                'chiffres_sans_source' => $f->constats
+                // Les défauts de ce qui paraîtra, pas de ce qui reste masqué.
+                'sources_sans_url' => $f->constatsAffiches()->flatMap->sources->unique('id')
+                    ->reject(fn ($s) => UrlSource::estValide($s->url))->count(),
+                'chiffres_sans_source' => $f->constatsAffiches()
                     ->filter(fn ($c) => in_array($c->section, AffirmationConstat::SECTIONS_SOURCEES, true) && $c->sources->isEmpty())
                     ->count(),
                 'graphiques' => $f->graphiques->count(),

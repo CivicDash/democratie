@@ -12,9 +12,10 @@ import { messagePublication } from '@/composables/useModerationAction';
 /**
  * « Ce qu'on entend » : les fiches, leur état de vérification, et le contrôle de symétrie.
  *
- * Deux chiffres disent si une fiche est prête : les phrases encore à vérifier, et les
- * phrases chiffrées sans source citée. Tant qu'ils ne sont pas à zéro, la fiche reste
- * impubliable. Le détail, phrase par phrase, est en tête de chaque fiche.
+ * Une fiche peut paraître avant que tous ses chiffres soient sourcés : les phrases non
+ * vérifiées restent masquées, et le site les annonce « en cours de sourçage ». Ce qui
+ * bloque : une réserve non vérifiée, ou un défaut dans ce qui paraîtra (phrase vérifiée
+ * sans source, source sans URL). Le détail, phrase par phrase, est en tête de chaque fiche.
  */
 const props = defineProps({
     fiches: Array,
@@ -58,8 +59,9 @@ function agir(id, action) {
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 Des affirmations entendues dans le débat public, confrontées aux données. C'est le
                 seul endroit du site où nous rendons un verdict : il ne porte que sur la partie
-                mesurable, et une fiche n'est publiable que lorsque chacune de ses phrases a été
-                vérifiée dans sa source.
+                mesurable. Seules les phrases vérifiées dans leur source paraissent ; les autres
+                sont annoncées « en cours de sourçage ». Une fiche ne paraît jamais sans toutes
+                ses réserves (« Ce que les chiffres ne disent pas »).
             </p>
 
             <FormErrors :errors="$page.props.errors" />
@@ -94,7 +96,7 @@ function agir(id, action) {
                             <th class="p-3 font-medium">Affirmation</th>
                             <th class="p-3 font-medium whitespace-nowrap">Thème</th>
                             <th class="p-3 font-medium text-right whitespace-nowrap">À vérifier</th>
-                            <th class="p-3 font-medium text-right whitespace-nowrap">Chiffres sans source</th>
+                            <th class="p-3 font-medium text-right whitespace-nowrap" title="Parmi les phrases vérifiées, donc affichées">Chiffres sans source</th>
                             <th class="p-3 font-medium">Statut</th>
                             <th class="p-3 font-medium text-right">Actions</th>
                         </tr>
@@ -120,11 +122,13 @@ function agir(id, action) {
                                 </Link>
                             </td>
                             <td class="p-3 whitespace-nowrap">{{ f.theme ?? '—' }}</td>
-                            <td class="p-3 text-right" :class="f.a_verifier ? 'text-amber-600 font-medium' : 'text-green-700'">
+                            <td class="p-3 text-right" :class="f.reserves_a_verifier ? 'text-amber-600 font-medium' : (f.a_verifier ? 'text-gray-600 dark:text-gray-400' : 'text-green-700')">
                                 <Link :href="`${route('admin.presidentielle.affirmations.show', f.id)}#reste-a-faire`" class="hover:underline"
                                       :title="`${f.a_verifier} phrase(s) sur ${f.constats} restent à vérifier`">
                                     {{ f.a_verifier }} / {{ f.constats }}
                                 </Link>
+                                <span v-if="f.reserves_a_verifier" class="block text-xs">dont {{ f.reserves_a_verifier }} réserve(s) — bloquant</span>
+                                <span v-else-if="f.a_verifier" class="block text-xs">masquées à la publication</span>
                             </td>
                             <td class="p-3 text-right" :class="f.chiffres_sans_source || f.sources_sans_url ? 'text-amber-600 font-medium' : ''">
                                 {{ f.chiffres_sans_source }}

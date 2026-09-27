@@ -23,6 +23,13 @@ class AffirmationConstat extends Model
     /** Sections où une phrase doit citer au moins une source. */
     public const SECTIONS_SOURCEES = ['chiffres', 'complement', 'europe'];
 
+    /**
+     * Sections qui ne paraissent jamais en partie. Une fiche peut être publiée avant que
+     * tous ses chiffres soient sourcés (les phrases non vérifiées restent masquées), mais
+     * jamais sans toutes ses réserves : en retirer une durcirait la conclusion.
+     */
+    public const SECTIONS_INTEGRALES = ['limites'];
+
     public const VERIFICATIONS = [
         'verifie' => 'Vérifié',
         'a_verifier' => 'À vérifier',
@@ -37,6 +44,12 @@ class AffirmationConstat extends Model
         'ordre' => 'integer',
         'verifie_at' => 'datetime',
     ];
+
+    /** Ce qui paraît sur le site : seules les phrases vérifiées. Règles et export lisent ceci. */
+    public function estAffiche(): bool
+    {
+        return $this->verification === 'verifie';
+    }
 
     public function affirmation(): BelongsTo
     {

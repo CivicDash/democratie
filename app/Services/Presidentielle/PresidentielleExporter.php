@@ -247,8 +247,9 @@ class PresidentielleExporter
      *
      * Ce qui ne sort JAMAIS d'ici, et que AffirmationExportTest vérifie : la coloration
      * politique perçue (elle ne sert qu'au contrôle de symétrie interne), les notes de
-     * vérification, et l'identité des modérateurs. Seules les sources citées par un
-     * constat partent, et seules les séries Eurostat relues — `series_publiees`, jamais
+     * vérification, l'identité des modérateurs, et le texte des phrases non vérifiées
+     * (seul leur nombre part, par section). Seules les sources citées par une phrase
+     * vérifiée partent, et seules les séries Eurostat relues — `series_publiees`, jamais
      * ce que la dernière extraction a trouvé.
      */
     private function buildAffirmations(string $election): array
@@ -265,7 +266,7 @@ class PresidentielleExporter
             ->sortBy(fn ($f) => [$f->theme?->ordre ?? 99, $f->enonce])
             ->values();
 
-        $codes = $fiches->flatMap(fn ($f) => $f->graphiques->flatMap(fn ($g) => (array) $g->indicateurs))->unique()->values();
+        $codes = $fiches->flatMap(fn ($f) => $f->graphiquesAffiches()->flatMap(fn ($g) => (array) $g->indicateurs))->unique()->values();
         $indicateurs = EurostatIndicateur::whereIn('code', $codes)->whereNotNull('series_publiees')->orderBy('code')->get()
             ->mapWithKeys(fn (EurostatIndicateur $i) => [$i->code => [
                 'titre' => $i->titre,
@@ -277,7 +278,8 @@ class PresidentielleExporter
             ]])->all();
 
         $affirmations = $fiches->map(function (Affirmation $f) {
-            $citees = $f->constats->flatMap->sources->unique('id')->sortBy('id')->values();
+            $constats = $f->constatsAffiches();
+            $citees = $constats->flatMap->sources->unique('id')->sortBy('id')->values();
 
             return [
                 'slug' => $f->slug,
@@ -288,13 +290,14 @@ class PresidentielleExporter
                 'part_de_valeur' => $f->part_de_valeur,
                 'derniere_verification' => $f->derniere_verification?->toDateString(),
                 'verdicts' => $f->verdicts->map(fn ($v) => ['portee' => $v->portee, 'verdict' => $v->verdict])->values()->all(),
-                'constats' => $f->constats->map(fn ($c) => [
+                'constats' => $constats->map(fn ($c) => [
                     'id' => $c->id,
                     'section' => $c->section,
                     'groupe' => $c->groupe,
                     'texte' => $c->texte,
                     'sources' => $c->sources->sortBy('id')->pluck('cle')->values()->all(),
                 ])->values()->all(),
+                'a_sourcer' => (object) $f->aSourcer(),
                 'sources' => $citees->map(fn ($s) => [
                     'cle' => $s->cle,
                     'producteur' => $s->producteur,
@@ -305,7 +308,7 @@ class PresidentielleExporter
                     'date_publication' => $s->date_publication?->toDateString(),
                     'date_consultation' => $s->date_consultation?->toDateString(),
                 ])->all(),
-                'graphiques' => $f->graphiques->map(fn ($g) => [
+                'graphiques' => $f->graphiquesAffiches()->map(fn ($g) => [
                     'constat' => $g->constat_id,
                     'type' => $g->type,
                     'titre' => $g->titre,

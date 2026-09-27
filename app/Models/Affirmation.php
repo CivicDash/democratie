@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 /**
  * Une affirmation entendue dans le débat public, confrontée aux données (« Ce qu'on
@@ -94,6 +95,31 @@ class Affirmation extends Model
     public function graphiques(): HasMany
     {
         return $this->hasMany(AffirmationGraphique::class)->orderBy('ordre')->orderBy('id');
+    }
+
+    /**
+     * Les phrases qui paraissent sur le site. Une fiche peut être publiée avant que tous ses
+     * chiffres soient sourcés : les phrases non vérifiées restent masquées, et la fiche dit
+     * combien il en reste (aSourcer). Les réserves, elles, doivent toutes être vérifiées
+     * (ReglesAffirmation) : une fiche ne paraît jamais sans elles.
+     */
+    public function constatsAffiches(): Collection
+    {
+        return $this->constats->filter->estAffiche()->values();
+    }
+
+    /** Un graphique ne paraît qu'avec la phrase qui le porte. */
+    public function graphiquesAffiches(): Collection
+    {
+        $affiches = $this->constatsAffiches()->pluck('id')->all();
+
+        return $this->graphiques->filter(fn ($g) => in_array($g->constat_id, $affiches, true))->values();
+    }
+
+    /** @return array<string, int> phrases masquées, par section */
+    public function aSourcer(): array
+    {
+        return $this->constats->reject->estAffiche()->countBy('section')->all();
     }
 
     public function scopePublie($query)

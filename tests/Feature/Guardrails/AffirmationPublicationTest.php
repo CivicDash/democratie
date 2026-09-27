@@ -51,18 +51,22 @@ it('refuse une fiche, et la signale à l\'export, quand une règle manque', func
         fn ($f) => $f->verdicts()->create(['ordre' => 1, 'verdict' => 'confirme']),
         'plusieurs verdicts : chacun doit dire sur quoi il porte',
     ],
-    'aucun chiffre' => [fn ($f) => $f->constats()->where('section', 'chiffres')->delete(), 'aucun constat « Ce que disent les chiffres »'],
+    'aucun chiffre' => [fn ($f) => $f->constats()->where('section', 'chiffres')->delete(), 'aucun constat « Ce que disent les chiffres » vérifié'],
+    'aucun chiffre vérifié' => [
+        fn ($f) => $f->constats()->where('section', 'chiffres')->update(['verification' => 'a_verifier']),
+        'aucun constat « Ce que disent les chiffres » vérifié',
+    ],
     'aucune limite' => [
         fn ($f) => $f->constats()->where('section', 'limites')->delete(),
         'aucune limite : la fiche doit dire ce que les chiffres ne disent pas',
     ],
-    'un constat à vérifier' => [
+    'une réserve à vérifier' => [
         fn ($f) => $f->constats()->where('section', 'limites')->update(['verification' => 'a_verifier']),
-        '1 constat(s) encore à vérifier',
+        '1 phrase(s) « Ce que les chiffres ne disent pas » à vérifier : une fiche ne paraît jamais sans toutes ses réserves',
     ],
-    'un chiffre sans source' => [
+    'un chiffre vérifié sans source' => [
         fn ($f) => $f->constats()->create(['section' => 'europe', 'texte' => 'Chiffre orphelin (2024).', 'verification' => 'verifie']),
-        '1 constat(s) chiffré(s) sans source',
+        '1 constat(s) chiffré(s) vérifié(s) sans source',
     ],
     'une source sans URL' => [fn ($f) => $f->sources()->update(['url' => null]), 'source(s) sans URL valide : insee-test'],
     'une source placeholder' => [fn ($f) => $f->sources()->update(['url' => 'A_COMPLETER']), 'source(s) sans URL valide : insee-test'],
@@ -73,6 +77,26 @@ it('refuse une fiche, et la signale à l\'export, quand une règle manque', func
     'un thème inactif' => [fn ($f) => $f->theme->update(['actif' => false]), 'thème principal absent ou inactif'],
 ]);
 
+it('publie une fiche dont des phrases restent à sourcer : elles sont masquées, pas bloquantes', function () {
+    $f = affirmationPubliable();
+    // Ni source, ni vérification : masquée, elle ne compte pas.
+    $f->constats()->create(['section' => 'chiffres', 'ordre' => 5, 'texte' => 'Valeur 2024 à reprendre.', 'verification' => 'a_verifier']);
+    // Sa source n'a pas d'URL : elle ne paraîtra qu'avec la phrase, donc pas encore.
+    $masquee = $f->constats()->create(['section' => 'complement', 'ordre' => 6, 'texte' => 'Départs de France (2023).', 'verification' => 'a_verifier']);
+    $masquee->sources()->attach($f->sources()->create(['cle' => 'sans-url', 'producteur' => 'X', 'titre' => 'Y', 'categorie' => 'presse'])->id);
+    // Son graphique porte sur une série jamais relue : il ne paraîtra qu'avec sa phrase.
+    $f->graphiques()->create(['type' => 'courbes', 'titre' => 'Départs', 'indicateurs' => ['emigration_nat'], 'constat_id' => $masquee->id]);
+
+    expect(raisonsFiche($f))->toBe([])
+        ->and(violationsSiPubliee($f))->toBe([]);
+
+    // Vérifiée, la phrase paraîtrait : ses défauts redeviennent bloquants.
+    $masquee->update(['verification' => 'verifie']);
+    $raisons = raisonsFiche($f);
+    expect($raisons)->toContain('source(s) sans URL valide : sans-url')
+        ->and(collect($raisons)->contains(fn ($r) => str_contains($r, 'série Eurostat non validée (emigration_nat)')))->toBeTrue();
+});
+
 it('n\'accepte un graphique qu\'accompagné d\'une phrase et sur des séries relues', function () {
     $f = affirmationPubliable();
     $g = $f->graphiques()->create([
@@ -80,9 +104,11 @@ it('n\'accepte un graphique qu\'accompagné d\'une phrase et sur des séries rel
         'indicateurs' => ['part_nes_etranger'],
     ]);
 
-    $raisons = raisonsFiche($f);
-    expect(collect($raisons)->contains(fn ($r) => str_contains($r, 'rattaché à aucune phrase')))->toBeTrue()
-        ->and(collect($raisons)->contains(fn ($r) => str_contains($r, 'série Eurostat non validée (part_nes_etranger)')))->toBeTrue();
+    expect(collect(raisonsFiche($f))->contains(fn ($r) => str_contains($r, 'rattaché à aucune phrase')))->toBeTrue();
+
+    // Rattaché à une phrase vérifiée, il paraîtra : sa série doit être relue.
+    $g->update(['constat_id' => $f->constats()->where('section', 'chiffres')->value('id')]);
+    expect(collect(raisonsFiche($f))->contains(fn ($r) => str_contains($r, 'série Eurostat non validée (part_nes_etranger)')))->toBeTrue();
 
     // Une extraction détectée ne suffit pas : il faut la série PUBLIÉE.
     $ind = EurostatIndicateur::create([
@@ -92,7 +118,6 @@ it('n\'accepte un graphique qu\'accompagné d\'une phrase et sur des séries rel
     expect(collect(raisonsFiche($f))->contains(fn ($r) => str_contains($r, 'non validée')))->toBeTrue();
 
     $ind->update(['series_publiees' => $ind->series_detectees, 'series_detectees' => null]);
-    $g->update(['constat_id' => $f->constats()->where('section', 'chiffres')->value('id')]);
 
     expect(raisonsFiche($f))->toBe([]);
 });
@@ -129,6 +154,30 @@ it('refuse, sur une fiche publiée, la modification qui la rendrait impubliable'
         ->assertSessionHasNoErrors();
 
     expect($limite->fresh()->verification)->toBe('a_verifier');
+});
+
+it('accepte, sur une fiche publiée, de remettre à vérifier un chiffre qui n\'est pas le seul', function () {
+    Permission::findOrCreate('moderer_presidentielle', 'web');
+    $mod = User::factory()->create();
+    $mod->givePermissionTo('moderer_presidentielle');
+
+    $f = affirmationPubliable();
+    $second = $f->constats()->create(['section' => 'limites', 'ordre' => 2, 'texte' => 'Autre réserve.', 'verification' => 'verifie']);
+    $chiffre = $f->constats()->create(['section' => 'chiffres', 'ordre' => 3, 'texte' => '12 % (2020) → 13 % (2024).', 'verification' => 'verifie']);
+    $chiffre->sources()->attach($f->sources()->value('id'));
+    $f->update(['statut_validation' => 'valide', 'affiche_publiquement' => true]);
+
+    // Le chiffre disparaît simplement du site au prochain export.
+    $this->actingAs($mod)
+        ->post(route('admin.presidentielle.affirmations.constats.verification', $chiffre), ['verification' => 'a_verifier'])
+        ->assertSessionHasNoErrors();
+    expect($chiffre->fresh()->verification)->toBe('a_verifier');
+
+    // Une réserve, jamais.
+    $this->actingAs($mod)
+        ->post(route('admin.presidentielle.affirmations.constats.verification', $second), ['verification' => 'a_verifier'])
+        ->assertSessionHasErrors('integrite');
+    expect($second->fresh()->verification)->toBe('verifie');
 });
 
 it('laisse passer contrôle et export tant que la migration n\'a pas tourné', function () {

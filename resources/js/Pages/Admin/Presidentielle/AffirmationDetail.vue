@@ -77,25 +77,39 @@ const parSection = computed(() => Object.keys(props.listes.sections).map((sectio
 const aVerifier = computed(() => props.constats.filter((c) => c.verification !== 'verifie').length);
 
 // ── Reste à faire ────────────────────────────────────────────────────────────────
-// Le bandeau ne donne que des totaux (« 7 constats encore à vérifier ») : ici, chaque
-// point bloquant est nommé, avec ce qu'il reste à contrôler et un lien qui y mène.
+// Le bandeau ne donne que des totaux : ici, chaque point est nommé, avec ce qu'il reste à
+// contrôler et un lien qui y mène. Deux familles, comme dans ReglesAffirmation :
+//   - ce qui BLOQUE la publication : les réserves à vérifier (une fiche ne paraît jamais
+//     sans elles), et les défauts de ce qui paraîtra (phrase vérifiée sans source, source
+//     sans URL, graphique sur une série non relue) ;
+//   - ce qui sera MASQUÉ en attendant : les autres phrases non vérifiées, que le site
+//     annonce comme « en cours de sourçage » sans les montrer.
 const SECTIONS_SOURCEES = ['chiffres', 'complement', 'europe'];
+const SECTIONS_INTEGRALES = ['limites'];
+const verifie = (c) => c.verification === 'verifie';
 const extrait = (t) => (t.length > 150 ? `${t.slice(0, 150)}…` : t);
-const resteAVerifier = computed(() => props.constats.filter((c) => c.verification !== 'verifie'));
-const resteSansSource = computed(() => props.constats.filter((c) => SECTIONS_SOURCEES.includes(c.section) && !c.sources.length));
+const resteReserves = computed(() => props.constats.filter((c) => SECTIONS_INTEGRALES.includes(c.section) && !verifie(c)));
+const resteMasques = computed(() => props.constats.filter((c) => !SECTIONS_INTEGRALES.includes(c.section) && !verifie(c)));
+const resteSansSource = computed(() => props.constats.filter((c) => verifie(c) && SECTIONS_SOURCEES.includes(c.section) && !c.sources.length));
+const sourcesAffichees = computed(() => new Set(props.constats.filter(verifie).flatMap((c) => c.sources)));
 const resteSources = computed(() => props.sources
-    .filter((s) => s.citations > 0 && (!s.url_valide || s.exclue))
+    .filter((s) => sourcesAffichees.value.has(s.id) && (!s.url_valide || s.exclue))
     .map((s) => ({ ...s, raison: s.exclue ? 'domaine exclu par le cadre éditorial' : 'URL absente ou invalide' })));
+const constatsAffiches = computed(() => new Set(props.constats.filter(verifie).map((c) => c.id)));
 const resteGraphiques = computed(() => props.graphiques.flatMap((g) => [
     ...(!g.constat_id ? [{ id: g.id, titre: g.titre, raison: 'rattaché à aucune phrase' }] : []),
-    ...g.indicateurs.filter((i) => !['a_jour', 'revision'].includes(i.etat))
+    // Un graphique ne paraît qu'avec sa phrase : tant qu'elle est masquée, ses séries n'ont
+    // pas à être relues.
+    ...(constatsAffiches.value.has(g.constat_id) ? g.indicateurs : [])
+        .filter((i) => !['a_jour', 'revision'].includes(i.etat))
         .map((i) => ({ id: g.id, titre: g.titre, raison: `série ${i.code} non validée (écran Eurostat)` })),
 ]));
-const resteTotal = computed(() => resteAVerifier.value.length + resteSansSource.value.length
+const resteBloquant = computed(() => resteReserves.value.length + resteSansSource.value.length
     + resteSources.value.length + resteGraphiques.value.length);
+const resteTotal = computed(() => resteBloquant.value + resteMasques.value.length);
 
 const seulementReste = ref(false);
-const aFaire = (c) => c.verification !== 'verifie' || (SECTIONS_SOURCEES.includes(c.section) && !c.sources.length);
+const aFaire = (c) => !verifie(c) || (SECTIONS_SOURCEES.includes(c.section) && !c.sources.length);
 function aller(ancre) {
     if (ancre.startsWith('constat-')) seulementReste.value = false;
     requestAnimationFrame(() => {
@@ -210,15 +224,17 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                     <ActionButton v-if="fiche.affiche_publiquement" verbe="depublier" @action="agir('depublier')" />
                 </div>
                 <p v-if="fiche.affiche_publiquement" class="text-xs text-gray-500 mt-3">
-                    Fiche publiée : une modification qui la rendrait impubliable (constat remis à
-                    vérifier, source sans URL…) sera refusée. Dépubliez d'abord.
+                    Fiche publiée : une modification qui la rendrait impubliable (réserve remise à
+                    vérifier, source sans URL…) sera refusée. Dépubliez d'abord. Une autre phrase
+                    remise à vérifier disparaît simplement du site au prochain export.
                 </p>
             </div>
 
             <!-- Reste à faire -->
-            <section v-if="resteTotal" id="reste-a-faire" class="rounded-xl border border-amber-300 dark:border-amber-800 p-4">
+            <section v-if="resteTotal" id="reste-a-faire" class="rounded-xl border p-4"
+                     :class="resteBloquant ? 'border-amber-300 dark:border-amber-800' : 'border-gray-200 dark:border-gray-700'">
                 <div class="flex items-center justify-between gap-3 flex-wrap">
-                    <h3 class="font-semibold">Reste à faire avant publication ({{ resteTotal }})</h3>
+                    <h3 class="font-semibold">Reste à faire ({{ resteTotal }})</h3>
                     <label class="text-sm flex items-center gap-2">
                         <input v-model="seulementReste" type="checkbox" class="rounded" />
                         N'afficher plus bas que les phrases à traiter
@@ -229,21 +245,23 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                     (« ✎ Modifier »), puis « Marquer vérifié ». Cliquer une ligne y mène.
                 </p>
 
-                <div v-if="resteAVerifier.length" class="mt-3">
-                    <p class="text-sm font-medium">Phrases à vérifier ({{ resteAVerifier.length }})</p>
+                <h4 class="text-sm font-semibold mt-4" :class="resteBloquant ? 'text-amber-800 dark:text-amber-300' : 'text-green-800 dark:text-green-300'">
+                    {{ resteBloquant ? `Bloque la publication (${resteBloquant})` : 'Rien ne bloque la publication' }}
+                </h4>
+
+                <div v-if="resteReserves.length" class="mt-2">
+                    <p class="text-sm font-medium">Réserves à vérifier ({{ resteReserves.length }})</p>
+                    <p class="text-xs text-gray-500">Une fiche ne paraît jamais sans toutes ses réserves : en masquer une durcirait la conclusion.</p>
                     <ol class="mt-1 space-y-1.5 text-sm list-decimal list-inside">
-                        <li v-for="c in resteAVerifier" :key="c.id">
-                            <a :href="`#constat-${c.id}`" @click.prevent="aller(`constat-${c.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">
-                                <span class="text-xs uppercase tracking-wide text-gray-500">{{ listes.sections[c.section] }}<span v-if="c.groupe"> · {{ c.groupe }}</span></span>
-                                — {{ extrait(c.texte) }}
-                            </a>
+                        <li v-for="c in resteReserves" :key="c.id">
+                            <a :href="`#constat-${c.id}`" @click.prevent="aller(`constat-${c.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">{{ extrait(c.texte) }}</a>
                             <span v-if="c.note_verification" class="block pl-5 text-xs text-amber-800 dark:text-amber-300">À contrôler : {{ c.note_verification }}</span>
                         </li>
                     </ol>
                 </div>
 
                 <div v-if="resteSansSource.length" class="mt-3">
-                    <p class="text-sm font-medium">Phrases chiffrées sans source citée ({{ resteSansSource.length }})</p>
+                    <p class="text-sm font-medium">Phrases vérifiées, chiffrées, sans source citée ({{ resteSansSource.length }})</p>
                     <p class="text-xs text-gray-500">Ajouter la source (bas de page), puis la cocher dans « ✎ Modifier » ; ou supprimer la phrase.</p>
                     <ol class="mt-1 space-y-1 text-sm list-decimal list-inside">
                         <li v-for="c in resteSansSource" :key="c.id">
@@ -253,7 +271,7 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                 </div>
 
                 <div v-if="resteSources.length" class="mt-3">
-                    <p class="text-sm font-medium">Sources citées à corriger ({{ resteSources.length }})</p>
+                    <p class="text-sm font-medium">Sources affichées à corriger ({{ resteSources.length }})</p>
                     <ul class="mt-1 space-y-1 text-sm">
                         <li v-for="s in resteSources" :key="s.id">
                             <a :href="`#source-${s.id}`" @click.prevent="aller(`source-${s.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">{{ s.producteur }} — {{ s.titre }}</a>
@@ -271,6 +289,24 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                         </li>
                     </ul>
                 </div>
+
+                <template v-if="resteMasques.length">
+                    <h4 class="text-sm font-semibold mt-5">Masqué sur le site tant que non vérifié ({{ resteMasques.length }})</h4>
+                    <p class="text-xs text-gray-500">
+                        Ne bloque pas la publication. Ces phrases, leurs sources et leurs graphiques ne
+                        paraissent pas ; la fiche annonce « {{ resteMasques.length }} élément(s) en cours de
+                        sourçage ». Chacune s'affiche au prochain export après « Marquer vérifié ».
+                    </p>
+                    <ol class="mt-1 space-y-1.5 text-sm list-decimal list-inside">
+                        <li v-for="c in resteMasques" :key="c.id">
+                            <a :href="`#constat-${c.id}`" @click.prevent="aller(`constat-${c.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">
+                                <span class="text-xs uppercase tracking-wide text-gray-500">{{ listes.sections[c.section] }}<span v-if="c.groupe"> · {{ c.groupe }}</span></span>
+                                — {{ extrait(c.texte) }}
+                            </a>
+                            <span v-if="c.note_verification" class="block pl-5 text-xs text-amber-800 dark:text-amber-300">À contrôler : {{ c.note_verification }}</span>
+                        </li>
+                    </ol>
+                </template>
             </section>
             <p v-else-if="!raisons.length" class="rounded-xl border border-green-300 dark:border-green-800 p-3 text-sm text-green-800 dark:text-green-300">
                 Toutes les phrases sont vérifiées et sourcées : la fiche peut être validée puis publiée.
