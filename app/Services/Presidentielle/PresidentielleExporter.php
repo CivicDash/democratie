@@ -521,6 +521,9 @@ class PresidentielleExporter
                         'organisation' => $e->organisation,
                         'date_debut' => optional($e->date_debut)->toDateString(),
                         'date_fin' => optional($e->date_fin)->toDateString(),
+                        // jour, mois ou année : le front n'affiche que ce qu'on sait.
+                        'precision_debut' => $e->precision_debut ?? 'jour',
+                        'precision_fin' => $e->precision_fin ?? 'jour',
                         'source_url' => $this->url($e->source_url),
                         // « Actions durant cette fonction » — données CivicDash, critère mécanique
                         'actions' => $e->actions->map(fn ($a) => [

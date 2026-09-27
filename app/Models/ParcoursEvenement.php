@@ -16,9 +16,12 @@ class ParcoursEvenement extends Model
 
     public const TYPES = ['mandat', 'fonction_gouvernementale', 'poste_prive', 'engagement'];
 
+    /** Précision d'une date : la page l'affiche en conséquence (« 2 juillet 2019 », « juillet 2019 », « 2019 »). */
+    public const PRECISIONS = ['jour', 'mois', 'annee'];
+
     protected $fillable = [
         'uuid', 'personne_politique_id', 'type', 'titre', 'organisation', 'description',
-        'date_debut', 'date_fin', 'en_cours', 'source_url',
+        'date_debut', 'date_fin', 'precision_debut', 'precision_fin', 'en_cours', 'source_url',
         'statut_validation', 'affiche_publiquement', 'ordre',
         'source_detection', 'detection_confidence', 'detection_raw_data',
         'valide_par', 'valide_at',

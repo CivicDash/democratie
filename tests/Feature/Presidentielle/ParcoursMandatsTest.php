@@ -59,3 +59,21 @@ it('ne crée la ligne générique sans date qu\'à défaut de mandat daté', fun
     expect(ParcoursEvenement::where('personne_politique_id', $p->id)->pluck('titre')->all())
         ->toBe(['Députée/Député à l\'Assemblée nationale']);
 });
+
+it('exporte la précision des dates du parcours', function () {
+    $p = PersonnePolitique::factory()->create();
+    CandidatPresidentielle::factory()->create([
+        'personne_politique_id' => $p->id, 'election' => '2027',
+        'statut_validation' => 'valide', 'affiche_publiquement' => true,
+    ]);
+    ParcoursEvenement::factory()->create([
+        'personne_politique_id' => $p->id, 'type' => 'poste_prive', 'titre' => 'Journaliste',
+        'date_debut' => '1996-01-01', 'date_fin' => '2009-01-01', 'precision_debut' => 'annee', 'precision_fin' => 'annee',
+        'statut_validation' => 'valide', 'affiche_publiquement' => true,
+    ]);
+
+    $ligne = app(\App\Services\Presidentielle\PresidentielleExporter::class)->build('2027')['candidats'][$p->slug]['parcours'][0];
+
+    expect($ligne['precision_debut'])->toBe('annee')
+        ->and($ligne['precision_fin'])->toBe('annee');
+});

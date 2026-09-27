@@ -115,6 +115,7 @@ class PresidentielleImportParcours extends Command
     /**
      * Enrichit le parcours depuis la déclaration HATVP rattachée (DIA) : mandats électifs,
      * activités professionnelles/consultant, participations dirigeantes, fonctions bénévoles.
+     * Les dates y sont déclarées au mois près : la précision « mois » le dit à l'affichage.
      * Événements en `detecte` (validation humaine), sourcés vers la fiche HATVP.
      */
     private function importDepuisHatvp(PersonnePolitique $personne): int
@@ -134,19 +135,26 @@ class PresidentielleImportParcours extends Command
 
         foreach ($decl->mandatsElectifs as $m) {
             $titre = $m->description_mandat ?? $m->description ?? 'Mandat électif';
-            $n += $this->creer($personne, 'mandat', $titre, null, $m->date_debut, $m->date_fin, 'hatvp', $url) ? 1 : 0;
+            $n += $this->creer($personne, 'mandat', $titre, null, $m->date_debut, $m->date_fin, 'hatvp', $url, 'mois') ? 1 : 0;
         }
         foreach ($decl->activitesProfessionnelles as $a) {
-            $n += $this->creer($personne, 'poste_prive', $a->description ?? 'Activité professionnelle', $a->employeur, $a->date_debut, $a->date_fin, 'hatvp', $url) ? 1 : 0;
+            if (blank($a->description) && in_array(trim((string) $a->employeur), ['', 'Non précisé'], true)) {
+                continue;
+            }
+            $n += $this->creer($personne, 'poste_prive', $a->description ?? 'Activité professionnelle', $a->employeur, $a->date_debut, $a->date_fin, 'hatvp', $url, 'mois') ? 1 : 0;
         }
         foreach ($decl->activitesConsultant as $a) {
-            $n += $this->creer($personne, 'poste_prive', $a->description ?? 'Activité de conseil', null, $a->date_debut, $a->date_fin, 'hatvp', $url) ? 1 : 0;
+            $n += $this->creer($personne, 'poste_prive', $a->description ?? 'Activité de conseil', null, $a->date_debut, $a->date_fin, 'hatvp', $url, 'mois') ? 1 : 0;
         }
         foreach ($decl->participationsDirigeantes as $p) {
             $titre = $p->activite ?: 'Mandat de direction';
-            $n += $this->creer($personne, 'poste_prive', $titre, $p->nom_societe ?? $p->societe, $p->date_debut, $p->date_fin, 'hatvp', $url) ? 1 : 0;
+            $n += $this->creer($personne, 'poste_prive', $titre, $p->nom_societe ?? $p->societe, $p->date_debut, $p->date_fin, 'hatvp', $url, 'mois') ? 1 : 0;
         }
         foreach ($decl->fonctionsBenevoles as $f) {
+            // Ni intitulé ni organisme : la ligne « Fonction bénévole » n'apprendrait rien.
+            if (blank($f->description) && blank($f->organisme)) {
+                continue;
+            }
             $n += $this->creer($personne, 'engagement', $f->description ?? 'Fonction bénévole', $f->organisme, null, null, 'hatvp', $url) ? 1 : 0;
         }
 
@@ -161,7 +169,7 @@ class PresidentielleImportParcours extends Command
      * Les deux doivent être reconnues : sinon la synchro suivante recréerait, en
      * « détecté », la date fausse ou le doublon qu'un modérateur vient d'écarter.
      */
-    private function creer(PersonnePolitique $personne, string $type, string $titre, ?string $organisation, $dateDebut, $dateFin, string $sourceDetection = 'civicdash', ?string $sourceUrl = null): bool
+    private function creer(PersonnePolitique $personne, string $type, string $titre, ?string $organisation, $dateDebut, $dateFin, string $sourceDetection = 'civicdash', ?string $sourceUrl = null, string $precision = 'jour'): bool
     {
         $titre = trim($titre) !== '' ? $titre : 'Sans titre';
         $debut = $dateDebut ? \Illuminate\Support\Carbon::parse($dateDebut)->toDateString() : null;
@@ -183,6 +191,8 @@ class PresidentielleImportParcours extends Command
             'organisation' => $organisation,
             'date_debut' => $dateDebut,
             'date_fin' => $dateFin,
+            'precision_debut' => $precision,
+            'precision_fin' => $precision,
             'en_cours' => $dateDebut && ! $dateFin,
             'source_url' => $sourceUrl,
             'source_detection' => $sourceDetection,
