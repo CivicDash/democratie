@@ -23,13 +23,31 @@ return [
     |--------------------------------------------------------------------------
     | Exclusions du cadre éditorial (« CNews / groupe Bolloré »). Une fiche qui cite une
     | source de ces domaines n'est pas publiable. Un sous-domaine est exclu avec son
-    | domaine. Liste à valider par l'équipe éditoriale : le périmètre du groupe varie
-    | (Prisma Media, notamment, n'y figure pas ici).
+    | domaine. Liste validée par Kévin le 27/09/2026, Prisma Media compris ; le périmètre
+    | du groupe varie : la compléter quand un titre change de main.
     */
     'sources_exclues' => [
+        // Groupe Bolloré : information.
         'cnews.fr',
         'europe1.fr',
         'lejdd.fr',
         'parismatch.com',
+        // Prisma Media (principaux titres).
+        'prismamedia.com',
+        'capital.fr',
+        'geo.fr',
+        'caminteresse.fr',
+        'businessinsider.fr',
+        'hbrfrance.fr',
+        'nationalgeographic.fr',
+        'femmeactuelle.fr',
+        'prima.fr',
+        'gala.fr',
+        'voici.fr',
+        'programme-tv.net',
+        'telestar.fr',
+        'tele2semaines.fr',
+        'cuisineactuelle.fr',
+        'neonmag.fr',
     ],
 ];
