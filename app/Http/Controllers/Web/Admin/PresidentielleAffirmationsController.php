@@ -58,6 +58,9 @@ class PresidentielleAffirmationsController extends Controller
                 'a_verifier' => $f->constats->where('verification', '!==', 'verifie')->count(),
                 'constats' => $f->constats->count(),
                 'sources_sans_url' => $f->sources->reject(fn ($s) => UrlSource::estValide($s->url))->count(),
+                'chiffres_sans_source' => $f->constats
+                    ->filter(fn ($c) => in_array($c->section, AffirmationConstat::SECTIONS_SOURCEES, true) && $c->sources->isEmpty())
+                    ->count(),
                 'graphiques' => $f->graphiques->count(),
                 'raisons' => $service->raisonsNonPubliable($f),
             ])->all(),

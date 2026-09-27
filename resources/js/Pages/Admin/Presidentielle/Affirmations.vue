@@ -12,8 +12,9 @@ import { messagePublication } from '@/composables/useModerationAction';
 /**
  * « Ce qu'on entend » : les fiches, leur état de vérification, et le contrôle de symétrie.
  *
- * Deux chiffres disent si une fiche est prête : les constats encore à vérifier, et les
- * sources sans URL. Tant qu'ils ne sont pas à zéro, la fiche reste impubliable.
+ * Deux chiffres disent si une fiche est prête : les phrases encore à vérifier, et les
+ * phrases chiffrées sans source citée. Tant qu'ils ne sont pas à zéro, la fiche reste
+ * impubliable. Le détail, phrase par phrase, est en tête de chaque fiche.
  */
 const props = defineProps({
     fiches: Array,
@@ -93,7 +94,7 @@ function agir(id, action) {
                             <th class="p-3 font-medium">Affirmation</th>
                             <th class="p-3 font-medium whitespace-nowrap">Thème</th>
                             <th class="p-3 font-medium text-right whitespace-nowrap">À vérifier</th>
-                            <th class="p-3 font-medium text-right whitespace-nowrap">Sources sans URL</th>
+                            <th class="p-3 font-medium text-right whitespace-nowrap">Chiffres sans source</th>
                             <th class="p-3 font-medium">Statut</th>
                             <th class="p-3 font-medium text-right">Actions</th>
                         </tr>
@@ -113,13 +114,21 @@ function agir(id, action) {
                                 <ul v-if="f.raisons.length" class="text-xs text-amber-700 dark:text-amber-400 mt-1 list-disc list-inside">
                                     <li v-for="r in f.raisons" :key="r">{{ r }}</li>
                                 </ul>
+                                <Link v-if="f.raisons.length" :href="`${route('admin.presidentielle.affirmations.show', f.id)}#reste-a-faire`"
+                                      class="text-xs text-blue-700 dark:text-blue-300 hover:underline">
+                                    Voir la liste de ce qui reste à faire →
+                                </Link>
                             </td>
                             <td class="p-3 whitespace-nowrap">{{ f.theme ?? '—' }}</td>
                             <td class="p-3 text-right" :class="f.a_verifier ? 'text-amber-600 font-medium' : 'text-green-700'">
-                                {{ f.a_verifier }} / {{ f.constats }}
+                                <Link :href="`${route('admin.presidentielle.affirmations.show', f.id)}#reste-a-faire`" class="hover:underline"
+                                      :title="`${f.a_verifier} phrase(s) sur ${f.constats} restent à vérifier`">
+                                    {{ f.a_verifier }} / {{ f.constats }}
+                                </Link>
                             </td>
-                            <td class="p-3 text-right" :class="f.sources_sans_url ? 'text-amber-600 font-medium' : ''">
-                                {{ f.sources_sans_url }}
+                            <td class="p-3 text-right" :class="f.chiffres_sans_source || f.sources_sans_url ? 'text-amber-600 font-medium' : ''">
+                                {{ f.chiffres_sans_source }}
+                                <span v-if="f.sources_sans_url" class="block text-xs">+ {{ f.sources_sans_url }} source(s) sans URL</span>
                             </td>
                             <td class="p-3 space-x-1 whitespace-nowrap">
                                 <StatusBadge :statut="f.statut_validation" />

@@ -76,6 +76,38 @@ const parSection = computed(() => Object.keys(props.listes.sections).map((sectio
 
 const aVerifier = computed(() => props.constats.filter((c) => c.verification !== 'verifie').length);
 
+// ── Reste à faire ────────────────────────────────────────────────────────────────
+// Le bandeau ne donne que des totaux (« 7 constats encore à vérifier ») : ici, chaque
+// point bloquant est nommé, avec ce qu'il reste à contrôler et un lien qui y mène.
+const SECTIONS_SOURCEES = ['chiffres', 'complement', 'europe'];
+const extrait = (t) => (t.length > 150 ? `${t.slice(0, 150)}…` : t);
+const resteAVerifier = computed(() => props.constats.filter((c) => c.verification !== 'verifie'));
+const resteSansSource = computed(() => props.constats.filter((c) => SECTIONS_SOURCEES.includes(c.section) && !c.sources.length));
+const resteSources = computed(() => props.sources
+    .filter((s) => s.citations > 0 && (!s.url_valide || s.exclue))
+    .map((s) => ({ ...s, raison: s.exclue ? 'domaine exclu par le cadre éditorial' : 'URL absente ou invalide' })));
+const resteGraphiques = computed(() => props.graphiques.flatMap((g) => [
+    ...(!g.constat_id ? [{ id: g.id, titre: g.titre, raison: 'rattaché à aucune phrase' }] : []),
+    ...g.indicateurs.filter((i) => !['a_jour', 'revision'].includes(i.etat))
+        .map((i) => ({ id: g.id, titre: g.titre, raison: `série ${i.code} non validée (écran Eurostat)` })),
+]));
+const resteTotal = computed(() => resteAVerifier.value.length + resteSansSource.value.length
+    + resteSources.value.length + resteGraphiques.value.length);
+
+const seulementReste = ref(false);
+const aFaire = (c) => c.verification !== 'verifie' || (SECTIONS_SOURCEES.includes(c.section) && !c.sources.length);
+function aller(ancre) {
+    if (ancre.startsWith('constat-')) seulementReste.value = false;
+    requestAnimationFrame(() => {
+        const el = document.getElementById(ancre);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Bref surlignage : sur une fiche de quarante phrases, l'œil doit trouver la bonne.
+        el.classList.add('ring-2', 'ring-blue-500');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-blue-500'), 2500);
+    });
+}
+
 const edition = ref(null);
 const brouillon = reactive({ texte: '', groupe: '', section: '', note_verification: '', sources: [] });
 
@@ -183,6 +215,67 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                 </p>
             </div>
 
+            <!-- Reste à faire -->
+            <section v-if="resteTotal" id="reste-a-faire" class="rounded-xl border border-amber-300 dark:border-amber-800 p-4">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 class="font-semibold">Reste à faire avant publication ({{ resteTotal }})</h3>
+                    <label class="text-sm flex items-center gap-2">
+                        <input v-model="seulementReste" type="checkbox" class="rounded" />
+                        N'afficher plus bas que les phrases à traiter
+                    </label>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    Pour chaque phrase : ouvrir sa source, retrouver le chiffre, corriger le texte si besoin
+                    (« ✎ Modifier »), puis « Marquer vérifié ». Cliquer une ligne y mène.
+                </p>
+
+                <div v-if="resteAVerifier.length" class="mt-3">
+                    <p class="text-sm font-medium">Phrases à vérifier ({{ resteAVerifier.length }})</p>
+                    <ol class="mt-1 space-y-1.5 text-sm list-decimal list-inside">
+                        <li v-for="c in resteAVerifier" :key="c.id">
+                            <a :href="`#constat-${c.id}`" @click.prevent="aller(`constat-${c.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">
+                                <span class="text-xs uppercase tracking-wide text-gray-500">{{ listes.sections[c.section] }}<span v-if="c.groupe"> · {{ c.groupe }}</span></span>
+                                — {{ extrait(c.texte) }}
+                            </a>
+                            <span v-if="c.note_verification" class="block pl-5 text-xs text-amber-800 dark:text-amber-300">À contrôler : {{ c.note_verification }}</span>
+                        </li>
+                    </ol>
+                </div>
+
+                <div v-if="resteSansSource.length" class="mt-3">
+                    <p class="text-sm font-medium">Phrases chiffrées sans source citée ({{ resteSansSource.length }})</p>
+                    <p class="text-xs text-gray-500">Ajouter la source (bas de page), puis la cocher dans « ✎ Modifier » ; ou supprimer la phrase.</p>
+                    <ol class="mt-1 space-y-1 text-sm list-decimal list-inside">
+                        <li v-for="c in resteSansSource" :key="c.id">
+                            <a :href="`#constat-${c.id}`" @click.prevent="aller(`constat-${c.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">{{ extrait(c.texte) }}</a>
+                        </li>
+                    </ol>
+                </div>
+
+                <div v-if="resteSources.length" class="mt-3">
+                    <p class="text-sm font-medium">Sources citées à corriger ({{ resteSources.length }})</p>
+                    <ul class="mt-1 space-y-1 text-sm">
+                        <li v-for="s in resteSources" :key="s.id">
+                            <a :href="`#source-${s.id}`" @click.prevent="aller(`source-${s.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">{{ s.producteur }} — {{ s.titre }}</a>
+                            <span class="text-xs text-red-600"> · {{ s.raison }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div v-if="resteGraphiques.length" class="mt-3">
+                    <p class="text-sm font-medium">Graphiques ({{ resteGraphiques.length }})</p>
+                    <ul class="mt-1 space-y-1 text-sm">
+                        <li v-for="(g, k) in resteGraphiques" :key="k">
+                            <a :href="`#graphique-${g.id}`" @click.prevent="aller(`graphique-${g.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">{{ g.titre }}</a>
+                            <span class="text-xs text-amber-700"> · {{ g.raison }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+            <p v-else-if="!raisons.length" class="rounded-xl border border-green-300 dark:border-green-800 p-3 text-sm text-green-800 dark:text-green-300">
+                Toutes les phrases sont vérifiées et sourcées : la fiche peut être validée puis publiée.
+            </p>
+
             <!-- Cadrage -->
             <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <summary class="cursor-pointer font-medium text-sm">✎ Énoncé, résumé, thèmes</summary>
@@ -265,7 +358,7 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                 <div v-for="g in s.groupes" :key="g.nom" class="mt-3">
                     <p v-if="g.nom" class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ g.nom }}</p>
                     <ul class="space-y-2">
-                        <li v-for="c in g.constats" :key="c.id"
+                        <li v-for="c in g.constats" :key="c.id" v-show="!seulementReste || aFaire(c)" :id="`constat-${c.id}`"
                             :class="['rounded border p-3', c.verification === 'verifie'
                                 ? 'border-gray-200 dark:border-gray-700'
                                 : 'border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10']">
@@ -352,7 +445,7 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                     graphique n'est publiable que sur des séries validées dans l'écran Eurostat, et
                     rattaché à la phrase qui l'accompagne.
                 </p>
-                <div v-for="g in graphiques" :key="g.id" class="mt-4 rounded border border-gray-200 dark:border-gray-700 p-3 text-sm space-y-2">
+                <div v-for="g in graphiques" :key="g.id" :id="`graphique-${g.id}`" class="mt-4 rounded border border-gray-200 dark:border-gray-700 p-3 text-sm space-y-2">
                     <p class="text-xs text-gray-500">{{ listes.types[g.type] ?? g.type }}</p>
                     <input v-model="graphiquesEdit[g.id].titre" type="text" maxlength="300" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 font-medium" aria-label="Titre du graphique" />
                     <input v-model="graphiquesEdit[g.id].sous_titre" type="text" maxlength="300" placeholder="Sous-titre : unité et champ" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800" aria-label="Sous-titre du graphique" />
@@ -378,7 +471,7 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
             <!-- Sources -->
             <section class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <h3 class="font-semibold">Sources</h3>
-                <div v-for="s in sources" :key="s.id" class="mt-3 rounded border p-3 text-sm space-y-2"
+                <div v-for="s in sources" :key="s.id" :id="`source-${s.id}`" class="mt-3 rounded border p-3 text-sm space-y-2"
                      :class="s.url_valide && !s.exclue ? 'border-gray-200 dark:border-gray-700' : 'border-red-300 dark:border-red-800'">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <code class="text-xs">{{ s.cle }}</code>
