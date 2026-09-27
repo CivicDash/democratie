@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
 /**
- * Extraction mensuelle des comparaisons européennes de « Ce qu'on entend ».
+ * Extraction mensuelle des comparaisons européennes des repères chiffrés.
  *
  * Ne change jamais ce que le site montre : les séries qui diffèrent de la version publiée
  * attendent une validation humaine dans l'écran Eurostat du back-office.

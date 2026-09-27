@@ -5,7 +5,8 @@ use App\Models\ProgrammeTheme;
 use Illuminate\Support\Facades\File;
 
 /**
- * Import du contrat presidentielle.affirmations.v1.
+ * Import des repères chiffrés : contrat presidentielle.affirmations.v2 (question neutre, sans
+ * verdict), et lecture de l'ancien v1 de « Ce qu'on entend », verdicts ignorés.
  *
  * Plus strict que les imports existants : ce JSON sort d'une conversion du dossier de
  * sourçage, et toute anomalie y signale une erreur de conversion — il vaut mieux refuser
@@ -14,15 +15,12 @@ use Illuminate\Support\Facades\File;
 function contratAffirmations(array $surcharge = []): array
 {
     $fiche = array_replace_recursive([
-        'slug' => 'trop-de-normes',
-        'enonce' => 'Il y a trop de normes pour les entreprises',
+        'slug' => 'production-de-normes',
+        'question' => 'Combien de normes sont produites chaque année ?',
         'resume' => 'Le volume de droit croît ; son coût n\'est pas mesuré.',
         'theme' => 'institutions',
         'themes_secondaires' => [],
-        'part_de_valeur' => true,
         'derniere_verification' => '2026-09-26',
-        'coloration_percue' => 'droite',
-        'verdicts' => [['portee' => 'sur le volume de droit', 'verdict' => 'confirme']],
         'sources' => [[
             'cle' => 'sgg-2026', 'producteur' => 'SGG', 'titre' => 'Indicateurs de suivi de l\'activité normative',
             'url' => 'https://www.legifrance.gouv.fr/contenu/indicateurs.pdf', 'archive_url' => null,
@@ -36,7 +34,7 @@ function contratAffirmations(array $surcharge = []): array
         'graphiques' => [],
     ], $surcharge);
 
-    return ['contrat' => 'presidentielle.affirmations.v1', 'election' => '2027', 'affirmations' => [$fiche]];
+    return ['contrat' => 'presidentielle.affirmations.v2', 'election' => '2027', 'reperes' => [$fiche]];
 }
 
 function importerAffirmations(array $data, array $options = []): array
@@ -54,18 +52,36 @@ beforeEach(function () {
     ProgrammeTheme::factory()->create(['slug' => 'institutions', 'actif' => true]);
 });
 
-it('importe une fiche complète, en « détecté » et non publiée', function () {
+it('importe un repère complet, en « détecté » et non publié', function () {
     [$code, $sortie] = importerAffirmations(contratAffirmations());
 
     expect($code)->toBe(0)->and($sortie)->toContain('dont 1 à vérifier');
     $f = Affirmation::with(['verdicts', 'constats.sources', 'sources'])->firstOrFail();
     expect($f->statut_validation)->toBe('detecte')
         ->and($f->affiche_publiquement)->toBeFalse()
-        ->and($f->coloration_percue)->toBe('droite')
-        ->and($f->verdicts->first()->verdict)->toBe('confirme')
+        ->and($f->question)->toBe('Combien de normes sont produites chaque année ?')
+        ->and($f->verdicts)->toHaveCount(0)
         ->and($f->constats)->toHaveCount(2)
         ->and($f->constats->first()->sources->first()->cle)->toBe('sgg-2026')
         ->and($f->constats->first()->note_verification)->toBe('confirmer dans le PDF');
+});
+
+it('lit encore l\'ancien contrat v1, sans reprendre ses verdicts', function () {
+    $v1 = contratAffirmations();
+    $fiche = $v1['reperes'][0];
+    unset($fiche['question']);
+    $fiche += ['enonce' => 'Il y a trop de normes', 'coloration_percue' => 'droite', 'part_de_valeur' => true,
+        'verdicts' => [['portee' => null, 'verdict' => 'confirme']]];
+
+    [$code] = importerAffirmations(['contrat' => 'presidentielle.affirmations.v1', 'election' => '2027', 'affirmations' => [$fiche]]);
+
+    $f = Affirmation::with('verdicts')->sole();
+    expect($code)->toBe(0)
+        ->and($f->enonce)->toBe('Il y a trop de normes')
+        ->and($f->question)->toBeNull()
+        ->and($f->verdicts)->toHaveCount(0)
+        ->and($f->coloration_percue)->toBeNull()
+        ->and($f->part_de_valeur)->toBeFalse();
 });
 
 it('n\'écrit rien en simulation', function () {
@@ -85,9 +101,10 @@ it('refuse le fichier entier au moindre écart au contrat', function (array $sur
     expect($code)->toBe(1)->and($sortie)->toContain($attendu)
         ->and(Affirmation::count())->toBe(0);
 })->with([
-    'contrat inconnu' => [['racine' => ['contrat' => 'presidentielle.propositions.v1']], 'attendu « presidentielle.affirmations.v1 »'],
+    'contrat inconnu' => [['racine' => ['contrat' => 'presidentielle.propositions.v1']], 'attendu « presidentielle.affirmations.v2 »'],
     'thème inconnu' => [['fiche' => ['theme' => 'astrologie']], 'thème inconnu « astrologie »'],
-    'verdict inconnu' => [['fiche' => ['verdicts' => [['verdict' => 'faux']]]], 'verdict inconnu « faux »'],
+    'un verdict' => [['fiche' => ['verdicts' => [['verdict' => 'confirme']]]], 'un repère ne porte pas de verdict'],
+    'question sans point d\'interrogation' => [['fiche' => ['question' => 'Le nombre de normes']], 'une question se termine par « ? »'],
     'placeholder d\'URL' => [['fiche' => ['sources' => [['url' => 'A_COMPLETER']]]], 'ni une URL http(s) ni null'],
     'domaine exclu' => [['fiche' => ['sources' => [['url' => 'https://www.cnews.fr/x']]]], 'domaine exclu'],
     'source inconnue' => [['fiche' => ['constats' => [['sources' => ['inconnue']]]]], 'clé de source inconnue « inconnue »'],
@@ -99,7 +116,7 @@ it('refuse le fichier entier au moindre écart au contrat', function (array $sur
 
 it('refuse une source citée par aucun constat', function () {
     $data = contratAffirmations();
-    $data['affirmations'][0]['sources'][] = [
+    $data['reperes'][0]['sources'][] = [
         'cle' => 'orpheline', 'producteur' => 'X', 'titre' => 'Y', 'url' => null, 'categorie' => 'presse',
     ];
 
@@ -111,12 +128,12 @@ it('refuse une source citée par aucun constat', function () {
 it('ne remplace une fiche existante qu\'à la demande, et jamais une fiche publiée', function () {
     importerAffirmations(contratAffirmations());
 
-    [$code, $sortie] = importerAffirmations(contratAffirmations(['enonce' => 'Nouvel énoncé']));
+    [$code, $sortie] = importerAffirmations(contratAffirmations(['question' => 'Nouvelle question ?']));
     expect($code)->toBe(1)->and($sortie)->toContain('relancer avec « remplacer »');
 
-    [$code] = importerAffirmations(contratAffirmations(['enonce' => 'Nouvel énoncé']), ['--remplacer' => true]);
+    [$code] = importerAffirmations(contratAffirmations(['question' => 'Nouvelle question ?']), ['--remplacer' => true]);
     expect($code)->toBe(0)
-        ->and(Affirmation::sole()->enonce)->toBe('Nouvel énoncé')
+        ->and(Affirmation::sole()->question)->toBe('Nouvelle question ?')
         ->and(Affirmation::sole()->constats()->count())->toBe(2);
 
     Affirmation::sole()->update(['statut_validation' => 'valide', 'affiche_publiquement' => true]);

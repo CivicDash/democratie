@@ -61,7 +61,7 @@ class PresidentielleModerationController extends Controller
         'argument_lien' => ArgumentMesureLien::class,   // liaison argument↔mesure (porte le sens)
         'controverse' => Controverse::class,
         'quiz_question' => QuizQuestion::class,      // question du quiz thématique
-        'affirmation' => Affirmation::class,         // fiche « Ce qu'on entend »
+        'affirmation' => Affirmation::class,         // repère chiffré (ex-« Ce qu'on entend »)
         'lien' => MesureScrutinLien::class,              // lien mesure↔scrutin (module cohérence)
         'parcours' => ParcoursEvenement::class,
         'programme_document' => ProgrammeDocument::class,
@@ -1574,10 +1574,10 @@ class PresidentielleModerationController extends Controller
             if ($entite instanceof Affirmation) {
                 $service->supprimerAffirmation($entite, $user, $commentaire);
 
-                return 'Fiche supprimée.';
+                return 'Repère supprimé.';
             }
             if (! $entite instanceof ProgrammeMesure) {
-                throw new ModerationException('La suppression ne concerne que les mesures et les fiches « Ce qu\'on entend ».');
+                throw new ModerationException('La suppression ne concerne que les mesures et les repères chiffrés.');
             }
             $service->supprimerMesure($entite, $user, $commentaire);
 

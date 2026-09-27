@@ -9,7 +9,11 @@ use App\Models\EurostatIndicateur;
 use App\Support\UrlSource;
 
 /**
- * Ce qui rend une fiche « Ce qu'on entend » publiable — écrit une seule fois.
+ * Ce qui rend un repère chiffré publiable — écrit une seule fois.
+ *
+ * Un repère répond à une question neutre, sans verdict (décision du 27/09/2026 : le format
+ * « Ce qu'on entend », qui jugeait des affirmations, est abandonné). Les règles portent donc
+ * sur la question, les réserves et les sources — plus aucune sur un verdict.
  *
  * Deux appelants : ModerationService::raisonsNonPubliable(), qui refuse le bouton
  * « Publier », et IntegriteChecker, dont une violation refuse l'export et fige donc
@@ -21,20 +25,16 @@ class ReglesAffirmation
     /** @return list<string> vide = publiable */
     public function raisons(Affirmation $a): array
     {
-        $a->loadMissing(['theme', 'verdicts', 'constats.sources', 'graphiques']);
+        $a->loadMissing(['theme', 'constats.sources', 'graphiques']);
         $raisons = [];
 
-        // 1. Verdict(s). Plusieurs verdicts sans portée seraient illisibles : lequel porte sur quoi ?
-        if ($a->verdicts->isEmpty()) {
-            $raisons[] = 'aucun verdict';
-        }
-        foreach ($a->verdicts as $v) {
-            if (! isset(Affirmation::VERDICTS[$v->verdict])) {
-                $raisons[] = "verdict inconnu « {$v->verdict} »";
-            }
-        }
-        if ($a->verdicts->count() >= 2 && $a->verdicts->contains(fn ($v) => blank($v->portee))) {
-            $raisons[] = 'plusieurs verdicts : chacun doit dire sur quoi il porte';
+        // 1. Une question neutre : c'est le titre public. L'énoncé d'origine (une affirmation
+        //    entendue) ne sort plus du back-office.
+        $question = trim((string) $a->question);
+        if ($question === '') {
+            $raisons[] = 'aucune question : le titre public d\'un repère est une question neutre';
+        } elseif (! str_ends_with($question, '?')) {
+            $raisons[] = 'la question doit se terminer par un point d\'interrogation';
         }
 
         // Tout ce qui suit porte sur ce qui PARAÎT : une phrase non vérifiée reste masquée,

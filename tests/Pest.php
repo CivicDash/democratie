@@ -126,16 +126,15 @@ function enTeteInertia(): array
 }
 
 /**
- * Crée une fiche « Ce qu'on entend » conforme à toutes les règles de publication, au
- * statut `valide` mais NON publiée : un verdict, un chiffre vérifié et sourcé, une limite
- * vérifiée. Retourne la fiche.
+ * Crée un repère chiffré conforme à toutes les règles de publication, au statut `valide`
+ * mais NON publié : une question neutre, un chiffre vérifié et sourcé, une limite vérifiée.
+ * Retourne le repère.
  */
 function affirmationPubliable(array $overrides = []): \App\Models\Affirmation
 {
     $theme = \App\Models\ProgrammeTheme::factory()->create(['slug' => 'theme-'.uniqid(), 'actif' => true]);
     $fiche = \App\Models\Affirmation::factory()->create(['theme_id' => $theme->id] + $overrides);
 
-    $fiche->verdicts()->create(['ordre' => 0, 'portee' => null, 'verdict' => 'nuance']);
     $source = $fiche->sources()->create([
         'cle' => 'insee-test', 'producteur' => 'INSEE', 'titre' => 'Une publication',
         'url' => 'https://www.insee.fr/fr/statistiques/1', 'categorie' => 'producteur_public',

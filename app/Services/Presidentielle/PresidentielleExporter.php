@@ -90,7 +90,7 @@ class PresidentielleExporter
             // ne serait jamais hachée et pourrait changer sans qu'aucun rebuild ne parte.
             'quiz' => $this->buildQuiz($election),
             'jeu' => $this->buildJeu($election),
-            'affirmations' => $this->buildAffirmations($election),
+            'reperes' => $this->buildAffirmations($election),
         ];
 
         return $contenu + [
@@ -240,13 +240,15 @@ class PresidentielleExporter
     }
 
     /**
-     * Fiches « Ce qu'on entend » publiées, et les séries Eurostat de leurs graphiques.
+     * Repères chiffrés publiés (ex-« Ce qu'on entend »), et les séries Eurostat de leurs
+     * graphiques. Un repère répond à une question neutre, sans verdict : ni jauge, ni
+     * « vrai / faux » ne sortent d'ici, et l'affirmation d'origine (enonce) non plus.
      *
      * Même garde que le quiz : le code peut précéder la migration, et un export qui lève
      * fige tout le site.
      *
-     * Ce qui ne sort JAMAIS d'ici, et que AffirmationExportTest vérifie : la coloration
-     * politique perçue (elle ne sert qu'au contrôle de symétrie interne), les notes de
+     * Ce qui ne sort JAMAIS d'ici, et que AffirmationExportTest vérifie : les verdicts et
+     * l'énoncé d'origine, la coloration politique perçue, les notes de
      * vérification, l'identité des modérateurs, et le texte des phrases non vérifiées
      * (seul leur nombre part, par section). Seules les sources citées par une phrase
      * vérifiée partent, et seules les séries Eurostat relues — `series_publiees`, jamais
@@ -254,16 +256,16 @@ class PresidentielleExporter
      */
     private function buildAffirmations(string $election): array
     {
-        $vide = ['election' => $election, 'legende_statuts' => config('eurostat.legende_statuts'), 'affirmations' => [], 'indicateurs' => (object) []];
+        $vide = ['election' => $election, 'legende_statuts' => config('eurostat.legende_statuts'), 'reperes' => [], 'indicateurs' => (object) []];
         if (! Schema::hasTable('affirmations')) {
             return $vide;
         }
 
         $fiches = Affirmation::publie()
             ->where('election', $election)
-            ->with(['theme', 'themesSecondaires', 'verdicts', 'constats.sources', 'graphiques'])
+            ->with(['theme', 'themesSecondaires', 'constats.sources', 'graphiques'])
             ->get()
-            ->sortBy(fn ($f) => [$f->theme?->ordre ?? 99, $f->enonce])
+            ->sortBy(fn ($f) => [$f->theme?->ordre ?? 99, $f->question])
             ->values();
 
         $codes = $fiches->flatMap(fn ($f) => $f->graphiquesAffiches()->flatMap(fn ($g) => (array) $g->indicateurs))->unique()->values();
@@ -283,13 +285,11 @@ class PresidentielleExporter
 
             return [
                 'slug' => $f->slug,
-                'enonce' => $f->enonce,
+                'question' => $f->question,
                 'resume' => $f->resume,
                 'theme' => $f->theme?->slug,
                 'themes_secondaires' => $f->themesSecondaires->pluck('slug')->values()->all(),
-                'part_de_valeur' => $f->part_de_valeur,
                 'derniere_verification' => $f->derniere_verification?->toDateString(),
-                'verdicts' => $f->verdicts->map(fn ($v) => ['portee' => $v->portee, 'verdict' => $v->verdict])->values()->all(),
                 'constats' => $constats->map(fn ($c) => [
                     'id' => $c->id,
                     'section' => $c->section,
@@ -320,7 +320,7 @@ class PresidentielleExporter
             ];
         })->all();
 
-        return ['affirmations' => $affirmations, 'indicateurs' => $indicateurs ?: (object) []] + $vide;
+        return ['reperes' => $affirmations, 'indicateurs' => $indicateurs ?: (object) []] + $vide;
     }
 
     /**
@@ -916,7 +916,7 @@ class PresidentielleExporter
         $ecrits[] = $this->put("{$dir}/calendrier.json", $data['calendrier']);
         $ecrits[] = $this->put("{$dir}/quiz.json", $data['quiz']);
         $ecrits[] = $this->put("{$dir}/jeu.json", $data['jeu']);
-        $ecrits[] = $this->put("{$dir}/affirmations.json", $data['affirmations']);
+        $ecrits[] = $this->put("{$dir}/reperes.json", $data['reperes']);
 
         foreach ($data['candidats'] as $slug => $candidat) {
             $ecrits[] = $this->put("{$dir}/candidats/{$slug}.json", $candidat);

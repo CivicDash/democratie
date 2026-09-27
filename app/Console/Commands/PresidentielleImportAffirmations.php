@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Import des fiches « Ce qu'on entend » (contrat presidentielle.affirmations.v1).
+ * Import des repères chiffrés (contrat presidentielle.affirmations.v2 ; le v1 de « Ce qu'on entend » reste lisible, verdicts ignorés).
  * Tout entre en `detecte`, non publié. Voir ImportAffirmations pour les règles.
  */
 class PresidentielleImportAffirmations extends Command

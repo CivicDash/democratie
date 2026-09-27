@@ -24,16 +24,11 @@ function moderateurAffirmations(): User
 function fichierAffirmations(): UploadedFile
 {
     return UploadedFile::fake()->createWithContent('fiches.json', json_encode([
-        'contrat' => 'presidentielle.affirmations.v1',
-        'affirmations' => [[
-            'slug' => 'salaires-n-augmentent-pas',
-            'enonce' => 'Les salaires n\'augmentent pas',
+        'contrat' => 'presidentielle.affirmations.v2',
+        'reperes' => [[
+            'slug' => 'evolution-des-salaires',
+            'question' => 'Comment les salaires ont-ils évolué, une fois l\'inflation déduite ?',
             'theme' => 'pouvoir-achat',
-            'coloration_percue' => 'transversale',
-            'verdicts' => [
-                ['portee' => 'sur 2019-2024', 'verdict' => 'plutot_confirme'],
-                ['portee' => 'sur trente ans', 'verdict' => 'nuance'],
-            ],
             'sources' => [[
                 'cle' => 'insee-ip2079', 'producteur' => 'INSEE', 'titre' => 'Les salaires dans le secteur privé en 2024',
                 'url' => 'https://www.insee.fr/fr/statistiques/8657156', 'categorie' => 'producteur_public',
@@ -65,7 +60,9 @@ it('mène une fiche de l\'import à la publication', function () {
         ->get(route('admin.presidentielle.affirmations.show', $fiche))->assertOk()->json('props');
     expect($props['raisons'])->toContain('1 phrase(s) « Ce que les chiffres ne disent pas » à vérifier : une fiche ne paraît jamais sans toutes ses réserves')
         ->and($props['constats'])->toHaveCount(2)
-        ->and($props['fiche']['coloration_percue'])->toBe('transversale');
+        ->and($props['fiche']['question'])->toBe('Comment les salaires ont-ils évolué, une fois l\'inflation déduite ?')
+        ->and($props)->not->toHaveKey('verdicts')
+        ->and($props['fiche'])->not->toHaveKeys(['coloration_percue', 'part_de_valeur']);
 
     // 3. Validée mais pas publiable : il reste une réserve à vérifier.
     $this->actingAs($mod)->post(route('admin.presidentielle.moderation.action'), ['type' => 'affirmation', 'id' => $fiche->id, 'action' => 'valider'])
@@ -85,19 +82,25 @@ it('mène une fiche de l\'import à la publication', function () {
     expect($fiche->fresh()->affiche_publiquement)->toBeTrue();
 });
 
-it('recalcule le contrôle de symétrie, sans rien exposer d\'autre que des comptes', function () {
-    affirmationPubliable(['coloration_percue' => 'gauche']);
-    $droite = affirmationPubliable(['coloration_percue' => 'droite', 'affiche_publiquement' => true]);
-    $droite->verdicts()->update(['verdict' => 'confirme']);
+it('montre la couverture des thèmes, publiés et en préparation', function () {
+    $publie = affirmationPubliable(['affiche_publiquement' => true]);
+    affirmationPubliable()->update(['theme_id' => $publie->theme_id]);
 
-    $symetrie = $this->actingAs(moderateurAffirmations())->withHeaders(enTeteInertia())
-        ->get(route('admin.presidentielle.affirmations'))->assertOk()->json('props.symetrie');
+    $couverture = collect($this->actingAs(moderateurAffirmations())->withHeaders(enTeteInertia())
+        ->get(route('admin.presidentielle.affirmations'))->assertOk()->json('props.couverture'))->keyBy('theme');
 
-    $parColoration = fn ($vue) => collect($symetrie[$vue])->keyBy('coloration');
-    expect($parColoration('toutes')['gauche']['familles']['nuance'])->toBe(1)
-        ->and($parColoration('toutes')['droite']['familles']['confirme'])->toBe(1)
-        ->and($parColoration('publiees')['gauche']['fiches'])->toBe(0)
-        ->and($parColoration('publiees')['droite']['fiches'])->toBe(1);
+    expect($couverture[$publie->theme->nom]['publies'])->toBe(1)
+        ->and($couverture[$publie->theme->nom]['en_preparation'])->toBe(1);
+});
+
+it('enregistre la question du repère', function () {
+    $f = affirmationPubliable(['question' => null]);
+
+    $this->actingAs(moderateurAffirmations())->post(route('admin.presidentielle.affirmations.update', $f), [
+        'question' => 'Combien de ceci en 2025 ?', 'resume' => 'Résumé.', 'theme_id' => $f->theme_id,
+    ])->assertSessionHasNoErrors();
+
+    expect($f->fresh()->question)->toBe('Combien de ceci en 2025 ?');
 });
 
 it('exige d\'avoir relu les phrases avant de valider une révision citée par une fiche', function () {

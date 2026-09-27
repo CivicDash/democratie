@@ -102,7 +102,7 @@ class IntegriteChecker
     }
 
     /**
-     * Fiches « Ce qu'on entend » publiées. Les règles sont celles de ReglesAffirmation,
+     * Repères chiffrés publiés. Les règles sont celles de ReglesAffirmation,
      * le même code que le bouton « Publier » : elles ne peuvent pas diverger.
      *
      * Garde Schema::hasTable : le code peut être déployé avant la migration, et sans elle
@@ -115,7 +115,7 @@ class IntegriteChecker
         }
 
         $fiches = Affirmation::publie()->where('election', $election)
-            ->with(['theme', 'verdicts', 'constats.sources', 'graphiques'])
+            ->with(['theme', 'constats.sources', 'graphiques'])
             ->get();
         $regles = app(ReglesAffirmation::class);
 
@@ -124,14 +124,14 @@ class IntegriteChecker
             if ($raisons) {
                 $violations[] = [
                     'type' => 'affirmation_impubliable',
-                    'message' => "[Ce qu'on entend] « {$fiche->enonce} » : ".implode(' ; ', $raisons).'.',
+                    'message' => "[Repère] « ".($fiche->question ?: $fiche->enonce)." » : ".implode(' ; ', $raisons).'.',
                 ];
             }
 
             if ($fiche->derniere_verification && $fiche->derniere_verification->lt(now()->subMonths(6))) {
                 $alertes[] = [
                     'type' => 'affirmation_verification_ancienne',
-                    'message' => "[Ce qu'on entend] « {$fiche->enonce} » : dernière vérification le {$fiche->derniere_verification->format('d/m/Y')}, il y a plus de six mois.",
+                    'message' => "[Repère] « ".($fiche->question ?: $fiche->enonce)." » : dernière vérification le {$fiche->derniere_verification->format('d/m/Y')}, il y a plus de six mois.",
                 ];
             }
         }
@@ -145,7 +145,7 @@ class IntegriteChecker
                 ->each(function ($code) use (&$alertes) {
                     $alertes[] = [
                         'type' => 'affirmation_eurostat_en_attente',
-                        'message' => "[Ce qu'on entend] série Eurostat « {$code} » : une révision attend d'être relue.",
+                        'message' => "[Repères] série Eurostat « {$code} » : une révision attend d'être relue.",
                     ];
                 });
         }

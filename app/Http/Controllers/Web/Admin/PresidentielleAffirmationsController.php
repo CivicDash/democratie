@@ -8,7 +8,6 @@ use App\Models\Affirmation;
 use App\Models\AffirmationConstat;
 use App\Models\AffirmationGraphique;
 use App\Models\AffirmationSource;
-use App\Models\AffirmationVerdict;
 use App\Models\EurostatIndicateur;
 use App\Models\ImportLog;
 use App\Models\ProgrammeTheme;
@@ -25,7 +24,8 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 /**
- * Back-office de « Ce qu'on entend » et de ses séries Eurostat.
+ * Back-office des repères chiffrés des pages thèmes (ex-« Ce qu'on entend ») et de leurs
+ * séries Eurostat. Un repère répond à une question neutre, sans verdict.
  *
  * Séparé de PresidentielleModerationController (1 600 lignes), mais dans le même groupe de
  * routes : mêmes permissions, et surtout le même middleware GardeIntegriteExport — une
@@ -40,19 +40,19 @@ class PresidentielleAffirmationsController extends Controller
 {
     public function index(ModerationService $service)
     {
-        $fiches = Affirmation::with(['theme', 'verdicts', 'constats.sources', 'sources', 'graphiques'])
+        $fiches = Affirmation::with(['theme', 'constats.sources', 'sources', 'graphiques'])
             ->where('election', '2027')
             ->get()
-            ->sortBy(fn ($f) => [$f->theme?->ordre ?? 99, $f->enonce])
+            ->sortBy(fn ($f) => [$f->theme?->ordre ?? 99, $f->question ?? $f->enonce])
             ->values();
 
         return Inertia::render('Admin/Presidentielle/Affirmations', [
             'fiches' => $fiches->map(fn (Affirmation $f) => [
                 'id' => $f->id,
                 'slug' => $f->slug,
+                'question' => $f->question,
                 'enonce' => $f->enonce,
                 'theme' => $f->theme?->nom,
-                'verdicts' => $f->verdicts->map(fn ($v) => ['portee' => $v->portee, 'verdict' => $v->verdict])->all(),
                 'statut_validation' => $f->statut_validation,
                 'affiche_publiquement' => $f->affiche_publiquement,
                 'a_verifier' => $f->constats->reject->estAffiche()->count(),
@@ -70,48 +70,26 @@ class PresidentielleAffirmationsController extends Controller
                 'graphiques' => $f->graphiques->count(),
                 'raisons' => $service->raisonsNonPubliable($f),
             ])->all(),
-            'symetrie' => $this->symetrie($fiches),
-            'verdicts' => Affirmation::VERDICTS,
-            'colorations' => Affirmation::COLORATIONS,
+            'couverture' => $this->couverture($fiches),
         ]);
     }
 
     /**
-     * Tableau de l'annexe C, recalculé : pour chaque coloration perçue, les verdicts de ses
-     * fiches, regroupés par famille. INTERNE — il ne sert qu'à voir un déséquilibre, jamais
-     * à le corriger en forçant des verdicts.
+     * Couverture des thèmes : combien de repères chaque thème actif a-t-il, publiés et en
+     * préparation. La symétrie ne se juge plus sur des verdicts (il n'y en a plus) mais sur
+     * l'égalité de traitement des thèmes : un thème sans repère se voit.
      */
-    private function symetrie($fiches): array
+    private function couverture($fiches): array
     {
-        $vue = function ($lot) {
-            $lignes = [];
-            foreach ([...array_keys(Affirmation::COLORATIONS), 'non_renseignee'] as $coloration) {
-                $du = $lot->filter(fn ($f) => ($f->coloration_percue ?? 'non_renseignee') === $coloration);
-                $familles = ['confirme' => 0, 'nuance' => 0, 'infirme' => 0, 'inverifiable' => 0];
-                foreach ($du as $f) {
-                    foreach ($f->verdicts as $v) {
-                        $familles[Affirmation::FAMILLES_VERDICT[$v->verdict] ?? 'inverifiable']++;
-                    }
-                }
-                $lignes[] = [
-                    'coloration' => $coloration,
-                    'libelle' => Affirmation::COLORATIONS[$coloration] ?? 'Non renseignée',
-                    'fiches' => $du->count(),
-                    'familles' => $familles,
-                    'detail' => $du->map(fn ($f) => [
-                        'enonce' => $f->enonce,
-                        'verdicts' => $f->verdicts->pluck('verdict')->all(),
-                    ])->values()->all(),
-                ];
-            }
+        return ProgrammeTheme::actif()->ordonne()->get(['id', 'nom', 'slug'])->map(function ($t) use ($fiches) {
+            $du = $fiches->where('theme_id', $t->id);
 
-            return $lignes;
-        };
-
-        return [
-            'publiees' => $vue($fiches->filter(fn ($f) => $f->affiche_publiquement && $f->statut_validation === 'valide')),
-            'toutes' => $vue($fiches),
-        ];
+            return [
+                'theme' => $t->nom,
+                'publies' => $du->filter(fn ($f) => $f->affiche_publiquement)->count(),
+                'en_preparation' => $du->reject(fn ($f) => $f->affiche_publiquement)->count(),
+            ];
+        })->values()->all();
     }
 
     public function import(Request $request)
@@ -143,7 +121,7 @@ class PresidentielleAffirmationsController extends Controller
 
     public function show(Affirmation $affirmation, ModerationService $service)
     {
-        $affirmation->load(['themesSecondaires:id', 'verdicts', 'constats.sources', 'sources.constats', 'graphiques']);
+        $affirmation->load(['themesSecondaires:id', 'constats.sources', 'sources.constats', 'graphiques']);
         $codes = $affirmation->graphiques->flatMap(fn ($g) => (array) $g->indicateurs)->unique()->values();
         $indicateurs = EurostatIndicateur::whereIn('code', $codes)->get()->keyBy('code');
 
@@ -151,18 +129,16 @@ class PresidentielleAffirmationsController extends Controller
             'fiche' => [
                 'id' => $affirmation->id,
                 'slug' => $affirmation->slug,
+                'question' => $affirmation->question,
                 'enonce' => $affirmation->enonce,
                 'resume' => $affirmation->resume,
                 'theme_id' => $affirmation->theme_id,
                 'themes_secondaires' => $affirmation->themesSecondaires->pluck('id')->all(),
-                'part_de_valeur' => $affirmation->part_de_valeur,
                 'derniere_verification' => $affirmation->derniere_verification?->toDateString(),
-                'coloration_percue' => $affirmation->coloration_percue,
                 'statut_validation' => $affirmation->statut_validation,
                 'affiche_publiquement' => $affirmation->affiche_publiquement,
             ],
             'raisons' => $service->raisonsNonPubliable($affirmation),
-            'verdicts' => $affirmation->verdicts->map(fn ($v) => $v->only(['id', 'ordre', 'portee', 'verdict']))->all(),
             'constats' => $affirmation->constats->map(fn (AffirmationConstat $c) => [
                 'id' => $c->id,
                 'section' => $c->section,
@@ -202,10 +178,8 @@ class PresidentielleAffirmationsController extends Controller
                     'dernieres' => isset($indicateurs[$code]) ? self::dernieresValeurs($indicateurs[$code]->series_publiees ?? $indicateurs[$code]->series_detectees ?? []) : [],
                 ])->all(),
             ])->all(),
-            'themes' => ProgrammeTheme::actif()->ordonne()->get(['id', 'nom']),
+            'themes' => ProgrammeTheme::actif()->ordonne()->get(['id', 'nom', 'slug']),
             'listes' => [
-                'verdicts' => Affirmation::VERDICTS,
-                'colorations' => Affirmation::COLORATIONS,
                 'sections' => AffirmationConstat::SECTIONS,
                 'categories' => AffirmationSource::CATEGORIES,
                 'types' => AffirmationGraphique::TYPES,
@@ -216,12 +190,10 @@ class PresidentielleAffirmationsController extends Controller
     public function update(Request $request, Affirmation $affirmation)
     {
         $validated = $request->validate([
-            'enonce' => ['required', 'string', 'max:300'],
+            'question' => ['nullable', 'string', 'max:300'],
             'resume' => ['nullable', 'string', 'max:2000'],
             'theme_id' => ['required', 'integer', 'exists:programme_themes,id'],
-            'part_de_valeur' => ['boolean'],
             'derniere_verification' => ['nullable', 'date'],
-            'coloration_percue' => ['nullable', Rule::in(array_keys(Affirmation::COLORATIONS))],
         ]);
         $affirmation->update($validated);
 
@@ -231,42 +203,7 @@ class PresidentielleAffirmationsController extends Controller
         ]);
         $affirmation->themesSecondaires()->sync($secondaires['themes_secondaires'] ?? []);
 
-        return back()->with('success', 'Fiche enregistrée.');
-    }
-
-    public function verdictStore(Request $request, Affirmation $affirmation)
-    {
-        $request->validate([
-            'portee' => ['nullable', 'string', 'max:300'],
-            'verdict' => ['required', Rule::in(array_keys(Affirmation::VERDICTS))],
-        ]);
-
-        AffirmationVerdict::create([
-            'affirmation_id' => $affirmation->id,
-            'ordre' => (int) $affirmation->verdicts()->max('ordre') + 1,
-            'portee' => $request->input('portee'),
-            'verdict' => $request->input('verdict'),
-        ]);
-
-        return back()->with('success', 'Verdict ajouté.');
-    }
-
-    public function verdictUpdate(Request $request, AffirmationVerdict $verdict)
-    {
-        $validated = $request->validate([
-            'portee' => ['nullable', 'string', 'max:300'],
-            'verdict' => ['required', Rule::in(array_keys(Affirmation::VERDICTS))],
-        ]);
-        $verdict->update($validated);
-
-        return back()->with('success', 'Verdict enregistré.');
-    }
-
-    public function verdictDestroy(AffirmationVerdict $verdict)
-    {
-        $verdict->delete();
-
-        return back()->with('success', 'Verdict retiré.');
+        return back()->with('success', 'Repère enregistré.');
     }
 
     public function constatStore(Request $request, Affirmation $affirmation)
@@ -394,7 +331,7 @@ class PresidentielleAffirmationsController extends Controller
     public function eurostat()
     {
         $modeles = EurostatIndicateur::all()->keyBy('code');
-        $graphiques = AffirmationGraphique::with(['affirmation:id,enonce,slug,affiche_publiquement', 'affirmation.constats' => fn ($q) => $q->where('section', 'europe')])->get();
+        $graphiques = AffirmationGraphique::with(['affirmation:id,enonce,question,slug,affiche_publiquement', 'affirmation.constats' => fn ($q) => $q->where('section', 'europe')])->get();
 
         $indicateurs = collect(config('eurostat.indicateurs'))->map(function ($def) use ($modeles, $graphiques) {
             $m = $modeles[$def['code']] ?? null;
@@ -413,7 +350,7 @@ class PresidentielleAffirmationsController extends Controller
                 'diff' => $m?->diff,
                 'fiches' => $fiches->map(fn ($f) => [
                     'id' => $f->id,
-                    'enonce' => $f->enonce,
+                    'titre' => $f->question ?: $f->enonce,
                     'publiee' => $f->affiche_publiquement,
                     'textes' => $f->constats->pluck('texte')->all(),
                 ])->all(),

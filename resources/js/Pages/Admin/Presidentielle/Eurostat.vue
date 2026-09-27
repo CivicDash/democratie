@@ -48,7 +48,7 @@ function valider(i) {
 
         <div class="max-w-6xl mx-auto p-6 space-y-5">
             <p class="text-sm text-gray-500 dark:text-gray-400">
-                Les comparaisons européennes de « Ce qu'on entend » : une seule source harmonisée
+                Les comparaisons européennes des repères chiffrés : une seule source harmonisée
                 pour les cinq membres du panel (France, Allemagne, Italie, Espagne, UE-27). Le site
                 ne montre que des séries relues ici.
             </p>
@@ -118,7 +118,7 @@ function valider(i) {
                         <p class="text-xs font-medium">Citée par :</p>
                         <ul class="text-xs mt-1 space-y-2">
                             <li v-for="f in i.fiches" :key="f.id">
-                                <Link :href="route('admin.presidentielle.affirmations.show', f.id)" class="text-blue-600 hover:underline">« {{ f.enonce }} »</Link>
+                                <Link :href="route('admin.presidentielle.affirmations.show', f.id)" class="text-blue-600 hover:underline">{{ f.titre }}</Link>
                                 <span v-if="f.publiee" class="text-green-700"> · publiée</span>
                                 <ul v-if="i.etat === 'revision'" class="mt-1 pl-3 border-l-2 border-amber-300 space-y-1 text-gray-600 dark:text-gray-400">
                                     <li v-for="(t, k) in f.textes" :key="k">{{ t }}</li>

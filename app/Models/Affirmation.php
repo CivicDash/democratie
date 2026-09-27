@@ -11,44 +11,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 
 /**
- * Une affirmation entendue dans le débat public, confrontée aux données (« Ce qu'on
- * entend »). Le verdict ne porte que sur la partie mesurable ; la part de jugement est
- * laissée au lecteur, explicitement.
+ * Un repère chiffré : une question neutre posée dans une page thème (« Combien d'immigrés
+ * vivent en France… ? »), à laquelle répondent des constats sourcés, leurs limites et des
+ * graphiques. Aucun verdict.
+ *
+ * Le nom de classe vient du premier format, « Ce qu'on entend », qui confrontait des
+ * affirmations entendues aux données et rendait un verdict ; abandonné le 27/09/2026 parce
+ * qu'il jugeait (choix des phrases, jauge lue comme une prise de position). L'énoncé
+ * d'origine et les verdicts restent en base, sans écran ni export.
  */
 class Affirmation extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /**
-     * Échelle du cadre éditorial, dans l'ordre de la jauge publique. `inverifiable` est
-     * hors de l'échelle : ce n'est pas un degré d'accord, c'est l'absence de mesure.
-     */
-    public const VERDICTS = [
-        'confirme' => 'Les données vont dans ce sens',
-        'plutot_confirme' => 'Plutôt vrai, avec réserves',
-        'nuance' => 'Vrai ou faux selon ce qu\'on mesure',
-        'plutot_infirme' => 'Plutôt faux',
-        'infirme' => 'Les données contredisent l\'affirmation',
-        'inverifiable' => 'Aucune mesure fiable n\'existe',
-    ];
-
-    /** Regroupement du contrôle de symétrie (annexe C) — usage interne. */
-    public const FAMILLES_VERDICT = [
-        'confirme' => 'confirme', 'plutot_confirme' => 'confirme',
-        'nuance' => 'nuance',
-        'plutot_infirme' => 'infirme', 'infirme' => 'infirme',
-        'inverifiable' => 'inverifiable',
-    ];
-
-    /** Coloration perçue dans le débat public. INTERNE : jamais exportée. */
-    public const COLORATIONS = [
-        'gauche' => 'Plutôt à gauche',
-        'droite' => 'Plutôt à droite',
-        'transversale' => 'Transversale',
-    ];
-
     protected $fillable = [
-        'uuid', 'election', 'slug', 'enonce', 'resume', 'theme_id', 'part_de_valeur',
+        'uuid', 'election', 'slug', 'enonce', 'question', 'resume', 'theme_id', 'part_de_valeur',
         'derniere_verification', 'coloration_percue', 'statut_validation',
         'affiche_publiquement', 'valide_par', 'valide_at', 'commentaire_validation',
     ];

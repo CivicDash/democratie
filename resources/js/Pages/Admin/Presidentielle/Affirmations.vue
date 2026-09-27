@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
@@ -10,7 +10,9 @@ import FormErrors from '@/Components/Admin/FormErrors.vue';
 import { messagePublication } from '@/composables/useModerationAction';
 
 /**
- * « Ce qu'on entend » : les fiches, leur état de vérification, et le contrôle de symétrie.
+ * Repères chiffrés des pages thèmes (ex-« Ce qu'on entend ») : une question neutre, des
+ * constats sourcés, leurs limites — aucun verdict. La liste dit l'état de vérification de
+ * chaque repère et la couverture des thèmes.
  *
  * Une fiche peut paraître avant que tous ses chiffres soient sourcés : les phrases non
  * vérifiées restent masquées, et le site les annonce « en cours de sourçage ». Ce qui
@@ -19,18 +21,9 @@ import { messagePublication } from '@/composables/useModerationAction';
  */
 const props = defineProps({
     fiches: Array,
-    symetrie: Object,
-    verdicts: Object,
-    colorations: Object,
+    couverture: Array,
 });
-
-const vueSymetrie = ref('toutes');
-const familles = [
-    ['confirme', 'Confirmé / plutôt confirmé'],
-    ['nuance', 'Nuancé'],
-    ['infirme', 'Plutôt infirmé / infirmé'],
-    ['inverifiable', 'Invérifiable'],
-];
+const titre = (f) => f.question || '(question à formuler)';
 
 const envoi = reactive({ fichier: null, remplacer: false });
 
@@ -46,36 +39,36 @@ function agir(id, action) {
 </script>
 
 <template>
-    <Head title="Ce qu'on entend — présidentielle 2027" />
+    <Head title="Repères chiffrés — présidentielle 2027" />
     <AuthenticatedLayout>
         <template #header>
             <div class="space-y-3">
-                <h2 class="text-xl font-semibold">Ce qu'on entend</h2>
+                <h2 class="text-xl font-semibold">Repères chiffrés</h2>
                 <PresidentielleNav />
             </div>
         </template>
 
         <div class="max-w-6xl mx-auto p-6 space-y-5">
             <p class="text-sm text-gray-500 dark:text-gray-400">
-                Des affirmations entendues dans le débat public, confrontées aux données. C'est le
-                seul endroit du site où nous rendons un verdict : il ne porte que sur la partie
-                mesurable. Seules les phrases vérifiées dans leur source paraissent ; les autres
-                sont annoncées « en cours de sourçage ». Une fiche ne paraît jamais sans toutes
-                ses réserves (« Ce que les chiffres ne disent pas »).
+                Des questions neutres posées dans les pages thèmes, auxquelles répondent des chiffres
+                sourcés et leurs limites. Aucun verdict : le site décrit, le lecteur juge. Seules les
+                phrases vérifiées dans leur source paraissent ; les autres sont annoncées « en cours
+                de sourçage ». Un repère ne paraît jamais sans toutes ses réserves (« Ce que les
+                chiffres ne disent pas »).
             </p>
 
             <FormErrors :errors="$page.props.errors" />
 
             <!-- Import -->
             <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                <summary class="cursor-pointer font-medium">📥 Importer des fiches (contrat presidentielle.affirmations.v1)</summary>
+                <summary class="cursor-pointer font-medium">📥 Importer des repères (contrat presidentielle.affirmations.v2)</summary>
                 <div class="mt-4 space-y-3 text-sm">
                     <input type="file" accept="application/json,.json"
                            @change="envoi.fichier = $event.target.files[0] ?? null"
                            class="block text-sm" aria-label="Fichier JSON à importer" />
                     <label class="flex items-center gap-2 text-sm">
                         <input v-model="envoi.remplacer" type="checkbox" class="rounded" />
-                        Remplacer les fiches non publiées déjà en base — les corrections faites ici seraient perdues
+                        Remplacer les repères non publiés déjà en base — les corrections faites ici seraient perdues
                     </label>
                     <div class="flex gap-2">
                         <ActionButton verbe="neutre" libelle="Contrôler sans importer" :disabled="!envoi.fichier" @action="importer(true)" />
@@ -93,7 +86,7 @@ function agir(id, action) {
                 <table class="w-full text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-800 text-left">
                         <tr>
-                            <th class="p-3 font-medium">Affirmation</th>
+                            <th class="p-3 font-medium">Repère</th>
                             <th class="p-3 font-medium whitespace-nowrap">Thème</th>
                             <th class="p-3 font-medium text-right whitespace-nowrap">À vérifier</th>
                             <th class="p-3 font-medium text-right whitespace-nowrap" title="Parmi les phrases vérifiées, donc affichées">Chiffres sans source</th>
@@ -105,14 +98,11 @@ function agir(id, action) {
                         <tr v-for="f in fiches" :key="f.id" class="border-t border-gray-100 dark:border-gray-800 align-top">
                             <td class="p-3">
                                 <Link :href="route('admin.presidentielle.affirmations.show', f.id)"
-                                      class="font-medium text-blue-700 dark:text-blue-300 hover:underline">
-                                    « {{ f.enonce }} »
+                                      class="font-medium text-blue-700 dark:text-blue-300 hover:underline"
+                                      :class="{ 'italic': !f.question }">
+                                    {{ titre(f) }}
                                 </Link>
-                                <ul class="text-xs text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
-                                    <li v-for="(v, i) in f.verdicts" :key="i">
-                                        {{ verdicts[v.verdict] ?? v.verdict }}<span v-if="v.portee"> — {{ v.portee }}</span>
-                                    </li>
-                                </ul>
+                                <p class="text-xs text-gray-500 mt-1">Origine (interne) : « {{ f.enonce }} »</p>
                                 <ul v-if="f.raisons.length" class="text-xs text-amber-700 dark:text-amber-400 mt-1 list-disc list-inside">
                                     <li v-for="r in f.raisons" :key="r">{{ r }}</li>
                                 </ul>
@@ -145,11 +135,11 @@ function agir(id, action) {
                                                   verbe="publier"
                                                   :disabled="f.raisons.length > 0"
                                                   :titre="f.raisons.join(' · ') || null"
-                                                  :confirmation="messagePublication('Cette fiche', f.enonce, 'Son verdict engage la plateforme : il sera lu comme notre conclusion.')"
+                                                  :confirmation="messagePublication('Ce repère', titre(f), 'Il paraîtra dans la page du thème.')"
                                                   @action="agir(f.id, 'publier')" />
                                     <ActionButton v-if="f.affiche_publiquement" verbe="depublier" @action="agir(f.id, 'depublier')" />
                                     <ActionButton v-if="!f.affiche_publiquement" verbe="supprimer"
-                                                  :confirmation="`La fiche « ${f.enonce} » sera supprimée (récupérable en base).`"
+                                                  :confirmation="`Le repère « ${titre(f)} » sera supprimé (récupérable en base).`"
                                                   @action="agir(f.id, 'supprimer')" />
                                 </div>
                                 <ModerationLog type="affirmation" :id="f.id" />
@@ -157,63 +147,40 @@ function agir(id, action) {
                         </tr>
                         <tr v-if="!fiches.length">
                             <td colspan="6" class="p-6 text-center text-sm text-gray-500">
-                                Aucune fiche. Importez le dossier converti ci-dessus.
+                                Aucun repère. Importez un fichier ci-dessus.
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Contrôle de symétrie (annexe C) -->
+            <!-- Couverture des thèmes -->
             <section class="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-4">
-                <div class="flex items-center justify-between gap-3 flex-wrap">
-                    <h3 class="font-semibold">Contrôle de symétrie</h3>
-                    <span class="text-xs font-medium uppercase tracking-wide text-gray-500">Interne — jamais publié</span>
-                </div>
+                <h3 class="font-semibold">Couverture des thèmes</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Pour chaque coloration <em>perçue</em> dans le débat public, les verdicts rendus.
-                    Ce tableau sert à voir un déséquilibre et à le dire — pas à le corriger en forçant
-                    des verdicts que les données ne donnent pas. Il indique aussi où chercher les
-                    prochaines affirmations.
+                    Chaque thème doit avoir ses repères, selon le même critère : les indicateurs de
+                    référence de la statistique publique sur l'objet du thème, et tout indicateur
+                    invoqué par au moins deux candidats dans leurs mesures publiées. Un thème sans
+                    repère se voit ici.
                 </p>
-                <div class="flex gap-2 mt-3" role="group" aria-label="Périmètre">
-                    <button v-for="[cle, libelle] in [['toutes', 'Toutes les fiches'], ['publiees', 'Fiches publiées']]" :key="cle"
-                            type="button" :aria-pressed="vueSymetrie === cle" @click="vueSymetrie = cle"
-                            :class="['px-3 py-1 text-sm rounded', vueSymetrie === cle ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600']">
-                        {{ libelle }}
-                    </button>
-                </div>
                 <div class="overflow-x-auto mt-3">
                     <table class="w-full text-sm">
                         <thead class="text-left">
                             <tr>
-                                <th class="p-2 font-medium">Coloration perçue</th>
-                                <th class="p-2 font-medium text-right">Fiches</th>
-                                <th v-for="[cle, libelle] in familles" :key="cle" class="p-2 font-medium text-right">{{ libelle }}</th>
+                                <th class="p-2 font-medium">Thème</th>
+                                <th class="p-2 font-medium text-right">Publiés</th>
+                                <th class="p-2 font-medium text-right">En préparation</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="l in symetrie[vueSymetrie]" :key="l.coloration" class="border-t border-gray-200 dark:border-gray-700 align-top">
-                                <td class="p-2">
-                                    {{ l.libelle }}
-                                    <details v-if="l.detail.length" class="text-xs text-gray-500 mt-1">
-                                        <summary class="cursor-pointer">détail</summary>
-                                        <ul class="mt-1 space-y-0.5">
-                                            <li v-for="d in l.detail" :key="d.enonce">
-                                                « {{ d.enonce }} » : {{ d.verdicts.map((v) => verdicts[v] ?? v).join(' ; ') }}
-                                            </li>
-                                        </ul>
-                                    </details>
-                                </td>
-                                <td class="p-2 text-right">{{ l.fiches }}</td>
-                                <td v-for="[cle] in familles" :key="cle" class="p-2 text-right tabular-nums">{{ l.familles[cle] }}</td>
+                            <tr v-for="c in couverture" :key="c.theme" class="border-t border-gray-200 dark:border-gray-700">
+                                <td class="p-2" :class="{ 'text-amber-700 dark:text-amber-400': !c.publies && !c.en_preparation }">{{ c.theme }}</td>
+                                <td class="p-2 text-right tabular-nums">{{ c.publies }}</td>
+                                <td class="p-2 text-right tabular-nums">{{ c.en_preparation }}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">
-                    Chaque verdict compte : une fiche à double verdict apparaît dans deux colonnes.
-                </p>
             </section>
         </div>
     </AuthenticatedLayout>

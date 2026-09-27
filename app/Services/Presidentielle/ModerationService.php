@@ -134,7 +134,7 @@ class ModerationService
     }
 
     /**
-     * Supprime une fiche « Ce qu'on entend » (soft-delete, réversible). Refuse une fiche
+     * Supprime un repère chiffré (soft-delete, réversible). Refuse une fiche
      * encore publiée : dépublier d'abord, comme pour les mesures.
      *
      * @throws ModerationException si la fiche est encore affichée publiquement
@@ -288,7 +288,7 @@ class ModerationService
             $raisons[] = 'lien scrutin sans explication rédigée';
         }
 
-        // « Ce qu'on entend » : une seule implémentation, partagée avec IntegriteChecker.
+        // Repères chiffrés : une seule implémentation, partagée avec IntegriteChecker.
         if ($entite instanceof Affirmation) {
             $raisons = [...$raisons, ...app(ReglesAffirmation::class)->raisons($entite)];
         }

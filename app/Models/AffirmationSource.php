@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
- * Source d'une fiche « Ce qu'on entend ». La catégorie suit la hiérarchie du cadre
+ * Source d'un repère chiffré. La catégorie suit la hiérarchie du cadre
  * éditorial : un chiffre d'association, de syndicat ou de think tank peut être cité,
  * mais comme l'estimation d'un acteur identifié — jamais comme le chiffre de référence.
  */

@@ -9,7 +9,8 @@ import FormErrors from '@/Components/Admin/FormErrors.vue';
 import { messagePublication } from '@/composables/useModerationAction';
 
 /**
- * Relecture d'une fiche « Ce qu'on entend ».
+ * Relecture d'un repère chiffré : une question neutre, des constats sourcés, leurs limites.
+ * Aucun verdict (le format « Ce qu'on entend », qui en rendait, est abandonné).
  *
  * Le travail se fait phrase par phrase : chaque constat est affiché avec ses sources
  * cliquables juste en dessous, pour qu'on vérifie le chiffre dans la publication du
@@ -19,7 +20,6 @@ import { messagePublication } from '@/composables/useModerationAction';
 const props = defineProps({
     fiche: Object,
     raisons: Array,
-    verdicts: Array,
     constats: Array,
     sources: Array,
     graphiques: Array,
@@ -28,13 +28,16 @@ const props = defineProps({
 });
 
 const entete = reactive({
-    enonce: props.fiche.enonce,
+    question: props.fiche.question ?? '',
     resume: props.fiche.resume ?? '',
     theme_id: props.fiche.theme_id,
     themes_secondaires: [...props.fiche.themes_secondaires],
-    part_de_valeur: props.fiche.part_de_valeur,
     derniere_verification: props.fiche.derniere_verification ?? '',
-    coloration_percue: props.fiche.coloration_percue ?? '',
+});
+const titre = computed(() => props.fiche.question || '(question à formuler)');
+const adressePublique = computed(() => {
+    const theme = props.themes.find((t) => t.id === props.fiche.theme_id);
+    return theme ? `/themes/${theme.slug}/chiffres/${props.fiche.slug}/` : '';
 });
 
 const opts = { preserveScroll: true };
@@ -43,23 +46,13 @@ const r = (nom, param) => route(`admin.presidentielle.${nom}`, param);
 function enregistrerEntete() {
     router.post(r('affirmations.update', props.fiche.id), {
         ...entete,
+        question: entete.question.trim() || null,
         derniere_verification: entete.derniere_verification || null,
-        coloration_percue: entete.coloration_percue || null,
     }, opts);
 }
 
 function agir(action) {
     router.post(r('moderation.action'), { type: 'affirmation', id: props.fiche.id, action }, opts);
-}
-
-// ── Verdicts ─────────────────────────────────────────────────────────────────────
-const nouveauVerdict = reactive({ verdict: 'nuance', portee: '' });
-function ajouterVerdict() {
-    router.post(r('affirmations.verdicts.store', props.fiche.id), nouveauVerdict,
-        { ...opts, onSuccess: () => { nouveauVerdict.portee = ''; } });
-}
-function enregistrerVerdict(v) {
-    router.post(r('affirmations.verdicts.update', v.id), { verdict: v.verdict, portee: v.portee || null }, opts);
 }
 
 // ── Constats ─────────────────────────────────────────────────────────────────────
@@ -179,11 +172,11 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
 </script>
 
 <template>
-    <Head :title="`Ce qu'on entend — ${fiche.enonce}`" />
+    <Head :title="`Repère — ${titre}`" />
     <AuthenticatedLayout>
         <template #header>
             <div class="space-y-3">
-                <h2 class="text-xl font-semibold">Fiche « Ce qu'on entend »</h2>
+                <h2 class="text-xl font-semibold">Repère chiffré</h2>
                 <PresidentielleNav />
             </div>
         </template>
@@ -193,12 +186,13 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
 
             <!-- En-tête -->
             <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                <Link :href="r('affirmations')" class="text-xs text-blue-600 hover:underline">← Toutes les fiches</Link>
+                <Link :href="r('affirmations')" class="text-xs text-blue-600 hover:underline">← Tous les repères</Link>
                 <div class="flex items-start justify-between gap-3 flex-wrap mt-2">
                     <div class="min-w-0">
-                        <h3 class="font-semibold text-lg">« {{ fiche.enonce }} »</h3>
+                        <h3 class="font-semibold text-lg" :class="{ italic: !fiche.question }">{{ titre }}</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Origine (interne, jamais publiée) : « {{ fiche.enonce }} »</p>
                         <p class="text-sm text-gray-500">
-                            {{ themes.find((t) => t.id === fiche.theme_id)?.nom }} · /ce-qu-on-entend/{{ fiche.slug }}/
+                            {{ themes.find((t) => t.id === fiche.theme_id)?.nom }} · {{ adressePublique }}
                             · {{ constats.length - aVerifier }} / {{ constats.length }} constats vérifiés
                         </p>
                     </div>
@@ -219,12 +213,12 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                     <ActionButton v-if="fiche.statut_validation !== 'valide'" verbe="valider" @action="agir('valider')" />
                     <ActionButton v-if="fiche.statut_validation === 'valide' && !fiche.affiche_publiquement" verbe="publier"
                                   :disabled="raisons.length > 0" :titre="raisons.join(' · ') || null"
-                                  :confirmation="messagePublication('Cette fiche', fiche.enonce, 'Son verdict engage la plateforme : il sera lu comme notre conclusion.')"
+                                  :confirmation="messagePublication('Ce repère', titre, 'Il paraîtra dans la page du thème.')"
                                   @action="agir('publier')" />
                     <ActionButton v-if="fiche.affiche_publiquement" verbe="depublier" @action="agir('depublier')" />
                 </div>
                 <p v-if="fiche.affiche_publiquement" class="text-xs text-gray-500 mt-3">
-                    Fiche publiée : une modification qui la rendrait impubliable (réserve remise à
+                    Repère publié : une modification qui la rendrait impubliable (réserve remise à
                     vérifier, source sans URL…) sera refusée. Dépubliez d'abord. Une autre phrase
                     remise à vérifier disparaît simplement du site au prochain export.
                 </p>
@@ -251,7 +245,7 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
 
                 <div v-if="resteReserves.length" class="mt-2">
                     <p class="text-sm font-medium">Réserves à vérifier ({{ resteReserves.length }})</p>
-                    <p class="text-xs text-gray-500">Une fiche ne paraît jamais sans toutes ses réserves : en masquer une durcirait la conclusion.</p>
+                    <p class="text-xs text-gray-500">Un repère ne paraît jamais sans toutes ses réserves : en masquer une rendrait les chiffres plus tranchés qu'ils ne le sont.</p>
                     <ol class="mt-1 space-y-1.5 text-sm list-decimal list-inside">
                         <li v-for="c in resteReserves" :key="c.id">
                             <a :href="`#constat-${c.id}`" @click.prevent="aller(`constat-${c.id}`)" class="text-blue-700 dark:text-blue-300 hover:underline">{{ extrait(c.texte) }}</a>
@@ -294,7 +288,7 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                     <h4 class="text-sm font-semibold mt-5">Masqué sur le site tant que non vérifié ({{ resteMasques.length }})</h4>
                     <p class="text-xs text-gray-500">
                         Ne bloque pas la publication. Ces phrases, leurs sources et leurs graphiques ne
-                        paraissent pas ; la fiche annonce « {{ resteMasques.length }} élément(s) en cours de
+                        paraissent pas ; le repère annonce « {{ resteMasques.length }} élément(s) en cours de
                         sourçage ». Chacune s'affiche au prochain export après « Marquer vérifié ».
                     </p>
                     <ol class="mt-1 space-y-1.5 text-sm list-decimal list-inside">
@@ -309,19 +303,19 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                 </template>
             </section>
             <p v-else-if="!raisons.length" class="rounded-xl border border-green-300 dark:border-green-800 p-3 text-sm text-green-800 dark:text-green-300">
-                Toutes les phrases sont vérifiées et sourcées : la fiche peut être validée puis publiée.
+                Toutes les phrases sont vérifiées et sourcées : le repère peut être validé puis publié.
             </p>
 
             <!-- Cadrage -->
             <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                <summary class="cursor-pointer font-medium text-sm">✎ Énoncé, résumé, thèmes</summary>
+                <summary class="cursor-pointer font-medium text-sm">✎ Question, résumé, thèmes</summary>
                 <div class="grid md:grid-cols-2 gap-3 text-sm mt-4">
                     <div class="md:col-span-2">
-                        <label for="f-enonce" class="block text-xs text-gray-500 mb-1">Énoncé — l'affirmation telle qu'entendue</label>
-                        <input id="f-enonce" v-model="entete.enonce" type="text" maxlength="300" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800" />
+                        <label for="f-question" class="block text-xs text-gray-500 mb-1">Question — le titre public, neutre, terminé par « ? » (ex. « Combien d'immigrés vivent en France ? »)</label>
+                        <input id="f-question" v-model="entete.question" type="text" maxlength="300" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800" />
                     </div>
                     <div class="md:col-span-2">
-                        <label for="f-resume" class="block text-xs text-gray-500 mb-1">Résumé (carte de la liste, description des moteurs)</label>
+                        <label for="f-resume" class="block text-xs text-gray-500 mb-1">Résumé (une ligne dans la page thème, description des moteurs) — descriptif, sans conclusion</label>
                         <textarea id="f-resume" v-model="entete.resume" rows="2" maxlength="2000" class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"></textarea>
                     </div>
                     <div>
@@ -342,51 +336,11 @@ const nf = (v) => (typeof v === 'number' ? v.toLocaleString('fr-FR') : v);
                             </label>
                         </div>
                     </fieldset>
-                    <label class="md:col-span-2 flex items-center gap-2">
-                        <input v-model="entete.part_de_valeur" type="checkbox" class="rounded" />
-                        Le cœur de l'affirmation est un jugement (« trop », « explose ») que les chiffres ne tranchent pas
-                    </label>
-                    <div class="md:col-span-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60 p-3">
-                        <label for="f-coloration" class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                            Coloration perçue — interne, ne sort jamais du back-office
-                        </label>
-                        <select id="f-coloration" v-model="entete.coloration_percue" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800">
-                            <option value="">Non renseignée</option>
-                            <option v-for="(libelle, cle) in listes.colorations" :key="cle" :value="cle">{{ libelle }}</option>
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Sert uniquement au contrôle de symétrie de la liste des fiches.</p>
-                    </div>
                     <div class="md:col-span-2 text-right">
                         <ActionButton verbe="valider" libelle="Enregistrer" @action="enregistrerEntete" />
                     </div>
                 </div>
             </details>
-
-            <!-- Verdicts -->
-            <section class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                <h3 class="font-semibold">Verdict(s) — sur la partie mesurable uniquement</h3>
-                <p class="text-xs text-gray-500 mt-1">Aucun verdict n'est « principal » : ils sont tous affichés, chacun avec sa portée.</p>
-                <ul class="mt-3 space-y-2">
-                    <li v-for="v in verdicts" :key="v.id" class="flex items-center gap-2 flex-wrap">
-                        <select v-model="v.verdict" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm" aria-label="Verdict">
-                            <option v-for="(libelle, cle) in listes.verdicts" :key="cle" :value="cle">{{ libelle }}</option>
-                        </select>
-                        <input v-model="v.portee" type="text" maxlength="300" placeholder="Portée (obligatoire s'il y a plusieurs verdicts)"
-                               class="flex-1 min-w-[16rem] rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm" aria-label="Portée" />
-                        <ActionButton verbe="valider" libelle="Enregistrer" @action="enregistrerVerdict(v)" />
-                        <ActionButton verbe="supprimer" libelle="Retirer" :confirmer="false"
-                                      @action="router.delete(r('affirmations.verdicts.destroy', v.id), opts)" />
-                    </li>
-                </ul>
-                <div class="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-dashed border-gray-200 dark:border-gray-700">
-                    <select v-model="nouveauVerdict.verdict" class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm" aria-label="Nouveau verdict">
-                        <option v-for="(libelle, cle) in listes.verdicts" :key="cle" :value="cle">{{ libelle }}</option>
-                    </select>
-                    <input v-model="nouveauVerdict.portee" type="text" maxlength="300" placeholder="Portée"
-                           class="flex-1 min-w-[16rem] rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm" aria-label="Portée du nouveau verdict" />
-                    <ActionButton verbe="neutre" libelle="＋ Ajouter un verdict" @action="ajouterVerdict" />
-                </div>
-            </section>
 
             <!-- Constats -->
             <section v-for="s in parSection" :key="s.section" class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">

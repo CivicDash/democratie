@@ -5,35 +5,38 @@ use App\Services\Presidentielle\PresidentielleExporter;
 use Illuminate\Support\Facades\File;
 
 /**
- * Export de « Ce qu'on entend » vers objectif2027.fr.
+ * Export des repères chiffrés vers objectif2027.fr (reperes.json).
  *
- * Ce que le test garde surtout : ce qui ne doit JAMAIS sortir du back-office. La
- * coloration politique perçue sert au contrôle de symétrie interne ; publiée, elle
- * deviendrait une étiquette posée sur une affirmation — exactement ce que la rubrique
- * s'interdit.
+ * Ce que le test garde surtout : ce qui ne doit JAMAIS sortir du back-office. Plus aucun
+ * verdict, ni l'affirmation d'origine : le site pose une question neutre et décrit, il ne
+ * juge pas. Ni la coloration perçue, ni les notes internes.
  */
 function exportAffirmations(): array
 {
-    return app(PresidentielleExporter::class)->build('2027')['affirmations'];
+    return app(PresidentielleExporter::class)->build('2027')['reperes'];
 }
 
 it('n\'exporte que les fiches publiées', function () {
     $brouillon = affirmationPubliable(['slug' => 'brouillon']);
     $publiee = affirmationPubliable(['slug' => 'publiee', 'affiche_publiquement' => true]);
 
-    $slugs = collect(exportAffirmations()['affirmations'])->pluck('slug')->all();
+    $slugs = collect(exportAffirmations()['reperes'])->pluck('slug')->all();
 
     expect($slugs)->toBe(['publiee']);
 });
 
-it('exporte verdicts, constats, sources citées et thèmes', function () {
+it('exporte la question, les constats, les sources citées et les thèmes — sans verdict', function () {
     $f = affirmationPubliable(['slug' => 'riches', 'affiche_publiquement' => true]);
     // Une source déclarée mais citée par aucun constat ne part pas.
     $f->sources()->create(['cle' => 'non-citee', 'producteur' => 'X', 'titre' => 'Y', 'url' => 'https://x.fr', 'categorie' => 'presse']);
 
-    $fiche = exportAffirmations()['affirmations'][0];
+    // Un verdict resté en base (ancien format) ne sort pas.
+    $f->verdicts()->create(['ordre' => 0, 'portee' => null, 'verdict' => 'confirme']);
 
-    expect($fiche['verdicts'])->toBe([['portee' => null, 'verdict' => 'nuance']])
+    $fiche = exportAffirmations()['reperes'][0];
+
+    expect($fiche['question'])->toBe('Combien y a-t-il de ceci ?')
+        ->and($fiche)->not->toHaveKeys(['verdicts', 'enonce', 'part_de_valeur'])
         ->and(collect($fiche['constats'])->pluck('section')->all())->toBe(['chiffres', 'limites'])
         ->and($fiche['constats'][0]['sources'])->toBe(['insee-test'])
         ->and(collect($fiche['sources'])->pluck('cle')->all())->toBe(['insee-test'])
@@ -52,7 +55,7 @@ it('n\'exporte que les phrases vérifiées, et compte les autres par section', f
     ]);
 
     $export = exportAffirmations();
-    $fiche = $export['affirmations'][0];
+    $fiche = $export['reperes'][0];
     $json = json_encode($export, JSON_UNESCAPED_UNICODE);
 
     expect(collect($fiche['constats'])->pluck('section')->all())->toBe(['chiffres', 'limites'])
@@ -64,17 +67,20 @@ it('n\'exporte que les phrases vérifiées, et compte les autres par section', f
         ->and((array) $export['indicateurs'])->toBe([]);
 });
 
-it('ne laisse jamais sortir la coloration perçue ni les notes internes', function () {
+it('ne laisse jamais sortir verdict, énoncé d\'origine, coloration ni notes internes', function () {
     affirmationPubliable(['affiche_publiquement' => true, 'coloration_percue' => 'gauche'])
         ->constats()->first()->update(['note_verification' => 'NOTE-INTERNE-42']);
 
     $dir = storage_path('app/testing/export-affirmations');
     $exporteur = app(PresidentielleExporter::class);
     $exporteur->write($exporteur->build('2027'), $dir);
-    $json = File::get("{$dir}/affirmations.json");
+    $json = File::get("{$dir}/reperes.json");
     File::deleteDirectory($dir);
 
     expect($json)->not->toContain('coloration')
+        ->and($json)->not->toContain('verdict')
+        ->and($json)->not->toContain('enonce')
+        ->and($json)->not->toContain('Il y a trop de ceci')
         ->and($json)->not->toContain('NOTE-INTERNE-42')
         ->and($json)->not->toContain('note_verification')
         ->and($json)->not->toContain('valide_par')
@@ -104,7 +110,7 @@ it('n\'exporte que les séries Eurostat relues, et seulement celles des graphiqu
     expect(array_keys((array) $export['indicateurs']))->toBe(['part_nes_etranger'])
         ->and($export['indicateurs']['part_nes_etranger']['series']['FR'][0]['valeur'])->toBe(13.99)
         ->and($export['indicateurs']['part_nes_etranger']['extraction'])->toBe('2026-09-26')
-        ->and($export['affirmations'][0]['graphiques'][0]['constat'])->toBe($f->constats()->first()->id);
+        ->and($export['reperes'][0]['graphiques'][0]['constat'])->toBe($f->constats()->first()->id);
 });
 
 it('déclenche un rebuild du front quand une fiche est publiée', function () {

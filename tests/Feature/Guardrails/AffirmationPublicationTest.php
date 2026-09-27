@@ -8,7 +8,7 @@ use App\Services\Presidentielle\ModerationService;
 use Spatie\Permission\Models\Permission;
 
 /**
- * Les règles de publication de « Ce qu'on entend ».
+ * Les règles de publication des repères chiffrés (ex-« Ce qu'on entend »).
  *
  * Chaque règle est vérifiée deux fois : elle refuse le bouton « Publier » (service de
  * modération) ET elle apparaît au contrôle d'intégrité, dont une violation refuse
@@ -29,6 +29,14 @@ function violationsSiPubliee(Affirmation $f): array
         ->where('type', 'affirmation_impubliable')->pluck('message')->all();
 }
 
+it('publie un repère sans aucun verdict', function () {
+    // Le format à verdict est abandonné : un repère se publie sans verdict, et un verdict
+    // resté en base (ancien format) ne change rien.
+    $f = affirmationPubliable();
+    expect($f->verdicts()->count())->toBe(0)
+        ->and(raisonsFiche($f))->toBe([]);
+});
+
 it('publie une fiche conforme', function () {
     $f = affirmationPubliable();
 
@@ -46,10 +54,10 @@ it('refuse une fiche, et la signale à l\'export, quand une règle manque', func
     expect(raisonsFiche($f))->toContain($raison)
         ->and(implode(' ', violationsSiPubliee($f)))->toContain($raison);
 })->with([
-    'aucun verdict' => [fn ($f) => $f->verdicts()->delete(), 'aucun verdict'],
-    'deux verdicts sans portée' => [
-        fn ($f) => $f->verdicts()->create(['ordre' => 1, 'verdict' => 'confirme']),
-        'plusieurs verdicts : chacun doit dire sur quoi il porte',
+    'aucune question' => [fn ($f) => $f->update(['question' => null]), 'aucune question : le titre public d\'un repère est une question neutre'],
+    'une affirmation au lieu d\'une question' => [
+        fn ($f) => $f->update(['question' => 'Il y a trop de ceci']),
+        'la question doit se terminer par un point d\'interrogation',
     ],
     'aucun chiffre' => [fn ($f) => $f->constats()->where('section', 'chiffres')->delete(), 'aucun constat « Ce que disent les chiffres » vérifié'],
     'aucun chiffre vérifié' => [
@@ -187,5 +195,5 @@ it('laisse passer contrôle et export tant que la migration n\'a pas tourné', f
     \Illuminate\Support\Facades\DB::statement('DROP TABLE affirmations CASCADE');
 
     expect(fn () => app(IntegriteChecker::class)->analyser('2027'))->not->toThrow(Throwable::class)
-        ->and(app(\App\Services\Presidentielle\PresidentielleExporter::class)->build('2027')['affirmations']['affirmations'])->toBe([]);
+        ->and(app(\App\Services\Presidentielle\PresidentielleExporter::class)->build('2027')['reperes']['reperes'])->toBe([]);
 });

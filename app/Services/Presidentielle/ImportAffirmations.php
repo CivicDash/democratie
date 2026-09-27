@@ -11,7 +11,10 @@ use App\Support\UrlSource;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Import du contrat `presidentielle.affirmations.v1` (« Ce qu'on entend »).
+ * Import des repères chiffrés : contrat `presidentielle.affirmations.v2` (une question
+ * neutre par repère, sans verdict), et lecture du v1 hérité de « Ce qu'on entend » (ses
+ * verdicts et sa coloration perçue sont ignorés : le format à verdict est abandonné depuis
+ * le 27/09/2026 ; la question se saisit alors dans le back-office).
  *
  * Plus strict que les imports existants, et c'est voulu :
  *  - le contrat est vérifié, pas seulement lu ;
@@ -27,7 +30,10 @@ use Illuminate\Support\Facades\DB;
  */
 class ImportAffirmations
 {
-    public const CONTRAT = 'presidentielle.affirmations.v1';
+    public const CONTRAT = 'presidentielle.affirmations.v2';
+
+    /** Ancien format « Ce qu'on entend » : lu, verdicts ignorés. */
+    public const CONTRAT_V1 = 'presidentielle.affirmations.v1';
 
     /** @var list<string> */
     private array $erreurs = [];
@@ -41,14 +47,15 @@ class ImportAffirmations
     {
         $this->erreurs = [];
 
-        if (($data['contrat'] ?? null) !== self::CONTRAT) {
+        if (! in_array($data['contrat'] ?? null, [self::CONTRAT, self::CONTRAT_V1], true)) {
             $this->erreur('contrat', 'attendu « '.self::CONTRAT.' », reçu « '.($data['contrat'] ?? 'rien').' »');
 
             return $this->erreurs;
         }
-        $fiches = $data['affirmations'] ?? null;
-        if (! is_array($fiches) || $fiches === []) {
-            $this->erreur('affirmations', 'liste absente ou vide');
+        $v2 = $data['contrat'] === self::CONTRAT;
+        $fiches = self::fiches($data);
+        if ($fiches === []) {
+            $this->erreur($v2 ? 'reperes' : 'affirmations', 'liste absente ou vide');
 
             return $this->erreurs;
         }
@@ -59,7 +66,7 @@ class ImportAffirmations
         $slugs = [];
 
         foreach (array_values($fiches) as $i => $f) {
-            $this->validerFiche(is_array($f) ? $f : [], "affirmations[{$i}]", $election, $themes, $catalogue, $remplacer, $slugs);
+            $this->validerFiche(is_array($f) ? $f : [], ($v2 ? 'reperes' : 'affirmations')."[{$i}]", $election, $themes, $catalogue, $remplacer, $slugs, $v2);
         }
 
         return $this->erreurs;
@@ -77,13 +84,12 @@ class ImportAffirmations
         $stats = ['fiches' => 0, 'constats' => 0, 'a_verifier' => 0, 'sources' => 0, 'graphiques' => 0];
 
         DB::transaction(function () use ($data, $election, $themes, &$stats) {
-            foreach ($data['affirmations'] as $f) {
+            foreach (self::fiches($data) as $f) {
                 $fiche = Affirmation::withTrashed()->firstOrNew(['election' => $election, 'slug' => $f['slug']]);
                 if ($fiche->exists) {
                     if ($fiche->trashed()) {
                         $fiche->restore();
                     }
-                    $fiche->verdicts()->delete();
                     $fiche->graphiques()->delete();
                     $fiche->constats()->delete();
                     $fiche->sources()->delete();
@@ -91,12 +97,15 @@ class ImportAffirmations
                 }
 
                 $fiche->fill([
-                    'enonce' => $f['enonce'],
+                    // L'énoncé ne sert plus que de trace interne de l'origine ; en v2, la
+                    // question en tient lieu s'il n'est pas fourni.
+                    'enonce' => $f['enonce'] ?? $f['question'],
+                    'question' => $f['question'] ?? null,
                     'resume' => $f['resume'] ?? null,
                     'theme_id' => $themes[$f['theme']],
-                    'part_de_valeur' => (bool) ($f['part_de_valeur'] ?? false),
+                    'part_de_valeur' => false,
                     'derniere_verification' => $f['derniere_verification'] ?? null,
-                    'coloration_percue' => $f['coloration_percue'] ?? null,
+                    'coloration_percue' => null,
                     'statut_validation' => 'detecte',
                     'affiche_publiquement' => false,
                     'valide_par' => null,
@@ -104,10 +113,6 @@ class ImportAffirmations
                 ])->save();
 
                 $fiche->themesSecondaires()->sync(array_map(fn ($s) => $themes[$s], $f['themes_secondaires'] ?? []));
-
-                foreach (array_values($f['verdicts']) as $ordre => $v) {
-                    $fiche->verdicts()->create(['ordre' => $ordre, 'portee' => $v['portee'] ?? null, 'verdict' => $v['verdict']]);
-                }
 
                 $sources = [];
                 foreach ($f['sources'] ?? [] as $s) {
@@ -163,7 +168,15 @@ class ImportAffirmations
         return $stats;
     }
 
-    private function validerFiche(array $f, string $chemin, string $election, array $themes, array $catalogue, bool $remplacer, array &$slugs): void
+    /** @return list<array> les fiches, quelle que soit la clé du contrat */
+    private static function fiches(array $data): array
+    {
+        $fiches = $data['contrat'] === self::CONTRAT ? ($data['reperes'] ?? null) : ($data['affirmations'] ?? null);
+
+        return is_array($fiches) ? array_values($fiches) : [];
+    }
+
+    private function validerFiche(array $f, string $chemin, string $election, array $themes, array $catalogue, bool $remplacer, array &$slugs, bool $v2): void
     {
         $slug = $f['slug'] ?? null;
         if (! is_string($slug) || ! preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug) || strlen($slug) > 120) {
@@ -183,7 +196,14 @@ class ImportAffirmations
             }
         }
 
-        $this->texte($f, 'enonce', $chemin, 300);
+        if ($v2) {
+            $this->texte($f, 'question', $chemin, 300);
+            if (is_string($f['question'] ?? null) && ! str_ends_with(trim($f['question']), '?')) {
+                $this->erreur("{$chemin}.question", 'une question se termine par « ? »');
+            }
+        } else {
+            $this->texte($f, 'enonce', $chemin, 300);
+        }
         if (! isset($themes[$f['theme'] ?? ''])) {
             $this->erreur("{$chemin}.theme", 'thème inconnu « '.($f['theme'] ?? '').' »');
         }
@@ -192,20 +212,10 @@ class ImportAffirmations
                 $this->erreur("{$chemin}.themes_secondaires", "thème inconnu « {$s} »");
             }
         }
-        if (isset($f['coloration_percue']) && ! isset(Affirmation::COLORATIONS[$f['coloration_percue']])) {
-            $this->erreur("{$chemin}.coloration_percue", 'valeur inconnue « '.$f['coloration_percue'].' »');
-        }
         $this->date($f['derniere_verification'] ?? null, "{$chemin}.derniere_verification");
 
-        $verdicts = $f['verdicts'] ?? null;
-        if (! is_array($verdicts) || $verdicts === []) {
-            $this->erreur("{$chemin}.verdicts", 'au moins un verdict');
-        } else {
-            foreach (array_values($verdicts) as $k => $v) {
-                if (! isset(Affirmation::VERDICTS[$v['verdict'] ?? ''])) {
-                    $this->erreur("{$chemin}.verdicts[{$k}]", 'verdict inconnu « '.($v['verdict'] ?? '').' »');
-                }
-            }
+        if ($v2 && array_key_exists('verdicts', $f)) {
+            $this->erreur("{$chemin}.verdicts", 'un repère ne porte pas de verdict');
         }
 
         // Sources : clés uniques, catégorie connue, URL valide ou null, hors domaines exclus.
