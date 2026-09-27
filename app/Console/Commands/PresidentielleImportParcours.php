@@ -6,11 +6,13 @@ use App\Models\CandidatPresidentielle;
 use App\Models\ParcoursEvenement;
 use App\Models\PersonnePolitique;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
  * Alimente le parcours des candidats à partir des données déjà en base CivicDash :
- * fonctions gouvernementales (postes_ministeriels), mandats AN/Sénat, maire.
+ * fonctions gouvernementales (postes_ministeriels), mandats de député et de sénateur datés,
+ * mandat de maire, déclarations HATVP.
  * Chaque événement entre en statut `detecte` (validation humaine avant publication) ;
  * dédoublonnage par (personne, type, titre, date_debut).
  */
@@ -57,27 +59,57 @@ class PresidentielleImportParcours extends Command
         return $n;
     }
 
+    /**
+     * Mandats parlementaires et municipaux, datés à partir des tables CivicDash : un
+     * événement par mandat de député (deputes_circonscriptions, avec sa circonscription),
+     * par mandat de sénateur (senateurs_mandats) et pour le mandat de maire en cours.
+     * Une ligne générique sans date n'est créée qu'à défaut de mandat daté : elle ne dit ni
+     * quand, ni où, et se lit comme un mandat en cours.
+     */
     private function importMandats(PersonnePolitique $personne): int
     {
         $n = 0;
-        // Député (si rattaché à un acteur AN) — période souvent partielle : titre générique.
+
         if ($personne->uid_an && $personne->depute) {
-            if ($this->creer($personne, 'mandat', 'Députée/Député à l\'Assemblée nationale', 'Assemblée nationale', null, null)) {
-                $n++;
+            $titre = $this->feminin($personne, $personne->depute->civilite) ? 'Députée' : 'Député';
+            $url = 'https://www.assemblee-nationale.fr/dyn/deputes/'.$personne->uid_an;
+            $mandats = DB::table('deputes_circonscriptions')->where('acteur_uid', $personne->uid_an)->orderBy('date_debut')->get();
+            foreach ($mandats as $m) {
+                $circo = $m->num_circo ? ', '.($m->num_circo == 1 ? '1re' : $m->num_circo.'e').' circonscription' : '';
+                $n += $this->creer($personne, 'mandat', $titre, 'Assemblée nationale — '.$m->departement.$circo, $m->date_debut, $m->date_fin, 'civicdash', $url) ? 1 : 0;
             }
-        }
-        if ($personne->uid_senat && $personne->senateur) {
-            if ($this->creer($personne, 'mandat', 'Sénatrice/Sénateur', 'Sénat', null, null)) {
-                $n++;
-            }
-        }
-        if ($personne->maire_id && $personne->maire) {
-            if ($this->creer($personne, 'mandat', 'Maire', (string) ($personne->maire->nom_commune ?? 'Commune'), null, null)) {
-                $n++;
+            if ($mandats->isEmpty()) {
+                $n += $this->creer($personne, 'mandat', 'Députée/Député à l\'Assemblée nationale', 'Assemblée nationale', null, null, 'civicdash', $url) ? 1 : 0;
             }
         }
 
+        if ($personne->uid_senat && $personne->senateur) {
+            $s = $personne->senateur;
+            $titre = $this->feminin($personne, $s->civilite) ? 'Sénatrice' : 'Sénateur';
+            $url = 'https://www.senat.fr/senateur/'.Str::slug($s->nom_usuel ?? $s->nom, '_').'_'.Str::slug($s->prenom_usuel ?? $s->prenom, '_').strtolower($s->matricule).'.html';
+            $mandats = DB::table('senateurs_mandats')->where('senateur_matricule', $personne->uid_senat)->orderBy('date_debut')->get();
+            foreach ($mandats as $m) {
+                $n += $this->creer($personne, 'mandat', $titre, 'Sénat — '.($m->departement_nom ?? 'circonscription inconnue'), $m->date_debut, $m->date_fin, 'civicdash', $url) ? 1 : 0;
+            }
+            if ($mandats->isEmpty()) {
+                $n += $this->creer($personne, 'mandat', 'Sénatrice/Sénateur', 'Sénat', null, null, 'civicdash', $url) ? 1 : 0;
+            }
+        }
+
+        if ($personne->maire_id && $personne->maire) {
+            $m = $personne->maire;
+            $n += $this->creer($personne, 'mandat', 'Maire', (string) ($m->nom_commune ?? 'Commune'),
+                $m->debut_mandat, $m->en_exercice ? null : $m->fin_mandat, 'civicdash',
+                'https://www.data.gouv.fr/fr/datasets/repertoire-national-des-elus-1/') ? 1 : 0;
+        }
+
         return $n;
+    }
+
+    /** Titre au féminin ? La civilité de la source d'abord, celle de la fiche à défaut. */
+    private function feminin(PersonnePolitique $personne, ?string $civiliteSource = null): bool
+    {
+        return str_starts_with((string) ($civiliteSource ?: $personne->civilite), 'Mme');
     }
 
     /**
