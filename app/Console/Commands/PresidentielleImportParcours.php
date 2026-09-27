@@ -121,13 +121,23 @@ class PresidentielleImportParcours extends Command
         return $n;
     }
 
-    /** Crée l'événement s'il n'existe pas déjà (dédoublonnage). */
+    /**
+     * Crée l'événement s'il n'existe pas déjà (dédoublonnage).
+     *
+     * Une ligne corrigée à la main garde sa clé d'origine (`cle_import` : type, titre, date
+     * de début telle que la source la donnait), et une ligne rejetée est supprimée en douce.
+     * Les deux doivent être reconnues : sinon la synchro suivante recréerait, en
+     * « détecté », la date fausse ou le doublon qu'un modérateur vient d'écarter.
+     */
     private function creer(PersonnePolitique $personne, string $type, string $titre, ?string $organisation, $dateDebut, $dateFin, string $sourceDetection = 'civicdash', ?string $sourceUrl = null): bool
     {
         $titre = trim($titre) !== '' ? $titre : 'Sans titre';
-        $existe = ParcoursEvenement::where('personne_politique_id', $personne->id)
-            ->where('type', $type)->where('titre', $titre)
-            ->where('date_debut', $dateDebut ? \Illuminate\Support\Carbon::parse($dateDebut)->toDateString() : null)
+        $debut = $dateDebut ? \Illuminate\Support\Carbon::parse($dateDebut)->toDateString() : null;
+        $existe = ParcoursEvenement::withTrashed()
+            ->where('personne_politique_id', $personne->id)
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->where('type', $type)->where('titre', $titre)->where('date_debut', $debut))
+                ->orWhere('detection_raw_data->cle_import', $type.'|'.$titre.'|'.$debut))
             ->exists();
         if ($existe) {
             return false;
