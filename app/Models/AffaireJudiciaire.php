@@ -29,13 +29,16 @@ class AffaireJudiciaire extends Model
         'juridiction', 'numero_dossier', 'lien_decision_justice', 'ordre_affichage',
     ];
 
+    // Les dates partent vers les écrans en « AAAA-MM-JJ » : sérialisées en UTC
+    // (« 2017-06-29T22:00:00Z » pour le 30/06 à Paris), elles revenaient telles quelles
+    // du formulaire et chaque validation les reculait d'un jour.
     protected $casts = [
-        'date_faits' => 'date',
-        'date_mise_en_examen' => 'date',
-        'date_jugement_premiere_instance' => 'date',
-        'date_jugement_appel' => 'date',
-        'date_jugement_cassation' => 'date',
-        'date_condamnation_definitive' => 'date',
+        'date_faits' => 'date:Y-m-d',
+        'date_mise_en_examen' => 'date:Y-m-d',
+        'date_jugement_premiere_instance' => 'date:Y-m-d',
+        'date_jugement_appel' => 'date:Y-m-d',
+        'date_jugement_cassation' => 'date:Y-m-d',
+        'date_condamnation_definitive' => 'date:Y-m-d',
         'peine_prison_avec_sursis' => 'boolean',
         'peine_amende_euros' => 'decimal:2',
         'affiche_publiquement' => 'boolean',

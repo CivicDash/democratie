@@ -23,7 +23,7 @@ class AffaireSource extends Model
     ];
 
     protected $casts = [
-        'date_publication' => 'date',
+        'date_publication' => 'date:Y-m-d',   // voir AffaireJudiciaire::$casts
         'verifie_at' => 'datetime',
     ];
 

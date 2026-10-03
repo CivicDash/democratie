@@ -83,3 +83,45 @@ it('journalise le retrait d\'une source au lieu de l\'effacer sans trace', funct
         ->and($affaire->moderationLogs()->where('action', 'sources_modifiees')->exists())->toBeTrue(
             'Le retrait d\'une source doit laisser une trace.');
 });
+
+it('ne décale aucune date quand on revalide la fiche telle que l\'écran l\'a reçue', function () {
+    // Les dates partaient vers l'écran en UTC (« 2017-06-29T22:00:00Z » pour le 30/06
+    // à Paris) et revenaient telles quelles : chaque validation reculait toutes les
+    // dates d'un jour, et marquait toutes les sources comme modifiées.
+    config(['app.timezone' => 'Europe/Paris']);
+    date_default_timezone_set('Europe/Paris');
+
+    $premier = User::factory()->create();
+    $premier->assignRole('admin');
+    $second = User::factory()->create();
+    $second->assignRole('admin');
+
+    $affaire = AffaireJudiciaire::factory()->create([
+        'date_mise_en_examen' => '2017-06-30',
+        'date_jugement_premiere_instance' => '2025-03-31',
+        'date_jugement_appel' => '2026-07-07',
+    ]);
+    $source = AffaireSource::factory()->create([
+        'affaire_id' => $affaire->id, 'url' => 'https://exemple.fr/arret', 'media' => 'franceinfo',
+        'type_source' => 'article_presse', 'fiabilite' => 'moyenne',
+        'date_publication' => '2026-07-07', 'verifie_par' => $premier->id,
+    ]);
+
+    // Ce que reçoit l'écran (props Inertia), renvoyé sans retouche.
+    $recu = json_decode(json_encode($affaire->fresh()->load('sources')), true);
+    $this->actingAs($second)->put(route('admin.affaires.valider', $affaire), [
+        'titre' => $recu['titre'], 'type_affaire' => $recu['type_affaire'], 'categorie' => $recu['categorie'],
+        'statut_judiciaire' => $recu['statut_judiciaire'],
+        'date_mise_en_examen' => $recu['date_mise_en_examen'],
+        'date_jugement_premiere_instance' => $recu['date_jugement_premiere_instance'],
+        'date_jugement_appel' => $recu['date_jugement_appel'],
+        'sources' => [collect($recu['sources'][0])->only(['id', 'url', 'media', 'type_source', 'fiabilite', 'date_publication'])->all()],
+    ])->assertRedirect();
+
+    $affaire->refresh();
+    expect($affaire->date_mise_en_examen->toDateString())->toBe('2017-06-30')
+        ->and($affaire->date_jugement_premiere_instance->toDateString())->toBe('2025-03-31')
+        ->and($affaire->date_jugement_appel->toDateString())->toBe('2026-07-07')
+        ->and($source->fresh()->date_publication->toDateString())->toBe('2026-07-07')
+        ->and($source->fresh()->verifie_par)->toBe($premier->id);
+});

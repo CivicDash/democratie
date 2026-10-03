@@ -609,6 +609,7 @@ class PresidentielleExporter
                     'autorite' => $a->juridiction,
                     'qualifications' => $raw['qualifications_parquet'] ?? [],
                     'position_interesse' => $raw['position_interesse'] ?? null,
+                    'chronologie' => $this->chronologieAffaire($raw['chronologie'] ?? []),
                     'sources' => $a->sources->map(fn ($s) => [
                         'media' => $s->media,
                         'url' => $this->url($s->url),
@@ -625,6 +626,29 @@ class PresidentielleExporter
             ->exists();
 
         return ['publiees' => $publiees, 'en_verification' => $enVerification, 'derniere_verification' => $verif];
+    }
+
+    /**
+     * Étapes de la procédure, telles que saisies dans `detection_raw_data.chronologie`.
+     * Seuls la date (AAAA, AAAA-MM ou AAAA-MM-JJ), le fait et la source sortent : les
+     * notes de modération voisines (rappel_statut, taches_moderation…) restent internes.
+     */
+    private function chronologieAffaire(mixed $etapes): array
+    {
+        if (! is_array($etapes)) {
+            return [];
+        }
+
+        return collect($etapes)
+            ->filter(fn ($e) => is_array($e)
+                && preg_match('/^\d{4}(-\d{2}(-\d{2})?)?$/', (string) ($e['date'] ?? ''))
+                && trim((string) ($e['fait'] ?? '')) !== '')
+            ->map(fn ($e) => [
+                'date' => $e['date'],
+                'fait' => trim($e['fait']),
+                'source' => $this->url($e['source'] ?? null),
+            ])
+            ->values()->all();
     }
 
     /**

@@ -31,6 +31,7 @@ const form = useForm({
     date_mise_en_examen: props.affaire?.date_mise_en_examen || '',
     date_jugement_premiere_instance: props.affaire?.date_jugement_premiere_instance || '',
     date_jugement_appel: props.affaire?.date_jugement_appel || '',
+    date_jugement_cassation: props.affaire?.date_jugement_cassation || '',
     date_condamnation_definitive: props.affaire?.date_condamnation_definitive || '',
     peine_prison_mois: props.affaire?.peine_prison_mois || null,
     peine_prison_avec_sursis: props.affaire?.peine_prison_avec_sursis || false,
@@ -54,6 +55,31 @@ const form = useForm({
         date_publication: s.date_publication || '',
     })) : [{ id: null, url: '', media: '', type_source: 'article_presse', fiabilite: 'moyenne', titre: '', date_publication: '' }],
 });
+
+// Contenu structuré de la fiche (detection_raw_data) : une partie est publiée avec la
+// description (qualifications, position, chronologie), le reste sert à la modération.
+// Lecture seule ici : on relit ce qui sortira avant de valider.
+const raw = computed(() => props.affaire?.detection_raw_data || {});
+const chronologie = computed(() => (Array.isArray(raw.value.chronologie) ? raw.value.chronologie : [])
+    .filter(e => e && /^\d{4}(-\d{2}(-\d{2})?)?$/.test(e.date || '') && (e.fait || '').trim()));
+const etapesEcartees = computed(() => (Array.isArray(raw.value.chronologie) ? raw.value.chronologie.length : 0) - chronologie.value.length);
+const listeInterne = (cle) => (Array.isArray(raw.value[cle]) ? raw.value[cle] : (raw.value[cle] ? [raw.value[cle]] : []));
+const notesInternes = computed(() => [
+    ['Rappel du statut', listeInterne('rappel_statut')],
+    ['Qualifications : précisions', listeInterne('qualifications_note')],
+    ['Tâches de modération', listeInterne('taches_moderation')],
+    ['Procédures à vérifier', listeInterne('procedures_a_verifier')],
+    ['Procédures closes, non affichées', listeInterne('procedures_closes_non_affichees')],
+    ['Origine de la fiche', listeInterne('origine')],
+    ['Historique de la fiche', listeInterne('historique_fiche')],
+].filter(([, items]) => items.length));
+
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+function dateEtape(d) {
+    const [a, m, j] = d.split('-');
+    if (!m) return a;
+    return `${j ? `${Number(j)} ` : ''}${MOIS[Number(m) - 1]} ${a}`;
+}
 
 const rejectForm = useForm({ motif: '' });
 const complementForm = useForm({ commentaire: '' });
@@ -252,8 +278,58 @@ const statutLabels = {
                     </div>
                 </div>
 
+                <div v-if="!isNew" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Publié avec la description</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Lecture seule : ces éléments sortent sur la page candidat dès la validation. À relire avant de valider.</p>
+
+                    <dl class="space-y-4 text-sm">
+                        <div>
+                            <dt class="font-medium text-gray-700 dark:text-gray-300">Qualifications</dt>
+                            <dd v-if="raw.qualifications_parquet?.length">
+                                <ul class="list-disc pl-5 text-gray-700 dark:text-gray-300">
+                                    <li v-for="(q, i) in raw.qualifications_parquet" :key="i">{{ q }}</li>
+                                </ul>
+                            </dd>
+                            <dd v-else class="text-orange-600 dark:text-orange-400">Aucune qualification saisie.</dd>
+                        </div>
+                        <div>
+                            <dt class="font-medium text-gray-700 dark:text-gray-300">Position de l'intéressé</dt>
+                            <dd v-if="raw.position_interesse" class="text-gray-700 dark:text-gray-300 italic">{{ raw.position_interesse }}</dd>
+                            <dd v-else class="text-orange-600 dark:text-orange-400">Non renseignée.</dd>
+                        </div>
+                        <div>
+                            <dt class="font-medium text-gray-700 dark:text-gray-300">Chronologie ({{ chronologie.length }} étape{{ chronologie.length > 1 ? 's' : '' }})</dt>
+                            <dd v-if="chronologie.length">
+                                <ol class="mt-2 border-l-2 border-gray-200 dark:border-gray-600 space-y-2">
+                                    <li v-for="(e, i) in chronologie" :key="i" class="pl-4 relative">
+                                        <span class="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-indigo-500"></span>
+                                        <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ dateEtape(e.date) }}</span>
+                                        <span class="text-gray-800 dark:text-gray-200"> — {{ e.fait }}</span>
+                                        <a v-if="e.source" :href="e.source" target="_blank" rel="noopener" class="ml-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline">source ↗</a>
+                                        <span v-else class="ml-1 text-xs text-orange-600 dark:text-orange-400">sans source</span>
+                                    </li>
+                                </ol>
+                                <p v-if="etapesEcartees > 0" class="mt-2 text-xs text-orange-600 dark:text-orange-400">
+                                    {{ etapesEcartees }} étape(s) écartée(s) de l'export : date illisible (attendu AAAA, AAAA-MM ou AAAA-MM-JJ) ou fait vide.
+                                </p>
+                            </dd>
+                            <dd v-else class="text-gray-500 dark:text-gray-400">Aucune chronologie.</dd>
+                        </div>
+                    </dl>
+
+                    <div v-if="notesInternes.length" class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Notes de modération <span class="font-normal text-gray-500 dark:text-gray-400">— jamais publiées</span></h3>
+                        <div v-for="[titre, items] in notesInternes" :key="titre" class="mt-3">
+                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ titre }}</p>
+                            <ul class="mt-1 list-disc pl-5 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                                <li v-for="(n, i) in items" :key="i">{{ n }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Chronologie</h2>
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Dates clés</h2>
                     <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date des faits</label>
@@ -270,6 +346,10 @@ const statutLabels = {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jugement appel</label>
                             <input v-model="form.date_jugement_appel" type="date" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Arrêt de cassation</label>
+                            <input v-model="form.date_jugement_cassation" type="date" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" />
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Condamnation définitive</label>
