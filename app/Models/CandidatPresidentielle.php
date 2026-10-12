@@ -18,7 +18,12 @@ class CandidatPresidentielle extends Model
     /** Statuts de candidature */
     public const STATUTS_CANDIDATURE = [
         'pressenti', 'declare', 'investi', 'parrainages_valides', 'retire', 'elimine_t1',
+        // Ni retrait volontaire ni élimination au premier tour : battu à une primaire.
+        'battu_primaire',
     ];
+
+    /** Statuts de qui n'est plus en lice (le site n'affiche plus « parrainages en cours »). */
+    public const STATUTS_HORS_COURSE = ['retire', 'elimine_t1', 'battu_primaire'];
 
     /** Workflow de validation (partagé avec les affaires judiciaires) */
     public const STATUTS_VALIDATION = ['detecte', 'en_review', 'a_completer', 'valide'];

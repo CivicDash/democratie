@@ -70,6 +70,23 @@ it('ne journalise rien quand le statut ne change pas', function () {
         ->where('action', 'changement_statut_candidature')->count())->toBe(0);
 });
 
+it('accepte le statut « battu à la primaire » et le journalise', function () {
+    // Battus à la primaire du 11/10/2026 : ni retrait volontaire ni élimination au premier
+    // tour de la présidentielle. « Retiré » aurait laissé croire à un retrait.
+    $mod = moderateurCandidat();
+    $candidat = CandidatPresidentielle::factory()->create([
+        'election' => '2027', 'statut_candidature' => 'declare',
+    ]);
+
+    $this->actingAs($mod)->post(route('admin.presidentielle.candidats.update', $candidat->id), [
+        'statut_candidature' => 'battu_primaire',
+    ])->assertSessionHasNoErrors();
+
+    expect($candidat->fresh()->statut_candidature)->toBe('battu_primaire')
+        ->and(PresidentielleModerationLog::where('entite_id', $candidat->id)
+            ->where('action', 'changement_statut_candidature')->value('nouveau_statut'))->toBe('battu_primaire');
+});
+
 it('refuse un statut hors référentiel', function () {
     $mod = moderateurCandidat();
     $candidat = CandidatPresidentielle::factory()->create(['election' => '2027']);

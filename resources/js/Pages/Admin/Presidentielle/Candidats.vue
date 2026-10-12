@@ -39,6 +39,7 @@ function filtrer(s) {
 const LIBELLE_CANDIDATURE = {
     pressenti: 'Pressenti', declare: 'Déclaré', investi: 'Investi',
     parrainages_valides: '500 parrainages validés', retire: 'Retiré', elimine_t1: 'Éliminé au 1er tour',
+    battu_primaire: 'Battu à la primaire',
 };
 
 // Un état d'édition par ligne, préchargé depuis les données servies : le formulaire est
@@ -155,7 +156,7 @@ function nom(c) {
                                 <!-- Le statut de CANDIDATURE n'était affiché nulle part, alors
                                      que c'est lui qui dit au public qui est encore en lice. -->
                                 <div class="mt-1 text-xs"
-                                     :class="['retire', 'elimine_t1'].includes(c.statut_candidature)
+                                     :class="['retire', 'elimine_t1', 'battu_primaire'].includes(c.statut_candidature)
                                          ? 'text-amber-700 dark:text-amber-400 font-medium' : 'text-gray-500'">
                                     {{ LIBELLE_CANDIDATURE[c.statut_candidature] ?? c.statut_candidature }}
                                 </div>
