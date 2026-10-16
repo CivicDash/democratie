@@ -6,13 +6,16 @@ use App\Exceptions\ModerationException;
 use App\Models\Affirmation;
 use App\Models\Argument;
 use App\Models\ArgumentMesureLien;
+use App\Models\CadrageBudgetaire;
 use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
 use App\Models\PresidentielleModerationLog;
+use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeMesure;
 use App\Models\QuizQuestion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -158,12 +161,24 @@ class ModerationService
      */
     public function creerMesureDepuisProposition(IngestionProposition $p, User $user): ProgrammeMesure
     {
+        // Premier garde-fou : la parole d'un parti ne devient jamais une mesure du candidat.
+        // La contrainte CHECK de la table le garantit aussi pour un locuteur `parti` ; le
+        // porteur du document, lui, ne se contrôle qu'ici.
+        if ($p->estEntourage()) {
+            throw new ModerationException('Propos de '.($p->locuteur ?? $p->document?->porteur_libelle ?? 'l\'entourage')
+                .' : une proposition de l\'entourage ne devient jamais une mesure du candidat. Utilisez « Valider pour Autour du candidat ».');
+        }
         if (! $p->candidat_id || ! $p->theme_id) {
             throw new ModerationException('Proposition sans candidat ou thème résolu — à compléter avant rattachement.');
         }
         // Garde anti-rejeu (double-clic) : une proposition déjà traitée ne recrée pas de mesure.
         if ($p->statut !== 'detecte') {
             throw new ModerationException('Proposition déjà traitée (statut : '.$p->statut.').');
+        }
+        // Rattachée, elle paraît aussitôt dans les prises de parole : son locuteur doit
+        // être nommé avec son rôle.
+        if ($raisons = app(ReglesLocuteur::class)->raisons($p)) {
+            throw new ModerationException('Rattachement impossible : '.implode(' ; ', $raisons));
         }
 
         $mesure = ProgrammeMesure::create([
@@ -196,11 +211,99 @@ class ModerationService
     /** Rejette une proposition d'ingestion (statut `rejetee`), avec motif journalisé. */
     public function rejeterProposition(IngestionProposition $p, User $user, ?string $motif = null): IngestionProposition
     {
+        if ($p->statut === 'rattachee') {
+            throw new ModerationException('Proposition rattachée à une mesure : supprimez d\'abord la mesure (la proposition revient en file).');
+        }
         $ancien = $p->statut;
-        $p->update(['statut' => 'rejetee', 'valide_par' => $user->id, 'valide_at' => now()]);
+        $p->update(['statut' => 'rejetee', 'valide_par' => $user->id, 'valide_at' => now()]
+            + (self::colonne('affiche_publiquement') ? ['affiche_publiquement' => false] : []));
         $this->log($p, 'rejet', $ancien, 'rejetee', $user, $motif);
 
         return $p;
+    }
+
+    /**
+     * « Valider sans mesure » : une proposition du candidat ou de son équipe, relue, qui
+     * n'a pas vocation à devenir une mesure (une déclaration chiffrée, un constat). Validée,
+     * elle paraît dans les prises de parole du candidat — seules les propositions validées
+     * ou rattachées y paraissent.
+     *
+     * @throws ModerationException
+     */
+    public function validerSansMesure(IngestionProposition $p, User $user, ?string $commentaire = null): IngestionProposition
+    {
+        if ($p->statut !== 'detecte') {
+            throw new ModerationException('Proposition déjà traitée (statut : '.$p->statut.').');
+        }
+        if (! $p->candidat_id) {
+            throw new ModerationException('Proposition sans candidat résolu — à compléter avant validation.');
+        }
+        if ($raisons = app(ReglesLocuteur::class)->raisons($p)) {
+            throw new ModerationException('Validation impossible : '.implode(' ; ', $raisons));
+        }
+
+        $p->update(['statut' => 'validee', 'valide_par' => $user->id, 'valide_at' => now()]);
+        $this->log($p, 'validation_sans_mesure', 'detecte', 'validee', $user, $commentaire);
+
+        return $p;
+    }
+
+    /**
+     * Valide une proposition de l'entourage pour « Autour du candidat ». Elle n'est pas
+     * encore publiée : la publication vérifie l'attribution, la citation et l'endossement.
+     *
+     * @throws ModerationException
+     */
+    public function validerEntourage(IngestionProposition $p, User $user, ?string $commentaire = null): IngestionProposition
+    {
+        if (! $p->estEntourage()) {
+            throw new ModerationException('Cette proposition relève du candidat ou de son équipe : utilisez « Valider → mesure » ou « Valider sans mesure ».');
+        }
+        if ($p->statut !== 'detecte') {
+            throw new ModerationException('Proposition déjà traitée (statut : '.$p->statut.').');
+        }
+
+        $p->update(['statut' => 'validee', 'valide_par' => $user->id, 'valide_at' => now(), 'affiche_publiquement' => false]);
+        $this->log($p, 'validation_entourage', 'detecte', 'validee', $user, $commentaire);
+
+        return $p;
+    }
+
+    /** @throws ModerationException si ReglesEntourage refuse */
+    public function publierEntourage(IngestionProposition $p, User $user): IngestionProposition
+    {
+        if ($raisons = app(ReglesEntourage::class)->raisons($p)) {
+            throw new ModerationException('Publication impossible : '.implode(' ; ', $raisons));
+        }
+
+        $p->update(['affiche_publiquement' => true]);
+        $this->log($p, 'publication_entourage', 'validee', 'validee', $user);
+
+        return $p;
+    }
+
+    public function depublierEntourage(IngestionProposition $p, User $user, ?string $motif = null): IngestionProposition
+    {
+        $p->update(['affiche_publiquement' => false]);
+        $this->log($p, 'depublication_entourage', $p->statut, $p->statut, $user, $motif);
+
+        return $p;
+    }
+
+    /**
+     * Supprime un cadrage budgétaire (soft-delete, réversible). Refuse un cadrage publié :
+     * dépublier d'abord, comme pour les mesures.
+     *
+     * @throws ModerationException
+     */
+    public function supprimerCadrage(CadrageBudgetaire $cadrage, User $user, ?string $motif = null): void
+    {
+        if ($cadrage->affiche_publiquement) {
+            throw new ModerationException('Dépubliez le cadrage avant de le supprimer.');
+        }
+
+        $this->log($cadrage, 'suppression', $cadrage->statut_validation, null, $user, $motif);
+        $cadrage->delete();
     }
 
     /** Raisons bloquant la publication (vide = publiable). */
@@ -232,6 +335,24 @@ class ModerationService
                     $raisons[] = 'argumentaire déséquilibré : aucun argument « contre » publié et sourcé';
                 }
             }
+
+            // Une mesure du candidat ne vient jamais de la parole d'un parti, et son
+            // locuteur, s'il n'est pas le candidat, est nommé avec son rôle.
+            if (self::colonne('qualite_locuteur')) {
+                foreach ($entite->propositionsSource()->with('document')->get() as $source) {
+                    foreach (app(ReglesLocuteur::class)->raisons($source) as $r) {
+                        $raisons[] = 'proposition source : '.$r;
+                    }
+                }
+            }
+        }
+
+        if ($entite instanceof ProgrammeDocument) {
+            $raisons = [...$raisons, ...app(ReglesPorteur::class)->raisons($entite)];
+        }
+
+        if ($entite instanceof CadrageBudgetaire) {
+            $raisons = [...$raisons, ...app(ReglesCadrageBudgetaire::class)->raisons($entite)];
         }
 
         if ($entite instanceof Argument && ! $entite->aSourceFiable()) {
@@ -304,6 +425,15 @@ class ModerationService
         $this->log($entite, $action, $ancien, $nouveau, $user, $commentaire);
 
         return $entite;
+    }
+
+    /**
+     * Le code peut être déployé avant la migration : une colonne absente ne doit pas faire
+     * échouer un geste sans rapport avec elle.
+     */
+    private static function colonne(string $colonne): bool
+    {
+        return Schema::hasColumn('ingestion_propositions', $colonne);
     }
 
     private function log(Model $entite, string $action, ?string $ancien, ?string $nouveau, User $user, ?string $commentaire = null): void
