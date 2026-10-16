@@ -7,8 +7,13 @@ use App\Models\IngestionDocument;
 use App\Models\IngestionProposition;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
+use App\Services\Presidentielle\ImportCadrageBudgetaire;
+use App\Support\Locuteur;
+use App\Support\Porteur;
+use App\Support\VerificationVerbatim;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Import du contrat JSON de propositions (pipeline §11 / mode fallback "Claude chat").
@@ -16,18 +21,30 @@ use Illuminate\Support\Facades\DB;
  * (--source), chaque citation_verbatim est vérifiée mot-pour-mot (après normalisation
  * SRT) et rejetée si absente. Sans source, les propositions sont insérées avec
  * verbatim_verifie=false (à vérifier humainement).
+ *
+ * Qui parle : chaque proposition peut nommer son locuteur réel (`locuteur`,
+ * `role_locuteur`, `qualite_locuteur`) ; le document, son porteur (`source.porteur`).
+ * Un porteur ou une qualité inconnus font échouer l'import sans rien écrire : classer la
+ * parole d'un parti comme celle du candidat serait la pire erreur.
+ *
+ * `--cadrage` importe dans la même transaction le cadrage budgétaire de la même source
+ * (contrat presidentielle.cadrage_budgetaire.v1), relié au document créé.
+ *
+ * `--dry-run` exécute toutes les écritures puis les annule : les contraintes de la base
+ * sont donc éprouvées, et rien ne reste.
  */
 class PresidentielleImportPropositions extends Command
 {
     protected $signature = 'presidentielle:import-propositions
         {fichier : chemin du fichier JSON de propositions}
         {--source= : fichier texte/transcription source pour vérifier les citations verbatim}
+        {--cadrage= : fichier JSON du cadrage budgétaire de la même source (contrat cadrage_budgetaire.v1)}
         {--election=2027 : élection cible pour la résolution des candidats}
-        {--dry-run : analyse sans écrire en base}';
+        {--dry-run : analyse complète, toutes écritures annulées}';
 
     protected $description = 'Importe des propositions (contrat JSON §11) en file de modération (statut detecte).';
 
-    public function handle(): int
+    public function handle(ImportCadrageBudgetaire $importCadrage): int
     {
         $fichier = $this->argument('fichier');
         if (! is_file($fichier)) {
@@ -43,6 +60,35 @@ class PresidentielleImportPropositions extends Command
             return self::FAILURE;
         }
 
+        // Le contrat écrit `source` ; la commande ne lisait que `document_source`.
+        // Résultat : chaque import créait un document sans titre, sans URL, sans date
+        // ni durée — il fallait le rattraper en SQL après coup, à la main, à chaque
+        // fois. Les deux clés sont acceptées pour ne pas casser les anciens fichiers.
+        $ds = $data['source'] ?? $data['document_source'] ?? [];
+
+        try {
+            [$porteur, $avertissementsPorteur] = Porteur::depuisJson($ds['porteur'] ?? $data['porteur'] ?? null);
+        } catch (InvalidArgumentException $e) {
+            $this->error('Import refusé, rien n\'est écrit : '.$e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $cadrage = null;
+        if ($cheminCadrage = $this->option('cadrage')) {
+            if (! is_file($cheminCadrage)) {
+                $this->error("Fichier de cadrage introuvable : {$cheminCadrage}");
+
+                return self::FAILURE;
+            }
+            $cadrage = json_decode((string) file_get_contents($cheminCadrage), true);
+            if (! is_array($cadrage)) {
+                $this->error('Cadrage : JSON invalide ('.json_last_error_msg().').');
+
+                return self::FAILURE;
+            }
+        }
+
         // Source de vérification verbatim (optionnelle mais recommandée)
         $sourceNorm = null;
         if ($src = $this->option('source')) {
@@ -51,7 +97,7 @@ class PresidentielleImportPropositions extends Command
 
                 return self::FAILURE;
             }
-            $sourceNorm = $this->normalize((string) file_get_contents($src));
+            $sourceNorm = VerificationVerbatim::normaliser((string) file_get_contents($src));
         } else {
             $this->warn('Aucune source fournie (--source) : les citations ne seront pas vérifiées (verbatim_verifie=false).');
         }
@@ -59,39 +105,42 @@ class PresidentielleImportPropositions extends Command
         $election = (string) $this->option('election');
         $dryRun = (bool) $this->option('dry-run');
 
-        $stats = ['insere' => 0, 'a_verifier' => 0, 'rejete_verbatim' => 0, 'candidat_inconnu' => 0, 'theme_inconnu' => 0];
+        foreach ($avertissementsPorteur as $a) {
+            $this->warn("Porteur : {$a}");
+        }
+
+        $stats = ['insere' => 0, 'a_verifier' => 0, 'rejete_verbatim' => 0, 'candidat_inconnu' => 0, 'theme_inconnu' => 0, 'equipe' => 0, 'entourage' => 0, 'sans_role' => 0];
+        $statsCadrage = null;
 
         DB::beginTransaction();
         try {
-            // Le contrat écrit `source` ; la commande ne lisait que `document_source`.
-            // Résultat : chaque import créait un document sans titre, sans URL, sans date
-            // ni durée — il fallait le rattraper en SQL après coup, à la main, à chaque
-            // fois. Les deux clés sont acceptées pour ne pas casser les anciens fichiers.
-            $ds = $data['source'] ?? $data['document_source'] ?? [];
-            $document = null;
-            if (! $dryRun) {
-                // La note méthodologique est la partie la plus utile du fichier : elle dit
-                // ce qu'il faut réécouter, quelles erreurs de transcription corriger et
-                // quels doublons attendre. Elle était purement et simplement jetée.
-                $note = trim(implode("\n\n", array_filter([
-                    $ds['transcription'] ?? ($ds['avertissement'] ?? null),
-                    $ds['note_methodologique'] ?? null,
-                ])));
+            // La note méthodologique est la partie la plus utile du fichier : elle dit
+            // ce qu'il faut réécouter, quelles erreurs de transcription corriger et
+            // quels doublons attendre. Elle était purement et simplement jetée.
+            $note = trim(implode("\n\n", array_filter([
+                $ds['transcription'] ?? ($ds['avertissement'] ?? null),
+                $ds['note_methodologique'] ?? null,
+            ])));
 
-                $document = IngestionDocument::create([
-                    'type' => $ds['type'] ?? 'article',
-                    'titre' => $ds['titre'] ?? basename($fichier),
-                    'url' => $ds['url'] ?? null,
-                    'date_publication' => $ds['date'] ?? ($ds['date_publication'] ?? null),
-                    'duree_s' => $ds['duree_s'] ?? null,
-                    'transcription_note' => $note !== '' ? $note : null,
-                    // La colonne fait 20 caractères : on n'y met pas le nom complet du
-                    // contrat (« presidentielle.propositions.v1 ») mais sa seule version.
-                    'contrat_version' => $this->versionContrat($data),
-                    'generateur' => $data['generateur'] ?? null,
-                    'statut' => 'extrait',
-                ]);
-            }
+            $document = IngestionDocument::create([
+                'candidat_id' => $this->candidatUnique($data['propositions'], $election),
+                'type' => $ds['type'] ?? 'article',
+                'titre' => $ds['titre'] ?? basename($fichier),
+                'url' => $ds['url'] ?? null,
+                'date_publication' => $ds['date'] ?? ($ds['date_publication'] ?? null),
+                'duree_s' => $ds['duree_s'] ?? null,
+                'transcription_note' => $note !== '' ? $note : null,
+                // La colonne fait 20 caractères : on n'y met pas le nom complet du
+                // contrat (« presidentielle.propositions.v1 ») mais sa seule version.
+                'contrat_version' => $this->versionContrat($data),
+                'generateur' => $data['generateur'] ?? null,
+                'statut' => 'extrait',
+                'porteur_type' => $porteur['porteur_type'],
+                'porteur_libelle' => $porteur['porteur_libelle'],
+                'endossement_url' => $porteur['endossement_url'],
+                'endossement_date' => $porteur['endossement_date'],
+                'endossement_note' => $porteur['endossement_note'],
+            ]);
 
             foreach ($data['propositions'] as $i => $p) {
                 $citation = (string) ($p['citation_verbatim'] ?? '');
@@ -105,24 +154,40 @@ class PresidentielleImportPropositions extends Command
                 $verbatimOk = false;
                 $aVerifier = false;
                 if ($sourceNorm !== null) {
-                    $citationNorm = $this->normalize($citation);
-                    if ($citation !== '' && str_contains($sourceNorm, $citationNorm)) {
+                    $verdict = VerificationVerbatim::verifier($citation, $sourceNorm);
+                    $score = round($verdict['score'] * 100);
+                    if ($verdict['issue'] === 'verifiee') {
                         $verbatimOk = true;
-                    } else {
-                        $score = $citationNorm === '' ? 0.0 : $this->similariteMots($citationNorm, $sourceNorm);
-                        if ($score >= 0.85) {
-                            $verbatimOk = true;
-                            $this->line("  <fg=yellow>≈</> [{$i}] citation approchée (".round($score * 100).'% — sous-titres auto) : "'.mb_substr($citation, 0, 50).'…"');
-                        } elseif ($score >= 0.55) {
-                            $aVerifier = true;
-                            $this->line("  <fg=yellow>?</> [{$i}] à vérifier (".round($score * 100).'%) — insérée non vérifiée');
-                        } else {
-                            $stats['rejete_verbatim']++;
-                            $this->line("  <fg=red>✗</> [{$i}] citation absente de la source (".round($score * 100).'%) : "'.mb_substr($citation, 0, 50).'…"');
-
-                            continue;
+                        if (! $verdict['exacte']) {
+                            $this->line("  <fg=yellow>≈</> [{$i}] citation approchée ({$score}% — sous-titres auto) : \"".mb_substr($citation, 0, 50).'…"');
                         }
+                    } elseif ($verdict['issue'] === 'a_verifier') {
+                        $aVerifier = true;
+                        $this->line("  <fg=yellow>?</> [{$i}] à vérifier ({$score}%) — insérée non vérifiée");
+                    } else {
+                        $stats['rejete_verbatim']++;
+                        $this->line("  <fg=red>✗</> [{$i}] citation absente de la source ({$score}%) : \"".mb_substr($citation, 0, 50).'…"');
+
+                        continue;
                     }
+                }
+
+                // Qui parle : une qualité inconnue lève, et toute l'importation est annulée.
+                try {
+                    $locuteur = Locuteur::normaliser($p, $p['candidat_slug'] ?? null, $porteur['porteur_type']);
+                } catch (InvalidArgumentException $e) {
+                    throw new InvalidArgumentException("proposition [{$i}] : ".$e->getMessage());
+                }
+                foreach ($locuteur['avertissements'] as $a) {
+                    $this->line("  <fg=yellow>!</> [{$i}] {$a}");
+                }
+                if ($locuteur['locuteur'] && ! $locuteur['role_locuteur']) {
+                    $stats['sans_role']++;
+                }
+                if ($locuteur['qualite_locuteur'] === Locuteur::PARTI || Porteur::estEntourage($porteur['porteur_type'])) {
+                    $stats['entourage']++;
+                } elseif ($locuteur['qualite_locuteur'] === Locuteur::EQUIPE) {
+                    $stats['equipe']++;
                 }
 
                 // Résolution candidat (par slug de personne) et thème
@@ -135,39 +200,52 @@ class PresidentielleImportPropositions extends Command
                     $stats['theme_inconnu']++;
                 }
 
-                if (! $dryRun) {
-                    IngestionProposition::create([
-                        'document_id' => $document->id,
-                        'candidat_slug' => $p['candidat_slug'] ?? null,
-                        'candidat_id' => $candidatId,
-                        'theme_slug' => $p['theme_slug'] ?? null,
-                        'theme_id' => $themeId,
-                        'type' => $p['type'] ?? 'declaration',
-                        'resume_propose' => $p['resume_propose'] ?? '',
-                        'citation_verbatim' => $citation,
-                        'timestamp_ou_paragraphe' => $p['timestamp_ou_paragraphe'] ?? null,
-                        'source_url' => $p['source_url'] ?? null,
-                        'confiance' => $p['confiance'] ?? null,
-                        'verbatim_verifie' => $verbatimOk,
-                        'statut' => 'detecte',
-                        'raw_llm_output' => $p,
-                    ]);
-                }
+                IngestionProposition::create([
+                    'document_id' => $document->id,
+                    'candidat_slug' => $p['candidat_slug'] ?? null,
+                    'candidat_id' => $candidatId,
+                    'locuteur' => $locuteur['locuteur'],
+                    'role_locuteur' => $locuteur['role_locuteur'],
+                    'qualite_locuteur' => $locuteur['qualite_locuteur'],
+                    'theme_slug' => $p['theme_slug'] ?? null,
+                    'theme_id' => $themeId,
+                    'type' => $p['type'] ?? 'declaration',
+                    'resume_propose' => $p['resume_propose'] ?? '',
+                    'citation_verbatim' => $citation,
+                    'timestamp_ou_paragraphe' => $p['timestamp_ou_paragraphe'] ?? null,
+                    'source_url' => $p['source_url'] ?? null,
+                    'confiance' => $p['confiance'] ?? null,
+                    'verbatim_verifie' => $verbatimOk,
+                    'statut' => 'detecte',
+                    'raw_llm_output' => $p,
+                ]);
                 $stats['insere']++;
                 if ($aVerifier) {
                     $stats['a_verifier']++;
                 }
             }
 
+            if ($cadrage !== null) {
+                $erreurs = $importCadrage->valider($cadrage, $porteur['porteur_type'], $election, $document->candidat_id);
+                if ($erreurs) {
+                    throw new InvalidArgumentException('cadrage refusé : '.implode(' ; ', array_slice($erreurs, 0, 10))
+                        .(count($erreurs) > 10 ? ' ; et '.(count($erreurs) - 10).' autre(s)' : ''));
+                }
+                foreach ($importCadrage->avertissements() as $a) {
+                    $this->line("  <fg=yellow>!</> cadrage — {$a}");
+                }
+                $statsCadrage = $importCadrage->ecrire($cadrage, $document, $sourceNorm, $election, $document->candidat_id);
+            }
+
             if ($dryRun) {
                 DB::rollBack();
-                $this->info('DRY-RUN : aucune écriture.');
+                $this->info('DRY-RUN : tout a été lu et écrit, puis annulé — rien ne reste en base.');
             } else {
                 DB::commit();
             }
         } catch (\Throwable $e) {
             DB::rollBack();
-            $this->error('Échec import : '.$e->getMessage());
+            $this->error('Échec import, rien n\'est écrit : '.$e->getMessage());
 
             return self::FAILURE;
         }
@@ -175,10 +253,27 @@ class PresidentielleImportPropositions extends Command
         $this->newLine();
         $this->info("Propositions insérées (detecte) : {$stats['insere']}");
         $this->line("  dont à vérifier manuellement (verbatim non confirmé) : {$stats['a_verifier']}");
+        $this->line("  dont {$stats['equipe']} de l'équipe de campagne (attribuées à leur locuteur) et {$stats['entourage']} de l'entourage (section « Autour du candidat »)");
+        if ($stats['sans_role']) {
+            $this->line("  <fg=yellow>{$stats['sans_role']} locuteur(s) sans rôle : non publiables tant que le rôle manque</>");
+        }
         $this->line("  Rejetées (verbatim absent) : {$stats['rejete_verbatim']}");
         $this->line("  Candidat non résolu : {$stats['candidat_inconnu']} · Thème non résolu : {$stats['theme_inconnu']}");
+        if ($statsCadrage) {
+            $this->line("  Cadrage budgétaire : {$statsCadrage['cadrages']} cadrage(s), {$statsCadrage['lignes']} ligne(s) à vérifier"
+                ." (verbatim confirmé : {$statsCadrage['verbatim_verifie']}, absent : {$statsCadrage['verbatim_absent']},"
+                ." reliées à une proposition : {$statsCadrage['propositions_liees']})");
+        }
 
         return self::SUCCESS;
+    }
+
+    /** Le candidat de toutes les propositions résolues, s'il est unique. */
+    private function candidatUnique(array $propositions, string $election): ?int
+    {
+        $slugs = array_values(array_unique(array_filter(array_map(fn ($p) => is_array($p) ? ($p['candidat_slug'] ?? null) : null, $propositions))));
+
+        return count($slugs) === 1 ? $this->resolveCandidat($slugs[0], $election) : null;
     }
 
     /** Résout le candidat de l'élection via le slug de sa personne politique. */
@@ -204,73 +299,6 @@ class PresidentielleImportPropositions extends Command
         }
 
         return ProgrammeTheme::where('slug', $slug)->value('id');
-    }
-
-    /**
-     * Normalise une transcription pour la comparaison verbatim :
-     * retire timecodes SRT/VTT, numéros de blocs, uniformise espaces et casse.
-     */
-    private function normalize(string $s): string
-    {
-        // Timecodes SRT/VTT : 00:00:00,000 --> 00:00:00,000
-        $s = preg_replace('/\d{2}:\d{2}:\d{2}[,.]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,.]\d{3}/u', ' ', $s);
-        // Numéros de bloc SRT (ligne seule)
-        $s = preg_replace('/^\s*\d+\s*$/m', ' ', $s);
-        // Timecodes courts résiduels (01:10, 00:43:21)
-        $s = preg_replace('/\b\d{1,2}:\d{2}(:\d{2})?\b/u', ' ', $s);
-        $s = mb_strtolower($s, 'UTF-8');
-        // Uniformise apostrophes/espaces
-        $s = str_replace(['’', "\u{2019}", '«', '»'], ["'", "'", ' ', ' '], $s);
-        $s = preg_replace('/\s+/u', ' ', $s);
-
-        return trim((string) $s);
-    }
-
-    /**
-     * Similarité d'une citation (déjà normalisée) vis-à-vis de la source normalisée.
-     * Cherche la meilleure fenêtre de mots dans la source et renvoie la proportion
-     * des mots de la citation qu'elle contient (multiset). Robuste aux micro-écarts
-     * des sous-titres automatiques (ponctuation, un mot manquant çà et là).
-     * Renvoie un score dans [0, 1].
-     */
-    private function similariteMots(string $citation, string $source): float
-    {
-        $motsCitation = array_values(array_filter(explode(' ', $citation)));
-        $motsSource = array_values(array_filter(explode(' ', $source)));
-        $m = count($motsCitation);
-        $n = count($motsSource);
-        if ($m === 0 || $n < $m) {
-            return 0.0;
-        }
-
-        // Fenêtre un peu plus large que la citation pour absorber les mots intercalés.
-        $fenetre = (int) ceil($m * 1.4);
-        $besoin = [];
-        foreach ($motsCitation as $mot) {
-            $besoin[$mot] = ($besoin[$mot] ?? 0) + 1;
-        }
-
-        $meilleur = 0;
-        for ($debut = 0; $debut <= $n - $m; $debut++) {
-            $dispo = [];
-            $fin = min($n, $debut + $fenetre);
-            for ($k = $debut; $k < $fin; $k++) {
-                $mot = $motsSource[$k];
-                $dispo[$mot] = ($dispo[$mot] ?? 0) + 1;
-            }
-            $couverts = 0;
-            foreach ($besoin as $mot => $nb) {
-                $couverts += min($nb, $dispo[$mot] ?? 0);
-            }
-            if ($couverts > $meilleur) {
-                $meilleur = $couverts;
-                if ($meilleur === $m) {
-                    break;
-                }
-            }
-        }
-
-        return $meilleur / $m;
     }
 
     /** Version courte du contrat, tenant dans les 20 caractères de la colonne. */

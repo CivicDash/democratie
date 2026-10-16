@@ -6,6 +6,7 @@ use App\Models\CandidatPresidentielle;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeDocumentItem;
+use App\Support\Porteur;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +16,10 @@ use Illuminate\Support\Facades\DB;
  * structure (chapitres) + items (sous-pages/mesures avec URLs d'ancre).
  * Upsert par (candidat, url) : ré-import = remplacement des items (programme vivant).
  * Entre en statut detecte — validation humaine avant le bandeau public.
+ *
+ * `document_source.porteur` (facultatif) dit qui porte le document : un référentiel de
+ * parti ou de groupe parlementaire ne devient jamais le « programme complet » du
+ * candidat, il paraît dans « Autour du candidat ». Un porteur inconnu refuse l'import.
  */
 class PresidentielleImportProgrammeReferentiel extends Command
 {
@@ -47,6 +52,17 @@ class PresidentielleImportProgrammeReferentiel extends Command
             return self::FAILURE;
         }
 
+        try {
+            [$porteur, $avertissements] = Porteur::depuisJson($ds['porteur'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            $this->error('Import refusé : '.$e->getMessage());
+
+            return self::FAILURE;
+        }
+        foreach ($avertissements as $a) {
+            $this->warn("Porteur : {$a}");
+        }
+
         DB::beginTransaction();
         try {
             $document = ProgrammeDocument::updateOrCreate(
@@ -59,7 +75,8 @@ class PresidentielleImportProgrammeReferentiel extends Command
                     // ré-import = retour en modération (le contenu a changé)
                     'statut_validation' => 'detecte',
                     'affiche_publiquement' => false,
-                ]
+                // Sans bloc porteur, un ré-import garde celui fixé au back-office.
+                ] + (isset($ds['porteur']) ? $porteur : [])
             );
 
             // Remplacement complet des items (référentiel = miroir du document officiel)
