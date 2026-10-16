@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\APorteur;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Support\Str;
 
 class IngestionDocument extends Model
 {
-    use HasFactory;
+    use APorteur, HasFactory;
 
     protected $table = 'ingestion_documents';
 
@@ -21,11 +22,13 @@ class IngestionDocument extends Model
         'uuid', 'candidat_id', 'type', 'titre', 'url', 'date_publication', 'duree_s',
         'transcription_path', 'transcription_note', 'archive_url', 'hash_contenu',
         'contrat_version', 'generateur', 'statut',
+        'porteur_type', 'porteur_libelle', 'endossement_url', 'endossement_date', 'endossement_note',
     ];
 
     protected $casts = [
         'date_publication' => 'date',
         'duree_s' => 'integer',
+        'endossement_date' => 'date',
     ];
 
     protected static function booted(): void
@@ -45,5 +48,11 @@ class IngestionDocument extends Model
     public function propositions(): HasMany
     {
         return $this->hasMany(IngestionProposition::class, 'document_id');
+    }
+
+    /** Cadrages budgétaires dont ce document est la source. */
+    public function cadrages(): HasMany
+    {
+        return $this->hasMany(CadrageBudgetaire::class, 'ingestion_document_id');
     }
 }

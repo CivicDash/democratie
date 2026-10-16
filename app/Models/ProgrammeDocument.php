@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\APorteur;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,19 +12,21 @@ use Illuminate\Support\Str;
 
 class ProgrammeDocument extends Model
 {
-    use HasFactory, SoftDeletes;
+    use APorteur, HasFactory, SoftDeletes;
 
     protected $table = 'programme_documents';
 
     protected $fillable = [
         'uuid', 'candidat_id', 'titre', 'version', 'url', 'archive_url', 'hash_contenu',
         'structure', 'statut_validation', 'affiche_publiquement', 'valide_par', 'valide_at',
+        'porteur_type', 'porteur_libelle', 'endossement_url', 'endossement_date', 'endossement_note',
     ];
 
     protected $casts = [
         'structure' => 'array',
         'affiche_publiquement' => 'boolean',
         'valide_at' => 'datetime',
+        'endossement_date' => 'date',
     ];
 
     protected static function booted(): void

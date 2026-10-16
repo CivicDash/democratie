@@ -90,6 +90,12 @@ class ProgrammeMesure extends Model
         return $this->arguments()->wherePivot('sens', 'contre');
     }
 
+    /** Propositions d'ingestion dont la mesure est issue (citations d'appui, locuteurs). */
+    public function propositionsSource(): HasMany
+    {
+        return $this->hasMany(IngestionProposition::class, 'mesure_id');
+    }
+
     public function scrutinLiens(): HasMany
     {
         return $this->hasMany(MesureScrutinLien::class, 'mesure_id');
