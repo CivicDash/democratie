@@ -82,6 +82,12 @@ const LIBELLES = {
     supprimer: 'Supprimé',
     mettre_en_avant: 'Passé en mesure phare',
     retirer_en_avant: 'Retiré des mesures phares',
+    validation_sans_mesure: 'Validée sans mesure',
+    validation_entourage: 'Validée pour « Autour du candidat »',
+    publication_entourage: 'Publiée « Autour du candidat »',
+    depublication_entourage: 'Retirée de « Autour du candidat »',
+    requalification_locuteur: 'Locuteur requalifié',
+    changement_porteur: 'Porteur modifié',
 };
 
 function libelleAction(e) {

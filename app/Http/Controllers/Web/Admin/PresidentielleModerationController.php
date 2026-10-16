@@ -8,6 +8,8 @@ use App\Models\Affirmation;
 use App\Models\Argument;
 use App\Models\ArgumentMesureLien;
 use App\Models\ArgumentSource;
+use App\Models\CadrageBudgetaire;
+use App\Models\CadrageLigne;
 use App\Models\CandidatPresidentielle;
 use App\Models\Controverse;
 use App\Models\EvenementCampagne;
@@ -28,12 +30,18 @@ use App\Models\User;
 use App\Services\Presidentielle\HatvpSummary;
 use App\Services\Presidentielle\IntegriteChecker;
 use App\Services\Presidentielle\ModerationService;
+use App\Services\Presidentielle\ReglesEntourage;
+use App\Services\Presidentielle\ReglesLocuteur;
+use App\Services\Presidentielle\ReglesPorteur;
+use App\Support\Locuteur;
+use App\Support\Porteur;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -65,6 +73,17 @@ class PresidentielleModerationController extends Controller
         'lien' => MesureScrutinLien::class,              // lien mesure↔scrutin (module cohérence)
         'parcours' => ParcoursEvenement::class,
         'programme_document' => ProgrammeDocument::class,
+        'cadrage' => CadrageBudgetaire::class,           // cadrage budgétaire ou référence officielle
+    ];
+
+    /**
+     * Entités dont on peut lire le journal. Les propositions et les prises de parole n'ont
+     * pas de `statut_validation` : elles ne passent pas par action(), qui écrirait cette
+     * colonne et échouerait. Leur circuit est propositionAction().
+     */
+    private const JOURNAL = self::MODELS + [
+        'proposition' => IngestionProposition::class,
+        'document' => IngestionDocument::class,
     ];
 
     /** File de modération : compteurs par statut + propositions en attente. */
@@ -82,42 +101,111 @@ class PresidentielleModerationController extends Controller
             ],
             'propositions_en_attente' => IngestionProposition::enAttente()->count(),
             'signalements_en_attente' => PresidentielleSignalement::enAttente()->count(),
-            'referentiels' => ProgrammeDocument::with('candidat.personnePolitique')->withCount('items')->get()
+            'referentiels' => ProgrammeDocument::with('candidat.personnePolitique')->withCount('items')->orderBy('id')->get()
                 ->map(fn ($d) => [
                     'id' => $d->id, 'titre' => $d->titre, 'url' => $d->url,
                     'candidat' => $d->candidat?->personnePolitique?->nom_complet,
                     'nb_items' => $d->items_count,
                     'statut_validation' => $d->statut_validation,
                     'affiche_publiquement' => $d->affiche_publiquement,
-                ]),
+                ] + $this->champsPorteur($d)),
+            'porteurs' => Porteur::LIBELLES,
             'integrite' => $integrite->analyser('2027'),
         ]);
     }
 
-    /** File d'ingestion : propositions en attente de validation. */
+    /**
+     * File d'ingestion : propositions en attente de validation.
+     *
+     * Le filtre « Qui parle » sépare le candidat, son équipe de campagne et l'entourage
+     * (la parole d'un parti). Chaque ligne dit d'avance ce qui bloquerait son bouton :
+     * le service refuse de toute façon, mais un garde-fou découvert après le clic se vit
+     * comme une panne.
+     */
     public function propositions(Request $request)
     {
+        $qui = in_array($request->query('qui'), ['candidat', 'equipe', 'entourage'], true) ? $request->query('qui') : 'tous';
+        $reglesLocuteur = app(ReglesLocuteur::class);
+        $reglesEntourage = app(ReglesEntourage::class);
+
         $propositions = IngestionProposition::with(['candidat.personnePolitique', 'theme', 'document'])
             ->when($request->query('statut', 'detecte') !== 'tous', fn ($q) => $q->where('statut', $request->query('statut', 'detecte')))
+            ->when($qui === 'candidat', fn ($q) => $q->whereNull('locuteur')->duCandidat())
+            ->when($qui === 'equipe', fn ($q) => $q->where('qualite_locuteur', Locuteur::EQUIPE)->duCandidat())
+            ->when($qui === 'entourage', fn ($q) => $q->entourage())
             ->orderByDesc('id')
             ->paginate(25)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function (IngestionProposition $p) use ($reglesLocuteur, $reglesEntourage) {
+                $entourage = $p->estEntourage();
+
+                return [
+                    'id' => $p->id,
+                    'candidat' => $p->candidat?->personnePolitique
+                        ? trim($p->candidat->personnePolitique->prenom.' '.$p->candidat->personnePolitique->nom)
+                        : ($p->candidat_slug ?? '—'),
+                    'theme' => $p->theme?->nom ?? $p->theme_slug,
+                    'type' => $p->type,
+                    'resume_propose' => $p->resume_propose,
+                    'citation_verbatim' => $p->citation_verbatim,
+                    'timestamp_ou_paragraphe' => $p->timestamp_ou_paragraphe,
+                    'confiance' => $p->confiance,
+                    'verbatim_verifie' => $p->verbatim_verifie,
+                    'statut' => $p->statut,
+                    'mesure_id' => $p->mesure_id,
+                    'affiche_publiquement' => (bool) $p->affiche_publiquement,
+                    'locuteur' => $p->locuteur,
+                    'role_locuteur' => $p->role_locuteur,
+                    'qualite_locuteur' => $p->qualite_locuteur,
+                    'entourage' => $entourage,
+                    'document' => $p->document ? [
+                        'id' => $p->document->id,
+                        'titre' => $p->document->titre,
+                        'porteur_type' => $p->document->porteurType(),
+                        'porteur_libelle' => $p->document->porteur_libelle,
+                    ] : null,
+                    // Ce qui empêche « Valider → mesure » / « Valider sans mesure ».
+                    'raisons_cote_candidat' => ! $entourage && $p->statut === 'detecte' ? $reglesLocuteur->raisons($p) : [],
+                    // Ce qui empêche « Publier » dans « Autour du candidat ».
+                    'raisons_autour' => $entourage && $p->statut === 'validee' ? $reglesEntourage->raisons($p) : [],
+                ];
+            });
 
         // Prises de parole (documents d'ingestion) pour permettre la suppression d'un import erroné.
         $documents = IngestionDocument::withCount('propositions')
             ->withCount(['propositions as rattachees_count' => fn ($q) => $q->where('statut', 'rattachee')])
+            ->withCount(['propositions as autour_count' => fn ($q) => $q->where('affiche_publiquement', true)])
+            ->withCount('cadrages')
             ->orderByDesc('id')->limit(30)->get()
             ->map(fn ($d) => [
                 'id' => $d->id, 'titre' => $d->titre, 'type' => $d->type,
                 'nb_propositions' => $d->propositions_count,
                 'nb_rattachees' => $d->rattachees_count,
-            ]);
+                'nb_autour' => $d->autour_count,
+                'nb_cadrages' => $d->cadrages_count,
+            ] + $this->champsPorteur($d));
 
         return Inertia::render('Admin/Presidentielle/Propositions', [
             'propositions' => $propositions,
             'documents' => $documents,
             'statut' => $request->query('statut', 'detecte'),
+            'qui' => $qui,
+            'porteurs' => Porteur::LIBELLES,
+            'qualites' => Locuteur::LIBELLES,
         ]);
+    }
+
+    /** Champs du porteur d'un document, pour les écrans (avec ce qui bloquerait sa publication). */
+    private function champsPorteur(Model $d): array
+    {
+        return [
+            'porteur_type' => $d->porteurType(),
+            'porteur_libelle' => $d->porteur_libelle,
+            'endossement_url' => $d->endossement_url,
+            'endossement_date' => $d->endossement_date?->toDateString(),
+            'endossement_note' => $d->endossement_note,
+            'raisons_porteur' => app(ReglesPorteur::class)->raisons($d),
+        ];
     }
 
     /**
@@ -133,8 +221,24 @@ class PresidentielleModerationController extends Controller
                     .'Dans « Mesures », dépubliez puis supprimez ces mesures (leur proposition revient en file) avant de supprimer ce discours.',
             ]);
         }
+        if ($document->propositions()->where('affiche_publiquement', true)->exists()) {
+            throw ValidationException::withMessages([
+                'document' => 'Suppression refusée : des propositions sont publiées dans « Autour du candidat ». Dépubliez-les d\'abord.',
+            ]);
+        }
+        // Le message passe avant l'erreur de clé étrangère, qui ne dirait rien au modérateur.
+        if ($document->cadrages()->exists()
+            || CadrageLigne::where('ingestion_document_id', $document->id)->whereHas('cadrage')->exists()) {
+            throw ValidationException::withMessages([
+                'document' => 'Suppression refusée : un cadrage budgétaire cite cette prise de parole (écran Budgets). Supprimez d\'abord ce cadrage.',
+            ]);
+        }
 
         $titre = $document->titre;
+        // Les cadrages déjà supprimés qui la citaient partent avec elle : la corbeille ne
+        // doit pas rendre un document impossible à supprimer.
+        CadrageLigne::where('ingestion_document_id', $document->id)->delete();
+        CadrageBudgetaire::onlyTrashed()->where('ingestion_document_id', $document->id)->forceDelete();
         $document->propositions()->delete();
         $document->delete();
 
@@ -457,6 +561,7 @@ class PresidentielleModerationController extends Controller
         $request->validate([
             'fichier' => ['required', 'file', 'max:10240'],   // JSON de propositions (≤10 Mo)
             'source' => ['nullable', 'file', 'max:20480'],    // transcription txt/srt/vtt (≤20 Mo)
+            'cadrage' => ['nullable', 'file', 'max:2048'],    // cadrage budgétaire de la même source
         ], [
             'fichier.required' => 'Le fichier JSON de propositions est requis.',
         ]);
@@ -473,6 +578,11 @@ class PresidentielleModerationController extends Controller
             $srcPath = $dir.'/'.$stamp.'_transcription.txt';
             $request->file('source')->move($dir, basename($srcPath));
             $args['--source'] = $srcPath;
+        }
+        if ($request->file('cadrage')) {
+            $cadragePath = $dir.'/'.$stamp.'_cadrage.json';
+            $request->file('cadrage')->move($dir, basename($cadragePath));
+            $args['--cadrage'] = $cadragePath;
         }
 
         $code = Artisan::call('presidentielle:import-propositions', $args);
@@ -938,27 +1048,194 @@ class PresidentielleModerationController extends Controller
         return back()->with('success', Str::limit($sortie, 400));
     }
 
-    /** Valide (crée une mesure) ou rejette une proposition d'ingestion. */
+    /**
+     * Circuit d'une proposition d'ingestion.
+     *
+     *  - valider : crée une mesure (candidat ou équipe de campagne seulement) ;
+     *  - valider_sans_mesure : la proposition paraît dans les prises de parole, sans mesure ;
+     *  - rejeter ;
+     *  - valider_entourage / publier_entourage / depublier_entourage : la parole d'un parti,
+     *    dans « Autour du candidat », jamais une mesure.
+     */
     public function propositionAction(Request $request, ModerationService $service)
     {
         $data = $request->validate([
             'id' => ['required', 'integer'],
-            'action' => ['required', 'in:valider,rejeter'],
+            'action' => ['required', 'in:valider,valider_sans_mesure,rejeter,valider_entourage,publier_entourage,depublier_entourage'],
             'commentaire' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $proposition = IngestionProposition::findOrFail($data['id']);
+        $user = $request->user();
+        $commentaire = $data['commentaire'] ?? null;
         try {
-            if ($data['action'] === 'valider') {
-                $service->creerMesureDepuisProposition($proposition, $request->user());
-            } else {
-                $service->rejeterProposition($proposition, $request->user(), $data['commentaire'] ?? null);
-            }
+            match ($data['action']) {
+                'valider' => $service->creerMesureDepuisProposition($proposition, $user),
+                'valider_sans_mesure' => $service->validerSansMesure($proposition, $user, $commentaire),
+                'rejeter' => $service->rejeterProposition($proposition, $user, $commentaire),
+                'valider_entourage' => $service->validerEntourage($proposition, $user, $commentaire),
+                'publier_entourage' => $service->publierEntourage($proposition, $user),
+                'depublier_entourage' => $service->depublierEntourage($proposition, $user, $commentaire),
+            };
         } catch (ModerationException $e) {
             throw ValidationException::withMessages(['action' => $e->getMessage()]);
         }
 
-        return back()->with('success', 'Proposition '.($data['action'] === 'valider' ? 'rattachée à une nouvelle mesure' : 'rejetée').'.');
+        return back()->with('success', match ($data['action']) {
+            'valider' => 'Proposition rattachée à une nouvelle mesure.',
+            'valider_sans_mesure' => 'Proposition validée sans mesure : elle paraît dans les prises de parole.',
+            'rejeter' => 'Proposition rejetée.',
+            'valider_entourage' => 'Proposition validée pour « Autour du candidat » (pas encore publiée).',
+            'publier_entourage' => 'Proposition publiée dans « Autour du candidat ».',
+            'depublier_entourage' => 'Proposition retirée de « Autour du candidat ».',
+        });
+    }
+
+    /**
+     * Requalifie le locuteur d'une proposition : qui parle, avec quel rôle, de quel côté.
+     *
+     * Toute requalification renvoie une proposition validée en file et la dépublie : la
+     * décision précédente portait sur un autre locuteur. Une proposition rattachée garde sa
+     * mesure — sauf à devenir la parole d'un parti, ce qui est refusé (supprimer d'abord la
+     * mesure, la proposition revient en file).
+     */
+    public function propositionLocuteur(Request $request, IngestionProposition $proposition)
+    {
+        $validated = $request->validate([
+            'locuteur' => ['nullable', 'string', 'max:150', 'required_with:qualite_locuteur'],
+            'role_locuteur' => ['nullable', 'string', 'max:200', 'required_with:locuteur'],
+            'qualite_locuteur' => ['nullable', Rule::in(Locuteur::QUALITES), 'required_with:locuteur'],
+        ], [
+            'role_locuteur.required_with' => 'Le rôle du locuteur au moment des propos est obligatoire.',
+            'qualite_locuteur.required_with' => 'Dites de quel côté parle ce locuteur : équipe de campagne ou parti.',
+            'locuteur.required_with' => 'Une qualité sans nom n\'attribue rien.',
+        ]);
+        $validated = array_map(fn ($v) => is_string($v) && trim($v) === '' ? null : $v, $validated)
+            + ['locuteur' => null, 'role_locuteur' => null, 'qualite_locuteur' => null];
+
+        if ($proposition->statut === 'rattachee' && $validated['qualite_locuteur'] === Locuteur::PARTI) {
+            throw ValidationException::withMessages(['locuteur' => 'Rattachée à une mesure : la parole d\'un parti n\'est jamais une mesure du candidat. '
+                .'Supprimez d\'abord la mesure (la proposition revient en file).']);
+        }
+
+        $avant = trim(($proposition->locuteur ?? 'le candidat').' ('.($proposition->qualite_locuteur ?? 'candidat').')');
+        $ancienStatut = $proposition->statut;
+        if ($proposition->statut === 'validee') {
+            $validated['statut'] = 'detecte';
+            $validated['valide_par'] = null;
+            $validated['valide_at'] = null;
+        }
+        $validated['affiche_publiquement'] = false;
+        $proposition->update($validated);
+
+        PresidentielleModerationLog::create([
+            'entite_type' => $proposition->getMorphClass(),
+            'entite_id' => $proposition->getKey(),
+            'action' => 'requalification_locuteur',
+            'ancien_statut' => $ancienStatut,
+            'nouveau_statut' => $proposition->statut,
+            'commentaire' => 'Avant : '.$avant.' ; après : '.($proposition->locuteur ?? 'le candidat').' ('.($proposition->qualite_locuteur ?? 'candidat').')',
+            'moderator_id' => $request->user()->id,
+            'created_at' => now(),
+        ]);
+
+        return back()->with('success', $ancienStatut === 'validee'
+            ? 'Locuteur enregistré ; la proposition revient en file.'
+            : 'Locuteur enregistré.');
+    }
+
+    /**
+     * Porteur d'une prise de parole. Changer de côté (candidat ↔ parti) renvoie ses
+     * propositions validées en file, dépubliées. Refusé vers un parti ou un groupe tant que
+     * des propositions sont rattachées à des mesures, ou qu'un cadrage cite le document.
+     */
+    public function documentPorteur(Request $request, IngestionDocument $document)
+    {
+        $validated = $request->validate([
+            'porteur_type' => ['required', Rule::in(Porteur::TYPES)],
+            'porteur_libelle' => ['nullable', 'string', 'max:255', 'required_unless:porteur_type,candidat'],
+            'endossement_url' => ['nullable', 'url:http,https', 'max:1000'],
+            'endossement_date' => ['nullable', 'date'],
+            'endossement_note' => ['nullable', 'string', 'max:5000'],
+        ], [
+            'porteur_libelle.required_unless' => 'Nommez le porteur (par exemple « Groupe Rassemblement national à l\'Assemblée »).',
+        ]);
+        if ($validated['porteur_type'] === 'candidat') {
+            $validated = ['porteur_type' => 'candidat', 'porteur_libelle' => null, 'endossement_url' => null, 'endossement_date' => null, 'endossement_note' => null];
+        }
+
+        $avant = $document->porteurType();
+        $versEntourage = Porteur::estEntourage($validated['porteur_type']);
+        $changeDeCote = Porteur::estEntourage($avant) !== $versEntourage;
+
+        if ($versEntourage && $document->propositions()->where('statut', 'rattachee')->exists()) {
+            throw ValidationException::withMessages(['porteur_type' => 'Des propositions de ce document sont rattachées à des mesures : '
+                .'la parole d\'un parti n\'est jamais une mesure du candidat. Supprimez d\'abord ces mesures.']);
+        }
+        if ($versEntourage && $document->cadrages()->exists()) {
+            throw ValidationException::withMessages(['porteur_type' => 'Un cadrage budgétaire du candidat cite ce document : supprimez-le d\'abord (écran Budgets).']);
+        }
+
+        $document->update($validated);
+
+        $renvoyees = 0;
+        if ($changeDeCote) {
+            $renvoyees = IngestionProposition::where('document_id', $document->id)->where('statut', 'validee')
+                ->update(['statut' => 'detecte', 'affiche_publiquement' => false, 'valide_par' => null, 'valide_at' => null]);
+        }
+
+        PresidentielleModerationLog::create([
+            'entite_type' => $document->getMorphClass(),
+            'entite_id' => $document->getKey(),
+            'action' => 'changement_porteur',
+            'ancien_statut' => $avant,
+            'nouveau_statut' => $validated['porteur_type'],
+            'commentaire' => $renvoyees ? "{$renvoyees} proposition(s) validée(s) renvoyée(s) en file." : null,
+            'moderator_id' => $request->user()->id,
+            'created_at' => now(),
+        ]);
+
+        return back()->with('success', 'Porteur enregistré'.($renvoyees ? " ; {$renvoyees} proposition(s) revenue(s) en file." : '.'));
+    }
+
+    /**
+     * Porteur d'un référentiel de programme. Changer de côté renvoie le référentiel en
+     * modération, dépublié : un référentiel de parti n'est jamais le « programme complet »
+     * du candidat.
+     */
+    public function referentielPorteur(Request $request, ProgrammeDocument $referentiel)
+    {
+        $validated = $request->validate([
+            'porteur_type' => ['required', Rule::in(Porteur::TYPES)],
+            'porteur_libelle' => ['nullable', 'string', 'max:255', 'required_unless:porteur_type,candidat'],
+            'endossement_url' => ['nullable', 'url:http,https', 'max:1000'],
+            'endossement_date' => ['nullable', 'date'],
+            'endossement_note' => ['nullable', 'string', 'max:5000'],
+        ], [
+            'porteur_libelle.required_unless' => 'Nommez le porteur du document.',
+        ]);
+        if ($validated['porteur_type'] === 'candidat') {
+            $validated = ['porteur_type' => 'candidat', 'porteur_libelle' => null, 'endossement_url' => null, 'endossement_date' => null, 'endossement_note' => null];
+        }
+
+        $avant = $referentiel->porteurType();
+        if (Porteur::estEntourage($avant) !== Porteur::estEntourage($validated['porteur_type'])) {
+            $validated['statut_validation'] = 'detecte';
+            $validated['affiche_publiquement'] = false;
+        }
+        $referentiel->update($validated);
+
+        PresidentielleModerationLog::create([
+            'entite_type' => $referentiel->getMorphClass(),
+            'entite_id' => $referentiel->getKey(),
+            'action' => 'changement_porteur',
+            'ancien_statut' => $avant,
+            'nouveau_statut' => $validated['porteur_type'],
+            'moderator_id' => $request->user()->id,
+            'created_at' => now(),
+        ]);
+
+        return back()->with('success', 'Porteur du référentiel enregistré.');
     }
 
     /** Applique une action de modération à une entité. */
@@ -1576,8 +1853,13 @@ class PresidentielleModerationController extends Controller
 
                 return 'Repère supprimé.';
             }
+            if ($entite instanceof CadrageBudgetaire) {
+                $service->supprimerCadrage($entite, $user, $commentaire);
+
+                return 'Cadrage supprimé.';
+            }
             if (! $entite instanceof ProgrammeMesure) {
-                throw new ModerationException('La suppression ne concerne que les mesures et les repères chiffrés.');
+                throw new ModerationException('La suppression ne concerne que les mesures, les repères chiffrés et les cadrages budgétaires.');
             }
             $service->supprimerMesure($entite, $user, $commentaire);
 
@@ -1624,9 +1906,9 @@ class PresidentielleModerationController extends Controller
      */
     public function journal(string $type, int $id)
     {
-        abort_unless(isset(self::MODELS[$type]), 404);
+        abort_unless(isset(self::JOURNAL[$type]), 404);
 
-        $modele = self::MODELS[$type];
+        $modele = self::JOURNAL[$type];
 
         $entrees = PresidentielleModerationLog::with('moderator:id,name')
             ->where('entite_type', (new $modele)->getMorphClass())

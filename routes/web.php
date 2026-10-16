@@ -962,6 +962,10 @@ Route::prefix('admin/presidentielle')
         Route::get('/propositions', [$c, 'propositions'])->name('propositions');
         Route::post('/propositions/action', [$c, 'propositionAction'])->name('propositions.action');
         Route::post('/propositions/import', [$c, 'propositionsImport'])->name('propositions.import');
+        // Qui parle : locuteur d'une proposition, porteur d'une prise de parole ou d'un référentiel.
+        Route::post('/propositions/{proposition}/locuteur', [$c, 'propositionLocuteur'])->whereNumber('proposition')->name('propositions.locuteur');
+        Route::post('/documents/{document}/porteur', [$c, 'documentPorteur'])->whereNumber('document')->name('documents.porteur');
+        Route::post('/referentiels/{referentiel}/porteur', [$c, 'referentielPorteur'])->whereNumber('referentiel')->name('referentiels.porteur');
         Route::delete('/documents/{document}', [$c, 'documentDestroy'])->name('documents.destroy');
         Route::get('/mesures', [$c, 'mesures'])->name('mesures');
         Route::get('/mesures/{mesure}/arguments', [$c, 'arguments'])->name('mesures.arguments');
@@ -1027,6 +1031,19 @@ Route::prefix('admin/presidentielle')
         Route::post('/eurostat/extraire', [$a, 'eurostatExtraire'])->name('eurostat.extraire');
         Route::post('/eurostat/valider-nouveaux', [$a, 'eurostatValiderNouveaux'])->name('eurostat.valider-nouveaux');
         Route::post('/eurostat/{indicateur}/valider', [$a, 'eurostatValider'])->whereNumber('indicateur')->name('eurostat.valider');
+
+        // Cadrages budgétaires et ligne de référence officielle. Valider, publier, dépublier
+        // et supprimer passent par les actions génériques (type `cadrage`). Routes littérales
+        // avant les routes à paramètre.
+        $b = App\Http\Controllers\Web\Admin\PresidentielleBudgetsController::class;
+        Route::get('/budgets', [$b, 'index'])->name('budgets');
+        Route::post('/budgets', [$b, 'store'])->name('budgets.store');
+        Route::post('/budgets/lignes/{ligne}', [$b, 'ligneUpdate'])->whereNumber('ligne')->name('budgets.lignes.update');
+        Route::post('/budgets/lignes/{ligne}/verification', [$b, 'ligneVerification'])->whereNumber('ligne')->name('budgets.lignes.verification');
+        Route::delete('/budgets/lignes/{ligne}', [$b, 'ligneDestroy'])->whereNumber('ligne')->name('budgets.lignes.destroy');
+        Route::get('/budgets/{cadrage}', [$b, 'show'])->whereNumber('cadrage')->name('budgets.show');
+        Route::post('/budgets/{cadrage}', [$b, 'update'])->whereNumber('cadrage')->name('budgets.update');
+        Route::post('/budgets/{cadrage}/lignes', [$b, 'ligneStore'])->whereNumber('cadrage')->name('budgets.lignes.store');
     });
 
 /*

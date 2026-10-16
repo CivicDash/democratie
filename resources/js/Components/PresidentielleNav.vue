@@ -19,6 +19,7 @@ const items = [
     { name: 'admin.presidentielle.themes', label: 'Thèmes', icon: '🧮' },
     { name: 'admin.presidentielle.quiz', label: 'Quiz', icon: '❓' },
     { name: 'admin.presidentielle.affirmations', label: 'Repères chiffrés', icon: '📊' },
+    { name: 'admin.presidentielle.budgets', label: 'Budgets', icon: '💶' },
     { name: 'admin.presidentielle.eurostat', label: 'Eurostat', icon: '🇪🇺' },
     { name: 'admin.presidentielle.audience', label: 'Audience', icon: '📈' },
 ];
