@@ -47,6 +47,7 @@ it('écrit les fichiers JSON attendus', function () {
         ->and(file_exists("$dir/candidats.json"))->toBeTrue()
         ->and(file_exists("$dir/controverses.json"))->toBeTrue()
         ->and(file_exists("$dir/calendrier.json"))->toBeTrue()
+        ->and(file_exists("$dir/budgets.json"))->toBeTrue()
         ->and(file_exists("$dir/candidats/{$candidat->personnePolitique->slug}.json"))->toBeTrue();
 });
 
@@ -94,19 +95,26 @@ it('calcule les états par thème : publie / en_traitement / non_exprime', funct
     [$candidat, $themePublie] = candidatPubliePublic();
     (new ProgrammeThemesSeeder())->run();
 
-    // Signal "en traitement" : une proposition sur l'éducation, sans mesure publiée.
+    // Signal "en traitement" : une proposition RELUE (validée) sur l'éducation, sans mesure
+    // publiée. Depuis le 16/10/2026, une proposition seulement détectée ne compte plus, et la
+    // parole d'un parti jamais.
     $edu = \App\Models\ProgrammeTheme::where('slug', 'education')->first();
+    $sante = \App\Models\ProgrammeTheme::where('slug', 'sante')->first();
+    $logement = \App\Models\ProgrammeTheme::where('slug', 'logement')->first();
     $doc = IngestionDocument::create(['type' => 'video', 'titre' => 'M', 'statut' => 'extrait']);
-    IngestionProposition::create([
-        'document_id' => $doc->id, 'candidat_id' => $candidat->id, 'theme_id' => $edu->id,
-        'type' => 'mesure', 'resume_propose' => 'x', 'citation_verbatim' => 'y', 'statut' => 'detecte',
-    ]);
+    foreach ([[$edu, 'validee', []], [$sante, 'detecte', []], [$logement, 'validee', parole('parti')]] as [$theme, $statut, $qui]) {
+        IngestionProposition::create([
+            'document_id' => $doc->id, 'candidat_id' => $candidat->id, 'theme_id' => $theme->id,
+            'type' => 'mesure', 'resume_propose' => 'x', 'citation_verbatim' => 'y', 'statut' => $statut,
+        ] + $qui);
+    }
 
     $etats = app(PresidentielleExporter::class)->build('2027')['candidats'][$candidat->personnePolitique->slug]['etats_par_theme'];
 
     expect($etats[$themePublie->slug]['etat'])->toBe('publie')
         ->and($etats['education']['etat'])->toBe('en_traitement')
-        ->and($etats['sante']['etat'])->toBe('non_exprime');
+        ->and($etats['sante']['etat'])->toBe('non_exprime')
+        ->and($etats['logement']['etat'])->toBe('non_exprime');
 });
 
 it('expose l état « relevée » pour une mesure validée sans argumentaire publié', function () {

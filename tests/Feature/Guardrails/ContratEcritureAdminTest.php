@@ -41,3 +41,18 @@ it('garde un angle mort mesurable', function () {
         "{$indetermines} routes d'écriture dont l'analyse ne sait pas déduire le modèle. ".
         'Passer par un FormRequest, ou écrire $modele->update($validated), les rend lisibles.');
 });
+
+it('sait lire les écritures du locuteur, du porteur et du cadrage budgétaire', function () {
+    // Les huit routes ajoutées avec « qui parle » et les budgets doivent rester analysables :
+    // il n'y a aucune marge sur le compte des routes indéterminées.
+    $routes = [
+        'admin.presidentielle.propositions.locuteur', 'admin.presidentielle.documents.porteur',
+        'admin.presidentielle.referentiels.porteur', 'admin.presidentielle.budgets.store',
+        'admin.presidentielle.budgets.update', 'admin.presidentielle.budgets.lignes.store',
+        'admin.presidentielle.budgets.lignes.update', 'admin.presidentielle.budgets.lignes.verification',
+    ];
+    $lignes = collect(AuditEcritures::analyser())->whereIn('route', $routes);
+
+    expect($lignes->pluck('statut')->unique()->values()->all())->toBe(['conforme'])
+        ->and($lignes->pluck('route')->unique()->count())->toBe(count($routes));
+});

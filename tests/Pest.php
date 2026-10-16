@@ -151,3 +151,72 @@ function affirmationPubliable(array $overrides = []): \App\Models\Affirmation
 
     return $fiche->fresh();
 }
+
+/*
+|--------------------------------------------------------------------------
+| Helpers — qui parle (locuteur, porteur) et cadrage budgétaire
+|--------------------------------------------------------------------------
+*/
+
+/** Un modérateur présidentielle (permission garantie : le seed ne survit pas à la transaction). */
+function moderateurPresidentielle(): \App\Models\User
+{
+    \Spatie\Permission\Models\Permission::findOrCreate('moderer_presidentielle', 'web');
+    $u = \App\Models\User::factory()->create();
+    $u->givePermissionTo('moderer_presidentielle');
+
+    return $u;
+}
+
+/**
+ * Une proposition d'ingestion pour un candidat donné (document du candidat par défaut).
+ * `$document` : un document existant ; sinon un document porté par le candidat.
+ */
+function propositionPour(\App\Models\CandidatPresidentielle $candidat, array $overrides = [], ?\App\Models\IngestionDocument $document = null): \App\Models\IngestionProposition
+{
+    $document ??= \App\Models\IngestionDocument::factory()->create();
+    $theme = \App\Models\ProgrammeTheme::factory()->create(['slug' => 'theme-'.uniqid(), 'actif' => true]);
+
+    return \App\Models\IngestionProposition::factory()->create([
+        'document_id' => $document->id,
+        'candidat_id' => $candidat->id,
+        'theme_id' => $theme->id,
+    ] + $overrides);
+}
+
+/**
+ * Une référence officielle publiée, et un cadrage de candidat complet, VALIDÉ mais non
+ * publié : document avec URL, une ligne vérifiée, citée et repérée.
+ * Retourne [candidat, cadrage, référence, document].
+ */
+function cadragePubliable(array $overrides = []): array
+{
+    [$candidat] = candidatPubliePublic();
+    $reference = \App\Models\CadrageBudgetaire::factory()->reference()->publie()->create();
+    \App\Models\CadrageLigne::factory()->deReference()->verifiee()->create(['cadrage_id' => $reference->id]);
+
+    $document = \App\Models\IngestionDocument::factory()->create(['candidat_id' => $candidat->id]);
+    $cadrage = \App\Models\CadrageBudgetaire::factory()->create([
+        'candidat_id' => $candidat->id,
+        'ingestion_document_id' => $document->id,
+        'statut_validation' => 'valide',
+    ] + $overrides);
+    \App\Models\CadrageLigne::factory()->verifiee()->create(['cadrage_id' => $cadrage->id]);
+
+    return [$candidat, $cadrage->fresh(), $reference, $document];
+}
+
+/** Écrit un JSON temporaire et renvoie son chemin. */
+function jsonTemporaire(array $contenu): string
+{
+    $chemin = tempnam(sys_get_temp_dir(), 'o27_').'.json';
+    file_put_contents($chemin, json_encode($contenu, JSON_UNESCAPED_UNICODE));
+
+    return $chemin;
+}
+
+/** Attribution d'une proposition : qualite = equipe_campagne | parti. */
+function parole(string $qualite, string $nom = 'Paul Parti', ?string $role = 'président du parti'): array
+{
+    return ['locuteur' => $nom, 'role_locuteur' => $role, 'qualite_locuteur' => $qualite];
+}

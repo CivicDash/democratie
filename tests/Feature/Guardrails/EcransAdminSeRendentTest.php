@@ -68,6 +68,7 @@ dataset('écrans admin', [
     'présidentielle — audience' => ['admin.presidentielle.audience'],
     'présidentielle — médias' => ['admin.presidentielle.medias'],
     'présidentielle — HATVP' => ['admin.presidentielle.hatvp'],
+    'présidentielle — budgets' => ['admin.presidentielle.budgets'],
     // Modération citoyenne.
     'modération — tableau de bord' => ['moderation.dashboard'],
     'modération — signalements' => ['moderation.reports.index'],
@@ -85,5 +86,16 @@ it('rend les pages légales publiques', function () {
     // et la politique de confidentialité pointaient toutes deux vers cette page.
     foreach (['privacy', 'terms', 'cookies'] as $nomRoute) {
         $this->get(route($nomRoute))->assertSuccessful();
+    }
+});
+
+it('rend le détail d\'un cadrage budgétaire et la file d\'ingestion filtrée', function () {
+    [, $cadrage] = cadragePubliable();
+    \App\Models\CadrageLigne::factory()->create(['cadrage_id' => $cadrage->id, 'rubrique' => 'poste', 'libelle' => 'Poste', 'autres_citations' => [['citation' => 'autre']]]);
+    propositionPour(\App\Models\CandidatPresidentielle::factory()->create(), parole('parti') + ['statut' => 'validee']);
+
+    $this->actingAs($this->admin)->get(route('admin.presidentielle.budgets.show', $cadrage->id))->assertSuccessful();
+    foreach (['tous', 'candidat', 'equipe', 'entourage'] as $qui) {
+        $this->actingAs($this->admin)->get(route('admin.presidentielle.propositions', ['statut' => 'tous', 'qui' => $qui]))->assertSuccessful();
     }
 });
