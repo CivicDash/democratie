@@ -3,6 +3,15 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Thème où paraît le tableau des cadrages budgétaires
+    |--------------------------------------------------------------------------
+    | Exporté dans budgets.json (clé `theme`) dès qu'une référence officielle est publiée :
+    | le front n'a pas de slug codé en dur.
+    */
+    'theme_budgets' => env('PRESIDENTIELLE_THEME_BUDGETS', 'fiscalite-budget'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Destinataires des notifications de signalement
     |--------------------------------------------------------------------------
     | Adresses prévenues par email à chaque nouveau signalement citoyen

@@ -3,8 +3,11 @@
 namespace App\Services\Presidentielle;
 
 use App\Models\Affirmation;
+use App\Models\CadrageBudgetaire;
 use App\Models\CandidatPresidentielle;
 use App\Models\EurostatIndicateur;
+use App\Models\IngestionProposition;
+use App\Models\ProgrammeDocument;
 use App\Models\ProgrammeMesure;
 use App\Models\QuizQuestion;
 use App\Models\ProgrammeTheme;
@@ -19,7 +22,15 @@ use Illuminate\Support\Facades\Schema;
  *  - mesure publiée sans source officielle ;
  *  - mesure publiée sans >= 1 argument "pour" ET >= 1 "contre" validés, chacun
  *    avec au moins une source fiable (haute/moyenne) ;
- *  - lien mesure↔scrutin affiché sans explication rédigée.
+ *  - lien mesure↔scrutin affiché sans explication rédigée ;
+ *  - mesure publiée issue de la parole d'un parti, ou proposition affichée du côté du
+ *    candidat dont le locuteur n'a pas de rôle (ReglesLocuteur) ;
+ *  - proposition publiée « Autour du candidat » non conforme (ReglesEntourage) ;
+ *  - référentiel publié dont le porteur n'a pas d'endossement complet (ReglesPorteur) ;
+ *  - cadrage budgétaire ou référence publiés non conformes (ReglesCadrageBudgetaire).
+ *
+ * Chacune de ces règles est le code même du bouton « Publier » : le contrôle n'est
+ * jamais plus strict que le bouton, sinon publier figerait le site.
  *
  * Alertes (non bloquantes par défaut) :
  *  - couverture de thème asymétrique entre candidats ;
@@ -97,6 +108,9 @@ class IntegriteChecker
 
         $this->verifierQuiz($election, $violations, $alertes);
         $this->verifierAffirmations($election, $violations, $alertes);
+        $this->verifierLocuteurs($election, $violations);
+        $this->verifierReferentiels($election, $violations);
+        $this->verifierCadrages($election, $violations, $alertes);
 
         return ['violations' => $violations, 'alertes' => $alertes];
     }
@@ -148,6 +162,120 @@ class IntegriteChecker
                         'message' => "[Repères] série Eurostat « {$code} » : une révision attend d'être relue.",
                     ];
                 });
+        }
+    }
+
+    /**
+     * Qui parle, sur ce qui paraît : les propositions affichées du côté du candidat
+     * (validées ou rattachées, candidat publié), les mesures publiées et leurs propositions
+     * source, et la section « Autour du candidat ».
+     *
+     * Gardes de schéma : le code peut être déployé avant la migration, et ce contrôle
+     * refuserait alors l'export, donc figerait le site.
+     */
+    private function verifierLocuteurs(string $election, array &$violations): void
+    {
+        if (! Schema::hasColumn('ingestion_propositions', 'qualite_locuteur')
+            || ! Schema::hasColumn('ingestion_documents', 'porteur_type')) {
+            return;
+        }
+
+        $candidats = CandidatPresidentielle::publie()->where('election', $election)->pluck('id');
+        if ($candidats->isEmpty()) {
+            return;
+        }
+        $regles = app(ReglesLocuteur::class);
+
+        // Affichées du côté du candidat : ce qui paraît, soit (par l'export) les seules
+        // propositions de lui-même ou de son équipe. Seules celles d'un autre locuteur que
+        // le candidat, ou d'un document qui n'est pas le sien, ont quelque chose à prouver.
+        // Les mesures publiées sont contrôlées à part, quelle que soit leur provenance.
+        $affichees = IngestionProposition::publique()->duCandidat()
+            ->whereIn('candidat_id', $candidats)
+            ->where(fn ($q) => $q->whereNotNull('locuteur')
+                ->orWhereHas('document', fn ($d) => $d->where('porteur_type', '!=', 'candidat')))
+            ->with('document')
+            ->get();
+        foreach ($affichees as $p) {
+            if ($raisons = $regles->raisons($p)) {
+                $violations[] = ['type' => 'proposition_attribution_incomplete',
+                    'message' => "[Prise de parole] proposition #{$p->id} : ".implode(' ; ', $raisons).'.'];
+            }
+        }
+
+        $sources = IngestionProposition::whereHas('mesure', fn ($m) => $m->publie()->whereIn('candidat_id', $candidats))
+            ->with(['document', 'mesure'])
+            ->get();
+        foreach ($sources as $p) {
+            if ($raisons = $regles->raisons($p)) {
+                $violations[] = ['type' => 'mesure_issue_entourage',
+                    'message' => '[Mesure] « '.mb_strimwidth((string) $p->mesure?->titre, 0, 60, '…').' » : '.implode(' ; ', $raisons).'.'];
+            }
+        }
+
+        $autour = IngestionProposition::where('affiche_publiquement', true)
+            ->whereIn('candidat_id', $candidats)
+            ->with('document')
+            ->get();
+        $reglesAutour = app(ReglesEntourage::class);
+        foreach ($autour as $p) {
+            if ($raisons = $reglesAutour->raisons($p)) {
+                $violations[] = ['type' => 'entourage_impubliable',
+                    'message' => "[Autour du candidat] proposition #{$p->id} : ".implode(' ; ', $raisons).'.'];
+            }
+        }
+    }
+
+    /** Référentiels de programme publiés : un porteur autre que le candidat prouve son endossement. */
+    private function verifierReferentiels(string $election, array &$violations): void
+    {
+        if (! Schema::hasColumn('programme_documents', 'porteur_type')) {
+            return;
+        }
+
+        $regles = app(ReglesPorteur::class);
+        $documents = ProgrammeDocument::publie()
+            ->whereHas('candidat', fn ($c) => $c->publie()->where('election', $election))
+            ->get();
+        foreach ($documents as $d) {
+            if ($raisons = $regles->raisons($d)) {
+                $violations[] = ['type' => 'porteur_sans_endossement',
+                    'message' => "[Référentiel] « {$d->titre} » : ".implode(' ; ', $raisons).'.'];
+            }
+        }
+    }
+
+    /**
+     * Cadrages budgétaires publiés (des candidats publiés) et référence officielle publiée,
+     * contrôlés par ReglesCadrageBudgetaire — y compris l'exigence d'une référence publiée :
+     * dépublier la référence est donc refusé tant qu'un cadrage reste publié.
+     */
+    private function verifierCadrages(string $election, array &$violations, array &$alertes): void
+    {
+        if (! Schema::hasTable('cadrages_budgetaires')) {
+            return;
+        }
+
+        $cadrages = CadrageBudgetaire::publie()->where('election', $election)
+            ->where(fn ($q) => $q->whereNull('candidat_id')
+                ->orWhereHas('candidat', fn ($c) => $c->publie()))
+            ->with(['candidat.personnePolitique', 'lignes.proposition.document', 'lignes.document', 'document', 'programmeDocument'])
+            ->orderBy('id')
+            ->get();
+
+        $regles = app(ReglesCadrageBudgetaire::class);
+        foreach ($cadrages as $c) {
+            if ($raisons = $regles->raisons($c)) {
+                $qui = $c->candidat_id ? ($c->candidat?->personnePolitique?->nom_complet ?? "candidat #{$c->candidat_id}") : 'Référence officielle';
+                $violations[] = ['type' => 'cadrage_impubliable',
+                    'message' => "[Budgets — {$qui}] « {$c->titre} » : ".implode(' ; ', $raisons).'.'];
+            }
+        }
+
+        $references = $cadrages->whereNull('candidat_id');
+        if ($references->count() > 1) {
+            $alertes[] = ['type' => 'references_multiples',
+                'message' => "Budgets : {$references->count()} références officielles publiées — seule la plus récente est exportée ; dépublier les autres."];
         }
     }
 

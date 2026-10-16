@@ -4,6 +4,8 @@ namespace App\Services\Presidentielle;
 
 use App\Models\Affirmation;
 use App\Models\ArgumentMesureLien;
+use App\Models\CadrageBudgetaire;
+use App\Models\CadrageLigne;
 use App\Models\CandidatPresidentielle;
 use App\Models\Controverse;
 use App\Models\EurostatIndicateur;
@@ -11,7 +13,10 @@ use App\Models\EvenementCampagne;
 use App\Models\IngestionProposition;
 use App\Models\PersonnePolitique;
 use App\Models\ProgrammeTheme;
+use App\Models\ProgrammeMesure;
 use App\Models\QuizQuestion;
+use App\Support\Locuteur;
+use App\Support\Porteur;
 use App\Support\UrlSource;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
@@ -25,11 +30,23 @@ use Illuminate\Support\Facades\Schema;
  */
 class PresidentielleExporter
 {
+    /**
+     * Colonnes du locuteur et du porteur : le code peut être déployé avant la migration.
+     * Sans elles, tout se lit comme aujourd'hui (le candidat seul, porteur « candidat »).
+     */
+    private bool $avecLocuteur = false;
+
+    private bool $avecPorteur = false;
+
     public function __construct(private IntegriteChecker $integrite, private HatvpSummary $hatvp) {}
 
     /** @return array<string,mixed> */
     public function build(string $election = '2027'): array
     {
+        $this->avecLocuteur = Schema::hasColumn('ingestion_propositions', 'qualite_locuteur');
+        $this->avecPorteur = Schema::hasColumn('ingestion_documents', 'porteur_type')
+            && Schema::hasColumn('programme_documents', 'porteur_type');
+
         $themes = ProgrammeTheme::actif()->ordonne()->get();
         $themesExport = $themes->map(fn ($t) => [
             'slug' => $t->slug,
@@ -44,8 +61,11 @@ class PresidentielleExporter
             ->with([
                 'personnePolitique',
                 // Publiées (comparateur, plein contenu) ET validées non publiées (« relevées »)
-                'mesures' => fn ($q) => $q->where('statut_validation', 'valide')->orderBy('ordre')->with([
+                'mesures' => fn ($q) => $q->where('statut_validation', 'valide')->orderBy('ordre')->orderBy('id')->with([
                     'theme',
+                    // Citations d'appui et locuteurs : une mesure de l'équipe de campagne
+                    // reste attribuée à qui l'a formulée.
+                    'propositionsSource' => fn ($p) => $p->orderBy('id')->with('document'),
                     // Argumentaire via les liaisons publiées ; le sens est porté par la liaison,
                     // le fait (+ sources + controverse) par l'argument publié.
                     'liens' => fn ($l) => $l->publie()->with([
@@ -53,10 +73,17 @@ class PresidentielleExporter
                     ]),
                     'scrutinLiens' => fn ($l) => $l->publie(),
                 ]),
-                'propositions' => fn ($p) => $p->whereIn('statut', ['detecte', 'validee', 'rattachee'])->with(['theme', 'document']),
-                'programmeDocuments' => fn ($d) => $d->publie()->with('items'),
+                // Seul le relu paraît (validée ou rattachée), et seulement ce que disent le
+                // candidat et son équipe : la parole d'un parti va dans « Autour du candidat ».
+                // Ce filtre fait aussi foi pour etats_par_theme et couverture.
+                'propositions' => fn ($p) => $this->duCandidat($p->publique())->orderBy('id')->with(['theme', 'document']),
+                // Trié : avec deux référentiels publiés, le premier doit être toujours le même.
+                'programmeDocuments' => fn ($d) => $d->publie()->orderBy('id')->with('items'),
             ])
             ->orderBy('ordre_affichage')
+            // Départage stable : à ordre égal, l'ordre des clés ne doit pas dépendre du plan
+            // de requête (il entre dans le content_hash).
+            ->orderBy('id')
             ->get();
 
         $candidatsExport = [];
@@ -91,6 +118,7 @@ class PresidentielleExporter
             'quiz' => $this->buildQuiz($election),
             'jeu' => $this->buildJeu($election),
             'reperes' => $this->buildAffirmations($election),
+            'budgets' => $this->buildBudgets($election, $candidats),
         ];
 
         return $contenu + [
@@ -168,6 +196,12 @@ class PresidentielleExporter
             ->where('m.affiche_publiquement', true)
             ->where('c.election', $election)
             ->where('c.affiche_publiquement', true)
+            // « Qui a dit quoi ? » demande l'AUTEUR d'une phrase : une phrase d'Éric
+            // Coquerel n'a pas pour réponse Jean-Luc Mélenchon. Aucune phrase d'un autre
+            // locuteur que le candidat, ni d'un document de parti, n'entre au jeu.
+            ->when($this->avecLocuteur, fn ($q) => $q->whereNull('p.locuteur'))
+            ->when($this->avecPorteur, fn ($q) => $q->where(fn ($w) => $w->whereNull('d.porteur_type')
+                ->orWhereNotIn('d.porteur_type', Porteur::ENTOURAGE)))
             // Une citation ne devient jouable que si c'est une PHRASE ENTIÈRE. Le seul
             // filtre de longueur laissait passer des fragments coupés au milieu — « Ça
             // veut dire créer un prêt long terme à ta zéro pour » — indevinables, et qui
@@ -405,6 +439,8 @@ class PresidentielleExporter
                     'source_url' => $this->url($mesure->source_officielle_url),
                     'date_annonce' => optional($mesure->date_annonce)->toDateString(),
                     'statut' => $mesure->statut_mesure,
+                    'porte_par' => $this->portePar($mesure),
+                    'citations' => $this->citationsAppui($mesure),
                 ];
 
                 continue;
@@ -417,6 +453,8 @@ class PresidentielleExporter
                 'statut' => $mesure->statut_mesure,
                 'date_annonce' => optional($mesure->date_annonce)->toDateString(),
                 'mise_en_avant' => (bool) $mesure->est_mise_en_avant,
+                'porte_par' => $this->portePar($mesure),
+                'citations' => $this->citationsAppui($mesure),
                 'arguments' => [
                     'pour' => $this->exportArguments($mesure->liens->where('sens', 'pour')),
                     'contre' => $this->exportArguments($mesure->liens->where('sens', 'contre')),
@@ -470,6 +508,9 @@ class PresidentielleExporter
         return [
             'slug' => $candidat->personnePolitique?->slug,
             'nom_complet' => $candidat->personnePolitique?->nom_complet,
+            // « Mme » ou « M. » : de quoi accorder « Autour de la candidate » sans lire
+            // le nom complet.
+            'civilite' => $candidat->personnePolitique?->civilite,
             // Nom et prénom séparés : l'ordre alphabétique se fait sur le NOM, et
             // `nom_complet` ne permet pas de le retrouver de façon fiable — « Dominique
             // de Villepin », « Nicolas Dupont-Aignan », « Jean-Luc Mélenchon » se
@@ -540,6 +581,7 @@ class PresidentielleExporter
             'mesures_relevees_par_theme' => $mesuresRelevees,
             'programme_complet' => $this->exportProgrammeComplet($candidat),
             'prises_de_parole' => $this->exportPrisesDeParole($candidat),
+            'autour_du_candidat' => $this->exportAutour($candidat),
             'affaires' => $this->exportAffaires($candidat),
             'hatvp' => $this->exportHatvp($candidat),
         ];
@@ -662,7 +704,9 @@ class PresidentielleExporter
      */
     private function exportProgrammeComplet(CandidatPresidentielle $candidat): ?array
     {
-        $doc = $candidat->programmeDocuments->first();
+        // Le référentiel d'un parti ou d'un groupe n'est pas le programme du candidat : il
+        // paraît dans « Autour du candidat ».
+        $doc = $candidat->programmeDocuments->first(fn ($d) => ! $this->avecPorteur || ! $d->porteurEstEntourage());
         if (! $doc) {
             return null;
         }
@@ -683,6 +727,7 @@ class PresidentielleExporter
         return [
             'titre' => $doc->titre,
             'url' => $this->url($doc->url),
+            'porteur' => $this->porteur($doc),
             'nb_chapitres' => count($chapitres),
             'nb_entrees' => $doc->items->count(),
             'chapitres' => $chapitres,
@@ -702,6 +747,7 @@ class PresidentielleExporter
                 'type' => $doc->type,
                 'date' => optional($doc->date_publication)->toDateString(),
                 'url' => $this->url($doc->url),
+                'porteur' => $this->porteur($doc),
                 'nb' => 0,
                 'citations' => [],
             ];
@@ -716,10 +762,314 @@ class PresidentielleExporter
                 'timestamp_s' => $secondes,
                 'verifier_url' => $this->deeplinkVideo($urlSource, $secondes),
                 'statut' => $p->statut,
-            ];
+            ] + $this->attribution($p);
         }
 
         return array_values($parDocument);
+    }
+
+    /**
+     * Le candidat et son équipe de campagne, jamais la parole d'un parti. Même critère que
+     * IngestionProposition::scopeDuCandidat(), appliqué seulement aux colonnes présentes.
+     */
+    private function duCandidat($query)
+    {
+        if ($this->avecLocuteur) {
+            $query->where(fn ($q) => $q->whereNull('qualite_locuteur')->orWhere('qualite_locuteur', '!=', Locuteur::PARTI));
+        }
+        if ($this->avecPorteur) {
+            $query->whereDoesntHave('document', fn ($d) => $d->whereIn('porteur_type', Porteur::ENTOURAGE));
+        }
+
+        return $query;
+    }
+
+    /** Qui parle, sur chaque citation : nul pour le candidat lui-même. */
+    private function attribution(IngestionProposition $p): array
+    {
+        return $this->avecLocuteur
+            ? ['locuteur' => $p->locuteur, 'role_locuteur' => $p->role_locuteur, 'qualite_locuteur' => $p->qualite_locuteur]
+            : ['locuteur' => null, 'role_locuteur' => null, 'qualite_locuteur' => null];
+    }
+
+    /** Porteur d'un document : {type, libelle, endossement}. */
+    private function porteur($document): array
+    {
+        return $this->avecPorteur
+            ? $document->porteurExport()
+            : ['type' => 'candidat', 'libelle' => null, 'endossement' => null];
+    }
+
+    /**
+     * Mesure portée par l'équipe de campagne : toutes ses propositions source viennent de
+     * personnalités de l'équipe. Leur nom et leur rôle suivent la mesure partout, comparateur
+     * compris. Nul dès qu'une proposition source est celle du candidat lui-même.
+     */
+    private function portePar(ProgrammeMesure $mesure): ?array
+    {
+        $sources = $mesure->propositionsSource->where('statut', 'rattachee');
+        if (! $this->avecLocuteur || $sources->isEmpty()
+            || $sources->contains(fn ($p) => $p->qualite_locuteur !== Locuteur::EQUIPE)) {
+            return null;
+        }
+
+        return [
+            'qualite' => Locuteur::EQUIPE,
+            'locuteurs' => $sources
+                ->map(fn ($p) => ['nom' => $p->locuteur, 'role' => $p->role_locuteur])
+                ->unique('nom')
+                ->sortBy('nom', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values()->all(),
+        ];
+    }
+
+    /** Citations d'appui d'une mesure : les propositions rattachées, chacune attribuée. */
+    private function citationsAppui(ProgrammeMesure $mesure): array
+    {
+        return $mesure->propositionsSource
+            ->filter(fn ($p) => $p->statut === 'rattachee' && trim((string) $p->citation_verbatim) !== '')
+            ->map(function ($p) {
+                $secondes = $this->timecodeEnSecondes($p->timestamp_ou_paragraphe);
+
+                return [
+                    'citation' => $this->tronqueMots((string) $p->citation_verbatim, 15),
+                    'timecode' => $p->timestamp_ou_paragraphe,
+                    'verifier_url' => $this->deeplinkVideo($this->url($p->source_url) ?? $this->url($p->document?->url), $secondes),
+                ] + $this->attribution($p);
+            })
+            ->values()->all();
+    }
+
+    /**
+     * « Autour du candidat » : la parole d'un parti ou d'un groupe parlementaire, publiée à
+     * côté de la fiche et jamais dedans — ni mesure, ni comparateur, ni jeu, ni couverture.
+     * Clés toujours présentes, tableaux vides si rien : la forme reste stable.
+     */
+    private function exportAutour(CandidatPresidentielle $candidat): array
+    {
+        $autour = ['personnalites' => [], 'prises_de_parole' => [], 'documents' => []];
+        if (! $this->avecPorteur) {
+            return $autour;
+        }
+
+        $autour['documents'] = $candidat->programmeDocuments
+            ->filter(fn ($d) => $d->porteurEstEntourage())
+            ->map(fn ($d) => [
+                'titre' => $d->titre,
+                'url' => $this->url($d->url),
+                'porteur' => $d->porteurExport(),
+                'nb_chapitres' => count($d->structure ?? []),
+                'nb_entrees' => $d->items->count(),
+            ])->values()->all();
+
+        if (! $this->avecLocuteur) {
+            return $autour;
+        }
+
+        $propositions = IngestionProposition::publieAutour()
+            ->where('candidat_id', $candidat->id)
+            ->with(['theme', 'document'])
+            ->orderBy('id')
+            ->get();
+
+        $autour['prises_de_parole'] = $propositions
+            ->groupBy('document_id')
+            ->sortBy(fn ($g) => [optional($g->first()->document?->date_publication)->toDateString() ?? '9999-12-31', $g->first()->document_id])
+            ->map(function ($groupe) {
+                $doc = $groupe->first()->document;
+
+                return [
+                    'titre' => $doc->titre,
+                    'type' => $doc->type,
+                    'date' => optional($doc->date_publication)->toDateString(),
+                    'url' => $this->url($doc->url),
+                    'porteur' => $doc->porteurExport(),
+                    'citations' => $groupe->map(function ($p) use ($doc) {
+                        $secondes = $this->timecodeEnSecondes($p->timestamp_ou_paragraphe);
+
+                        // Le nom du locuteur voyage AVEC la citation : un extrait de recherche
+                        // ne doit jamais la détacher de qui l'a prononcée.
+                        return $this->attribution($p) + [
+                            'theme' => $p->theme?->slug,
+                            'resume' => $p->resume_propose,
+                            'citation' => $this->tronqueMots((string) $p->citation_verbatim, 15),
+                            'timecode' => $p->timestamp_ou_paragraphe,
+                            'timestamp_s' => $secondes,
+                            'verifier_url' => $this->deeplinkVideo($this->url($p->source_url) ?? $this->url($doc->url), $secondes),
+                        ];
+                    })->values()->all(),
+                ];
+            })->values()->all();
+
+        $autour['personnalites'] = $propositions
+            ->filter(fn ($p) => filled($p->locuteur))
+            ->groupBy('locuteur')
+            ->map(fn ($g, $nom) => [
+                'nom' => $nom,
+                'role' => $g->last()->role_locuteur,
+                'qualite' => $g->last()->qualite_locuteur,
+                'nb_citations' => $g->count(),
+            ])
+            ->sortBy('nom', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()->all();
+
+        return $autour;
+    }
+
+    /**
+     * Cadrages budgétaires (budgets.json) : une grille commune, la référence officielle en
+     * regard, et pour chaque candidat publié son état.
+     *
+     * Ce que l'export ne fait JAMAIS : additionner, rapporter, convertir du cumulé en annuel
+     * (un chiffre calculé n'est pas sourcé), ni dériver quoi que ce soit de la date du jour.
+     * Seules les lignes vérifiées sortent ; des autres, seul le nombre part.
+     */
+    private function buildBudgets(string $election, $candidats): array
+    {
+        $liste = fn (array $libelles) => collect($libelles)->map(fn ($l, $cle) => ['cle' => $cle, 'libelle' => $l])->values()->all();
+
+        $budgets = [
+            'election' => $election,
+            'theme' => null,
+            'rubriques' => $liste(CadrageLigne::GRILLE),
+            'rubriques_reference' => $liste(CadrageLigne::REFERENCE_SEULE),
+            'natures' => CadrageBudgetaire::NATURES,
+            'unites' => CadrageLigne::UNITES,
+            'qualificatifs' => CadrageLigne::QUALIFICATIFS,
+            'portees' => CadrageLigne::PORTEES,
+            'reference' => null,
+            'candidats' => (object) [],
+        ];
+        if (! Schema::hasTable('cadrages_budgetaires')) {
+            return $budgets;
+        }
+
+        // La plus récente publiée : le PLF, puis la loi de finances une fois votée.
+        $reference = CadrageBudgetaire::reference()->publie()->where('election', $election)
+            ->chronologieInverse()->with('lignes')->first();
+        if ($reference) {
+            $budgets['reference'] = [
+                'ref' => $reference->uuid,
+                'titre' => $reference->titre,
+                'date_source' => $reference->date_source?->toDateString(),
+                'note_methodologique' => $reference->note_methodologique,
+                'rubriques' => $this->rubriquesCadrage($reference, [...array_keys(CadrageLigne::GRILLE), ...array_keys(CadrageLigne::REFERENCE_SEULE)]),
+                'postes' => $this->lignesAffichees($reference, CadrageLigne::POSTE),
+                'a_verifier' => $reference->lignes->reject->estAffichee()->count(),
+            ];
+            $theme = config('presidentielle.theme_budgets');
+            $budgets['theme'] = $theme && ProgrammeTheme::actif()->where('slug', $theme)->exists() ? $theme : null;
+        }
+
+        $cadrages = CadrageBudgetaire::whereIn('candidat_id', $candidats->pluck('id'))
+            ->where('election', $election)
+            ->with(['lignes.document', 'document', 'programmeDocument'])
+            ->chronologieInverse()
+            ->get()
+            ->groupBy('candidat_id');
+
+        $parCandidat = [];
+        foreach ($candidats as $candidat) {
+            $slug = $candidat->personnePolitique?->slug ?? $candidat->uuid;
+            $siens = $cadrages->get($candidat->id, collect());
+            $publies = $siens->filter(fn ($c) => $c->statut_validation === 'valide' && $c->affiche_publiquement);
+
+            // « En traitement » ne livre rien d'autre que l'état : aucun chiffre non vérifié.
+            $parCandidat[$slug] = $publies->isNotEmpty()
+                ? ['etat' => 'publie', 'cadrages' => $publies->map(fn ($c) => $this->exportCadrage($c))->values()->all()]
+                : ['etat' => $siens->isNotEmpty() ? 'en_traitement' : 'non_exprime'];
+        }
+        $budgets['candidats'] = $parCandidat ?: (object) [];
+
+        return $budgets;
+    }
+
+    private function exportCadrage(CadrageBudgetaire $c): array
+    {
+        $doc = $c->documentSource();
+
+        return [
+            'ref' => $c->uuid,
+            'nature' => $c->nature,
+            'nature_libelle' => CadrageBudgetaire::NATURES[$c->nature] ?? $c->nature,
+            'titre' => $c->titre,
+            'date_source' => $c->date_source?->toDateString(),
+            'source' => $doc ? [
+                'titre' => $doc->titre,
+                'type' => $doc instanceof \App\Models\ProgrammeDocument ? 'programme' : $doc->type,
+                'date' => $doc instanceof \App\Models\IngestionDocument ? optional($doc->date_publication)->toDateString() : null,
+                'url' => $this->url($doc->url),
+                'porteur' => $this->porteur($doc),
+            ] : null,
+            'rubriques' => $this->rubriquesCadrage($c, array_keys(CadrageLigne::GRILLE)),
+            'postes' => $this->lignesAffichees($c, CadrageLigne::POSTE),
+            'a_verifier' => $c->lignes->reject->estAffichee()->count(),
+            'note_methodologique' => $c->note_methodologique,
+        ];
+    }
+
+    /**
+     * État de chaque case de la grille : `publie` (au moins une ligne vérifiée),
+     * `en_verification` (des lignes existent, aucune n'est vérifiée : dire « non précisé »
+     * serait faux, et aucune valeur ne fuit), `non_precise` (la source ne le dit pas).
+     */
+    private function rubriquesCadrage(CadrageBudgetaire $c, array $cles): array
+    {
+        $rubriques = [];
+        foreach ($cles as $cle) {
+            $lignes = $this->lignesAffichees($c, $cle);
+            $rubriques[$cle] = $lignes
+                ? ['etat' => 'publie', 'lignes' => $lignes]
+                : ['etat' => $c->lignes->where('rubrique', $cle)->isNotEmpty() ? 'en_verification' : 'non_precise'];
+        }
+
+        return $rubriques;
+    }
+
+    private function lignesAffichees(CadrageBudgetaire $c, string $rubrique): array
+    {
+        return $c->lignes
+            ->filter(fn (CadrageLigne $l) => $l->rubrique === $rubrique && $l->estAffichee())
+            ->map(fn (CadrageLigne $l) => $this->exportLigne($l, $c))
+            ->values()->all();
+    }
+
+    private function exportLigne(CadrageLigne $l, CadrageBudgetaire $c): array
+    {
+        $reference = $c->candidat_id === null;
+        $doc = $l->document ?? $c->documentSource();
+        $docPropre = ! $reference && $l->ingestion_document_id && $l->ingestion_document_id !== $c->ingestion_document_id;
+
+        return [
+            'libelle' => $l->libelle,
+            // Arrondi à deux décimales, en nombre : la forme ne dépend que de la valeur saisie.
+            'montant' => $l->montant === null ? null : round((float) $l->montant, 2),
+            'montant_max' => $l->montant_max === null ? null : round((float) $l->montant_max, 2),
+            'unite' => $l->unite,
+            'qualificatif' => $l->qualificatif,
+            'portee' => $l->portee,
+            'annee' => $l->annee,
+            'valeur_texte' => $l->valeur_texte,
+            'citation' => $this->tronqueMots((string) $l->citation, 40),
+            'reperage' => $l->reperage,
+            'url' => $reference ? $this->url($l->source_url) : $this->lienHorodate($this->url($doc?->url), $l->reperage),
+            'locuteur' => $l->locuteur,
+            'role_locuteur' => $l->role_locuteur,
+            'qualite_locuteur' => $l->qualite_locuteur,
+            'source' => $reference
+                ? [
+                    'producteur' => $l->source_producteur,
+                    'titre' => $l->source_titre,
+                    'url' => $this->url($l->source_url),
+                    'date' => $l->source_date?->toDateString(),
+                ]
+                : ($docPropre && $doc ? [
+                    'titre' => $doc->titre,
+                    'url' => $this->url($doc->url),
+                    'date' => optional($doc->date_publication)->toDateString(),
+                    'porteur' => $this->porteur($doc),
+                ] : null),
+        ];
     }
 
     /** "01:10" (h:m) ou "01:10:30" (h:m:s) -> secondes. Null si non parsable. */
@@ -791,8 +1141,9 @@ class PresidentielleExporter
         return ['election' => $election, 'evenements' => $evenements->map(function (EvenementCampagne $e) use ($candidatsExport) {
             [$label, $icone, $couleur] = self::TYPE_EVT[$e->type] ?? self::TYPE_EVT['autre'];
 
+            // Même périmètre que les prises de parole : le relu, du candidat et de son équipe.
             $nbParCandidat = $e->ingestion_document_id
-                ? IngestionProposition::where('document_id', $e->ingestion_document_id)
+                ? $this->duCandidat(IngestionProposition::where('document_id', $e->ingestion_document_id)->publique())
                     ->whereNotNull('candidat_id')->selectRaw('candidat_id, count(*) as n')
                     ->groupBy('candidat_id')->pluck('n', 'candidat_id')->all()
                 : [];
@@ -941,6 +1292,7 @@ class PresidentielleExporter
         $ecrits[] = $this->put("{$dir}/quiz.json", $data['quiz']);
         $ecrits[] = $this->put("{$dir}/jeu.json", $data['jeu']);
         $ecrits[] = $this->put("{$dir}/reperes.json", $data['reperes']);
+        $ecrits[] = $this->put("{$dir}/budgets.json", $data['budgets']);
 
         foreach ($data['candidats'] as $slug => $candidat) {
             $ecrits[] = $this->put("{$dir}/candidats/{$slug}.json", $candidat);
