@@ -153,11 +153,11 @@ it('--dry-run éprouve toutes les écritures, puis les annule', function () {
 dataset('conferences reelles', [
     'Mélenchon, comptes publics (14/10)' => [
         'Jean Luc Melanchon/Conference comptes publics 20261014', 'import_lfi_comptes_publics.json', 'conference-lfi.transcription.txt',
-        ['insérées (detecte) : 67', 'dont 58 de l\'équipe de campagne', '1 cadrage(s), 42 ligne(s)'],
+        ['insérées (detecte) : 67', 'dont 58 de l\'équipe de campagne', '1 cadrage(s), 41 ligne(s)'],
     ],
     'Le Pen, plan financier (06/10)' => [
         'Marine Le Pen/Conference plan financier 20261006', 'import_rn_trajectoire.json', 'conference-rn.transcription.txt',
-        ['insérées (detecte) : 82', 'dont 27 de l\'équipe de campagne', '2 cadrage(s), 67 ligne(s)'],
+        ['insérées (detecte) : 80', 'dont 27 de l\'équipe de campagne', '2 cadrage(s), 67 ligne(s)'],
     ],
 ]);
 

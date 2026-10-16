@@ -64,3 +64,67 @@ it('ne laisse sortir aucune note de modération', function () {
 it('exporte une chronologie vide quand la fiche n\'en a pas', function () {
     expect(affairePubliee([])['chronologie'])->toBe([]);
 });
+
+/**
+ * Une décision du juge de l'élection n'est ni pénale ni une condamnation : elle sort à
+ * part, sans bandeau de présomption, avec sa durée et son terme.
+ */
+function exportAffairesAvec(array $champs): array
+{
+    $p = PersonnePolitique::factory()->create();
+    CandidatPresidentielle::factory()->create([
+        'personne_politique_id' => $p->id, 'election' => '2027',
+        'statut_validation' => 'valide', 'affiche_publiquement' => true,
+    ]);
+    AffaireJudiciaire::factory()->valide()->create(array_merge(['personne_politique_id' => $p->id], $champs));
+
+    return app(PresidentielleExporter::class)->build('2027')['candidats'][$p->slug]['affaires'];
+}
+
+it('exporte une sanction électorale à part des affaires pénales, avec son terme', function () {
+    $this->travelTo('2026-10-16');
+    $affaires = exportAffairesAvec([
+        'statut_judiciaire' => 'sanction_electorale',
+        'type_affaire' => 'compte_campagne_rejete',
+        'date_condamnation_definitive' => '2025-04-17',
+        'peine_ineligibilite_mois' => 18,
+    ]);
+
+    expect($affaires['publiees'])->toBe([])
+        ->and($affaires['sanctions_electorales'])->toHaveCount(1);
+    $s = $affaires['sanctions_electorales'][0];
+    expect($s['date_decision'])->toBe('2025-04-17')
+        ->and($s['duree_mois'])->toBe(18)
+        ->and($s['fin'])->toBe('2026-10-17')
+        ->and($s['echue'])->toBeFalse()
+        ->and($s['statut_label'])->toContain('non pénale')
+        ->and($s)->not->toHaveKey('presomption_innocence');
+});
+
+it('dit la sanction échue à partir du jour de son terme', function () {
+    $this->travelTo('2026-10-17 08:00');
+    $s = exportAffairesAvec([
+        'statut_judiciaire' => 'sanction_electorale',
+        'date_condamnation_definitive' => '2025-04-17',
+        'peine_ineligibilite_mois' => 18,
+    ])['sanctions_electorales'][0];
+
+    expect($s['echue'])->toBeTrue();
+});
+
+it('laisse le terme vide quand la date ou la durée manque', function () {
+    $s = exportAffairesAvec([
+        'statut_judiciaire' => 'sanction_electorale',
+        'date_condamnation_definitive' => '2025-04-17',
+        'peine_ineligibilite_mois' => null,
+    ])['sanctions_electorales'][0];
+
+    expect($s['fin'])->toBeNull()->and($s['echue'])->toBeNull();
+});
+
+it('garde les affaires pénales dans la liste habituelle, avec la présomption', function () {
+    $affaires = exportAffairesAvec(['statut_judiciaire' => 'condamne_premiere_instance']);
+
+    expect($affaires['sanctions_electorales'])->toBe([])
+        ->and($affaires['publiees'][0]['presomption_innocence'])->toBeTrue();
+});

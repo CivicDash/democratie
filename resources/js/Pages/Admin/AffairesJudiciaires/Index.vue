@@ -50,6 +50,7 @@ const statutColor = (s) => {
         condamne_premiere_instance: 'bg-yellow-100 text-yellow-800',
         mis_en_examen: 'bg-yellow-100 text-yellow-800',
         en_cours: 'bg-gray-100 text-gray-800',
+        sanction_electorale: 'bg-slate-100 text-slate-800',
         relaxe: 'bg-green-100 text-green-800',
         acquitte: 'bg-green-100 text-green-800',
     };

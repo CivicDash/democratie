@@ -17,11 +17,11 @@ test('CATEGORIES retourne 5 catégories', function () {
         ->toContain('probite', 'financement', 'personne', 'manquement', 'autre');
 });
 
-test('STATUTS_JUDICIAIRES retourne 10 statuts', function () {
+test('STATUTS_JUDICIAIRES retourne 11 statuts, dont la sanction électorale', function () {
     expect(AffaireJudiciaire::STATUTS_JUDICIAIRES())
         ->toBeArray()
-        ->toHaveCount(10)
-        ->toContain('en_cours', 'condamne_definitif', 'relaxe');
+        ->toHaveCount(11)
+        ->toContain('en_cours', 'condamne_definitif', 'relaxe', 'sanction_electorale');
 });
 
 test('STATUTS_VALIDATION retourne 7 statuts', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Services\Presidentielle;
 
+use App\Models\AffaireJudiciaire;
 use App\Models\Affirmation;
 use App\Models\ArgumentMesureLien;
 use App\Models\CadrageBudgetaire;
@@ -619,6 +620,7 @@ class PresidentielleExporter
         'condamne_definitif' => 'Condamnation définitive',
         'relaxe' => 'Relaxe', 'acquitte' => 'Acquittement',
         'non_lieu' => 'Non-lieu', 'prescrit' => 'Prescrit', 'amnistie' => 'Amnistie',
+        'sanction_electorale' => 'Décision du juge de l\'élection — non pénale',
     ];
 
     /**
@@ -632,42 +634,67 @@ class PresidentielleExporter
         $personne = $candidat->personnePolitique;
         $verif = optional($candidat->revue_judiciaire_at)->toDateString();
         if (! $personne) {
-            return ['publiees' => [], 'en_verification' => false, 'derniere_verification' => $verif];
+            return ['publiees' => [], 'sanctions_electorales' => [], 'en_verification' => false, 'derniere_verification' => $verif];
         }
 
-        $publiees = $personne->affairesJudiciaires()
+        $affichees = $personne->affairesJudiciaires()
             ->where('statut_validation', 'valide')->where('affiche_publiquement', true)
-            ->with('sources')->orderBy('ordre_affichage')->get()
-            ->map(function ($a) {
-                $raw = $a->detection_raw_data ?? [];
+            ->with('sources')->orderBy('ordre_affichage')->get();
+        [$electorales, $penales] = $affichees->partition(fn ($a) => $a->statut_judiciaire === 'sanction_electorale');
 
-                return [
-                    'titre' => $a->titre,
-                    'statut_judiciaire' => $a->statut_judiciaire,
-                    'statut_label' => self::STATUT_JUDICIAIRE_LABEL[$a->statut_judiciaire] ?? $a->statut_judiciaire,
-                    'presomption_innocence' => $a->statut_judiciaire !== 'condamne_definitif',
-                    'aucune_mise_en_examen' => $a->statut_judiciaire === 'en_cours',
-                    'description' => $a->description,
-                    'autorite' => $a->juridiction,
-                    'qualifications' => $raw['qualifications_parquet'] ?? [],
-                    'position_interesse' => $raw['position_interesse'] ?? null,
-                    'chronologie' => $this->chronologieAffaire($raw['chronologie'] ?? []),
-                    'sources' => $a->sources->map(fn ($s) => [
-                        'media' => $s->media,
-                        'url' => $this->url($s->url),
-                        'archive_url' => $this->url($s->archive_url),
-                        'date' => optional($s->date_publication)->toDateString(),
-                        'fiabilite' => $s->fiabilite,
-                    ])->values()->all(),
-                ];
-            })->values()->all();
+        $publiees = $penales->map(fn ($a) => $this->exportAffaire($a) + [
+            'presomption_innocence' => $a->statut_judiciaire !== 'condamne_definitif',
+            'aucune_mise_en_examen' => $a->statut_judiciaire === 'en_cours',
+            'qualifications' => ($a->detection_raw_data ?? [])['qualifications_parquet'] ?? [],
+        ])->values()->all();
+
+        // Décisions du juge de l'élection : ni pénales ni des condamnations, elles
+        // s'affichent à part, sans bandeau de présomption, avec leur durée et leur terme.
+        $sanctionsElectorales = $electorales->map(function ($a) {
+            $fin = $a->finSanction();
+
+            return $this->exportAffaire($a) + [
+                'date_decision' => $a->date_condamnation_definitive?->toDateString(),
+                'duree_mois' => $a->peine_ineligibilite_mois ? (int) $a->peine_ineligibilite_mois : null,
+                'fin' => $fin?->toDateString(),
+                'echue' => $fin ? $fin->lte(now()->startOfDay()) : null,
+            ];
+        })->values()->all();
 
         $enVerification = $personne->affairesJudiciaires()
             ->where('affiche_publiquement', false)
             ->whereIn('statut_validation', ['detecte', 'en_review', 'a_completer'])
             ->exists();
 
-        return ['publiees' => $publiees, 'en_verification' => $enVerification, 'derniere_verification' => $verif];
+        return [
+            'publiees' => $publiees,
+            'sanctions_electorales' => $sanctionsElectorales,
+            'en_verification' => $enVerification,
+            'derniere_verification' => $verif,
+        ];
+    }
+
+    /** Champs communs aux affaires pénales et aux sanctions électorales publiées. */
+    private function exportAffaire(AffaireJudiciaire $a): array
+    {
+        $raw = $a->detection_raw_data ?? [];
+
+        return [
+            'titre' => $a->titre,
+            'statut_judiciaire' => $a->statut_judiciaire,
+            'statut_label' => self::STATUT_JUDICIAIRE_LABEL[$a->statut_judiciaire] ?? $a->statut_judiciaire,
+            'description' => $a->description,
+            'autorite' => $a->juridiction,
+            'position_interesse' => $raw['position_interesse'] ?? null,
+            'chronologie' => $this->chronologieAffaire($raw['chronologie'] ?? []),
+            'sources' => $a->sources->map(fn ($s) => [
+                'media' => $s->media,
+                'url' => $this->url($s->url),
+                'archive_url' => $this->url($s->archive_url),
+                'date' => optional($s->date_publication)->toDateString(),
+                'fiabilite' => $s->fiabilite,
+            ])->values()->all(),
+        ];
     }
 
     /**

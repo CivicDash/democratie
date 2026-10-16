@@ -180,6 +180,7 @@ const statutLabels = {
     en_cours: 'Procédure en cours', mis_en_examen: 'Mis en examen', condamne_premiere_instance: 'Condamné (1re inst.)',
     condamne_appel: 'Condamné (appel)', condamne_definitif: 'Condamné (définitif)', relaxe: 'Relaxé',
     acquitte: 'Acquitté', prescrit: 'Prescrit', non_lieu: 'Non-lieu', amnistie: 'Amnistié',
+    sanction_electorale: 'Sanction électorale (non pénale)',
 };
 </script>
 

@@ -36,6 +36,7 @@ class PresidentielleImportRevueJudiciaire extends Command
         'condamne_appel' => 'condamne_appel',
         'condamnation_definitive' => 'condamne_definitif',
         'condamne_definitif' => 'condamne_definitif',
+        'sanction_electorale' => 'sanction_electorale',
     ];
 
     public function handle(): int

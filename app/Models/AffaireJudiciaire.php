@@ -164,6 +164,19 @@ class AffaireJudiciaire extends Model
 
     // ── Accessors ──
 
+    /**
+     * Fin d'une sanction électorale : date de la décision (`date_condamnation_definitive`)
+     * plus la durée d'inéligibilité, comme le prévoit « à compter de la présente décision ».
+     */
+    public function finSanction(): ?\Illuminate\Support\Carbon
+    {
+        if ($this->statut_judiciaire !== 'sanction_electorale' || ! $this->date_condamnation_definitive || ! $this->peine_ineligibilite_mois) {
+            return null;
+        }
+
+        return $this->date_condamnation_definitive->copy()->addMonthsNoOverflow((int) $this->peine_ineligibilite_mois);
+    }
+
     public function getStatutJudiciaireLibelleAttribute(): string
     {
         return match ($this->statut_judiciaire) {
@@ -177,6 +190,7 @@ class AffaireJudiciaire extends Model
             'prescrit' => 'Prescrit',
             'non_lieu' => 'Non-lieu',
             'amnistie' => 'Amnistié',
+            'sanction_electorale' => 'Sanction électorale (non pénale)',
             default => $this->statut_judiciaire,
         };
     }
@@ -189,7 +203,7 @@ class AffaireJudiciaire extends Model
             'condamne_premiere_instance', 'mis_en_examen' => 'yellow',
             'en_cours' => 'gray',
             'relaxe', 'acquitte' => 'green',
-            'prescrit', 'non_lieu', 'amnistie' => 'slate',
+            'prescrit', 'non_lieu', 'amnistie', 'sanction_electorale' => 'slate',
             default => 'gray',
         };
     }
@@ -347,6 +361,9 @@ class AffaireJudiciaire extends Model
             'en_cours', 'mis_en_examen', 'condamne_premiere_instance',
             'condamne_appel', 'condamne_definitif', 'relaxe', 'acquitte',
             'prescrit', 'non_lieu', 'amnistie',
+            // Décision du juge de l'élection (inéligibilité pour un compte de campagne, par
+            // exemple) : ni pénale ni une condamnation, elle s'affiche à part.
+            'sanction_electorale',
         ];
     }
 
