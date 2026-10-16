@@ -965,6 +965,8 @@ Route::prefix('admin/presidentielle')
         // Qui parle : locuteur d'une proposition, porteur d'une prise de parole ou d'un référentiel.
         Route::post('/propositions/{proposition}/locuteur', [$c, 'propositionLocuteur'])->whereNumber('proposition')->name('propositions.locuteur');
         Route::post('/documents/{document}/porteur', [$c, 'documentPorteur'])->whereNumber('document')->name('documents.porteur');
+        // Valider d'un coup les propositions d'une prise de parole (citations confirmées).
+        Route::post('/documents/{document}/valider-tout', [$c, 'documentValiderTout'])->whereNumber('document')->name('documents.valider-tout');
         Route::post('/referentiels/{referentiel}/porteur', [$c, 'referentielPorteur'])->whereNumber('referentiel')->name('referentiels.porteur');
         Route::delete('/documents/{document}', [$c, 'documentDestroy'])->name('documents.destroy');
         Route::get('/mesures', [$c, 'mesures'])->name('mesures');

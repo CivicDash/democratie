@@ -125,6 +125,7 @@ class PresidentielleModerationController extends Controller
     public function propositions(Request $request)
     {
         $qui = in_array($request->query('qui'), ['candidat', 'equipe', 'entourage'], true) ? $request->query('qui') : 'tous';
+        $documentFiltre = ctype_digit((string) $request->query('document')) ? (int) $request->query('document') : null;
         $reglesLocuteur = app(ReglesLocuteur::class);
         $reglesEntourage = app(ReglesEntourage::class);
 
@@ -133,6 +134,7 @@ class PresidentielleModerationController extends Controller
             ->when($qui === 'candidat', fn ($q) => $q->whereNull('locuteur')->duCandidat())
             ->when($qui === 'equipe', fn ($q) => $q->where('qualite_locuteur', Locuteur::EQUIPE)->duCandidat())
             ->when($qui === 'entourage', fn ($q) => $q->entourage())
+            ->when($documentFiltre, fn ($q) => $q->where('document_id', $documentFiltre))
             ->orderByDesc('id')
             ->paginate(25)
             ->withQueryString()
@@ -175,6 +177,8 @@ class PresidentielleModerationController extends Controller
         $documents = IngestionDocument::withCount('propositions')
             ->withCount(['propositions as rattachees_count' => fn ($q) => $q->where('statut', 'rattachee')])
             ->withCount(['propositions as autour_count' => fn ($q) => $q->where('affiche_publiquement', true)])
+            ->withCount(['propositions as en_file_count' => fn ($q) => $q->where('statut', 'detecte')])
+            ->withCount(['propositions as en_file_confirmees_count' => fn ($q) => $q->where('statut', 'detecte')->where('verbatim_verifie', true)])
             ->withCount('cadrages')
             ->orderByDesc('id')->limit(30)->get()
             ->map(fn ($d) => [
@@ -182,6 +186,8 @@ class PresidentielleModerationController extends Controller
                 'nb_propositions' => $d->propositions_count,
                 'nb_rattachees' => $d->rattachees_count,
                 'nb_autour' => $d->autour_count,
+                'nb_en_file' => $d->en_file_count,
+                'nb_en_file_confirmees' => $d->en_file_confirmees_count,
                 'nb_cadrages' => $d->cadrages_count,
             ] + $this->champsPorteur($d));
 
@@ -190,6 +196,7 @@ class PresidentielleModerationController extends Controller
             'documents' => $documents,
             'statut' => $request->query('statut', 'detecte'),
             'qui' => $qui,
+            'document' => $documentFiltre,
             'porteurs' => Porteur::LIBELLES,
             'qualites' => Locuteur::LIBELLES,
         ]);
@@ -1089,6 +1096,42 @@ class PresidentielleModerationController extends Controller
             'publier_entourage' => 'Proposition publiée dans « Autour du candidat ».',
             'depublier_entourage' => 'Proposition retirée de « Autour du candidat ».',
         });
+    }
+
+    /**
+     * « Valider tout le document » : les propositions en file dont la citation est confirmée
+     * mot pour mot, une par une dans le circuit habituel. Les refus sont rendus à l'écran.
+     */
+    public function documentValiderTout(Request $request, IngestionDocument $document, ModerationService $service)
+    {
+        $data = $request->validate(['mode' => ['required', 'in:mesures,sans_mesure']]);
+        if ($document->porteurEstEntourage()) {
+            throw ValidationException::withMessages(['document' => 'Prise de parole d\'un parti ou d\'un groupe : ses propositions passent une à une par « Autour du candidat ».']);
+        }
+
+        try {
+            $bilan = $service->validerDocument($document, $request->user(), $data['mode']);
+        } catch (ModerationException $e) {
+            throw ValidationException::withMessages(['document' => $e->getMessage()]);
+        }
+
+        $resume = [];
+        if ($bilan['mesures']) {
+            $resume[] = $bilan['mesures'].' mesure(s) créée(s), non publiées';
+        }
+        if ($bilan['sans_mesure']) {
+            $resume[] = $bilan['sans_mesure'].' validée(s) sans mesure';
+        }
+        foreach ($bilan['ignorees'] as $motif => $n) {
+            $resume[] = "{$n} laissée(s) en file ({$motif})";
+        }
+        if ($bilan['echecs']) {
+            $resume[] = count($bilan['echecs']).' refusée(s)';
+        }
+
+        return back()
+            ->with('success', '« '.Str::limit($document->titre, 80).' » : '.($resume ? implode(', ', $resume) : 'aucune proposition en file').'.')
+            ->with('echecs_lot', $bilan['echecs']);
     }
 
     /**

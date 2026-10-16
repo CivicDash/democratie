@@ -7,6 +7,7 @@ use App\Models\Affirmation;
 use App\Models\Argument;
 use App\Models\ArgumentMesureLien;
 use App\Models\CadrageBudgetaire;
+use App\Models\IngestionDocument;
 use App\Models\IngestionProposition;
 use App\Models\MesureScrutinLien;
 use App\Models\PresidentielleModerationLog;
@@ -246,6 +247,60 @@ class ModerationService
         $this->log($p, 'validation_sans_mesure', 'detecte', 'validee', $user, $commentaire);
 
         return $p;
+    }
+
+    /**
+     * Valide d'un coup les propositions encore en file d'une prise de parole.
+     *
+     * Seules passent celles dont la citation a été retrouvée mot pour mot à l'import et qui
+     * relèvent du candidat ou de son équipe : la parole d'un parti garde son circuit
+     * (« Autour du candidat »). Chaque proposition suit le circuit unitaire, invariants et
+     * journal compris ; un refus isolé n'arrête pas le lot.
+     *
+     * Mode `mesures` : les propositions de type « mesure » deviennent des mesures (non
+     * publiées), les autres sont validées sans mesure. Mode `sans_mesure` : toutes paraissent
+     * dans les prises de parole, aucune mesure n'est créée.
+     *
+     * @return array{mesures: int, sans_mesure: int, ignorees: array<string, int>, echecs: list<array{id: int, motif: string}>}
+     */
+    public function validerDocument(IngestionDocument $document, User $user, string $mode = 'mesures'): array
+    {
+        if (! in_array($mode, ['mesures', 'sans_mesure'], true)) {
+            throw new ModerationException("Mode de validation inconnu « {$mode} ».");
+        }
+
+        $bilan = ['mesures' => 0, 'sans_mesure' => 0, 'ignorees' => [], 'echecs' => []];
+        $ignorer = function (string $motif) use (&$bilan) {
+            $bilan['ignorees'][$motif] = ($bilan['ignorees'][$motif] ?? 0) + 1;
+        };
+        $commentaire = "Validation de toute la prise de parole #{$document->id}.";
+
+        $propositions = $document->propositions()->where('statut', 'detecte')->orderBy('id')->get();
+        foreach ($propositions as $p) {
+            if (! $p->verbatim_verifie) {
+                $ignorer('citation non confirmée mot pour mot');
+
+                continue;
+            }
+            if ($p->estEntourage()) {
+                $ignorer('parole de l\'entourage (circuit « Autour du candidat »)');
+
+                continue;
+            }
+            try {
+                if ($mode === 'mesures' && $p->type === 'mesure') {
+                    $this->creerMesureDepuisProposition($p, $user);
+                    $bilan['mesures']++;
+                } else {
+                    $this->validerSansMesure($p, $user, $commentaire);
+                    $bilan['sans_mesure']++;
+                }
+            } catch (ModerationException $e) {
+                $bilan['echecs'][] = ['id' => $p->id, 'motif' => $e->getMessage()];
+            }
+        }
+
+        return $bilan;
     }
 
     /**

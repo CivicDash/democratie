@@ -23,6 +23,7 @@ const props = defineProps({
     documents: Array,
     statut: String,
     qui: String,
+    document: Number, // filtre : propositions d'une seule prise de parole
     porteurs: Object,
     qualites: Object,
 });
@@ -98,7 +99,27 @@ const filtres = ['detecte', 'validee', 'rattachee', 'rejetee', 'tous'];
 const filtresQui = { tous: 'Tous', candidat: 'Le candidat', equipe: 'Équipe de campagne', entourage: 'Entourage (parti)' };
 
 function filtrer(params) {
-    router.get(route('admin.presidentielle.propositions'), { statut: props.statut, qui: props.qui, ...params }, { preserveState: true, replace: true });
+    router.get(route('admin.presidentielle.propositions'), { statut: props.statut, qui: props.qui, document: props.document, ...params }, { preserveState: true, replace: true });
+}
+
+const documentFiltre = () => props.documents?.find((d) => d.id === props.document);
+const echecsLot = () => usePage().props.flash?.echecs_lot ?? [];
+
+// ── Valider tout un document ─────────────────────────────────────────────────────
+// Les propositions en file dont la citation est confirmée mot pour mot passent une par
+// une par le circuit habituel ; les autres restent en file, à traiter à la main.
+const lotEdite = ref(null);
+const lotMode = ref('mesures');
+const lotEnCours = ref(false);
+
+function validerTout(d) {
+    if (lotEnCours.value) return;
+    lotEnCours.value = true;
+    router.post(route('admin.presidentielle.documents.valider-tout', d.id), { mode: lotMode.value }, {
+        ...opts,
+        onSuccess: () => { lotEdite.value = null; },
+        onFinish: () => { lotEnCours.value = false; },
+    });
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────────
@@ -179,7 +200,6 @@ function enregistrerLocuteur(p) {
                     </label>
                     <div class="md:col-span-3 flex items-center justify-between gap-3">
                         <p v-if="erreurs().fichier" class="text-xs text-red-600">{{ erreurs().fichier }}</p>
-                        <p v-else-if="flash().success" class="text-xs text-green-600">{{ flash().success }}</p>
                         <button type="submit" :disabled="envoiEnCours || !fichierJson"
                                 class="ml-auto px-4 py-2 rounded bg-blue-600 text-white text-sm disabled:opacity-50">
                             {{ envoiEnCours ? 'Import…' : 'Importer' }}
@@ -215,6 +235,11 @@ function enregistrerLocuteur(p) {
                             </p>
                         </div>
                         <div class="whitespace-nowrap space-x-1">
+                            <ActionButton v-if="d.nb_en_file" verbe="neutre" :libelle="`Voir ses ${d.nb_en_file} en file`"
+                                          @action="filtrer({ document: d.id, statut: 'detecte', qui: 'tous' })" />
+                            <ActionButton v-if="d.nb_en_file_confirmees && !entourage(d.porteur_type)" verbe="valider"
+                                          :libelle="`Valider tout (${d.nb_en_file_confirmees})`"
+                                          @action="lotEdite = lotEdite === d.id ? null : d.id" />
                             <ActionButton verbe="neutre" libelle="Porteur" @action="porteurEdite === d.id ? (porteurEdite = null) : editerPorteur(d)" />
                             <ActionButton verbe="supprimer" :confirmer="false" @action="supprimerDocument(d)" />
                         </div>
@@ -222,6 +247,35 @@ function enregistrerLocuteur(p) {
                     <ul v-if="d.raisons_porteur?.length" class="mt-1 text-xs text-amber-700 dark:text-amber-300 list-disc pl-5">
                         <li v-for="r in d.raisons_porteur" :key="r">{{ r }}</li>
                     </ul>
+                    <div v-if="lotEdite === d.id" class="mt-2 rounded-lg bg-blue-50 dark:bg-blue-950 p-3 text-xs space-y-2">
+                        <p>
+                            <strong>{{ d.nb_en_file_confirmees }}</strong> proposition(s) en file ont une citation retrouvée mot pour mot
+                            dans la transcription : elles seront validées une par une, comme à la main (règles du locuteur comprises).
+                            <span v-if="d.nb_en_file > d.nb_en_file_confirmees">
+                                {{ d.nb_en_file - d.nb_en_file_confirmees }} autre(s), dont la citation n'est pas confirmée, resteront en file.
+                            </span>
+                            Écartez d'abord ce qui vous gêne (« Voir ses propositions en file », puis Rejeter).
+                        </p>
+                        <fieldset class="space-y-1">
+                            <label class="flex items-start gap-2">
+                                <input v-model="lotMode" type="radio" value="mesures" class="mt-0.5" />
+                                <span>Les propositions de type « mesure » deviennent des mesures (non publiées, à relire dans « Mesures ») ;
+                                    les positions et déclarations sont validées sans mesure.</span>
+                            </label>
+                            <label class="flex items-start gap-2">
+                                <input v-model="lotMode" type="radio" value="sans_mesure" class="mt-0.5" />
+                                <span>Tout valider sans mesure : les propositions paraissent dans les prises de parole, aucune mesure n'est créée.</span>
+                            </label>
+                        </fieldset>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" class="px-3 py-1.5 rounded border text-xs" @click="lotEdite = null">Annuler</button>
+                            <ActionButton verbe="valider" :libelle="lotEnCours ? 'Validation…' : `Valider les ${d.nb_en_file_confirmees}`"
+                                          :disabled="lotEnCours" confirmer
+                                          titre-confirmation="Valider toute la prise de parole ?"
+                                          :confirmation="`${d.nb_en_file_confirmees} proposition(s) de « ${d.titre} » seront validées. Chaque décision reste tracée au journal.`"
+                                          @action="validerTout(d)" />
+                        </div>
+                    </div>
                     <form v-if="porteurEdite === d.id" @submit.prevent="enregistrerPorteur(d)"
                           class="mt-2 grid md:grid-cols-2 gap-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-xs">
                         <label class="block">
@@ -281,6 +335,17 @@ function enregistrerLocuteur(p) {
                 </div>
             </div>
 
+            <div v-if="document" class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm">
+                <span>Prise de parole : <strong>{{ documentFiltre()?.titre ?? ('#' + document) }}</strong></span>
+                <button type="button" class="text-blue-600 hover:underline text-xs" @click="filtrer({ document: null })">Tout afficher</button>
+            </div>
+            <p v-if="flash().success" class="text-sm text-green-700 dark:text-green-300" role="status">{{ flash().success }}</p>
+            <div v-if="echecsLot().length" class="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950 p-3 text-xs" role="alert">
+                <p class="font-medium mb-1">Refusées par les règles, restées en file :</p>
+                <ul class="list-disc pl-5">
+                    <li v-for="e in echecsLot()" :key="e.id">#{{ e.id }} — {{ e.motif }}</li>
+                </ul>
+            </div>
             <p v-if="erreurs().action" class="text-sm text-red-600" role="alert">{{ erreurs().action }}</p>
             <p v-if="erreurs().locuteur || erreurs().role_locuteur || erreurs().qualite_locuteur" class="text-sm text-red-600" role="alert">
                 {{ erreurs().locuteur ?? erreurs().role_locuteur ?? erreurs().qualite_locuteur }}
