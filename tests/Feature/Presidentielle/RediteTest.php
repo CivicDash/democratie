@@ -149,3 +149,51 @@ it('--document ajoute les propositions à une prise de parole existante, sans no
     expect(\Illuminate\Support\Facades\Artisan::call('presidentielle:import-propositions', ['fichier' => $fichier('gabriel-attal'), '--document' => $doc->id]))->toBe(1)
         ->and(IngestionProposition::where('document_id', $doc->id)->count())->toBe(1);
 });
+
+it('date l\'évolution d\'une mesure : chiffre modifié et revirement, sans compter le revirement comme « dite »', function () {
+    [$candidat, $theme, $mesure] = candidatPubliePublic();
+    $service = app(ModerationService::class);
+    $user = moderateurRedites();
+    $export = fn () => collect(app(PresidentielleExporter::class)->build('2027')['candidats'][$candidat->personnePolitique->slug]['mesures_par_theme'][$theme->slug])
+        ->firstWhere('titre', $mesure->titre);
+
+    // Première formulation : la proposition qui a fondé la mesure.
+    rediteDe($mesure, '2026-10-06', ['redite_de_mesure_id' => null, 'statut' => 'rattachee', 'mesure_id' => $mesure->id,
+        'raw_llm_output' => ['chiffrage_annonce' => '125 milliards d\'euros']]);
+    expect($export()['evolutions'])->toBe([]);
+
+    $service->rattacherAMesure(rediteDe($mesure, '2026-10-25', ['nature_lien' => 'chiffre_modifie',
+        'raw_llm_output' => ['chiffrage_annonce' => '140 milliards d\'euros']]), $mesure, $user);
+    $service->rattacherAMesure(rediteDe($mesure, '2026-10-30', ['nature_lien' => 'revirement']), $mesure, $user);
+
+    $m = $export();
+    expect(collect($m['evolutions'])->pluck('nature')->all())->toBe(['origine', 'chiffre_modifie', 'revirement'])
+        ->and(collect($m['evolutions'])->pluck('chiffrage')->take(2)->all())->toBe(['125 milliards d\'euros', '140 milliards d\'euros'])
+        ->and($m['prises_de_parole']['nombre'])->toBe(2);
+});
+
+it('ne compte pas un programme écrit parmi les prises de parole', function () {
+    [$candidat, $theme, $mesure] = candidatPubliePublic();
+    $p = rediteDe($mesure, '2026-11-03', ['nature_lien' => 'precision']);
+    $p->document->update(['type' => 'programme']);
+    app(ModerationService::class)->rattacherAMesure($p, $mesure, moderateurRedites());
+
+    $m = collect(app(PresidentielleExporter::class)->build('2027')['candidats'][$candidat->personnePolitique->slug]['mesures_par_theme'][$theme->slug])
+        ->firstWhere('titre', $mesure->titre);
+    expect($m['prises_de_parole']['nombre'])->toBe(0)
+        ->and($m['evolutions'][0]['nature'])->toBe('precision');
+});
+
+it('refuse une nature de lien inconnue, sans rien écrire', function () {
+    (new \Database\Seeders\ProgrammeThemesSeeder())->run();
+    (new \Database\Seeders\CandidatsPresidentielle2027Seeder())->run();
+    $melenchon = CandidatPresidentielle::whereHas('personnePolitique', fn ($q) => $q->where('slug', 'jean-luc-melenchon'))->firstOrFail();
+    $sienne = ProgrammeMesure::factory()->create(['candidat_id' => $melenchon->id]);
+    $chemin = jsonTemporaire(['contrat' => 'presidentielle.propositions.v1',
+        'source' => ['titre' => 'Test', 'type' => 'meeting', 'url' => 'https://www.youtube.com/watch?v=abcdefghijk', 'date' => '2026-10-28'],
+        'propositions' => [['candidat_slug' => 'jean-luc-melenchon', 'theme_slug' => 'fiscalite-budget', 'type' => 'mesure',
+            'resume_propose' => 'X.', 'citation_verbatim' => 'x', 'redite_de_mesure' => $sienne->id, 'nature_lien' => 'volte_face']]]);
+
+    expect(\Illuminate\Support\Facades\Artisan::call('presidentielle:import-propositions', ['fichier' => $chemin]))->toBe(1)
+        ->and(IngestionProposition::count())->toBe(0);
+});

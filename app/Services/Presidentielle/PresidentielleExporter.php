@@ -450,6 +450,7 @@ class PresidentielleExporter
                     'porte_par' => $this->portePar($mesure),
                     'citations' => $this->citationsAppui($mesure),
                     'prises_de_parole' => $this->prisesDeParole($mesure),
+                    'evolutions' => $this->evolutions($mesure),
                 ];
 
                 continue;
@@ -465,6 +466,7 @@ class PresidentielleExporter
                 'porte_par' => $this->portePar($mesure),
                 'citations' => $this->citationsAppui($mesure),
                 'prises_de_parole' => $this->prisesDeParole($mesure),
+                'evolutions' => $this->evolutions($mesure),
                 'arguments' => [
                     'pour' => $this->exportArguments($mesure->liens->where('sens', 'pour')),
                     'contre' => $this->exportArguments($mesure->liens->where('sens', 'contre')),
@@ -862,14 +864,17 @@ class PresidentielleExporter
     /**
      * Combien de prises de parole distinctes portent une mesure, et la plus récente. Une
      * prise de parole = un document dépouillé dont une proposition est rattachée à la mesure
-     * (la première, puis chaque redite). La parole de l'entourage ne compte pas.
+     * (la première, puis chaque redite ou évolution). Ne comptent pas : la parole de
+     * l'entourage, un revirement (la mesure n'y est pas « dite », elle y est contredite) et
+     * un programme écrit, qui n'est pas une prise de parole.
      *
      * @return array{nombre: int, derniere: ?string, recurrente: bool}
      */
     private function prisesDeParole(ProgrammeMesure $mesure): array
     {
         $documents = $mesure->propositionsSource
-            ->filter(fn ($p) => $p->statut === 'rattachee' && $p->document_id && ! $p->estEntourage())
+            ->filter(fn ($p) => $p->statut === 'rattachee' && $p->document_id && ! $p->estEntourage()
+                && $p->nature_lien !== 'revirement' && $p->document?->type !== 'programme')
             ->map(fn ($p) => $p->document)
             ->filter()
             ->unique('id');
@@ -880,6 +885,36 @@ class PresidentielleExporter
             'derniere' => optional($documents->max('date_publication'))->toDateString(),
             'recurrente' => $nombre >= self::SEUIL_RECURRENCE,
         ];
+    }
+
+    /**
+     * Évolution d'une mesure : sa première formulation, puis chaque chiffre modifié, précision
+     * ou revirement rattaché, dans l'ordre des dates. Vide tant qu'aucune évolution n'est
+     * rattachée — une simple redite n'en est pas une. Faits datés et cités, sans qualificatif.
+     *
+     * @return list<array{date: ?string, nature: string, chiffrage: ?string, citation: string, timecode: ?string, verifier_url: ?string, source: ?string}>
+     */
+    private function evolutions(ProgrammeMesure $mesure): array
+    {
+        $rattachees = $mesure->propositionsSource
+            ->filter(fn ($p) => $p->statut === 'rattachee' && ! $p->estEntourage() && trim((string) $p->citation_verbatim) !== '');
+        if (! $rattachees->contains(fn ($p) => in_array($p->nature_lien, IngestionProposition::NATURES_EVOLUTION, true))) {
+            return [];
+        }
+
+        return $rattachees
+            ->filter(fn ($p) => $p->nature_lien === null || in_array($p->nature_lien, IngestionProposition::NATURES_EVOLUTION, true))
+            ->map(fn ($p) => [
+                'date' => optional($p->document?->date_publication)->toDateString(),
+                'nature' => $p->nature_lien ?? 'origine',
+                'chiffrage' => is_array($p->raw_llm_output) ? ($p->raw_llm_output['chiffrage_annonce'] ?? null) : null,
+                'citation' => $this->tronqueMots((string) $p->citation_verbatim, 15),
+                'timecode' => $p->timestamp_ou_paragraphe,
+                'verifier_url' => $this->deeplinkVideo($this->url($p->source_url) ?? $this->url($p->document?->url), $this->timecodeEnSecondes($p->timestamp_ou_paragraphe)),
+                'source' => $p->document?->titre,
+            ])
+            ->sortBy(fn ($e) => $e['date'] ?? '9999')
+            ->values()->all();
     }
 
     /** Citations d'appui d'une mesure : les propositions rattachées, chacune attribuée. */

@@ -96,6 +96,14 @@ const entourage = (type) => ['parti', 'groupe_parlementaire'].includes(type);
 
 // ── Filtres ──────────────────────────────────────────────────────────────────────
 const filtres = ['detecte', 'validee', 'rattachee', 'rejetee', 'tous'];
+
+// Nature du lien à une mesure existante (redite, ou évolution de la mesure).
+const naturesLien = {
+    redite: 'Redite de',
+    chiffre_modifie: 'Chiffre modifié par rapport à',
+    precision: 'Précise',
+    revirement: 'Revirement par rapport à',
+};
 const filtresQui = { tous: 'Tous', candidat: 'Le candidat', equipe: 'Équipe de campagne', entourage: 'Entourage (parti)' };
 
 function filtrer(params) {
@@ -396,7 +404,7 @@ function enregistrerLocuteur(p) {
                                 <p class="text-xs text-gray-400 mt-1">{{ p.resume_propose }} <span v-if="p.timestamp_ou_paragraphe">· {{ p.timestamp_ou_paragraphe }}</span></p>
                                 <p v-if="p.document" class="text-[11px] text-gray-400 mt-1 truncate">{{ p.document.titre }}</p>
                                 <p v-if="p.redite_de" class="text-[11px] mt-1 text-blue-700 dark:text-blue-300">
-                                    Redite de la mesure #{{ p.redite_de.id }} : « {{ p.redite_de.titre }} »
+                                    {{ naturesLien[p.redite_de.nature] ?? 'Liée à' }} la mesure #{{ p.redite_de.id }} : « {{ p.redite_de.titre }} »
                                 </p>
                             </td>
                             <td class="p-3">

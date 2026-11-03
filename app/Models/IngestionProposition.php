@@ -19,6 +19,15 @@ class IngestionProposition extends Model
     public const STATUTS = ['detecte', 'validee', 'rattachee', 'rejetee'];
 
     /**
+     * Nature du lien à la mesure visée (`redite_de_mesure_id`). Une redite répète la mesure ;
+     * les trois autres en racontent l'évolution, datée sous la mesure. Un revirement ne
+     * compte pas parmi les prises de parole où la mesure a été « dite ».
+     */
+    public const NATURES_LIEN = ['redite', 'chiffre_modifie', 'precision', 'revirement'];
+
+    public const NATURES_EVOLUTION = ['chiffre_modifie', 'precision', 'revirement'];
+
+    /**
      * Seuls statuts affichés publiquement pour le candidat et son équipe : une proposition
      * détectée n'a été relue par personne.
      */
@@ -28,7 +37,7 @@ class IngestionProposition extends Model
         'uuid', 'document_id', 'candidat_slug', 'candidat_id', 'theme_slug', 'theme_id',
         'locuteur', 'role_locuteur', 'qualite_locuteur',
         'type', 'resume_propose', 'citation_verbatim', 'timestamp_ou_paragraphe',
-        'source_url', 'confiance', 'verbatim_verifie', 'statut', 'affiche_publiquement', 'mesure_id', 'redite_de_mesure_id',
+        'source_url', 'confiance', 'verbatim_verifie', 'statut', 'affiche_publiquement', 'mesure_id', 'redite_de_mesure_id', 'nature_lien',
         'valide_par', 'valide_at', 'raw_llm_output',
     ];
 

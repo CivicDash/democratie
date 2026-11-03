@@ -236,7 +236,8 @@ class ModerationService
         }
 
         $p->update(['statut' => 'rattachee', 'mesure_id' => $mesure->id, 'valide_par' => $user->id, 'valide_at' => now()]);
-        $this->log($p, 'rattachement_redite', 'detecte', 'rattachee', $user, "Redite de la mesure #{$mesure->id}.");
+        $nature = str_replace('_', ' ', $p->nature_lien ?? 'redite');
+        $this->log($p, 'rattachement_redite', 'detecte', 'rattachee', $user, "Rattachée à la mesure #{$mesure->id} ({$nature}).");
 
         return $p;
     }

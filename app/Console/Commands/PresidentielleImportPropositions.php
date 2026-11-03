@@ -130,7 +130,7 @@ class PresidentielleImportPropositions extends Command
             $this->warn("Porteur : {$a}");
         }
 
-        $stats = ['insere' => 0, 'a_verifier' => 0, 'rejete_verbatim' => 0, 'candidat_inconnu' => 0, 'theme_inconnu' => 0, 'equipe' => 0, 'entourage' => 0, 'sans_role' => 0, 'redites' => 0];
+        $stats = ['insere' => 0, 'a_verifier' => 0, 'rejete_verbatim' => 0, 'candidat_inconnu' => 0, 'theme_inconnu' => 0, 'equipe' => 0, 'entourage' => 0, 'sans_role' => 0, 'redites' => 0, 'natures' => []];
         $statsCadrage = null;
 
         DB::beginTransaction();
@@ -233,12 +233,21 @@ class PresidentielleImportPropositions extends Command
                 // gardé que si la mesure existe et appartient au même candidat ; sinon la
                 // proposition suit le circuit habituel, et rien ne bloque l'import.
                 $rediteDe = null;
+                $natureLien = null;
                 if (! empty($p['redite_de_mesure'])) {
+                    // La nature du lien : une valeur inconnue fait échouer l'import, comme une
+                    // qualité de locuteur inconnue — un revirement classé en redite serait faux.
+                    $natureLien = $p['nature_lien'] ?? 'redite';
+                    if (! in_array($natureLien, IngestionProposition::NATURES_LIEN, true)) {
+                        throw new InvalidArgumentException("proposition [{$i}] : nature de lien inconnue « {$natureLien} » (".implode(', ', IngestionProposition::NATURES_LIEN).')');
+                    }
                     $mesure = ProgrammeMesure::find((int) $p['redite_de_mesure']);
                     if ($mesure && $candidatId && (int) $mesure->candidat_id === (int) $candidatId) {
                         $rediteDe = $mesure->id;
                         $stats['redites']++;
+                        $stats['natures'][$natureLien] = ($stats['natures'][$natureLien] ?? 0) + 1;
                     } else {
+                        $natureLien = null;
                         $this->line("  <fg=yellow>!</> [{$i}] redite d'une mesure introuvable ou d'un autre candidat (#{$p['redite_de_mesure']}) : lien ignoré");
                     }
                 }
@@ -261,6 +270,7 @@ class PresidentielleImportPropositions extends Command
                     'verbatim_verifie' => $verbatimOk,
                     'statut' => 'detecte',
                     'redite_de_mesure_id' => $rediteDe,
+                    'nature_lien' => $natureLien,
                     'raw_llm_output' => $p,
                 ]);
                 $stats['insere']++;
@@ -298,7 +308,8 @@ class PresidentielleImportPropositions extends Command
         $this->info("Propositions insérées (detecte) : {$stats['insere']}");
         $this->line("  dont à vérifier manuellement (verbatim non confirmé) : {$stats['a_verifier']}");
         if ($stats['redites']) {
-            $this->line("  dont {$stats['redites']} redite(s) d'une mesure déjà au comparateur, à rattacher en modération");
+            $natures = implode(', ', array_map(fn ($n, $c) => "{$c} {$n}", array_keys($stats['natures']), $stats['natures']));
+            $this->line("  dont {$stats['redites']} liée(s) à une mesure déjà au comparateur ({$natures}), à rattacher en modération");
         }
         $this->line("  dont {$stats['equipe']} de l'équipe de campagne (attribuées à leur locuteur) et {$stats['entourage']} de l'entourage (section « Autour du candidat »)");
         if ($stats['sans_role']) {

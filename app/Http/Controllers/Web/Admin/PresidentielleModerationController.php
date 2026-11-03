@@ -155,7 +155,7 @@ class PresidentielleModerationController extends Controller
                     'verbatim_verifie' => $p->verbatim_verifie,
                     'statut' => $p->statut,
                     'mesure_id' => $p->mesure_id,
-                    'redite_de' => $p->rediteDe ? ['id' => $p->rediteDe->id, 'titre' => $p->rediteDe->titre] : null,
+                    'redite_de' => $p->rediteDe ? ['id' => $p->rediteDe->id, 'titre' => $p->rediteDe->titre, 'nature' => $p->nature_lien ?? 'redite'] : null,
                     'affiche_publiquement' => (bool) $p->affiche_publiquement,
                     'locuteur' => $p->locuteur,
                     'role_locuteur' => $p->role_locuteur,
