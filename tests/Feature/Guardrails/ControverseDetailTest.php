@@ -11,11 +11,11 @@ use App\Models\User;
 /**
  * L'écran de détail d'une controverse.
  *
- * Il existe parce que la liste proposait une double validation en lot, par identifiants :
- * un modérateur pouvait confirmer dix liaisons « contredit » sans jamais lire ce qu'il
- * confirmait. La seconde validation n'ayant de valeur que comme seconde LECTURE, l'écran
- * doit servir le fait, ses sources et la note contextuelle — c'est ce qu'on vérifie ici,
- * pas seulement qu'il répond 200.
+ * Il existe parce que la liste proposait une validation en lot, par identifiants : un
+ * modérateur pouvait confirmer dix liaisons « contredit » sans jamais lire ce qu'il
+ * confirmait. Une validation n'ayant de valeur que comme LECTURE, l'écran doit servir le
+ * fait, ses sources et la note contextuelle — c'est ce qu'on vérifie ici, pas seulement
+ * qu'il répond 200.
  */
 beforeEach(function () {
     // Sans manifeste Vite, app.blade.php lève avant d'atteindre le composant : le test
@@ -77,7 +77,8 @@ it('sert le fait, ses sources et la note contextuelle de la liaison', function (
         );
 });
 
-it('signale à l\'avance qu\'on ne peut pas doubler sa propre validation', function () {
+it('n\'annonce plus de seconde validation : une liaison « contredit » validée est publiable', function () {
+    $this->fait->update(['affiche_publiquement' => true]);
     lien(['sens' => 'contre', 'statut_validation' => 'valide', 'valide_par' => $this->moderateur->id],
         $this->controverse, $this->fait, $this->mesure);
 
@@ -85,35 +86,21 @@ it('signale à l\'avance qu\'on ne peut pas doubler sa propre validation', funct
         ->get(route('admin.presidentielle.controverses.show', $this->controverse->id))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('faits.0.liaisons.0.attend_double_validation', true)
-            // Sans ce drapeau, le bouton est cliquable et le service renvoie une erreur :
-            // le garde-fou se vivrait comme une panne.
-            ->where('faits.0.liaisons.0.double_validation_par_moi_interdite', true)
+            ->missing('faits.0.liaisons.0.attend_double_validation')
+            ->where('faits.0.liaisons.0.raisons_non_publiable', [])
         );
 });
 
-it('laisse un autre modérateur faire la seconde validation', function () {
-    lien(['sens' => 'contre', 'statut_validation' => 'valide', 'valide_par' => User::factory()->create()->id],
+it('garde la trace d\'une seconde validation faite avant l\'abandon de la règle', function () {
+    $ancien = User::factory()->create(['name' => 'Second relecteur']);
+    lien(['sens' => 'contre', 'statut_validation' => 'valide', 'valide_par' => $this->moderateur->id,
+        'double_valide_par' => $ancien->id, 'double_valide_at' => now()],
         $this->controverse, $this->fait, $this->mesure);
 
     $this->actingAs($this->moderateur)
         ->get(route('admin.presidentielle.controverses.show', $this->controverse->id))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('faits.0.liaisons.0.attend_double_validation', true)
-            ->where('faits.0.liaisons.0.double_validation_par_moi_interdite', false)
-        );
-});
-
-it('n\'annonce pas de seconde validation pour une liaison « étaye »', function () {
-    lien(['sens' => 'pour', 'statut_validation' => 'valide', 'valide_par' => User::factory()->create()->id],
-        $this->controverse, $this->fait, $this->mesure);
-
-    $this->actingAs($this->moderateur)
-        ->get(route('admin.presidentielle.controverses.show', $this->controverse->id))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('faits.0.liaisons.0.sens_libelle', 'étaye')
-            ->where('faits.0.liaisons.0.attend_double_validation', false)
+            ->where('faits.0.liaisons.0.double_valide_par_nom', 'Second relecteur')
         );
 });

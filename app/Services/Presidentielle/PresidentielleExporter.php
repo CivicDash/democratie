@@ -1195,7 +1195,7 @@ class PresidentielleExporter
     /**
      * Travail en cours sur une controverse, en VOLUME seulement — jamais un nom, jamais un
      * contenu. Même principe que `affaires.en_verification` : le site peut annoncer
-     * honnêtement son avancement sans publier une liaison non encore doublement validée.
+     * honnêtement son avancement sans publier une liaison non encore validée.
      *
      * Sous le seuil de deux candidats on ne renvoie rien : un compteur à 1, croisé avec la
      * page thème, désignerait le candidat dont la position est en cours d'instruction.

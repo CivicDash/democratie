@@ -1,5 +1,4 @@
 <script setup>
-import { computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PresidentielleNav from '@/Components/PresidentielleNav.vue';
@@ -29,11 +28,6 @@ function agir(type, id, action) {
     router.post(route('admin.presidentielle.moderation.action'), { type, id, action }, { preserveScroll: true });
 }
 
-const liaisons = computed(() => props.faits.flatMap((f) => f.liaisons));
-
-const aDoubleValider = computed(() => liaisons.value.filter((l) => l.attend_double_validation));
-
-const bloqueesParMoi = computed(() => aDoubleValider.value.filter((l) => l.double_validation_par_moi_interdite));
 </script>
 
 <template>
@@ -82,24 +76,6 @@ const bloqueesParMoi = computed(() => aDoubleValider.value.filter((l) => l.doubl
                 <p class="text-xs text-gray-500 mt-3">
                     Ordre de publication : les faits d'abord, puis les liaisons, puis les mesures.
                     Publier une liaison dont le fait n'est pas publié est refusé.
-                </p>
-            </div>
-
-            <!-- Ce qui attend une seconde lecture -->
-            <div v-if="aDoubleValider.length"
-                 class="rounded-xl border border-violet-300 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-4">
-                <p class="font-medium text-violet-900 dark:text-violet-200">
-                    {{ aDoubleValider.length }} liaison{{ aDoubleValider.length > 1 ? 's' : '' }}
-                    « contredit » en attente d'une seconde validation
-                </p>
-                <p class="text-sm mt-1 text-violet-800 dark:text-violet-300">
-                    Elle doit venir d'un modérateur différent du premier, et c'est une seconde
-                    <em>lecture</em> : le fait, ses sources et la note contextuelle sont dépliés
-                    ci-dessous, à lire avant de confirmer.
-                </p>
-                <p v-if="bloqueesParMoi.length" class="text-sm mt-2 text-violet-800 dark:text-violet-300">
-                    {{ bloqueesParMoi.length === aDoubleValider.length ? 'Toutes' : bloqueesParMoi.length }}
-                    portent votre propre première validation : un autre modérateur doit s'en charger.
                 </p>
             </div>
 
@@ -209,22 +185,14 @@ const bloqueesParMoi = computed(() => aDoubleValider.value.filter((l) => l.doubl
                         </p>
 
                         <p class="text-xs text-gray-500 mt-2">
-                            <span v-if="l.valide_par_nom">1<sup>re</sup> validation : {{ l.valide_par_nom }} le {{ l.valide_at }}</span>
+                            <span v-if="l.valide_par_nom">Validée par {{ l.valide_par_nom }} le {{ l.valide_at }}</span>
                             <span v-else>Pas encore validée</span>
-                            <span v-if="l.double_valide_par_nom"> · 2<sup>e</sup> : {{ l.double_valide_par_nom }} le {{ l.double_valide_at }}</span>
+                            <span v-if="l.double_valide_par_nom"> · seconde validation (règle abandonnée le 03/11/2026) : {{ l.double_valide_par_nom }} le {{ l.double_valide_at }}</span>
                         </p>
 
                         <div class="flex items-center gap-2 mt-3 flex-wrap">
                             <ActionButton v-if="l.statut_validation !== 'valide'"
                                           verbe="valider" @action="agir('argument_lien', l.id, 'valider')" />
-
-                            <ActionButton v-if="l.attend_double_validation"
-                                          verbe="double_valider"
-                                          :disabled="l.double_validation_par_moi_interdite"
-                                          :titre="l.double_validation_par_moi_interdite
-                                              ? `Vous avez fait la première validation le ${l.valide_at} : la seconde revient à un autre modérateur.`
-                                              : null"
-                                          @action="agir('argument_lien', l.id, 'double_valider')" />
 
                             <ActionButton v-if="l.statut_validation === 'valide' && !l.affiche_publiquement"
                                           verbe="publier"
@@ -244,12 +212,7 @@ const bloqueesParMoi = computed(() => aDoubleValider.value.filter((l) => l.doubl
                             </Link>
                         </div>
 
-                        <p v-if="l.double_validation_par_moi_interdite"
-                           class="text-xs mt-2 text-violet-700 dark:text-violet-300">
-                            Vous avez signé la première validation : la seconde revient à un autre
-                            modérateur. C'est la règle du contrôle à quatre yeux, pas une panne.
-                        </p>
-                        <p v-else-if="l.raisons_non_publiable.length" class="text-xs mt-2 text-amber-700 dark:text-amber-400">
+                        <p v-if="l.raisons_non_publiable.length" class="text-xs mt-2 text-amber-700 dark:text-amber-400">
                             {{ l.raisons_non_publiable.join(' · ') }}
                         </p>
                     </div>

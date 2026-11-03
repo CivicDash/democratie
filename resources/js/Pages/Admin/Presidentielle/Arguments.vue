@@ -93,7 +93,6 @@ const parSens = (s) => props.liens.filter((l) => l.sens === s);
                     <h3 class="font-semibold text-sm mb-2" :class="sens === 'pour' ? 'text-green-700' : 'text-red-700'">
                         {{ sens === 'pour' ? '✔ Pour' : '✘ Contre' }} ({{ parSens(sens).length }})
                     </h3>
-                    <p v-if="sens === 'contre'" class="text-[11px] text-gray-500 mb-2">Les liaisons « contre » exigent une double validation (2 modérateurs différents).</p>
 
                     <div v-for="l in parSens(sens)" :key="l.id" class="rounded-xl border border-gray-200 dark:border-gray-700 p-3 mb-3 text-sm">
                         <div class="flex items-center justify-between gap-2">
@@ -159,7 +158,6 @@ const parSens = (s) => props.liens.filter((l) => l.sens === s);
 
                             <span class="text-[10px] text-gray-400 ml-2">Liaison :</span>
                             <button v-if="l.statut_validation !== 'valide'" @click="agirLien(l.id, 'valider')" class="px-2 py-1 text-[11px] rounded bg-blue-600 text-white">Valider</button>
-                            <button v-if="sens === 'contre' && l.statut_validation === 'valide' && !l.double_valide_par" @click="agirLien(l.id, 'double_valider')" class="px-2 py-1 text-[11px] rounded bg-indigo-600 text-white">Double valider</button>
                             <button v-if="l.statut_validation === 'valide' && !l.affiche_publiquement" @click="agirLien(l.id, 'publier')" class="px-2 py-1 text-[11px] rounded bg-green-600 text-white">Publier</button>
                             <button v-if="l.affiche_publiquement" @click="agirLien(l.id, 'depublier')" class="px-2 py-1 text-[11px] rounded bg-amber-100 text-amber-700">Dépublier</button>
                         </div>

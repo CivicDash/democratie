@@ -92,12 +92,11 @@ it('refuse de publier une mesure sans contre-argument', function () {
     expect($mesure->fresh()->affiche_publiquement)->toBeFalse();
 });
 
-it('exige une double validation par un second modérateur pour une liaison « contre »', function () {
+it('publie une liaison « contre » validée une seule fois (double validation abandonnée le 03/11/2026)', function () {
     $service = app(ModerationService::class);
-    $mod1 = moderateur();
-    $mod2 = moderateur();
+    $mod = moderateur();
 
-    // Liaison contre publiable en tout sauf la double validation.
+    // Fait publié et sourcé, note contextuelle présente : une validation suffit.
     $arg = Argument::factory()->publie()->create();
     ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
     $contre = ArgumentMesureLien::factory()->contre()->create([
@@ -106,17 +105,32 @@ it('exige une double validation par un second modérateur pour une liaison « co
         'note_contextuelle' => 'ce fait joue contre cette mesure',
         'statut_validation' => 'detecte',
     ]);
-    $service->valider($contre, $mod1);
 
-    // le même modérateur ne peut pas doubler sa propre validation
-    expect(fn () => $service->doubleValider($contre->fresh(), $mod1))->toThrow(ModerationException::class);
+    // pas encore validée : publication refusée
+    expect(fn () => $service->publier($contre->fresh(), $mod))->toThrow(ModerationException::class);
 
-    // publier sans double validation est refusé
-    expect(fn () => $service->publier($contre->fresh(), $mod1))->toThrow(ModerationException::class);
-
-    $service->doubleValider($contre->fresh(), $mod2);
-    expect($contre->fresh()->double_valide_par)->toBe($mod2->id);
+    $service->valider($contre, $mod);
+    expect($service->raisonsNonPubliable($contre->fresh()))->toBe([]);
     expect($contre->fresh()->estValide())->toBeTrue();
+
+    $service->publier($contre->fresh(), $mod);
+    expect($contre->fresh()->affiche_publiquement)->toBeTrue();
+    expect($contre->fresh()->double_valide_par)->toBeNull();
+});
+
+it('refuse une liaison « contre » sans note contextuelle, même validée', function () {
+    $service = app(ModerationService::class);
+    $arg = Argument::factory()->publie()->create();
+    ArgumentSource::factory()->create(['argument_id' => $arg->id, 'fiabilite' => 'haute']);
+    $contre = ArgumentMesureLien::factory()->contre()->create([
+        'argument_id' => $arg->id,
+        'mesure_id' => ProgrammeMesure::factory()->create()->id,
+        'note_contextuelle' => null,
+        'statut_validation' => 'detecte',
+    ]);
+    $service->valider($contre, moderateur());
+
+    expect($service->raisonsNonPubliable($contre->fresh()))->toContain('note contextuelle manquante');
 });
 
 it('expose la file de modération au modérateur et refuse les autres (403)', function () {
@@ -277,11 +291,10 @@ it('gère les arguments sourcés depuis le BO jusqu à la publication de la mesu
         $svc->valider($arg, $mod1);
         $svc->publier($arg->fresh(), $mod1);
     }
-    // Publier les liaisons (le « contre » exige une double validation).
+    // Publier les liaisons (une validation suffit, quel que soit le sens).
     $svc->valider($lienPour->fresh(), $mod1);
     $svc->publier($lienPour->fresh(), $mod1);
     $svc->valider($lienContre->fresh(), $mod1);
-    $svc->doubleValider($lienContre->fresh(), $mod2);
     $svc->publier($lienContre->fresh(), $mod1);
 
     // la mesure devient publiable via l'endpoint

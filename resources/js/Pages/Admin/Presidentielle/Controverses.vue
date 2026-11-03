@@ -188,8 +188,8 @@ const erreurs = () => usePage().props.errors ?? {};
                                 </Link>
                                 <div class="text-xs text-gray-500">
                                     <!-- L'action en lot agit sur des identifiants. Le détail est
-                                         le seul endroit où l'on voit ce que l'on valide : pour une
-                                         seconde validation, c'est la lecture qui fait le contrôle. -->
+                                         le seul endroit où l'on voit ce que l'on valide : c'est la
+                                         lecture qui fait le contrôle. -->
                                     <Link :href="route('admin.presidentielle.controverses.show', c.id)"
                                           class="text-blue-600 hover:underline">
                                         Lire les faits, sources et liaisons →
@@ -232,11 +232,6 @@ const erreurs = () => usePage().props.errors ?? {};
                                                       verbe="valider"
                                                       :libelle="`Valider ${c.lot.liens_a_valider.length} liaison(s)`"
                                                       @action="agirLot('argument_lien', c.lot.liens_a_valider, 'valider', 'Valider les liaisons')" />
-                                        <ActionButton v-if="c.lot.liens_a_double_valider.length"
-                                                      verbe="double_valider"
-                                                      :libelle="`2ᵉ validation · ${c.lot.liens_a_double_valider.length} liaison(s)`"
-                                                      titre="Exige un modérateur différent du premier validateur"
-                                                      @action="agirLot('argument_lien', c.lot.liens_a_double_valider, 'double_valider', 'Seconde validation')" />
                                         <ActionButton v-if="c.lot.arguments_a_publier.length"
                                                       verbe="publier" :confirmer="false"
                                                       :libelle="`Publier ${c.lot.arguments_a_publier.length} fait(s)`"
@@ -246,8 +241,7 @@ const erreurs = () => usePage().props.errors ?? {};
                                                       :libelle="`Publier ${c.lot.liens_a_publier.length} liaison(s)`"
                                                       @action="agirLot('argument_lien', c.lot.liens_a_publier, 'publier', 'Publier les liaisons')" />
                                         <span v-if="!c.lot.arguments_a_valider.length && !c.lot.liens_a_valider.length
-                                                    && !c.lot.arguments_a_publier.length && !c.lot.liens_a_publier.length
-                                                    && !c.lot.liens_a_double_valider.length"
+                                                    && !c.lot.arguments_a_publier.length && !c.lot.liens_a_publier.length"
                                               class="text-xs text-gray-400">Rien à traiter.</span>
                                     </div>
                                 </div>

@@ -35,16 +35,14 @@ class ArgumentMesureLienFactory extends Factory
         return $this->state(fn () => ['sens' => 'contre']);
     }
 
-    /** Liaison publiée. Un « contre » est aussi doublement validé (règle éditoriale). */
+    /** Liaison publiée : validée une fois, quel que soit le sens. */
     public function publie(): static
     {
-        return $this->state(fn (array $attrs) => [
+        return $this->state(fn () => [
             'statut_validation' => 'valide',
             'affiche_publiquement' => true,
             'valide_par' => User::factory(),
             'valide_at' => now(),
-            'double_valide_par' => ($attrs['sens'] ?? 'pour') === 'contre' ? User::factory() : null,
-            'double_valide_at' => ($attrs['sens'] ?? 'pour') === 'contre' ? now() : null,
         ]);
     }
 }

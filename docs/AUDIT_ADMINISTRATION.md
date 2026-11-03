@@ -132,9 +132,12 @@ lui-même : un même fait étaye une mesure et contredit son opposée.
 - Aucun affichage pour/contre en dehors du niveau d'**une** mesure.
 - Le sens sort du référentiel de couleurs : il s'écrit **« étaye »** / **« contredit »**,
   en gris, toujours collé au titre de la mesure visée.
-- Un tableau de bord agrégé compte des liaisons **sans jamais les ventiler par sens**.
-  « N liaisons en attente de 2ᵉ validation » est licite, puisque la double validation ne
-  s'applique qu'aux liaisons « contredit » ; « N faits contre » ne l'est pas.
+- Un tableau de bord agrégé compte des liaisons **sans jamais les ventiler par sens** :
+  « N liaisons à valider » est licite, « N faits contre » ne l'est pas.
+- Depuis le 03/11/2026, une liaison se valide **une fois**, quel que soit son sens : la
+  double validation des liaisons « contredit » est abandonnée (un seul modérateur). Les
+  colonnes `double_valide_par/at` gardent la trace des secondes validations antérieures.
+  Les affaires judiciaires gardent, elles, leur double validation.
 
 ## Déploiement
 

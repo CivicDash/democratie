@@ -55,30 +55,6 @@ class ModerationService
     }
 
     /**
-     * Double validation d'une liaison « contre » (règle §5). Le sens vit désormais sur la
-     * liaison : c'est l'emploi d'un fait CONTRE une mesure qu'on soumet à double contrôle.
-     * Le second validateur doit être différent du premier.
-     */
-    public function doubleValider(ArgumentMesureLien $lien, User $user): ArgumentMesureLien
-    {
-        if ($lien->sens !== 'contre') {
-            throw new ModerationException('La double validation ne concerne que les liaisons « contre ».');
-        }
-        if ($lien->statut_validation !== 'valide' || ! $lien->valide_par) {
-            throw new ModerationException('La liaison doit d\'abord être validée une première fois.');
-        }
-        if ((int) $lien->valide_par === $user->id) {
-            throw new ModerationException('La seconde validation doit être faite par un autre modérateur.');
-        }
-        $lien->double_valide_par = $user->id;
-        $lien->double_valide_at = now();
-        $lien->save();
-        $this->log($lien, 'double_validation', 'valide', 'valide', $user);
-
-        return $lien;
-    }
-
-    /**
      * Publication : affiche_publiquement = true, sous conditions d'invariants.
      *
      * @throws ModerationException si un invariant bloquant n'est pas satisfait
@@ -461,9 +437,6 @@ class ModerationService
             $entite->loadMissing('argument');
             if (! $entite->argument || ! $entite->argument->affiche_publiquement) {
                 $raisons[] = 'argument non publié';
-            }
-            if ($entite->sens === 'contre' && ! $entite->double_valide_par) {
-                $raisons[] = 'liaison « contre » non doublement validée';
             }
         }
 

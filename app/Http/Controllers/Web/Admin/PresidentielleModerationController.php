@@ -53,14 +53,14 @@ class PresidentielleModerationController extends Controller
 {
     /** Types d'entités pilotables par le workflow statut_validation. */
     /** Actions unitaires acceptées par action(). */
-    private const ACTIONS = ['prendre_en_charge', 'demander_complement', 'valider', 'double_valider', 'publier', 'depublier', 'supprimer', 'mettre_en_avant', 'retirer_en_avant'];
+    private const ACTIONS = ['prendre_en_charge', 'demander_complement', 'valider', 'publier', 'depublier', 'supprimer', 'mettre_en_avant', 'retirer_en_avant'];
 
     /**
      * Sous-ensemble applicable en lot : uniquement les transitions d'état du workflow.
      * Volontairement sans 'supprimer' ni la mise en avant — une suppression de masse ne doit
      * pas tenir à une case cochée par erreur.
      */
-    private const ACTIONS_LOT = ['valider', 'double_valider', 'publier', 'depublier'];
+    private const ACTIONS_LOT = ['valider', 'publier', 'depublier'];
 
     private const MODELS = [
         'candidat' => CandidatPresidentielle::class,
@@ -257,16 +257,19 @@ class PresidentielleModerationController extends Controller
      * Détail d'une controverse : ses faits, leurs sources, et l'emploi de chaque fait.
      *
      * Écran manquant jusqu'ici, et son absence avait une conséquence précise. La liste des
-     * controverses propose une double validation en lot, par identifiants : un modérateur
-     * pouvait donc confirmer dix liaisons « contre » sans jamais lire ce qu'il confirmait.
-     * Or la seconde validation n'a de sens que comme seconde LECTURE, indépendante de la
-     * première. Un bouton sans texte à lire la vide de son objet.
+     * controverses proposait de valider en lot, par identifiants : un modérateur pouvait
+     * donc confirmer dix liaisons sans jamais lire ce qu'il confirmait. Une validation n'a
+     * de sens que comme LECTURE ; un bouton sans texte à lire la vide de son objet.
+     *
+     * Depuis le 03/11/2026, une seule validation suffit, quel que soit le sens (décision
+     * de Kévin, un seul modérateur). Les colonnes double_valide_par/at restent en base :
+     * l'écran affiche encore les secondes validations faites auparavant.
      *
      * Contrainte métier respectée ici : le sens est porté par la liaison, jamais par le
      * fait. Les faits ne sont donc ni groupés ni filtrés par sens ; le libellé « étaye » /
      * « contredit » reste collé au titre de la mesure visée, à l'intérieur du fait.
      */
-    public function controverseShow(Controverse $controverse, ModerationService $service, Request $request)
+    public function controverseShow(Controverse $controverse, ModerationService $service)
     {
         $controverse->load([
             'theme',
@@ -280,8 +283,6 @@ class PresidentielleModerationController extends Controller
             ->flatMap(fn ($l) => [$l->valide_par, $l->double_valide_par])
             ->filter()->unique()->values();
         $moderateurs = User::whereIn('id', $moderateurIds)->pluck('name', 'id');
-
-        $moiId = (int) $request->user()->id;
 
         return Inertia::render('Admin/Presidentielle/ControverseDetail', [
             'controverse' => [
@@ -318,11 +319,8 @@ class PresidentielleModerationController extends Controller
                 ]),
                 // L'emploi du fait : une entrée par mesure visée. C'est ici, et seulement
                 // ici, que le sens apparaît.
-                'liaisons' => $a->liens->map(function ($l) use ($moderateurs, $moiId, $service) {
+                'liaisons' => $a->liens->map(function ($l) use ($moderateurs, $service) {
                     $premier = $l->valide_par ? (int) $l->valide_par : null;
-                    $attendDouble = $l->sens === 'contre'
-                        && $l->statut_validation === 'valide'
-                        && ! $l->double_valide_par;
 
                     return [
                         'id' => $l->id,
@@ -344,11 +342,6 @@ class PresidentielleModerationController extends Controller
                             ? ($moderateurs[(int) $l->double_valide_par] ?? 'modérateur #'.$l->double_valide_par)
                             : null,
                         'double_valide_at' => $l->double_valide_at?->format('d/m/Y H:i'),
-                        'attend_double_validation' => $attendDouble,
-                        // Le service refuse qu'une même personne valide deux fois. L'écran
-                        // doit le dire AVANT le clic, sinon le garde-fou se vit comme une
-                        // panne : bouton pressé, message d'erreur, rien de fait.
-                        'double_validation_par_moi_interdite' => $attendDouble && $premier === $moiId,
                         'raisons_non_publiable' => $service->raisonsNonPubliable($l),
                     ];
                 })->values(),
@@ -786,12 +779,6 @@ class PresidentielleModerationController extends Controller
                         'arguments_a_publier' => $aPublier($args),
                         'liens_a_valider' => $aValider($liens),
                         'liens_a_publier' => $aPublier($liens),
-                        // La seconde validation d'une liaison « contre » exige un modérateur
-                        // différent du premier : le lot la propose, le service la refuse si
-                        // c'est la même personne. Le garde-fou reste entier.
-                        'liens_a_double_valider' => $liens->where('sens', 'contre')
-                            ->where('statut_validation', 'valide')
-                            ->whereNull('double_valide_par')->pluck('id')->values(),
                     ],
                 ];
             });
@@ -1846,9 +1833,8 @@ class PresidentielleModerationController extends Controller
      * Applique en lot une action de modération à plusieurs entités du même type.
      *
      * Chaque entité passe individuellement par ModerationService : les invariants sont
-     * vérifiés un par un et chaque action reste tracée dans presidentielle_moderation_logs.
-     * En particulier, la double validation d'une liaison « contre » continue d'exiger un
-     * modérateur DIFFÉRENT du premier validateur — le lot n'affaiblit aucun garde-fou.
+     * vérifiés un par un et chaque action reste tracée dans presidentielle_moderation_logs :
+     * le lot n'affaiblit aucun garde-fou.
      *
      * Un échec n'interrompt pas le lot : les motifs sont collectés et rendus à l'écran, car
      * sur une centaine d'objets un blocage isolé ne doit pas annuler le travail restant.
@@ -1934,9 +1920,6 @@ class PresidentielleModerationController extends Controller
             'prendre_en_charge' => $service->prendreEnCharge($entite, $user),
             'demander_complement' => $service->demanderComplement($entite, $user, $commentaire ?? 'complément requis'),
             'valider' => $service->valider($entite, $user, $commentaire),
-            'double_valider' => $entite instanceof ArgumentMesureLien
-                ? $service->doubleValider($entite, $user)
-                : throw new ModerationException('La double validation ne concerne que les liaisons argument↔mesure « contre ».'),
             'publier' => $service->publier($entite, $user),
             'depublier' => $service->depublier($entite, $user, $commentaire),
         };

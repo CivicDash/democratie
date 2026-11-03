@@ -50,7 +50,6 @@ function argumentPublie(ProgrammeMesure $m, string $sens): ArgumentMesureLien
         'note_contextuelle' => 'Pourquoi ce fait porte sur cette mesure.',
         'statut_validation' => 'valide',
         'affiche_publiquement' => true,
-        'double_valide_par' => $sens === 'contre' ? User::factory()->create()->id : null,
     ]);
 }
 

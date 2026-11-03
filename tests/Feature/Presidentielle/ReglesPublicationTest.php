@@ -30,23 +30,23 @@ it('un lien mesure↔scrutin sans explication n’est jamais publiable', functio
         ->and($sansExplication->estPubliable())->toBeFalse();
 });
 
-it('une liaison « contre » exige une double validation', function () {
+it('une liaison est valide après une seule validation, quel que soit le sens', function () {
     $u1 = User::factory()->create();
-    $u2 = User::factory()->create();
 
-    // Liaison contre validée une fois, reliée à une mesure, dotée d'une note : pas encore valide.
+    // Liaison contre validée une fois, reliée à une mesure, dotée d'une note : valide.
     $contre = ArgumentMesureLien::factory()->contre()->create([
         'statut_validation' => 'valide',
         'note_contextuelle' => 'ce fait joue contre cette mesure',
         'valide_par' => $u1->id,
         'double_valide_par' => null,
     ]);
-    expect($contre->estValide())->toBeFalse();
+    expect($contre->estValide())->toBeTrue();
 
-    $contre->update(['double_valide_par' => $u2->id]);
-    expect($contre->refresh()->estValide())->toBeTrue();
+    // Sans note contextuelle, elle ne l'est pas.
+    $contre->update(['note_contextuelle' => null]);
+    expect($contre->refresh()->estValide())->toBeFalse();
 
-    // Une liaison "pour" n'exige qu'une validation simple.
+    // Une liaison "pour" : même règle.
     $pour = ArgumentMesureLien::factory()->pour()->create([
         'statut_validation' => 'valide',
         'note_contextuelle' => 'ce fait joue pour cette mesure',

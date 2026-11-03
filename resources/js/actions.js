@@ -28,13 +28,6 @@ export const ACTIONS = {
         classe: 'bg-blue-600 hover:bg-blue-700 text-white border border-transparent',
         confirme: false,
     },
-    double_valider: {
-        libelle: '2ᵉ validation',
-        // Ni valider ni publier : un contrôle à quatre yeux, exercé par un AUTRE
-        // modérateur. Une nature de geste distincte mérite sa propre couleur.
-        classe: 'bg-violet-600 hover:bg-violet-700 text-white border border-transparent',
-        confirme: false,
-    },
     publier: {
         libelle: 'Publier',
         // Le vert ne veut plus dire qu'une chose : « c'est sur le site public ».

@@ -92,7 +92,7 @@ function candidatPubliePublic(array $overrides = []): array
 
 /**
  * Crée un fait (argument) publié + une source fiable, et le relie à la mesure par une
- * liaison publiée dans le sens donné (une liaison « contre » est doublement validée).
+ * liaison publiée dans le sens donné (validée une fois, quel que soit le sens).
  */
 function lierArgumentPublie(\App\Models\ProgrammeMesure $mesure, string $sens): \App\Models\ArgumentMesureLien
 {
