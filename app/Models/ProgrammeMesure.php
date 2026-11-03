@@ -19,6 +19,9 @@ class ProgrammeMesure extends Model
     public const STATUTS_MESURE = ['annoncee', 'precisee', 'abandonnee', 'modifiee'];
     public const STATUTS_VALIDATION = ['detecte', 'en_review', 'a_completer', 'valide'];
 
+    /** Longueur de la colonne `titre` ; le texte complet de la mesure est dans `resume`. */
+    public const LONGUEUR_TITRE = 300;
+
     protected $fillable = [
         'uuid', 'candidat_id', 'theme_id', 'titre', 'resume', 'description_complete',
         'chiffrage_annonce', 'source_officielle_url', 'date_annonce', 'statut_mesure',
@@ -43,6 +46,29 @@ class ProgrammeMesure extends Model
                 $m->uuid = (string) Str::uuid();
             }
         });
+    }
+
+    /**
+     * Titre tiré du texte complet d'une mesure : le texte entier s'il tient dans la colonne,
+     * sinon coupé au dernier mot entier et suivi de « … ». Jamais au milieu d'un mot, jamais
+     * sans le signaler : un titre tronqué sans marque se lit comme la mesure entière.
+     */
+    public static function titreDepuis(string $texte): string
+    {
+        if (mb_strlen($texte) <= self::LONGUEUR_TITRE) {
+            return $texte;
+        }
+
+        // Une place pour « … ».
+        $coupe = mb_substr($texte, 0, self::LONGUEUR_TITRE - 1);
+        if (! preg_match('/^\s/u', mb_substr($texte, self::LONGUEUR_TITRE - 1, 1))) {
+            // La coupe tombe dans un mot : on le retire en entier (sauf texte sans espace).
+            $coupe = preg_replace('/\s+\S*$/u', '', $coupe) ?? $coupe;
+        }
+        // Ni virgule, ni deux-points, ni guillemet ouvrant orphelin avant les points de suspension.
+        $coupe = preg_replace('/[\s,;:.(«\'"–—-]+$/u', '', $coupe) ?? $coupe;
+
+        return $coupe.'…';
     }
 
     public function candidat(): BelongsTo

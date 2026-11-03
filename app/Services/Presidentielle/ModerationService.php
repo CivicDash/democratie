@@ -17,7 +17,6 @@ use App\Models\QuizQuestion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 /**
  * Moteur du back-office de modération présidentielle (plan §5).
@@ -161,8 +160,9 @@ class ModerationService
         $mesure = ProgrammeMesure::create([
             'candidat_id' => $p->candidat_id,
             'theme_id' => $p->theme_id,
-            'titre' => Str::limit($p->resume_propose, 295, ''),
-            'resume' => Str::limit($p->resume_propose, 295, ''),
+            // Le texte complet dans `resume` ; le titre, court, coupé au dernier mot entier.
+            'titre' => ProgrammeMesure::titreDepuis($p->resume_propose),
+            'resume' => $p->resume_propose,
             'source_officielle_url' => $p->source_url,
             'statut_mesure' => $p->type === 'revirement' ? 'modifiee' : 'annoncee',
             'statut_validation' => 'detecte',

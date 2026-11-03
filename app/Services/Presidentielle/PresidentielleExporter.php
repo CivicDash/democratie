@@ -225,12 +225,13 @@ class PresidentielleExporter
             // Le résumé accompagne la citation dans le jeu : il ne doit nommer personne.
             // Deux résumés du corpus citent un adversaire (« S'oppose à la position de
             // Jean-Luc Mélenchon… ») — cela ne donne pas la réponse mais rétrécit le champ.
-            ->whereRaw("m.titre !~* '(m[ée]lenchon|le pen|zemmour|attal|philippe|retailleau|ruffin|tondelier|glucksmann|villepin|roussel|arthaud|bardella|macron|faure|royal|guedj|cazeneuve|hollande|bertrand|lisnard)'")
+            ->whereRaw("coalesce(m.resume, m.titre) !~* '(m[ée]lenchon|le pen|zemmour|attal|philippe|retailleau|ruffin|tondelier|glucksmann|villepin|roussel|arthaud|bardella|macron|faure|royal|guedj|cazeneuve|hollande|bertrand|lisnard)'")
             ->orderBy('m.id')
             ->get([
                 'p.uuid as ref', 'p.citation_verbatim', 'p.timestamp_ou_paragraphe', 'p.source_url',
                 'pp.slug as candidat', 'pp.prenom', 'pp.nom', 'c.couleur_hex', 't.slug as theme',
-                'm.titre as contexte',
+                // Le texte complet : le titre peut être coupé (« … »).
+                DB::raw('coalesce(m.resume, m.titre) as contexte'),
                 'd.titre as doc_titre', 'd.url as doc_url', 'd.date_publication',
             ]);
 
@@ -407,6 +408,7 @@ class PresidentielleExporter
                             ->unique('slug')->values()->all(),
                         'mesures' => $mesures->map(fn ($m) => [
                             'titre' => $m->titre,
+                            'resume' => $m->resume,
                             'candidat_slug' => $m->candidat?->personnePolitique?->slug,
                             'source_url' => $this->url($m->source_officielle_url),
                         ])->values()->all(),
@@ -444,6 +446,7 @@ class PresidentielleExporter
                 // « Relevée » : fait vérifié, affiché a minima (titre + source), sans argumentaire
                 $mesuresRelevees[$themeSlug][] = [
                     'titre' => $mesure->titre,
+                    'resume' => $mesure->resume,
                     'source_url' => $this->url($mesure->source_officielle_url),
                     'date_annonce' => optional($mesure->date_annonce)->toDateString(),
                     'statut' => $mesure->statut_mesure,

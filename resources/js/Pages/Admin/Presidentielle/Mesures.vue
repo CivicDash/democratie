@@ -95,7 +95,7 @@ const messageSuppression = 'Sa proposition d’origine reviendra en file de tri,
                             <td class="p-3 whitespace-nowrap">{{ nomCandidat(m) }}</td>
                             <td class="p-3 whitespace-nowrap">{{ m.theme?.nom ?? '—' }}</td>
                             <td class="p-3 max-w-md">
-                                {{ m.titre }}
+                                {{ m.resume || m.titre }}
                                 <span v-if="m.est_mise_en_avant"
                                       class="ml-1 text-xs px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                                     Mesure phare
@@ -119,7 +119,7 @@ const messageSuppression = 'Sa proposition d’origine reviendra en file de tri,
                                 <ActionButton v-if="m.statut_validation === 'valide' && !m.affiche_publiquement"
                                               verbe="publier"
                                               titre-confirmation="Publier cette mesure ?"
-                                              :confirmation="messagePublication('Cette mesure de ' + nomCandidat(m), m.titre)"
+                                              :confirmation="messagePublication('Cette mesure de ' + nomCandidat(m), m.resume || m.titre)"
                                               @action="agir(m.id, 'publier')" />
 
                                 <ActionButton v-if="m.affiche_publiquement"

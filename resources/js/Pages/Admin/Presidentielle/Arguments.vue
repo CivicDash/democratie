@@ -63,7 +63,7 @@ const parSens = (s) => props.liens.filter((l) => l.sens === s);
                 <div class="flex items-start justify-between gap-3 flex-wrap">
                     <div>
                         <Link :href="route('admin.presidentielle.mesures')" class="text-xs text-blue-600 hover:underline">← Toutes les mesures</Link>
-                        <h3 class="font-semibold mt-1">{{ mesure.titre }}</h3>
+                        <h3 class="font-semibold mt-1">{{ mesure.resume || mesure.titre }}</h3>
                         <p class="text-sm text-gray-500">{{ mesure.candidat }} · {{ mesure.theme }}</p>
                     </div>
                     <div class="text-right space-y-1">

@@ -364,6 +364,7 @@ class PresidentielleModerationController extends Controller
             // mesure suppose de feuilleter vingt-cinq lignes à la fois.
             ->when($q !== '', fn ($r) => $r->where(fn ($sub) => $sub
                 ->where('titre', 'ilike', "%{$q}%")
+                ->orWhere('resume', 'ilike', "%{$q}%")
                 ->orWhereHas('candidat.personnePolitique', fn ($p) => $p
                     ->where('nom', 'ilike', "%{$q}%")
                     ->orWhere('prenom', 'ilike', "%{$q}%"))))
