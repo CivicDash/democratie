@@ -209,6 +209,38 @@ class ModerationService
         return $mesure;
     }
 
+    /**
+     * Rattache une redite à la mesure qu'elle reprend : la mesure gagne une prise de parole
+     * (citation, date, minute) au lieu d'être créée une seconde fois. Mêmes garde-fous que
+     * la création d'une mesure, plus deux : la mesure est celle du même candidat, et la
+     * citation a été retrouvée mot pour mot, puisqu'elle paraîtra aussitôt sous la mesure.
+     *
+     * @throws ModerationException
+     */
+    public function rattacherAMesure(IngestionProposition $p, ProgrammeMesure $mesure, User $user): IngestionProposition
+    {
+        if ($p->estEntourage()) {
+            throw new ModerationException('La parole de l\'entourage ne compte pas comme une prise de parole du candidat.');
+        }
+        if ($p->statut !== 'detecte') {
+            throw new ModerationException('Proposition déjà traitée (statut : '.$p->statut.').');
+        }
+        if (! $p->candidat_id || (int) $p->candidat_id !== (int) $mesure->candidat_id) {
+            throw new ModerationException("La mesure #{$mesure->id} n'est pas celle de ce candidat.");
+        }
+        if (! $p->verbatim_verifie) {
+            throw new ModerationException('Citation non confirmée mot pour mot : rattachée, elle paraîtrait sous la mesure sans vérification.');
+        }
+        if ($raisons = app(ReglesLocuteur::class)->raisons($p)) {
+            throw new ModerationException('Rattachement impossible : '.implode(' ; ', $raisons));
+        }
+
+        $p->update(['statut' => 'rattachee', 'mesure_id' => $mesure->id, 'valide_par' => $user->id, 'valide_at' => now()]);
+        $this->log($p, 'rattachement_redite', 'detecte', 'rattachee', $user, "Redite de la mesure #{$mesure->id}.");
+
+        return $p;
+    }
+
     /** Rejette une proposition d'ingestion (statut `rejetee`), avec motif journalisé. */
     public function rejeterProposition(IngestionProposition $p, User $user, ?string $motif = null): IngestionProposition
     {
@@ -259,9 +291,10 @@ class ModerationService
      *
      * Mode `mesures` : les propositions de type « mesure » deviennent des mesures (non
      * publiées), les autres sont validées sans mesure. Mode `sans_mesure` : toutes paraissent
-     * dans les prises de parole, aucune mesure n'est créée.
+     * dans les prises de parole, aucune mesure n'est créée. Dans les deux modes, une redite
+     * est rattachée à la mesure qu'elle reprend : valider le lot ne crée jamais de doublon.
      *
-     * @return array{mesures: int, sans_mesure: int, ignorees: array<string, int>, echecs: list<array{id: int, motif: string}>}
+     * @return array{mesures: int, redites: int, sans_mesure: int, ignorees: array<string, int>, echecs: list<array{id: int, motif: string}>}
      */
     public function validerDocument(IngestionDocument $document, User $user, string $mode = 'mesures'): array
     {
@@ -269,7 +302,7 @@ class ModerationService
             throw new ModerationException("Mode de validation inconnu « {$mode} ».");
         }
 
-        $bilan = ['mesures' => 0, 'sans_mesure' => 0, 'ignorees' => [], 'echecs' => []];
+        $bilan = ['mesures' => 0, 'redites' => 0, 'sans_mesure' => 0, 'ignorees' => [], 'echecs' => []];
         $ignorer = function (string $motif) use (&$bilan) {
             $bilan['ignorees'][$motif] = ($bilan['ignorees'][$motif] ?? 0) + 1;
         };
@@ -288,7 +321,10 @@ class ModerationService
                 continue;
             }
             try {
-                if ($mode === 'mesures' && $p->type === 'mesure') {
+                if ($p->redite_de_mesure_id && $p->rediteDe) {
+                    $this->rattacherAMesure($p, $p->rediteDe, $user);
+                    $bilan['redites']++;
+                } elseif ($mode === 'mesures' && $p->type === 'mesure') {
                     $this->creerMesureDepuisProposition($p, $user);
                     $bilan['mesures']++;
                 } else {

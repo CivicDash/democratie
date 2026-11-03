@@ -157,6 +157,13 @@ class PresidentielleExporter
     }
 
     /** Nombre de citations retenues par candidat, et seuil d'entrée dans le vivier. */
+    /**
+     * Une mesure dite dans au moins ce nombre de prises de parole distinctes est signalée
+     * « Proposition récurrente ». Règle de comptage, la même pour tous : elle est écrite
+     * dans la méthodologie du site et ne compte que les prises de parole que nous suivons.
+     */
+    public const SEUIL_RECURRENCE = 3;
+
     private const JEU_PAR_CANDIDAT = 10;
 
     private const JEU_MINIMUM = 10;
@@ -442,6 +449,7 @@ class PresidentielleExporter
                     'statut' => $mesure->statut_mesure,
                     'porte_par' => $this->portePar($mesure),
                     'citations' => $this->citationsAppui($mesure),
+                    'prises_de_parole' => $this->prisesDeParole($mesure),
                 ];
 
                 continue;
@@ -456,6 +464,7 @@ class PresidentielleExporter
                 'mise_en_avant' => (bool) $mesure->est_mise_en_avant,
                 'porte_par' => $this->portePar($mesure),
                 'citations' => $this->citationsAppui($mesure),
+                'prises_de_parole' => $this->prisesDeParole($mesure),
                 'arguments' => [
                     'pour' => $this->exportArguments($mesure->liens->where('sens', 'pour')),
                     'contre' => $this->exportArguments($mesure->liens->where('sens', 'contre')),
@@ -847,6 +856,29 @@ class PresidentielleExporter
                 ->unique('nom')
                 ->sortBy('nom', SORT_NATURAL | SORT_FLAG_CASE)
                 ->values()->all(),
+        ];
+    }
+
+    /**
+     * Combien de prises de parole distinctes portent une mesure, et la plus récente. Une
+     * prise de parole = un document dépouillé dont une proposition est rattachée à la mesure
+     * (la première, puis chaque redite). La parole de l'entourage ne compte pas.
+     *
+     * @return array{nombre: int, derniere: ?string, recurrente: bool}
+     */
+    private function prisesDeParole(ProgrammeMesure $mesure): array
+    {
+        $documents = $mesure->propositionsSource
+            ->filter(fn ($p) => $p->statut === 'rattachee' && $p->document_id && ! $p->estEntourage())
+            ->map(fn ($p) => $p->document)
+            ->filter()
+            ->unique('id');
+        $nombre = $documents->count();
+
+        return [
+            'nombre' => $nombre,
+            'derniere' => optional($documents->max('date_publication'))->toDateString(),
+            'recurrente' => $nombre >= self::SEUIL_RECURRENCE,
         ];
     }
 

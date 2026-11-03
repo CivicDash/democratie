@@ -255,6 +255,7 @@ function enregistrerLocuteur(p) {
                                 {{ d.nb_en_file - d.nb_en_file_confirmees }} autre(s), dont la citation n'est pas confirmée, resteront en file.
                             </span>
                             Écartez d'abord ce qui vous gêne (« Voir ses propositions en file », puis Rejeter).
+                            Les redites d'une mesure déjà au comparateur lui sont rattachées : aucune mesure n'est créée en double.
                         </p>
                         <fieldset class="space-y-1">
                             <label class="flex items-start gap-2">
@@ -394,6 +395,9 @@ function enregistrerLocuteur(p) {
                                 <p class="italic">« {{ p.citation_verbatim }} »</p>
                                 <p class="text-xs text-gray-400 mt-1">{{ p.resume_propose }} <span v-if="p.timestamp_ou_paragraphe">· {{ p.timestamp_ou_paragraphe }}</span></p>
                                 <p v-if="p.document" class="text-[11px] text-gray-400 mt-1 truncate">{{ p.document.titre }}</p>
+                                <p v-if="p.redite_de" class="text-[11px] mt-1 text-blue-700 dark:text-blue-300">
+                                    Redite de la mesure #{{ p.redite_de.id }} : « {{ p.redite_de.titre }} »
+                                </p>
                             </td>
                             <td class="p-3">
                                 <span :class="p.verbatim_verifie ? 'text-green-600' : 'text-amber-600'" :title="p.verbatim_verifie ? 'citation retrouvée dans la transcription' : 'citation à vérifier'">
@@ -405,8 +409,12 @@ function enregistrerLocuteur(p) {
                                 <div class="flex flex-wrap justify-end gap-1">
                                     <!-- Le candidat et son équipe : mesure, ou validation simple. -->
                                     <template v-if="p.statut === 'detecte' && !p.entourage">
+                                        <!-- Redite : la mesure existe déjà, on lui ajoute cette prise de parole. -->
+                                        <ActionButton v-if="p.redite_de" verbe="valider" :libelle="`Rattacher à la mesure #${p.redite_de.id}`"
+                                                      :disabled="enTraitement.has(p.id) || p.raisons_cote_candidat.length > 0 || !p.verbatim_verifie"
+                                                      @action="agir(p, 'rattacher')" />
                                         <!-- Bleu, pas vert : la mesure créée naît en « détectée » et n'est pas publiée. -->
-                                        <ActionButton verbe="valider" libelle="Valider → mesure"
+                                        <ActionButton :verbe="p.redite_de ? 'neutre' : 'valider'" libelle="Valider → mesure"
                                                       :disabled="enTraitement.has(p.id) || p.raisons_cote_candidat.length > 0"
                                                       @action="agir(p, 'valider')" />
                                         <ActionButton verbe="neutre" libelle="Valider sans mesure"

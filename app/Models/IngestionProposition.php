@@ -28,7 +28,7 @@ class IngestionProposition extends Model
         'uuid', 'document_id', 'candidat_slug', 'candidat_id', 'theme_slug', 'theme_id',
         'locuteur', 'role_locuteur', 'qualite_locuteur',
         'type', 'resume_propose', 'citation_verbatim', 'timestamp_ou_paragraphe',
-        'source_url', 'confiance', 'verbatim_verifie', 'statut', 'affiche_publiquement', 'mesure_id',
+        'source_url', 'confiance', 'verbatim_verifie', 'statut', 'affiche_publiquement', 'mesure_id', 'redite_de_mesure_id',
         'valide_par', 'valide_at', 'raw_llm_output',
     ];
 
@@ -67,6 +67,12 @@ class IngestionProposition extends Model
     public function mesure(): BelongsTo
     {
         return $this->belongsTo(ProgrammeMesure::class, 'mesure_id');
+    }
+
+    /** Mesure déjà au comparateur que cette proposition reprend (redite), avant rattachement. */
+    public function rediteDe(): BelongsTo
+    {
+        return $this->belongsTo(ProgrammeMesure::class, 'redite_de_mesure_id');
     }
 
     public function scopeEnAttente($query)

@@ -6,6 +6,7 @@ use App\Models\CandidatPresidentielle;
 use App\Models\IngestionDocument;
 use App\Models\IngestionProposition;
 use App\Models\PersonnePolitique;
+use App\Models\ProgrammeMesure;
 use App\Models\ProgrammeTheme;
 use App\Services\Presidentielle\ImportCadrageBudgetaire;
 use App\Support\Locuteur;
@@ -109,7 +110,7 @@ class PresidentielleImportPropositions extends Command
             $this->warn("Porteur : {$a}");
         }
 
-        $stats = ['insere' => 0, 'a_verifier' => 0, 'rejete_verbatim' => 0, 'candidat_inconnu' => 0, 'theme_inconnu' => 0, 'equipe' => 0, 'entourage' => 0, 'sans_role' => 0];
+        $stats = ['insere' => 0, 'a_verifier' => 0, 'rejete_verbatim' => 0, 'candidat_inconnu' => 0, 'theme_inconnu' => 0, 'equipe' => 0, 'entourage' => 0, 'sans_role' => 0, 'redites' => 0];
         $statsCadrage = null;
 
         DB::beginTransaction();
@@ -200,6 +201,20 @@ class PresidentielleImportPropositions extends Command
                     $stats['theme_inconnu']++;
                 }
 
+                // Redite : la proposition reprend une mesure déjà au comparateur. Le lien n'est
+                // gardé que si la mesure existe et appartient au même candidat ; sinon la
+                // proposition suit le circuit habituel, et rien ne bloque l'import.
+                $rediteDe = null;
+                if (! empty($p['redite_de_mesure'])) {
+                    $mesure = ProgrammeMesure::find((int) $p['redite_de_mesure']);
+                    if ($mesure && $candidatId && (int) $mesure->candidat_id === (int) $candidatId) {
+                        $rediteDe = $mesure->id;
+                        $stats['redites']++;
+                    } else {
+                        $this->line("  <fg=yellow>!</> [{$i}] redite d'une mesure introuvable ou d'un autre candidat (#{$p['redite_de_mesure']}) : lien ignoré");
+                    }
+                }
+
                 IngestionProposition::create([
                     'document_id' => $document->id,
                     'candidat_slug' => $p['candidat_slug'] ?? null,
@@ -217,6 +232,7 @@ class PresidentielleImportPropositions extends Command
                     'confiance' => $p['confiance'] ?? null,
                     'verbatim_verifie' => $verbatimOk,
                     'statut' => 'detecte',
+                    'redite_de_mesure_id' => $rediteDe,
                     'raw_llm_output' => $p,
                 ]);
                 $stats['insere']++;
@@ -253,6 +269,9 @@ class PresidentielleImportPropositions extends Command
         $this->newLine();
         $this->info("Propositions insérées (detecte) : {$stats['insere']}");
         $this->line("  dont à vérifier manuellement (verbatim non confirmé) : {$stats['a_verifier']}");
+        if ($stats['redites']) {
+            $this->line("  dont {$stats['redites']} redite(s) d'une mesure déjà au comparateur, à rattacher en modération");
+        }
         $this->line("  dont {$stats['equipe']} de l'équipe de campagne (attribuées à leur locuteur) et {$stats['entourage']} de l'entourage (section « Autour du candidat »)");
         if ($stats['sans_role']) {
             $this->line("  <fg=yellow>{$stats['sans_role']} locuteur(s) sans rôle : non publiables tant que le rôle manque</>");

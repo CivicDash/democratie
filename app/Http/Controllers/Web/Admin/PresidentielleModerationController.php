@@ -129,7 +129,7 @@ class PresidentielleModerationController extends Controller
         $reglesLocuteur = app(ReglesLocuteur::class);
         $reglesEntourage = app(ReglesEntourage::class);
 
-        $propositions = IngestionProposition::with(['candidat.personnePolitique', 'theme', 'document'])
+        $propositions = IngestionProposition::with(['candidat.personnePolitique', 'theme', 'document', 'rediteDe'])
             ->when($request->query('statut', 'detecte') !== 'tous', fn ($q) => $q->where('statut', $request->query('statut', 'detecte')))
             ->when($qui === 'candidat', fn ($q) => $q->whereNull('locuteur')->duCandidat())
             ->when($qui === 'equipe', fn ($q) => $q->where('qualite_locuteur', Locuteur::EQUIPE)->duCandidat())
@@ -155,6 +155,7 @@ class PresidentielleModerationController extends Controller
                     'verbatim_verifie' => $p->verbatim_verifie,
                     'statut' => $p->statut,
                     'mesure_id' => $p->mesure_id,
+                    'redite_de' => $p->rediteDe ? ['id' => $p->rediteDe->id, 'titre' => $p->rediteDe->titre] : null,
                     'affiche_publiquement' => (bool) $p->affiche_publiquement,
                     'locuteur' => $p->locuteur,
                     'role_locuteur' => $p->role_locuteur,
@@ -1068,7 +1069,7 @@ class PresidentielleModerationController extends Controller
     {
         $data = $request->validate([
             'id' => ['required', 'integer'],
-            'action' => ['required', 'in:valider,valider_sans_mesure,rejeter,valider_entourage,publier_entourage,depublier_entourage'],
+            'action' => ['required', 'in:valider,rattacher,valider_sans_mesure,rejeter,valider_entourage,publier_entourage,depublier_entourage'],
             'commentaire' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -1078,6 +1079,9 @@ class PresidentielleModerationController extends Controller
         try {
             match ($data['action']) {
                 'valider' => $service->creerMesureDepuisProposition($proposition, $user),
+                'rattacher' => $proposition->rediteDe
+                    ? $service->rattacherAMesure($proposition, $proposition->rediteDe, $user)
+                    : throw new ModerationException('Cette proposition n\'est pas marquée comme la redite d\'une mesure.'),
                 'valider_sans_mesure' => $service->validerSansMesure($proposition, $user, $commentaire),
                 'rejeter' => $service->rejeterProposition($proposition, $user, $commentaire),
                 'valider_entourage' => $service->validerEntourage($proposition, $user, $commentaire),
@@ -1090,6 +1094,7 @@ class PresidentielleModerationController extends Controller
 
         return back()->with('success', match ($data['action']) {
             'valider' => 'Proposition rattachée à une nouvelle mesure.',
+            'rattacher' => 'Redite rattachée : la mesure compte une prise de parole de plus.',
             'valider_sans_mesure' => 'Proposition validée sans mesure : elle paraît dans les prises de parole.',
             'rejeter' => 'Proposition rejetée.',
             'valider_entourage' => 'Proposition validée pour « Autour du candidat » (pas encore publiée).',
@@ -1118,6 +1123,9 @@ class PresidentielleModerationController extends Controller
         $resume = [];
         if ($bilan['mesures']) {
             $resume[] = $bilan['mesures'].' mesure(s) créée(s), non publiées';
+        }
+        if ($bilan['redites']) {
+            $resume[] = $bilan['redites'].' redite(s) rattachée(s) à leur mesure';
         }
         if ($bilan['sans_mesure']) {
             $resume[] = $bilan['sans_mesure'].' validée(s) sans mesure';
