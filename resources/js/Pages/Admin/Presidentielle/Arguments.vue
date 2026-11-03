@@ -162,7 +162,7 @@ const parSens = (s) => props.liens.filter((l) => l.sens === s);
                             <button v-if="l.affiche_publiquement" @click="agirLien(l.id, 'depublier')" class="px-2 py-1 text-[11px] rounded bg-amber-100 text-amber-700">Dépublier</button>
                         </div>
                     </div>
-                    <p v-if="!parSens(sens).length" class="text-xs text-gray-400">Aucun argument « {{ sens }} » — la mesure ne pourra pas être publiée sans.</p>
+                    <p v-if="!parSens(sens).length" class="text-xs text-gray-400">Aucun argument « {{ sens }} ». Sans argument publié, la mesure reste publiable ; dès qu'un argument est publié, il en faut au moins un dans chaque sens.</p>
                 </section>
             </div>
 
