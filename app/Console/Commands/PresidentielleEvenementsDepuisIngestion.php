@@ -26,7 +26,7 @@ class PresidentielleEvenementsDepuisIngestion extends Command
     protected $description = 'Crée les événements de campagne depuis les sources dépouillées (statut detecte).';
 
     /** Une page de programme n'est pas une prise de parole datée. */
-    private const TYPES_EXCLUS = ['programme_officiel'];
+    private const TYPES_EXCLUS = ['programme_officiel', 'programme'];
 
     public function handle(): int
     {
