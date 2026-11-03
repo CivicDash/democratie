@@ -41,6 +41,7 @@ class PresidentielleImportPropositions extends Command
         {--source= : fichier texte/transcription source pour vérifier les citations verbatim}
         {--cadrage= : fichier JSON du cadrage budgétaire de la même source (contrat cadrage_budgetaire.v1)}
         {--election=2027 : élection cible pour la résolution des candidats}
+        {--document= : id d\'une prise de parole déjà importée : les propositions s\'y ajoutent (redites oubliées), aucun document n\'est créé}
         {--dry-run : analyse complète, toutes écritures annulées}';
 
     protected $description = 'Importe des propositions (contrat JSON §11) en file de modération (statut detecte).';
@@ -90,6 +91,25 @@ class PresidentielleImportPropositions extends Command
             }
         }
 
+        // Ajout à une prise de parole déjà importée : mêmes vérifications, mais pas de second
+        // document — il ferait paraître deux fois la même vidéo dans les prises de parole.
+        $documentExistant = null;
+        if (($idDocument = $this->option('document')) !== null) {
+            $documentExistant = IngestionDocument::find((int) $idDocument);
+            if (! $documentExistant) {
+                $this->error("Prise de parole #{$idDocument} introuvable.");
+
+                return self::FAILURE;
+            }
+            if ($cadrage !== null) {
+                $this->error('--cadrage ne s\'utilise pas avec --document : le cadrage d\'une source s\'importe avec elle.');
+
+                return self::FAILURE;
+            }
+            // Qui porte la parole : celui du document existant, pas celui du fichier.
+            $porteur['porteur_type'] = $documentExistant->porteur_type ?? $porteur['porteur_type'];
+        }
+
         // Source de vérification verbatim (optionnelle mais recommandée)
         $sourceNorm = null;
         if ($src = $this->option('source')) {
@@ -123,25 +143,30 @@ class PresidentielleImportPropositions extends Command
                 $ds['note_methodologique'] ?? null,
             ])));
 
-            $document = IngestionDocument::create([
-                'candidat_id' => $this->candidatUnique($data['propositions'], $election),
-                'type' => $ds['type'] ?? 'article',
-                'titre' => $ds['titre'] ?? basename($fichier),
-                'url' => $ds['url'] ?? null,
-                'date_publication' => $ds['date'] ?? ($ds['date_publication'] ?? null),
-                'duree_s' => $ds['duree_s'] ?? null,
-                'transcription_note' => $note !== '' ? $note : null,
-                // La colonne fait 20 caractères : on n'y met pas le nom complet du
-                // contrat (« presidentielle.propositions.v1 ») mais sa seule version.
-                'contrat_version' => $this->versionContrat($data),
-                'generateur' => $data['generateur'] ?? null,
-                'statut' => 'extrait',
-                'porteur_type' => $porteur['porteur_type'],
-                'porteur_libelle' => $porteur['porteur_libelle'],
-                'endossement_url' => $porteur['endossement_url'],
-                'endossement_date' => $porteur['endossement_date'],
-                'endossement_note' => $porteur['endossement_note'],
-            ]);
+            if ($documentExistant) {
+                $document = $documentExistant;
+                $this->line("Ajout à la prise de parole #{$document->id} : « {$document->titre} »");
+            } else {
+                $document = IngestionDocument::create([
+                    'candidat_id' => $this->candidatUnique($data['propositions'], $election),
+                    'type' => $ds['type'] ?? 'article',
+                    'titre' => $ds['titre'] ?? basename($fichier),
+                    'url' => $ds['url'] ?? null,
+                    'date_publication' => $ds['date'] ?? ($ds['date_publication'] ?? null),
+                    'duree_s' => $ds['duree_s'] ?? null,
+                    'transcription_note' => $note !== '' ? $note : null,
+                    // La colonne fait 20 caractères : on n'y met pas le nom complet du
+                    // contrat (« presidentielle.propositions.v1 ») mais sa seule version.
+                    'contrat_version' => $this->versionContrat($data),
+                    'generateur' => $data['generateur'] ?? null,
+                    'statut' => 'extrait',
+                    'porteur_type' => $porteur['porteur_type'],
+                    'porteur_libelle' => $porteur['porteur_libelle'],
+                    'endossement_url' => $porteur['endossement_url'],
+                    'endossement_date' => $porteur['endossement_date'],
+                    'endossement_note' => $porteur['endossement_note'],
+                ]);
+            }
 
             foreach ($data['propositions'] as $i => $p) {
                 $citation = (string) ($p['citation_verbatim'] ?? '');
@@ -195,6 +220,9 @@ class PresidentielleImportPropositions extends Command
                 $candidatId = $this->resolveCandidat($p['candidat_slug'] ?? null, $election);
                 if (($p['candidat_slug'] ?? null) && ! $candidatId) {
                     $stats['candidat_inconnu']++;
+                }
+                if ($documentExistant && $candidatId && $document->candidat_id && (int) $candidatId !== (int) $document->candidat_id) {
+                    throw new InvalidArgumentException("proposition [{$i}] : ce n'est pas le candidat de la prise de parole #{$document->id}");
                 }
                 $themeId = $this->resolveTheme($p['theme_slug'] ?? null);
                 if (($p['theme_slug'] ?? null) && ! $themeId) {

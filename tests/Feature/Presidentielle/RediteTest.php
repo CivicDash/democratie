@@ -128,3 +128,24 @@ it('lit « redite_de_mesure » à l\'import, et ignore le lien vers la mesure d\
     expect(IngestionProposition::orderBy('id')->pluck('redite_de_mesure_id')->all())->toBe([$sienne->id, null])
         ->and(\Illuminate\Support\Facades\Artisan::output())->toContain('lien ignoré');
 });
+
+it('--document ajoute les propositions à une prise de parole existante, sans nouveau document', function () {
+    (new \Database\Seeders\ProgrammeThemesSeeder())->run();
+    (new \Database\Seeders\CandidatsPresidentielle2027Seeder())->run();
+    $melenchon = CandidatPresidentielle::whereHas('personnePolitique', fn ($q) => $q->where('slug', 'jean-luc-melenchon'))->firstOrFail();
+    $doc = IngestionDocument::create(['type' => 'meeting', 'titre' => 'Meeting déjà importé', 'statut' => 'extrait', 'candidat_id' => $melenchon->id]);
+    $sienne = ProgrammeMesure::factory()->create(['candidat_id' => $melenchon->id]);
+    $fichier = fn (string $slug) => jsonTemporaire(['contrat' => 'presidentielle.propositions.v1', 'propositions' => [[
+        'candidat_slug' => $slug, 'theme_slug' => 'fiscalite-budget', 'type' => 'mesure',
+        'resume_propose' => 'Redite oubliée.', 'citation_verbatim' => 'je le redis', 'redite_de_mesure' => $sienne->id,
+    ]]]);
+    $avant = IngestionDocument::count();
+
+    expect(\Illuminate\Support\Facades\Artisan::call('presidentielle:import-propositions', ['fichier' => $fichier('jean-luc-melenchon'), '--document' => $doc->id]))->toBe(0)
+        ->and(IngestionDocument::count())->toBe($avant)
+        ->and(IngestionProposition::where('document_id', $doc->id)->value('redite_de_mesure_id'))->toBe($sienne->id);
+
+    // Les propositions d'un autre candidat ne s'ajoutent pas à cette prise de parole.
+    expect(\Illuminate\Support\Facades\Artisan::call('presidentielle:import-propositions', ['fichier' => $fichier('gabriel-attal'), '--document' => $doc->id]))->toBe(1)
+        ->and(IngestionProposition::where('document_id', $doc->id)->count())->toBe(1);
+});
