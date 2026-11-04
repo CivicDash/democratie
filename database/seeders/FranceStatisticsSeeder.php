@@ -13,6 +13,17 @@ use Illuminate\Database\Seeder;
 
 class FranceStatisticsSeeder extends Seeder
 {
+    private const RECETTES_PERDUES_VIDES = [
+        'vat_fraud_billions_euros' => null, 'income_tax_fraud_billions_euros' => null,
+        'corporate_tax_fraud_billions_euros' => null, 'social_fraud_billions_euros' => null,
+        'tax_evasion_billions_euros' => null, 'tax_optimization_billions_euros' => null,
+        'offshore_billions_euros' => null, 'total_lost_billions_euros' => null,
+    ];
+
+    private const RECETTES_PERDUES_SOURCES = 'Haut Conseil du financement de la protection sociale, « Lutte contre la fraude sociale : état des lieux et enjeux », septembre 2024 (https://www.vie-publique.fr/en-bref/295552-fraude-sociale-des-pertes-importantes-sur-les-cotisations-sociales) ; Cour des comptes, travaux sur la lutte contre la fraude fiscale';
+
+    private const RECETTES_PERDUES_NOTE = "Fraude sociale : estimation présentée par le Haut Conseil comme un minimum théorique, dont une majorité porte sur les cotisations (travail dissimulé). Fraude fiscale : l'État n'en publie pas d'estimation, ce que relève la Cour des comptes. Les montants de 80 à 100 milliards d'euros parfois cités sont une estimation de l'écart fiscal par le syndicat Solidaires Finances publiques ; ils ne sont pas repris ici, faute d'estimation publique.";
+
     /**
      * Seed France statistics with real data from INSEE, Government sources
      * Data for 2023 and 2024 (demo purposes)
@@ -106,12 +117,13 @@ class FranceStatisticsSeeder extends Seeder
             [
                 'year' => 2023,
                 'quarter' => null,
-                'gdp_billions_euros' => 2923.0, // PIB 2023
-                'gdp_growth_rate' => 0.9, // Croissance 2023
+                // PIB, croissance, dette : Eurostat, mise à jour du 21/10/2026 (corrigé le 04/11/2026)
+                'gdp_billions_euros' => 2833.8,
+                'gdp_growth_rate' => 1.6,
                 'unemployment_rate' => 7.3,
                 'inflation_rate' => 4.9,
-                'public_debt_billions_euros' => 3101.0,
-                'public_debt_gdp_percentage' => 110.6,
+                'public_debt_billions_euros' => 3103.2,
+                'public_debt_gdp_percentage' => 109.5,
                 'trade_balance_billions_euros' => -99.6,
                 'exports_billions_euros' => 635.0,
                 'imports_billions_euros' => 734.6,
@@ -165,12 +177,12 @@ class FranceStatisticsSeeder extends Seeder
             [
                 'year' => 2024,
                 'quarter' => null,
-                'gdp_billions_euros' => 2980.0,
-                'gdp_growth_rate' => 1.1,
+                'gdp_billions_euros' => 2935.2,
+                'gdp_growth_rate' => 1.5,
                 'unemployment_rate' => 7.4,
-                'inflation_rate' => 2.5,
-                'public_debt_billions_euros' => 3200.0,
-                'public_debt_gdp_percentage' => 112.0,
+                'inflation_rate' => 2.0,
+                'public_debt_billions_euros' => 3306.1,
+                'public_debt_gdp_percentage' => 112.6,
                 'trade_balance_billions_euros' => -95.0,
                 'exports_billions_euros' => 650.0,
                 'imports_billions_euros' => 745.0,
@@ -387,40 +399,26 @@ class FranceStatisticsSeeder extends Seeder
     }
 
     /**
-     * Recettes perdues - Sources: Syndicat Solidaires Finances Publiques,
-     * Cour des Comptes, Tax Justice Network, Gabriel Zucman
+     * Recettes perdues : seules les estimations d'organismes publics (corrigé le 04/11/2026).
+     * L'État ne chiffre pas la fraude fiscale : ces colonnes restent vides plutôt que d'afficher
+     * l'estimation d'un syndicat ou d'une association comme un chiffre de référence.
      */
     private function seedLostRevenue(): void
     {
-        echo "  🚨 Recettes perdues (fraude, évasion)...\n";
+        echo "  🚨 Recettes perdues (estimations publiques uniquement)...\n";
 
         $lostRevenue = [
-            [
+            array_merge(self::RECETTES_PERDUES_VIDES, [
                 'year' => 2023,
-                'vat_fraud_billions_euros' => 14.5, // Fraude à la TVA (carrousel, etc.)
-                'income_tax_fraud_billions_euros' => 8.2,
-                'corporate_tax_fraud_billions_euros' => 12.3,
-                'social_fraud_billions_euros' => 7.8, // Travail dissimulé, etc.
-                'tax_evasion_billions_euros' => 80.0, // Évasion fiscale (estimation basse)
-                'tax_optimization_billions_euros' => 25.0, // Optimisation légale mais agressive
-                'offshore_billions_euros' => 35.0, // Paradis fiscaux
-                'total_lost_billions_euros' => 182.8,
-                'sources' => 'Syndicat Solidaires Finances Publiques, Cour des Comptes, Tax Justice Network',
-                'notes' => 'Estimations conservatrices. Certaines études (Gabriel Zucman) évaluent la perte totale entre 80 et 100 Md€ pour l\'évasion seule.',
-            ],
-            [
+                'social_fraud_billions_euros' => 13.0,
+                'sources' => self::RECETTES_PERDUES_SOURCES,
+                'notes' => self::RECETTES_PERDUES_NOTE,
+            ]),
+            array_merge(self::RECETTES_PERDUES_VIDES, [
                 'year' => 2024,
-                'vat_fraud_billions_euros' => 15.2,
-                'income_tax_fraud_billions_euros' => 8.5,
-                'corporate_tax_fraud_billions_euros' => 13.1,
-                'social_fraud_billions_euros' => 8.2,
-                'tax_evasion_billions_euros' => 85.0,
-                'tax_optimization_billions_euros' => 26.5,
-                'offshore_billions_euros' => 37.0,
-                'total_lost_billions_euros' => 193.5,
-                'sources' => 'Syndicat Solidaires Finances Publiques, Cour des Comptes, Tax Justice Network',
-                'notes' => 'La fraude à la TVA augmente avec le e-commerce transfrontalier. L\'évasion fiscale reste massive malgré les efforts de lutte.',
-            ],
+                'sources' => self::RECETTES_PERDUES_SOURCES,
+                'notes' => "Aucune estimation publique pour 2024 au 4 novembre 2026. ".self::RECETTES_PERDUES_NOTE,
+            ]),
         ];
 
         foreach ($lostRevenue as $data) {

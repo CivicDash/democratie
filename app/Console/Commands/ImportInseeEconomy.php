@@ -191,13 +191,17 @@ class ImportInseeEconomy extends Command
         $created = 0;
         $updated = 0;
 
+        // Valeurs de repli corrigées le 04/11/2026. PIB en valeur, croissance en volume, dette et
+        // ratio : Eurostat (mise à jour du 21/10/2026, comptes en base 2020). Inflation : moyenne
+        // annuelle de l'indice des prix de l'Insee (0,9 % en 2025 selon la Cour des comptes, juin 2026).
+        // Chômage et balance commerciale : anciennes valeurs, non revérifiées.
         $baseData = [
-            2020 => ['gdp_billions_euros' => 2318.9, 'gdp_growth_rate' => -7.8, 'unemployment_rate' => 8.0, 'inflation_rate' => 0.5, 'public_debt_billions_euros' => 2650.1, 'public_debt_gdp_percentage' => 114.6, 'trade_balance_billions_euros' => -65.2],
-            2021 => ['gdp_billions_euros' => 2500.9, 'gdp_growth_rate' => 6.8, 'unemployment_rate' => 7.9, 'inflation_rate' => 1.6, 'public_debt_billions_euros' => 2813.1, 'public_debt_gdp_percentage' => 112.9, 'trade_balance_billions_euros' => -84.7],
-            2022 => ['gdp_billions_euros' => 2639.1, 'gdp_growth_rate' => 2.5, 'unemployment_rate' => 7.3, 'inflation_rate' => 5.2, 'public_debt_billions_euros' => 2950.0, 'public_debt_gdp_percentage' => 111.8, 'trade_balance_billions_euros' => -163.6],
-            2023 => ['gdp_billions_euros' => 2803.1, 'gdp_growth_rate' => 0.9, 'unemployment_rate' => 7.1, 'inflation_rate' => 4.9, 'public_debt_billions_euros' => 3101.2, 'public_debt_gdp_percentage' => 110.6, 'trade_balance_billions_euros' => -99.6],
-            2024 => ['gdp_billions_euros' => 2870.0, 'gdp_growth_rate' => 1.1, 'unemployment_rate' => 7.3, 'inflation_rate' => 2.0, 'public_debt_billions_euros' => 3228.4, 'public_debt_gdp_percentage' => 112.3, 'trade_balance_billions_euros' => -81.2],
-            2025 => ['gdp_billions_euros' => 2920.0, 'gdp_growth_rate' => 0.8, 'unemployment_rate' => 7.5, 'inflation_rate' => 1.8, 'public_debt_billions_euros' => 3350.0, 'public_debt_gdp_percentage' => 113.5, 'trade_balance_billions_euros' => -78.0],
+            2020 => ['gdp_billions_euros' => 2318.3, 'gdp_growth_rate' => -7.4, 'unemployment_rate' => 8.0, 'inflation_rate' => 0.5, 'public_debt_billions_euros' => 2663.9, 'public_debt_gdp_percentage' => 114.9, 'trade_balance_billions_euros' => -65.2, 'gdp_per_capita_euros' => 34230],
+            2021 => ['gdp_billions_euros' => 2508.1, 'gdp_growth_rate' => 6.9, 'unemployment_rate' => 7.9, 'inflation_rate' => 1.6, 'public_debt_billions_euros' => 2828.8, 'public_debt_gdp_percentage' => 112.8, 'trade_balance_billions_euros' => -84.7, 'gdp_per_capita_euros' => 36910],
+            2022 => ['gdp_billions_euros' => 2654.0, 'gdp_growth_rate' => 2.7, 'unemployment_rate' => 7.3, 'inflation_rate' => 5.2, 'public_debt_billions_euros' => 2955.6, 'public_debt_gdp_percentage' => 111.4, 'trade_balance_billions_euros' => -163.6, 'gdp_per_capita_euros' => 38870],
+            2023 => ['gdp_billions_euros' => 2833.8, 'gdp_growth_rate' => 1.6, 'unemployment_rate' => 7.1, 'inflation_rate' => 4.9, 'public_debt_billions_euros' => 3103.2, 'public_debt_gdp_percentage' => 109.5, 'trade_balance_billions_euros' => -99.6, 'gdp_per_capita_euros' => 41340],
+            2024 => ['gdp_billions_euros' => 2935.2, 'gdp_growth_rate' => 1.5, 'unemployment_rate' => 7.3, 'inflation_rate' => 2.0, 'public_debt_billions_euros' => 3306.1, 'public_debt_gdp_percentage' => 112.6, 'trade_balance_billions_euros' => -81.2, 'gdp_per_capita_euros' => 42680],
+            2025 => ['gdp_billions_euros' => 2991.1, 'gdp_growth_rate' => 0.8, 'unemployment_rate' => 7.5, 'inflation_rate' => 0.9, 'public_debt_billions_euros' => 3460.1, 'public_debt_gdp_percentage' => 115.7, 'trade_balance_billions_euros' => -78.0, 'gdp_per_capita_euros' => 43350],
         ];
 
         foreach ($baseData as $year => $data) {
@@ -205,22 +209,19 @@ class ImportInseeEconomy extends Command
                 continue;
             }
 
-            $data['gdp_per_capita_euros'] = round(($data['gdp_billions_euros'] * 1_000_000_000) / 68_000_000, 2);
-
             if ($this->option('dry-run')) {
                 $this->info("   [DRY] {$year}: PIB={$data['gdp_billions_euros']}Md€");
 
                 continue;
             }
 
-            $existing = FranceEconomy::forYear($year)->annual()->first();
-            if ($existing) {
-                $existing->update($data);
-                $updated++;
-            } else {
-                FranceEconomy::create(array_merge(['year' => $year, 'quarter' => null], $data));
-                $created++;
+            // Le repli ne fait que combler une année absente : il ne remplace jamais une valeur déjà
+            // en base, qui peut venir de l'API ou d'une correction plus récente que ce tableau.
+            if (FranceEconomy::forYear($year)->annual()->exists()) {
+                continue;
             }
+            FranceEconomy::create(array_merge(['year' => $year, 'quarter' => null], $data));
+            $created++;
         }
 
         $importLog->finish($created, $updated);

@@ -63,14 +63,20 @@ class ImportBudgetEtat extends Command
         ['code' => 'travail', 'libelle' => 'Travail et emploi', 'credits_cp' => 22_800_000_000],
     ];
 
-    // Données annuelles historiques
+    // Données annuelles historiques, en milliards d'euros (corrigées le 04/11/2026 : la dette et le
+    // PIB étaient multipliés par 1 000, et les chiffres de l'État ne correspondaient à aucune source).
+    //  - recettes, dépenses : budget général de l'État, nets, fonds de concours compris ;
+    //  - déficit : résultat budgétaire de l'État hors opérations avec le FMI ;
+    //    tous trois tirés de l'article 1er des projets de loi de règlement (« résultats de la gestion ») ;
+    //  - dette, PIB, ratios : ensemble des administrations publiques, au sens européen (Eurostat,
+    //    mise à jour du 21/10/2026). Le ratio de déficit est celui du critère des 3 %.
     private const BUDGET_HISTORIQUE = [
-        2020 => ['recettes' => 250_700, 'depenses' => 468_000, 'deficit' => -217_300, 'dette' => 2_650_000, 'pib' => 2_310_000, 'deficit_pib' => -9.4, 'dette_pib' => 114.6],
-        2021 => ['recettes' => 295_000, 'depenses' => 448_500, 'deficit' => -153_500, 'dette' => 2_813_000, 'pib' => 2_500_000, 'deficit_pib' => -6.5, 'dette_pib' => 112.5],
-        2022 => ['recettes' => 324_400, 'depenses' => 456_100, 'deficit' => -131_700, 'dette' => 2_950_000, 'pib' => 2_640_000, 'deficit_pib' => -4.8, 'dette_pib' => 111.8],
-        2023 => ['recettes' => 328_000, 'depenses' => 482_000, 'deficit' => -154_000, 'dette' => 3_101_000, 'pib' => 2_780_000, 'deficit_pib' => -5.5, 'dette_pib' => 111.6],
-        2024 => ['recettes' => 340_000, 'depenses' => 500_000, 'deficit' => -160_000, 'dette' => 3_228_000, 'pib' => 2_850_000, 'deficit_pib' => -5.6, 'dette_pib' => 113.3],
-        2025 => ['recettes' => 355_000, 'depenses' => 512_000, 'deficit' => -157_000, 'dette' => 3_350_000, 'pib' => 2_950_000, 'deficit_pib' => -5.3, 'dette_pib' => 113.6],
+        2020 => ['recettes' => 216.9995, 'depenses' => 389.6779, 'deficit' => -178.0680, 'dette' => 2663.852, 'pib' => 2318.2762, 'deficit_pib' => -8.9, 'dette_pib' => 114.9, 'loi' => 'pjl20-699'],
+        2021 => ['recettes' => 255.2147, 'depenses' => 426.7324, 'deficit' => -170.7394, 'dette' => 2828.781, 'pib' => 2508.1023, 'deficit_pib' => -6.6, 'dette_pib' => 112.8, 'loi' => 'pjl21-787'],
+        2022 => ['recettes' => 287.4765, 'depenses' => 445.6716, 'deficit' => -151.4414, 'dette' => 2955.6391, 'pib' => 2653.9972, 'deficit_pib' => -4.7, 'dette_pib' => 111.4, 'loi' => 'pjl22-684'],
+        2023 => ['recettes' => 286.4064, 'depenses' => 454.5654, 'deficit' => -172.9722, 'dette' => 3103.248, 'pib' => 2833.8264, 'deficit_pib' => -5.4, 'dette_pib' => 109.5, 'loi' => 'pjl24-032'],
+        2024 => ['recettes' => 289.4669, 'depenses' => 443.4133, 'deficit' => -155.9300, 'dette' => 3306.0967, 'pib' => 2935.2362, 'deficit_pib' => -5.8, 'dette_pib' => 112.6, 'loi' => 'pjl24-718'],
+        2025 => ['recettes' => 318.7068, 'depenses' => 441.1943, 'deficit' => -124.2057, 'dette' => 3460.111, 'pib' => 2991.0559, 'deficit_pib' => -5.1, 'dette_pib' => 115.7, 'loi' => 'pjl25-726'],
     ];
 
     public function handle(): int
@@ -108,13 +114,20 @@ class ImportBudgetEtat extends Command
             BudgetAnnuel::updateOrCreate(
                 ['annee' => $annee],
                 [
-                    'recettes_nettes' => $data['recettes'] * 1_000_000_000,
-                    'depenses_nettes' => $data['depenses'] * 1_000_000_000,
-                    'deficit' => $data['deficit'] * 1_000_000_000,
-                    'dette_publique' => $data['dette'] * 1_000_000_000,
-                    'pib' => $data['pib'] * 1_000_000_000,
+                    'recettes_nettes' => round($data['recettes'] * 1_000_000_000, 2),
+                    'depenses_nettes' => round($data['depenses'] * 1_000_000_000, 2),
+                    'deficit' => round($data['deficit'] * 1_000_000_000, 2),
+                    'dette_publique' => round($data['dette'] * 1_000_000_000, 2),
+                    'pib' => round($data['pib'] * 1_000_000_000, 2),
                     'deficit_pib_pct' => $data['deficit_pib'],
                     'dette_pib_pct' => $data['dette_pib'],
+                    'metadata' => [
+                        'sources' => [
+                            'etat' => "Projet de loi relatif aux résultats de la gestion de l'année {$annee}, article 1er : https://www.senat.fr/leg/{$data['loi']}.pdf",
+                            'administrations_publiques' => 'Eurostat, gov_10dd_edpt1, gov_10a_main et nama_10_gdp (mise à jour du 21/10/2026)',
+                        ],
+                        'definitions' => "Recettes et dépenses : budget général de l'État, nets, fonds de concours compris. Déficit : résultat budgétaire de l'État. Dette, PIB et ratios : ensemble des administrations publiques.",
+                    ],
                 ]
             );
             $bar->advance();
