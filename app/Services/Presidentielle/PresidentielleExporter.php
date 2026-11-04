@@ -798,7 +798,9 @@ class PresidentielleExporter
             $parDocument[$doc->id]['citations'][] = [
                 'theme' => $p->theme?->slug,
                 'resume' => $p->resume_propose,
-                'citation' => $this->tronqueMots((string) $p->citation_verbatim, 15),
+                // Citation entière, telle que vérifiée mot pour mot (25 mots au plus en règle
+                // générale) : coupée à 15 mots, une sur deux perdait son sens.
+                'citation' => (string) $p->citation_verbatim,
                 'timecode' => $p->timestamp_ou_paragraphe,
                 'timestamp_s' => $secondes,
                 'verifier_url' => $this->deeplinkVideo($urlSource, $secondes),
@@ -911,7 +913,7 @@ class PresidentielleExporter
                 'date' => optional($p->document?->date_publication)->toDateString(),
                 'nature' => $p->nature_lien ?? 'origine',
                 'chiffrage' => is_array($p->raw_llm_output) ? ($p->raw_llm_output['chiffrage_annonce'] ?? null) : null,
-                'citation' => $this->tronqueMots((string) $p->citation_verbatim, 15),
+                'citation' => (string) $p->citation_verbatim,
                 'timecode' => $p->timestamp_ou_paragraphe,
                 'verifier_url' => $this->deeplinkVideo($this->url($p->source_url) ?? $this->url($p->document?->url), $this->timecodeEnSecondes($p->timestamp_ou_paragraphe)),
                 'source' => $p->document?->titre,
@@ -929,7 +931,7 @@ class PresidentielleExporter
                 $secondes = $this->timecodeEnSecondes($p->timestamp_ou_paragraphe);
 
                 return [
-                    'citation' => $this->tronqueMots((string) $p->citation_verbatim, 15),
+                    'citation' => (string) $p->citation_verbatim,
                     'timecode' => $p->timestamp_ou_paragraphe,
                     'verifier_url' => $this->deeplinkVideo($this->url($p->source_url) ?? $this->url($p->document?->url), $secondes),
                 ] + $this->attribution($p);
@@ -989,7 +991,7 @@ class PresidentielleExporter
                         return $this->attribution($p) + [
                             'theme' => $p->theme?->slug,
                             'resume' => $p->resume_propose,
-                            'citation' => $this->tronqueMots((string) $p->citation_verbatim, 15),
+                            'citation' => (string) $p->citation_verbatim,
                             'timecode' => $p->timestamp_ou_paragraphe,
                             'timestamp_s' => $secondes,
                             'verifier_url' => $this->deeplinkVideo($this->url($p->source_url) ?? $this->url($doc->url), $secondes),
@@ -1337,8 +1339,8 @@ class PresidentielleExporter
                     // Conseil d'analyse économique » vaut mieux que « des économistes ».
                     'auteur' => $s->auteur,
                     'date' => optional($s->date_publication)->toDateString(),
-                    // Verbatim d'une publication tierce : même prudence que pour les
-                    // citations de meeting (droit de courte citation).
+                    // Verbatim d'une publication tierce : droit de courte citation. Les
+                    // citations des candidats, elles, paraissent entières.
                     'extrait' => $s->extrait ? $this->tronqueMots($s->extrait, 25) : null,
                     'archive_url' => $this->url($s->archive_url),
                     'fiabilite' => $s->fiabilite,
