@@ -752,13 +752,16 @@ class PresidentielleExporter
             return null;
         }
 
-        $chapitres = collect($doc->structure ?? [])->map(function ($ch) use ($doc) {
+        // Seules les sous-pages (titres de section) paraissent sur le site : un référentiel complet
+        // porte aussi chaque mesure (type « mesure »), qui ne doit pas être publiée en bloc.
+        $sousPages = $doc->items->where('type', 'sous_page');
+        $chapitres = collect($doc->structure ?? [])->map(function ($ch) use ($sousPages) {
             $numero = $ch['numero'] ?? null;
 
             return [
                 'numero' => $numero,
                 'titre' => $ch['titre'] ?? '',
-                'sous_pages' => $doc->items->where('chapitre_numero', $numero)->map(fn ($i) => [
+                'sous_pages' => $sousPages->where('chapitre_numero', $numero)->map(fn ($i) => [
                     'titre' => $i->titre,
                     'url' => $this->url($i->url_ancre),
                 ])->values()->all(),
@@ -770,7 +773,7 @@ class PresidentielleExporter
             'url' => $this->url($doc->url),
             'porteur' => $this->porteur($doc),
             'nb_chapitres' => count($chapitres),
-            'nb_entrees' => $doc->items->count(),
+            'nb_entrees' => $sousPages->count(),
             'chapitres' => $chapitres,
         ];
     }

@@ -14,7 +14,11 @@ class ProgrammeDocumentItem extends Model
 
     protected $fillable = [
         'document_id', 'chapitre_numero', 'chapitre_titre', 'type', 'numero',
-        'titre', 'texte_court', 'url_ancre', 'ordre',
+        'titre', 'texte_court', 'url_ancre', 'ordre', 'page',
+    ];
+
+    protected $casts = [
+        'page' => 'integer',
     ];
 
     public function document(): BelongsTo

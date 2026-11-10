@@ -92,6 +92,8 @@ class PresidentielleImportProgrammeReferentiel extends Command
                     'titre' => mb_substr((string) ($item['titre'] ?? ''), 0, 500),
                     'texte_court' => isset($item['texte_court']) ? mb_substr($item['texte_court'], 0, 300) : null,
                     'url_ancre' => $item['url'] ?? $item['url_ancre'] ?? null,
+                    // page du livre imprimé, quand le référentiel vient d'un livre (sinon null)
+                    'page' => isset($item['page']) ? (int) $item['page'] : null,
                     'ordre' => $ordre++,
                 ]);
             }
